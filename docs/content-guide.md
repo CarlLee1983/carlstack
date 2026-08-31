@@ -80,7 +80,7 @@ Mermaid 以 `securityLevel: strict` 在瀏覽器渲染。避免在節點中加�
 3. 執行 `pnpm format && pnpm check && pnpm test`。
 4. 設定正確 `publishDate`，將 `draft` 改為 `false`。
 5. 再次執行 production build，確認文章出現在 RSS、Sitemap 與 Pagefind。
-6. merge 後由有權限的人手動觸發 deployment workflow。
+6. merge 到 `main` 後由 GitHub Actions 自動部署。
 
 ## SEO 與 cross-post
 

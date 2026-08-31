@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
@@ -35,6 +33,3 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-
-      - name: Build production artifact
-        run: pnpm build

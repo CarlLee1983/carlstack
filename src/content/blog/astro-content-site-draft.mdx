@@ -55,7 +55,7 @@ const posts = (await getCollection("blog"))
   width="960"
   height="540"
   loading="lazy"
-  alt="Markdown 經過 schema 驗證、Astro build、Pagefind 索引，最後部署到 Cloudflare Workers 的內容管線"
+  alt="Markdown 經過 schema 驗證、Astro build、Pagefind 索引，最後部署到 GitHub Pages 的內容管線"
 />
 
 ## Mermaid 架構圖
@@ -65,7 +65,7 @@ flowchart LR
   A[Markdown / MDX] --> B[Content schema]
   B --> C[Astro static build]
   C --> D[Pagefind index]
-  D --> E[Cloudflare Workers assets]
+  D --> E[GitHub Pages]
 ```
 
 這個圖表在文章頁才載入 Mermaid；其他頁面不付出 JavaScript 成本。若圖表或程式碼很寬，容器會在手機上局部捲動，不會讓整個頁面產生水平捲軸。

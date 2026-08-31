@@ -14,7 +14,7 @@ test("部署拒絕保留的 placeholder SITE_URL", () => {
 
 test("部署接受 production HTTPS SITE_URL", () => {
   const result = spawnSync(process.execPath, [script], {
-    env: { ...process.env, SITE_URL: "https://blog.carlstack.dev" },
+    env: { ...process.env, SITE_URL: "https://carlstack.gravito.dev" },
   });
   assert.equal(result.status, 0);
 });

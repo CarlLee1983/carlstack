@@ -11,13 +11,12 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
-    "preview": "pnpm build && wrangler dev",
+    "preview": "pnpm build && astro preview",
     "check": "pnpm format:check && astro check && pnpm build",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "validate:site-url": "node scripts/validate-site-url.mjs",
-    "deploy": "pnpm validate:site-url && pnpm build && wrangler deploy"
+    "validate:site-url": "node scripts/validate-site-url.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "7.2.4",
@@ -32,7 +31,6 @@
     "pagefind": "1.5.2",
     "prettier": "3.9.6",
     "prettier-plugin-astro": "0.14.1",
-    "typescript": "6.0.3",
-    "wrangler": "4.127.1"
+    "typescript": "6.0.3"
   }
 }

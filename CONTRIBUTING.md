@@ -7,7 +7,7 @@ CarlStack 是內容網站，不是 CMS 平台。請讓每次變更保持可讀�
 1. 使用 Node.js 22.13+ 與 pnpm 12.1.0。
 2. 執行 `pnpm install --frozen-lockfile`。
 3. 閱讀 `README.md` 與 `docs/content-guide.md`。
-4. 不要提交 `.env`、Cloudflare token、account ID 或 Giscus 私密資料。
+4. 不要提交 `.env`、部署憑證或 Giscus 私密資料。
 
 ## 內容變更
 
@@ -22,7 +22,7 @@ CarlStack 是內容網站，不是 CMS 平台。請讓每次變更保持可讀�
 - 優先靜態 HTML、原生瀏覽器能力與既有相依。
 - 非必要互動不要加入 framework hydration。
 - 修改 draft、排序、taxonomy、系列或 SEO 規則時更新對應測試。
-- 新 production dependency、動態 Worker、schema 或 public URL 變更需在 PR 說明理由與回復方式。
+- 新 production dependency、動態服務、schema 或 public URL 變更需在 PR 說明理由與回復方式。
 
 ## 送出前
 
@@ -33,4 +33,4 @@ pnpm test
 pnpm build
 ```
 
-PR 說明需列出內容／行為變更、實際執行的驗證與尚未驗證的風險。不要自行 deploy；production deployment 由獨立 workflow 手動觸發。
+PR 說明需列出內容／行為變更、實際執行的驗證與尚未驗證的風險。合併到 `main` 後由 GitHub Actions 自動部署。
