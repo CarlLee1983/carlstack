@@ -1,0 +1,128 @@
+---
+title: "Claude Code 不必每次重新指示：把重複要求變成可驗證的開發環境"
+description: "從 CLAUDE.md、Skills、hooks、subagents 到 worktrees，整理如何把一次性 Prompt 拆成持久知識、可重用流程、機械護欄與可驗證的開發迴圈。"
+publishDate: 2026-08-31
+draft: true
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 軟體品質
+cover: ../../assets/covers/claude-code-self-driving.png
+coverAlt: "指南、技能、hooks 與調查模組匯入終端核心，完成結果再經查核回饋形成閉環的工程圖"
+---
+
+Claude Code 用久後，常見的挫折不是它完全不會寫，而是每次都要重新解釋同一批規則：測試要跑哪些、哪些目錄不能碰、該參考哪個既有實作，以及什麼才算完成。Session 拉長後，前面的指示又可能被大量讀檔、命令輸出與失敗嘗試淹沒。
+
+[@swarm_japan 的〈Claude Code への「毎回指示」はオワコン：「自走設計」のススメ〉](https://x.com/swarm_japan/status/2074607688257057121?s=12)從這個困境出發，主張把 Claude Code 從等待逐步指示的聊天工具，改造成能自行推進的 Agent。
+
+方向是對的，但「每次指示已經過時」說得太滿。Prompt 仍負責描述當下任務；真正該淘汰的，是把穩定規則、必跑檢查與重複流程永遠留在臨時對話裡。[上一篇談 Harness Engineering 的文章](/blog/harness-engineering-for-reliable-agents/)已經拆過一般性的控制面，這一篇只處理 Claude Code 裡該把每種資訊放在哪裡，以及相關命令的實際限制。
+
+## 問題不是 session 長，而是訊號被稀釋
+
+Claude Code 的 context 會累積對話、讀過的檔案與命令結果。容量有限，無關資訊愈多，模型愈容易分心；接近容量時系統會自動 compact，也可以用 `/compact` 手動摘要。[Anthropic：Claude Code context window](https://code.claude.com/docs/en/context-window)
+
+這不表示存在一條「超過幾萬 token 就必然失效」的通則。比較實用的判斷是：這項資訊應該只活在本次任務，還是應該被環境長期保存？
+
+| 資訊或控制               | 合適位置       | 理由                             |
+| ------------------------ | -------------- | -------------------------------- |
+| 本次目標、範圍、非目標   | Prompt 或 plan | 任務結束後通常失效               |
+| 穩定的專案規則與常用命令 | `CLAUDE.md`    | 跨 session 仍然成立              |
+| 只在特定工作出現的程序   | Skill          | 需要時才載入，不擠滿每次 context |
+| 每次都必須執行的檢查     | Hook           | 由系統觸發，不靠模型記得         |
+| 大量探索或獨立 review    | Subagent       | 隔離 context，只帶回結論         |
+
+這個分流比繼續加長 Prompt 更重要。它把「記住規則」從模型的注意力問題，轉成環境的責任配置問題。
+
+## Prompt 沒消失，而是變成任務契約
+
+有效的 Prompt 不需要把整個 repository 重述一次。Claude Code 官方建議提供具體範圍、相關檔案、既有模式與可驗證的結果；tests、screenshots、expected outputs 與命令結果都可以成為回饋。[Anthropic：How Claude Code works](https://code.claude.com/docs/en/how-claude-code-works)、[Anthropic：Claude Code best practices](https://code.claude.com/docs/en/best-practices)
+
+一份足夠工作的任務契約通常包含：
+
+- 目標：要改變哪個可觀察行為；
+- 範圍：允許修改的位置，以及明確的非目標；
+- 來源：問題症狀、規格、log 或現有實作；
+- 模式：應沿用哪段程式或測試方式；
+- 驗收：要跑什麼檢查，通過時會看到什麼證據。
+
+重點不是欄位名稱，而是讓 Claude 能回答：「下一步去哪裡找證據？」以及「我怎麼知道真的完成？」
+
+## 四種機制，四種責任
+
+`CLAUDE.md`、Skills、hooks 與 subagents 常被一起列為 Claude Code 的環境設計工具。它們不是 Anthropic 官方定義的「四柱架構」，也不能互相替代；真正有用的是責任邊界。
+
+### `CLAUDE.md`：保存穩定但程式碼看不出的知識
+
+`CLAUDE.md` 適合放 build／test 命令、非標準慣例、架構邊界與常見陷阱。專案根目錄的內容會進入 session；巢狀 `CLAUDE.md` 與 path-scoped rules 則在 Claude 讀到相符檔案時才載入，因此可以把局部規則留在局部。[Anthropic：How Claude remembers your project](https://code.claude.com/docs/en/memory)
+
+一條規則值不值得留下，可以問：「刪掉它之後，Agent 是否更可能犯一個 repository 本身無法揭露的錯？」如果答案是否定的，讓它留在程式碼、schema 或套件指令裡，避免把環境已有的事實再快取一份。
+
+### Skills：保存條件式、可重用的工作流程
+
+Skill 適合處理只在特定任務出現的程序，例如發布文章、修復 CI 或產生 API 文件。預設可由模型呼叫的 Skill 會先用名稱與描述參與匹配，被呼叫時才載入完整內容；也可以由使用者直接呼叫，或設為只能明確呼叫。因此不必把所有領域知識都塞進 `CLAUDE.md`。[Anthropic：Extend Claude with skills](https://code.claude.com/docs/en/skills)
+
+Skill 應該指向既有規格，而不是複製規格。否則專案會同時擁有兩份內容指南，下一次更新後只剩一份是對的。
+
+### Hooks：強制執行確定性的護欄
+
+Hook 可以在工具執行前後、停止、compact 等 lifecycle 事件觸發 command、HTTP 或其他檢查。適合放格式化、禁止寫入特定路徑、secret scan 或「測試未過不能結束」之類的機械規則。[Anthropic：Hooks reference](https://code.claude.com/docs/en/hooks)
+
+但 Stop hook 只控制能不能停止，不會自動證明產物正確；連續阻擋也有上限。可靠做法是讓測試或 reviewer 產生證據，hook 再負責檢查證據是否存在，而不是用另一段 Prompt 假裝成測試。
+
+### Subagents：隔離探索與獨立評估
+
+Subagent 有自己的 context、工具與權限，完成後把摘要交回主 session，適合大量搜尋、互不相依的研究或實作後 review。[Anthropic：Create custom subagents](https://code.claude.com/docs/en/sub-agents)
+
+隔離不是免費的。內建 Explore／Plan agent 不會自動取得所有 `CLAUDE.md` 與 git 狀態；委派時仍要提供清楚目標、範圍、完成條件與需要回傳的證據。否則只是把模糊工作移到另一個視窗。
+
+## 讓驗證成為工作流程的一部分
+
+對陌生或高風險改動，Claude Code 官方建議先用 Plan Mode 探索與規劃，再實作、驗證並進入 commit／PR；小而明確的修改則不必為了形式硬寫計畫。[Anthropic：Claude Code best practices](https://code.claude.com/docs/en/best-practices)
+
+實際工作時，可以把流程拆成六個判斷：
+
+1. 固定任務契約：先寫清楚目標、範圍與驗收條件。
+2. Explore：找到相關檔案、既有模式與問題證據。
+3. Plan：決定最小改動與驗證方式。
+4. Implement：完成修改，不在途中擴張需求。
+5. Verify：執行 tests、screenshots 或 commands；證據不足就回到實作。
+6. Review 或交付：高風險改動先接受獨立 review，其餘在證據通過後交付。
+
+這是本文建議的實作順序。獨立 review 是風險較高時才加入的 gate，不是官方四階段的固定一步。
+
+Plan Mode 的價值是把「理解問題」與「修改程式」分開。驗證的價值則是把「看起來完成」改成「有外部訊號支持完成」。Commit 或 PR 可以是後續交付步驟，但它們涉及 repository history 與外部狀態，仍應由使用者授權，不該被當成 Agent 自動完成的預設條件。
+
+## 主動管理 session，而不是撐到 context 用完
+
+Claude Code 提供幾個用途不同的控制：
+
+| 操作                      | 適用時機                          | 不能解決的事                              |
+| ------------------------- | --------------------------------- | ----------------------------------------- |
+| `/clear`                  | 切換到不相關任務，建立空 context  | 不會替新 session 保存未記錄的決策         |
+| `/compact [instructions]` | 同一任務仍要延續，但需要摘要      | 摘要可能省略未明確要求保留的細節          |
+| `/rewind`                 | 回到先前 checkpoint，撤回錯誤路徑 | 不追蹤 Bash、外部或平行程序造成的檔案修改 |
+| `/btw`                    | 詢問不希望寫入歷史的旁支問題      | 不適合承載後續工作依賴的重要決策          |
+
+這些命令的差異可在 [Claude Code commands](https://code.claude.com/docs/en/commands)與 [Checkpointing](https://code.claude.com/docs/en/checkpointing)查到。特別要注意，checkpoint 只涵蓋 Claude 檔案編輯工具追蹤到的變更，不是 Git 的替代品。
+
+真正能跨 session 保存工作的，是 repository 裡的規格、plan、測試、diff 與提交紀錄。Context 應該拿來推理，而不是兼任唯一的 system of record。
+
+## 平行執行之前，先切清楚寫入邊界
+
+Claude Code 可以用 `--worktree` 建立隔離 checkout，也能讓 subagent 在 worktree 中工作。這適合互不重疊、可以獨立驗收的變更；worktree 只隔離檔案，不會替你解決需求耦合與最後合併。[Anthropic：Run parallel Claude Code sessions with Git worktrees](https://code.claude.com/docs/en/worktrees)
+
+Writer／Reviewer 是實用的自訂分工，但不是內建固定模式：writer 擁有單一變更面，reviewer 唯讀檢查規格、測試與風險。若兩個 Agent 同時修改同一個語義切片，增加的通常不是速度，而是整合成本。
+
+`auto` mode 也不等於無人代理。它使用分類器處理當前 turn 的工具核准，不會自行開始下一個 turn；跨 turn 的持續條件、排程或非互動執行是另一層機制。[Anthropic：Choose a permission mode](https://code.claude.com/docs/en/permission-modes)、[Anthropic：Goals](https://code.claude.com/docs/en/goal)
+
+自動化程度愈高，邊界反而要愈窄：明確工作目錄、最小工具權限、可執行驗收、Git 或 worktree 隔離，以及失敗時能停止而不是無限重試。
+
+## 不要從 auto mode 開始
+
+第一個改動應該是把根目錄 `CLAUDE.md` 刪到只剩整個專案都需要的規則，並把局部規則往巢狀檔案移；第二個改動才是把已重複出現的程序做成 Skill，把必跑檢查交給 hook。只有當探索或 review 確實會污染主 context，才新增 subagent；只有多個寫入工作能獨立驗收，才加入 worktree。
+
+這個順序先降低 context 負擔，再增加自動化。它不會讓 Claude Code 擁有無限記憶，也不保證每次判斷都正確；它做的是把每種資訊與控制放到能被檢查、能被替換，也能在失敗時局部重來的位置。
+
+Prompt 仍然重要，只是不再獨自負責可靠度。當專案知識、重複流程、機械護欄與驗證回饋各自有固定位置，Claude Code 才從「每一步都等人提醒」走向「在明確邊界內自行完成並證明結果」。

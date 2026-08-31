@@ -1,5 +1,13 @@
 ---
 import { navigation, siteConfig } from "../config/site";
+
+const currentPath = Astro.url.pathname;
+const currentState = (href: string) =>
+  currentPath === href
+    ? "page"
+    : currentPath.startsWith(href)
+      ? "location"
+      : undefined;
 ---
 
 <header class="site-header" data-pagefind-ignore>
@@ -8,7 +16,13 @@ import { navigation, siteConfig } from "../config/site";
       <span aria-hidden="true">C/</span>{siteConfig.name}
     </a>
     <nav class="desktop-nav" aria-label="主要導覽">
-      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+      {
+        navigation.map((item) => (
+          <a href={item.href} aria-current={currentState(item.href)}>
+            {item.label}
+          </a>
+        ))
+      }
     </nav>
     <button
       class="search-pill"
@@ -32,7 +46,13 @@ import { navigation, siteConfig } from "../config/site";
     <details class="mobile-nav">
       <summary>選單</summary>
       <nav aria-label="行動版導覽">
-        {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+        {
+          navigation.map((item) => (
+            <a href={item.href} aria-current={currentState(item.href)}>
+              {item.label}
+            </a>
+          ))
+        }
         <a href="/search/">搜尋</a>
       </nav>
     </details>
@@ -156,6 +176,16 @@ import { navigation, siteConfig } from "../config/site";
     font-weight: 700;
     text-decoration: none;
     white-space: nowrap;
+  }
+
+  .desktop-nav a[aria-current="page"],
+  .desktop-nav a[aria-current="location"],
+  .mobile-nav a[aria-current="page"],
+  .mobile-nav a[aria-current="location"] {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.4em;
   }
 
   .search-pill,
