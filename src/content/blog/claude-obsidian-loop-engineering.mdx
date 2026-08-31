@@ -1,0 +1,174 @@
+---
+title: "以 Markdown Vault 為狀態機：Claude、Obsidian 與 Loop Engineering 的知識自轉架構"
+description: "從聊天視窗的記憶衰退出發，整理如何將本地 Obsidian Vault 視為持久狀態層，透過五步迴圈、耐用層分流與 Git 防護打造可複利的知識系統。"
+publishDate: 2026-08-31
+draft: true
+featured: false
+cover: ../../assets/covers/claude-obsidian-loop-engineering.png
+coverAlt: "五座空白卡片站沿著銅色環形軌道運行，中央是一個金屬知識庫。"
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 知識管理
+---
+
+import ProcessPipeline from "../../components/ProcessPipeline.astro";
+
+將 AI 融入日常知識管理時，多數人最先碰到的瓶頸不是模型理解力不足，而是**聊天視窗本身無法累積複利**。
+
+每次開啟新的對話，AI 未必帶著任務所需的脈絡；隨著 Session 推進，讀取的長篇資料、多輪修改與無關命令又會稀釋可用的 Context Window。即便透過手動複製貼上將結論存回筆記軟體，維護標籤、雙向連結（Backlinks）與索引的認知負擔依然落在人類身上，最終讓個人知識庫（PKM）淪為「只進不出」的資訊墓地。
+
+[@polydao（Mr. Buzzoni）提出了一種結合 Claude Code 與 Obsidian 的解法](https://x.com/polydao/status/2094307289280716815)：**「Loop Engineering」**。其核心心智模型是「**Human mostly reads, LLM mostly writes**」——將 Obsidian Vault 視為 AI Agent 的可寫狀態機（State Machine），讓 Agent 在受控的自動化迴圈中完成知識收集、關聯提取、結構化草稿與持續維護。
+
+本文從系統架構出發，拆解如何將本地純文字 Vault 作為狀態層，以及在無人值守或半自動迴圈中必須建立的邊界與工程防護。
+
+---
+
+## 為什麼是 Obsidian：純文字即狀態資料庫
+
+在各類筆記工具中，Obsidian 之所以適合作為 Agent 的後端狀態儲存，關鍵在於它的**本地優先（Local-first）與純文字純度**：
+
+1. **無抽象鎖定**：Vault 本質就是一般的本地檔案資料夾，不需要專有資料庫或專用 API Gateway，CLI 工具（如 Claude Code、Ripgrep、Node.js 腳本）可直接操作。
+2. **具型別的圖譜節點**：Markdown 檔案是知識圖譜的「節點（Nodes）」；YAML Frontmatter 提供結構化屬性（型別、狀態、標籤、建立時間）；Wikilinks（`[[Note Title]]`）則是宣告式的「邊（Edges）」。
+3. **低成本的差分審查**：純文字結構讓 Git 能夠精準捕捉每一輪 Agent 的增修，提供可回滾（Rollback）與可審查（Audit）的安全邊界。
+
+| 儲存機制           | 角色定位       | 運作特性                                            |
+| ------------------ | -------------- | --------------------------------------------------- |
+| **對話 Session**   | 暫態執行環境   | 易失、受限於 Context Window、適合單次推理與轉換     |
+| **Obsidian Vault** | 長期持久狀態層 | 持久、檔案系統層級、支援結構化檢索與跨 Session 存取 |
+| **Git 歷史**       | 稽核與恢復軌跡 | 可追溯的變更記錄、支援分支隔離與機械式驗收          |
+
+---
+
+## 五步自動化知識迴圈（The Loop）
+
+Loop Engineering 並非讓模型漫無目的地在資料夾中亂竄，而是將知識流轉收斂為一個五階段的標準閉環：
+
+<ProcessPipeline
+  title="知識自轉流水線 (The 5-Step Loop)"
+  caption="從非結構化素材捕捉到受控持久沉澱的五個標準工程步驟"
+  steps={[
+    {
+      num: "01",
+      title: "Ingestion 接收",
+      tag: "00-inbox/",
+      desc: "日常快速捕獲網頁剪藏、會議逐字稿、隨筆或 PDF，不強求人類在當下分類整理。",
+      gate: "格式與字元編碼校驗",
+    },
+    {
+      num: "02",
+      title: "Extraction 抽取",
+      tag: "JIT Context",
+      desc: "對齊 Vault 既有 MOC 概念清單、實體定義與標籤體系，避免建立重複或同義空節點。",
+      gate: "既有概念與實體查重",
+    },
+    {
+      num: "03",
+      title: "Drafting 隔離生成",
+      tag: "Git Worktree",
+      desc: "在獨立的草稿目錄或 Worktree 中產出具備 Frontmatter 的原子卡片與精準 Wikilinks。",
+      gate: "遵循 YAML Schema 規範",
+    },
+    {
+      num: "04",
+      title: "Critic 批判校驗",
+      tag: "Subagent Review",
+      desc: "獨立 Subagent 或腳本執行機械式檢查：查核是否存在幻覺事實、幽靈連結或無效引用。",
+      gate: "[[連結]] 存在性與事實審核",
+    },
+    {
+      num: "05",
+      title: "Persistence 沉澱",
+      tag: "01-cards/",
+      desc: "正式寫入卡片庫、歸檔 Inbox、更新 MOC 索引與變更日誌，形成下一輪迴圈的歷史脈絡。",
+      gate: "Git Commit 建立不可變記錄",
+    },
+  ]}
+/>
+
+### 1. Ingestion（接收與收集）
+
+人類在日常工作中快速捕獲原始資料（網頁剪藏、會議逐字稿、隨手雜記、PDF），不需在當下花時間思考分類與命名，直接丟入暫存目錄（如 `00-inbox/`）。
+
+### 2. Context Extraction（上下文與關聯定位）
+
+當 Agent 啟動維護任務時，第一步不是直接摘要，而是先透過檢索工具對齊既有 Vault：
+
+- 檢查既有的概念清單與 Maps of Content（MOC）；
+- 找出與當前主題高度相關的既有筆記；
+- 提取已定義的領域名詞，確保不會重複建立同義不同名的空節點。
+
+### 3. Drafting in Isolation（隔離草稿生成）
+
+Agent 在暫存工作區或 Git Worktree 中撰寫結構化筆記。此階段包含：
+
+- 依據約定的 Frontmatter 格式填寫 metadata；
+- 將重點轉譯為原子化概念；
+- 加上指向既有節點的精準 Wikilinks。
+
+### 4. Critic Verification（批判審查）
+
+由獨立的審查機制（例如獨立 Subagent、特定 Prompt 或驗證腳本）進行機械式檢查：
+
+- 檔案中的 `[[連結]]` 是否皆存在於 Vault 中？
+- Frontmatter 是否滿足必要欄位？
+- 摘要是否夾帶了未在來源中提及的幻覺事實？
+
+### 5. Persistence & Compounding（沉澱回寫與複利）
+
+通過審查的草稿移入正式筆記目錄（如 `01-cards/`），原始 Inbox 檔案移至歸檔區，並在變更日誌記錄本輪更新。這讓下一次迴圈能把本輪產出的成果作為既有知識繼續疊加。
+
+---
+
+## 防禦性架構：Durable Layer 與 Disposable Layer
+
+放手讓 AI 寫入檔案系統的最大隱憂，是知識庫遭到低品質內容或錯誤推論「反向污染」。解決之道在於嚴格劃分**耐用層（Durable）**與**處置層（Disposable）**：
+
+```
+vault/
+├── 00-inbox/         # [Disposable] 原始收集區，Agent 處理後可歸檔或清空
+├── 01-scratch/       # [Disposable] Agent 的中間思維草稿、臨時對照表
+├── 02-generated/     # [Disposable] Agent 全自動維護的索引、每日摘要、主題彙整
+├── 03-core/          # [Durable] 人類親撰原則、核心架構、關鍵決策（Agent 唯讀）
+└── _templates/       # [Durable] 約定的 Frontmatter Schema 與筆記範本
+```
+
+1. **耐用層（Durable Layer）**：
+   - 包含個人親自驗證的決策記錄、核心心智模型與架構原則。
+   - **權限規則**：Agent 預設唯讀。若需修改，必須以 Diff / PR 形式由人類手動確認合併。
+2. **處置層（Disposable Layer）**：
+   - 包含 Ingestion 暫存、自動生成的 MOC 索引、各主題的交叉參照表與每日彙整。
+   - **權限規則**：Agent 擁有完整寫入與重建權限。就算 Agent 生成錯誤，人類可直接整批重置而不傷及核心資產。
+
+---
+
+## 常見陷阱與工程護欄
+
+在實踐 Loop Engineering 時，需特別防範以下三種常見失效：
+
+### 1. 雙向連結幻覺（Link Pollution）
+
+模型習慣將名詞隨意加上括號（如 `[[敏捷軟體開發]]`、`[[系統吞吐量]]`），導致 Vault 產生數百個無實質內容的幽靈節點。
+
+- **護欄**：在 Agent 的操作規範中明訂「**嚴禁建立未定義的空節點**」；Agent 必須先用檔案搜尋工具確認目標存在，若概念不存在，應建立完整概念卡片或維持純文字。
+
+### 2. 破壞性覆寫（Destructive Overwrite）
+
+在多輪任務中，Agent 可能為了更新某個小節而將整篇筆記重新輸出，導致原本由人類保留的精確註解丟失。
+
+- **護欄**：以 Git 保留變更記錄，並在工具層優先使用局部替換工具（如精確字串置換或區塊 Append），避免對既有核心筆記進行無備份的全覆寫。
+
+### 3. 上下文無節制擴張（Context Bloat）
+
+若在每輪迴圈中將整個 Vault 的檔案全部倒入 Prompt，不僅成本激增，還會造成檢索注意力分散。
+
+- **護欄**：採用 Just-in-Time 檢索策略。讓 Agent 先讀取輕量的分類清單或目錄索引，再針對目標檔案按需讀取。
+
+---
+
+## 結語：從聊天助理到自維護知識系統
+
+Loop Engineering 的價值不在於展示某個特定模型的單次文字生成能力，而在於**將知識沉澱轉變為受控的系統工程**。
+
+當我們將對話視窗降級為暫時性的「執行環境」，把本地純文字 Vault 升級為「長期狀態機」，並透過 Git 與分層目錄建立護欄時，AI 才能真正從需要不斷重新說明的聊天對象，轉變為能持續為個人知識資產增值的主動協作者。

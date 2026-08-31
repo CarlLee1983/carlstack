@@ -1,0 +1,80 @@
+---
+title: "Agentic Coding 時代，軟體工程基本功為何不減反增？"
+description: "從 Vibe Coding 到生產級系統，以 Andrew Ng 的 AI Engineering Skills Map 檢視：當寫 Code 變得廉價，系統架構、可驗證性與邊界設計為何成為真正的勝負關鍵。"
+publishDate: 2026-08-31
+draft: true
+featured: false
+cover: ../../assets/covers/agentic-coding-software-engineering-fundamentals.png
+coverAlt: "金屬桁架承托發光系統核心，後方的程式碼產生裝置退居次要位置。"
+tags:
+  - AI 工程化
+  - 系統設計
+  - 軟體品質
+---
+
+import ProcessPipeline from "../../components/ProcessPipeline.astro";
+
+「既然 AI 都能自己寫 Code、修 Bug 甚至跑測試了，工程師還需要學資料結構、系統架構和設計模式嗎？」
+
+這是近來技術社群經常討論的問題。隨著「Vibe Coding」概念流行，許多人只要用自然語言給出指示，就能很快看見一個可運作的 Web 應用。
+
+然而，當這些 Demo 試圖走進生產環境，面對真實世界的高併發、資料一致性要求、安全性審計與持續迭代時，脆弱性便一覽無遺。
+
+[Andrew Ng（吳恩達）在其發布的「AI Engineering Skills Map」中給出了一個清晰的解答](https://x.com/andrewyng/status/2093388974194872781)：**Agentic Coding 沒有消滅軟體工程，而是將工程師的核心價值從「語法打字員」推向了「系統架構與機制設計者」**。
+
+---
+
+## AI Engineering Skills Map 的四大支柱
+
+<ProcessPipeline
+  title="AI Engineering 核心能力地圖"
+  caption="吳恩達提出的四大支柱：從駕馭 Agent 到塑造產品的系統性能力"
+  steps={[
+    {
+      num: "01",
+      title: "駕馭 Coding Agent",
+      tag: "Steering Agents",
+      desc: "建立任務契約、設計專案地圖、配置 Stop Hooks 與 Worktree 隔離，打造安全可靠的執行環境。",
+      gate: "環境與權限邊界治理",
+    },
+    {
+      num: "02",
+      title: "軟體工程基本功",
+      tag: "Fundamentals",
+      desc: "設計可驗證的測試套件、切分低耦合的深模組接縫，並妥善處理安全性與併發一致性。",
+      gate: "可驗證性 (Verifiability)",
+    },
+    {
+      num: "03",
+      title: "構建 AI 系統與 Evals",
+      tag: "AI Systems & Evals",
+      desc: "從單次呼叫進化為多步自主迴圈，設計高訊號工具介面，並以系統化 Evals 評估成功率與退化。",
+      gate: "量化指標評估體系",
+    },
+    {
+      num: "04",
+      title: "塑造產品與工程權衡",
+      tag: "Product Judgment",
+      desc: "在模糊需求中提煉精準規格，並在模型延遲、Token 成本與輸出品質之間找到最佳平衡點。",
+      gate: "商業與架構權衡取捨",
+    },
+  ]}
+/>
+
+---
+
+## 貶值與升值：工程師的能力再平衡
+
+| 邊際價值大幅下降的能力        | 邊際價值呈指數上升的能力                                   |
+| ----------------------------- | ---------------------------------------------------------- |
+| 死背特定語言的 API 與語法細節 | **系統架構判斷**（選擇單體 vs. 模組化、選擇正確的資料流）  |
+| 手工撰寫繁瑣的 CRUD 樣板代碼  | **可驗證性設計**（撰寫能作為 Agent 驗收標準的嚴密測試）    |
+| 重複性代碼搬運與手動格式調整  | **失敗模式預判**（預判併發、網路中斷、安全漏洞與邊界條件） |
+
+---
+
+## 結語：回歸問題解決的本質
+
+軟體工程的本質從來都不是「在編輯器裡敲進字元」，而是**在複雜的約束條件下，構建可預測、可維護且能解決真實問題的系統**。
+
+當編寫程式碼的阻力被 AI 降低，紮實工程基本功就成為槓桿：它讓開發者能更快把清晰的架構思考轉化為可驗證的生產級軟體。

@@ -1,0 +1,87 @@
+---
+title: "Trace Engineering：自主 AI Agent 的可觀測性與除錯架構"
+description: "當 Agent 在背景執行多輪任務時，單靠一般 Log 不足以釐清決策脈絡。從因果追蹤、故障環境重播到驗證收據，拆解生產級 Agent 的 Trace Engineering 實踐。"
+publishDate: 2026-08-31
+draft: true
+featured: false
+cover: ../../assets/covers/trace-engineering-for-agents.png
+coverAlt: "事件流穿過多層透明追蹤節點，匯入重播膠囊與驗證收據。"
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 軟體品質
+---
+
+import ProcessPipeline from "../../components/ProcessPipeline.astro";
+
+在傳統微服務架構中，如果一個 API 發生故障，我們通常依賴「日誌（Logs）」與「分散式追蹤（Traces）」快速定位出錯的 SQL 語法或遠端呼叫。
+
+但當系統換成具備自主循環能力的 AI Agent 時，傳統可觀測性工具若只記錄事件，往往不足以解釋以下問題：
+
+- **故障是語意層級的**：程式碼沒有拋出 Exception，但 Agent 理解錯了需求，默默改錯了檔案；
+- **錯誤具備複合傳播性**：第 2 輪工具回傳的微小資訊偏差，經過 5 輪推理後演變成嚴重的方向漂移；
+- **非確定性難以重現**：同一個任務重新執行一次，模型可能走出完全不同的路徑，導致根本無法除錯。
+
+[@marfinxx 指出](https://x.com/marfinxx/status/2094016175617241109)：要想在無人值守的情況下信任 Agent，必須建立專屬的**「Trace Engineering」**體系。
+
+---
+
+## 什麼是 Trace Engineering？
+
+Trace Engineering 並非單純把 Prompt 與 LLM 輸出寫入 log 檔，而是**將 Agent 的決策、工具互動、環境回饋與狀態流轉，組織為具備因果關係的證據鏈**。
+
+<ProcessPipeline
+  title="Trace Engineering 四大控制支柱"
+  caption="從因果追蹤到故障環境重播的完整可觀測性鏈條"
+  steps={[
+    {
+      num: "01",
+      title: "因果譜系追蹤",
+      tag: "Causal Lineage",
+      desc: "記錄父子 Span 關係、可取得的決策脈絡與工具輸入輸出，釐清模型行動的上下文因果。",
+      gate: "關聯 Parent-Child Span",
+    },
+    {
+      num: "02",
+      title: "故障環境重播",
+      tag: "Deterministic Replay",
+      desc: "快照 Prompt、工具回傳與 Git Worktree 狀態，盡可能重建故障條件並支援本機除錯。",
+      gate: "固定環境種子與隔離環境",
+    },
+    {
+      num: "03",
+      title: "驗證收據掛載",
+      tag: "Verification Receipts",
+      desc: "將測試套件輸出、Lint 報告與人工核准證明掛載至 Trace 節點，形成不可否認的完成證明。",
+      gate: "自動化測試硬證據",
+    },
+    {
+      num: "04",
+      title: "成本與效能遙測",
+      tag: "Token Telemetry",
+      desc: "監控每輪次 Token 消耗、快取命中率與工具延遲，持續優化單位任務的交付成本。",
+      gate: "Token 預算上限警報",
+    },
+  ]}
+/>
+
+---
+
+## 實務策略：將 Trace 轉化為回歸測試
+
+許多團隊在 Agent 出錯時的直討反應是「改 Prompt」，但這往往會引發「修好 A 卻搞壞 B」的退化問題。
+
+在成熟的 Trace Engineering 流程中，每次線上長任務的失敗 Trace 都會被打包成一個**回歸測試案例（Regression Test Case）**：
+
+1. **提取失敗片段**：截取導致語意漂移的特定 Turn 與工具互動；
+2. **建立 Mock 環境**：利用 Trace 中的工具回傳資料作為假資料（Fixtures）；
+3. **加入斷言測試**：驗證調整後的 Prompt、Harness 護欄或 Tool 介面能否在相同情境下做出正確決策。
+
+---
+
+## 結語：讓自治系統擁有安全感
+
+當我們將 Agent 從「聊天玩具」推向「自主執行工作者」時，可觀測性不再是選配，而是系統可靠度的底線。
+
+透過嚴密的 Trace Engineering，工程師得以追查可觀測的輸入、工具互動與狀態變化，將非確定性的探索轉化為可檢驗、可改進的軟體工程資產。

@@ -1,0 +1,108 @@
+---
+title: "Graph Engineering：超越線性 Prompt 的 Agent 架構與適用邊界"
+description: "真實工程任務很少是單向線性的。從菱形展開、平行審查到條件迴圈，拆解 Graph Engineering 的核心拓撲模式、適用情境與過度工程陷阱。"
+publishDate: 2026-08-31
+draft: true
+featured: false
+cover: ../../assets/covers/graph-engineering-for-agents.png
+coverAlt: "發光節點組成菱形分支與匯聚拓撲，下方的橘色弧線經過停止閘門後回饋。"
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+---
+
+import ProcessPipeline from "../../components/ProcessPipeline.astro";
+
+在構建 AI 應用時，最直覺的起手式是「線性鏈條（Linear Chain）」：將 Prompt A 的輸出丟給 Prompt B，再將 Prompt B 的輸出整理為最終答案。
+
+這種線性思維在處理單純的文本摘要或格式轉換時運作良好。但當任務升級為「全端功能開發」、「多來源架構評估」或「複雜業務邏輯重構」時，線性鏈條的缺陷便暴露無遺：
+
+1. **單點崩潰**：中間只要有一個環節產生幻覺，錯誤就會在下游被持續放大；
+2. **無法平行化**：明明互不相依的子任務，卻必須被迫循序等待，延遲大幅拉長；
+3. **缺乏回饋機制**：驗收失敗時無法精準回退到特定節點重試，只能推倒重來。
+
+[@anatolikopadze 提出的「Graph Engineering」](https://x.com/anatolikopadze/status/2080668775796314331)，提供了處理這類多維度協同問題的架構視角。當任務確實具有平行、分支或局部重試需求時，將 Agent 工作流建模為「圖（Graph）」會是合適的選項。
+
+---
+
+## 什麼是 Graph Engineering？
+
+Graph Engineering 是將 Agent 系統建模為**有向圖（Directed Graph）或狀態機（State Graph）**的工程方法。
+
+在圖工程中：
+
+- **節點（Nodes）**：代表特定責任的 Agent、工具執行或確定性演算法；
+- **邊緣（Edges）**：代表資料流、狀態轉移條件與控制信號；
+- **狀態（State）**：跨節點共享並被嚴格管控的資料上下文。
+
+<ProcessPipeline
+  title="菱形圖工程拓撲 (Diamond Pattern)"
+  caption="從任務拆解、正交平行實作到匯聚審查的標準圖架構"
+  steps={[
+    {
+      num: "01",
+      title: "任務規劃",
+      tag: "Planner Node",
+      desc: "分析目標並將大任務拆解為正交、互不干擾的獨立子任務規格。",
+      gate: "子任務相依性解耦檢查",
+    },
+    {
+      num: "02",
+      title: "正交平行展開",
+      tag: "Parallel Fan-out",
+      desc: "多個特化 Subagent（如 UI、API、Test）在獨立沙盒中同步並行開發。",
+      gate: "隔離寫入避免資源互踩",
+    },
+    {
+      num: "03",
+      title: "狀態匯聚整合",
+      tag: "Fan-in Gate",
+      desc: "將各平行節點產物匯聚，進行衝突檢測、型別對齊與跨模組組合。",
+      gate: "靜態分析與相容性檢查",
+    },
+    {
+      num: "04",
+      title: "獨立審查閘門",
+      tag: "Review & Evals",
+      desc: "由獨立 Reviewer 進行安全與效能評估；未達標準則觸發受控回退迴圈。",
+      gate: "受控重試上限 (Max Retries)",
+    },
+  ]}
+/>
+
+### 三種核心圖拓撲
+
+1. **平行展開與匯聚（Fan-out / Fan-in，菱形模式）**：
+   - 規劃節點將大任務切分為正交、互不依賴的子任務。
+   - 多個特化 Subagent 同時並行處理（例如：同時撰寫文件、後端代碼與前端串接）。
+   - 在匯聚節點透過衝突檢測與整合演算法完成合併。
+2. **條件分支路由（Conditional Routing）**：
+   - 根據前置節點的評估結果（例如程式碼修改的影響範圍或安全等級），動態導向不同複雜度的處理子圖。
+3. **受控回饋迴圈（Bounded Cyclic Loops）**：
+   - 允許工作流在「實作 → 測試 → 失敗 → 修復」之間循環，但必須具備最大重試次數、超時與人工介入的跳出條件（Escalation Path）。
+
+---
+
+## 何時使用 Graph Engineering？
+
+不是所有系統都需要圖結構。以下是值得引入 Graph Engineering 的典型訊號：
+
+| 場景特徵       | 線性模式（Linear）        | 圖工程（Graph Engineering）                           |
+| -------------- | ------------------------- | ----------------------------------------------------- |
+| **任務相依性** | 步驟具高度先後因果關係    | 存在大量可平行的正交子任務                            |
+| **驗收機制**   | 最終產物單次檢查          | 多個特化 Reviewer（安全、效能、型別）分別把關         |
+| **錯誤修復**   | 全局重跑                  | 局部節點定向重試與狀態回滾                            |
+| **成本與延遲** | 低 Token 開銷、低協調成本 | 較高 Token 與協調開銷，以複雜度換取平行處理與分段驗證 |
+
+---
+
+## 警惕過度工程：何時「不要」使用圖？
+
+圖結構帶來靈活性的同時，也引入了可觀的系統複雜度：
+
+1. **狀態同步開銷（State Overhead）**：多節點並行讀寫容易導致狀態覆蓋與 Context 膨脹。
+2. **除錯難度上升**：非線性執行路徑讓追蹤問題變得困難，必須仰賴完整的 Trace 遙測。
+3. **Token 與時間浪費**：對於「修改單一變數名稱」或「修復拼寫錯誤」等微小任務，啟動多 Agent 圖工作流如同用大砲打蚊子。
+
+> **工程準則**：從最簡單的單一迴圈（Loop）或線性流程開始。唯有在出現明確的「平行加速需求」、「多維度獨立審查」或「複雜分支條件」時，才升級為 Graph Engineering。
