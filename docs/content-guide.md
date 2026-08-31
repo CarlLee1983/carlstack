@@ -75,6 +75,8 @@ Mermaid 以 `securityLevel: strict` 在瀏覽器渲染。避免在節點中加�
 
 ## draft 到發布
 
+尚未成文的題目先加入 [`article-queue.md`](article-queue.md)，依處理順序由上往下排。開始正式整理時，在 `src/content/blog` 建立 `draft: true` 的文章，並在同一次變更刪除對應的佇列項目；不要保留完成標記或另一份待辦清單。
+
 1. 新檔設 `draft: true`。
 2. `pnpm dev` 檢查內容、程式碼、圖片、Mermaid、深淺色與手機版。
 3. 執行 `pnpm format && pnpm check && pnpm test`。
