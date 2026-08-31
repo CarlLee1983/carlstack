@@ -1,0 +1,18 @@
+---
+import type { GetStaticPaths } from "astro";
+import ArticleLayout from "../../layouts/ArticleLayout.astro";
+import { getVisiblePosts } from "../../utils/collections";
+import { getEntrySlug } from "../../utils/content";
+
+export const getStaticPaths = (async () => {
+  const posts = await getVisiblePosts();
+  return posts.map((post) => ({
+    params: { slug: getEntrySlug(post.id) },
+    props: { post, posts },
+  }));
+}) satisfies GetStaticPaths;
+
+const { post, posts } = Astro.props;
+---
+
+<ArticleLayout post={post} posts={posts} />

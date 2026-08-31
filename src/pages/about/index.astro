@@ -1,0 +1,93 @@
+---
+import { siteConfig } from "../../config/site";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="關於李卡爾"
+  description="CarlStack 作者李卡爾與這個技術內容網站的寫作原則。"
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>關於李卡爾</h1>
+      <p>系統工程與 AI 工程實作者，偏好能被驗證、維護與交接的解法。</p>
+    </header>
+    <div class="about-grid">
+      <article class="prose">
+        <h2>這裡寫什麼</h2>
+        <p>
+          CarlStack 記錄系統設計、AI Agent workflow、API 整合、DDD、Clean
+          Architecture、開源工具與專案復盤。文章以真實限制、決策依據與可重現步驟為核心。
+        </p>
+        <h2>寫作原則</h2>
+        <p>
+          原始內容使用 Markdown／MDX 保存在 Git repository。沒有 CMS
+          鎖定、沒有會員牆，也不靠侵入式追蹤決定哪些內容值得留下。
+        </p>
+        <h2>聯絡與追蹤</h2>
+        <p>
+          可以在 <a href={siteConfig.github} rel="me"
+            >GitHub 上找到 {siteConfig.githubUser}</a
+          >，或透過 <a href="/rss.xml">RSS</a> 跟上新文章。
+        </p>
+      </article>
+      <aside aria-label="網站資訊">
+        <dl>
+          <div><dt>作者</dt><dd>{siteConfig.author}</dd></div>
+          <div><dt>語言</dt><dd>繁體中文</dd></div>
+          <div><dt>內容格式</dt><dd>Markdown／MDX</dd></div>
+          <div><dt>發布平台</dt><dd>Cloudflare Workers</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .about-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.38fr);
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .about-grid .prose {
+    margin: 0;
+  }
+
+  aside {
+    padding: var(--space-lg);
+    border-block-start: 3px solid var(--color-accent);
+    background: var(--color-paper-2);
+  }
+
+  dl {
+    display: grid;
+    gap: var(--space-md);
+    margin: 0;
+  }
+
+  dl div {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  dt {
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+  }
+
+  @media (max-width: 49.99rem) {
+    .about-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

@@ -1,0 +1,41 @@
+---
+import { getCollection } from "astro:content";
+import EmptyState from "../../components/EmptyState.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const projects = (await getCollection("projects")).sort((left, right) => {
+  if (left.data.featured !== right.data.featured)
+    return left.data.featured ? -1 : 1;
+  return left.data.name.localeCompare(right.data.name);
+});
+---
+
+<BaseLayout
+  title="開源專案與作品"
+  description="李卡爾的開源工具、API 文件工程與 release engineering 專案。"
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>開源專案與作品</h1>
+      <p>
+        資料來自 Projects Content Collection，不在頁面硬編碼，也不展示可能過期的
+        Star 或版本數。
+      </p>
+    </header>
+    {
+      projects.length > 0 ? (
+        <div class="project-grid">
+          {projects.map((project) => (
+            <ProjectCard project={project} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="尚未加入專案"
+          description="在 src/content/projects 新增 Markdown 後，專案會自動出現在這裡。"
+        />
+      )
+    }
+  </div>
+</BaseLayout>

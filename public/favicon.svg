@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">CarlStack</title>
+  <rect width="64" height="64" rx="8" fill="#152239"/>
+  <path d="M17 18h30v7H25v14h22v7H17z" fill="#eaf0f7"/>
+  <path d="M39 18h8v28h-8z" fill="#4b78da"/>
+</svg>

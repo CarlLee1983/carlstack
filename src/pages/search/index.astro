@@ -1,0 +1,128 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="全文搜尋"
+  description="搜尋 CarlStack 已發布文章、專案與頁面內容。"
+>
+  <div class="page shell search-shell">
+    <header class="page-header">
+      <h1>全文搜尋</h1>
+      <p>
+        Pagefind 索引在 production build
+        後產生；搜尋完全在瀏覽器執行，不需要資料庫。
+      </p>
+    </header>
+    <form class="search-form" data-search-form>
+      <label for="pagefind-query">關鍵字</label>
+      <input
+        id="pagefind-query"
+        name="q"
+        type="search"
+        autocomplete="off"
+        required
+      />
+      <button class="button" type="submit">搜尋</button>
+    </form>
+    <p class="muted" role="status" aria-live="polite" data-search-status>
+      輸入關鍵字開始搜尋。
+    </p>
+    <div class="search-results" data-search-results></div>
+  </div>
+</BaseLayout>
+
+<script>
+  interface PagefindData {
+    url: string;
+    excerpt: string;
+    meta: Record<string, string>;
+  }
+
+  interface PagefindResult {
+    data(): Promise<PagefindData>;
+  }
+
+  interface PagefindModule {
+    search(query: string): Promise<{ results: PagefindResult[] }>;
+  }
+
+  const form = document.querySelector<HTMLFormElement>("[data-search-form]");
+  const input = document.querySelector<HTMLInputElement>("#pagefind-query");
+  const status = document.querySelector<HTMLElement>("[data-search-status]");
+  const container = document.querySelector<HTMLElement>(
+    "[data-search-results]",
+  );
+
+  function appendText(
+    parent: HTMLElement,
+    tag: "p",
+    text: string,
+    className?: string,
+  ) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    if (className) element.className = className;
+    parent.append(element);
+    return element;
+  }
+
+  async function runSearch(query: string) {
+    if (!status || !container) return;
+    container.replaceChildren();
+    if (!query.trim()) {
+      status.textContent = "請輸入關鍵字。";
+      return;
+    }
+    status.textContent = "正在搜尋…";
+    try {
+      const pagefindUrl = "/pagefind/pagefind.js";
+      const pagefind = (await import(
+        /* @vite-ignore */ pagefindUrl
+      )) as PagefindModule;
+      const search = await pagefind.search(query);
+      const results = await Promise.all(
+        search.results.slice(0, 30).map((result) => result.data()),
+      );
+      status.textContent =
+        results.length > 0
+          ? `找到 ${results.length} 筆結果。`
+          : `找不到包含「${query}」的內容。請縮短關鍵字或改用相關技術名詞。`;
+      for (const result of results) {
+        const article = document.createElement("article");
+        article.className = "search-result";
+        const heading = document.createElement("h2");
+        const link = document.createElement("a");
+        link.href = result.url;
+        link.textContent = result.meta.title || result.url;
+        heading.append(link);
+        article.append(heading);
+        appendText(article, "p", result.excerpt.replace(/<[^>]+>/g, ""));
+        const metadata = [result.meta.date?.slice(0, 10), result.meta.tags]
+          .filter(Boolean)
+          .join(" · ");
+        if (metadata) appendText(article, "p", metadata, "article-card__meta");
+        container.append(article);
+      }
+    } catch {
+      status.textContent =
+        "搜尋索引尚未產生。請先執行 pnpm build，再用 pnpm preview 檢視搜尋。";
+    }
+  }
+
+  if (form && input) {
+    const initial = new URLSearchParams(location.search).get("q") || "";
+    input.value = initial;
+    if (initial) runSearch(initial);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const query = input.value.trim();
+      history.replaceState(
+        null,
+        "",
+        query ? `?q=${encodeURIComponent(query)}` : location.pathname,
+      );
+      runSearch(query);
+    });
+  }
+</script>

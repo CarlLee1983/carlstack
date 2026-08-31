@@ -1,0 +1,31 @@
+---
+import type { GetStaticPaths } from "astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
+
+export const getStaticPaths = (async () => {
+  const taxonomies = collectTaxonomy(await getVisiblePosts(), "tags");
+  return taxonomies.map((tag) => ({
+    params: { tag: tag.slug },
+    props: { tag },
+  }));
+}) satisfies GetStaticPaths;
+
+const { tag } = Astro.props;
+---
+
+<BaseLayout
+  title={`標籤：${tag.name}`}
+  description={`CarlStack 中標記為「${tag.name}」的文章。`}
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>{tag.name}</h1>
+      <p>{tag.posts.length} 篇文章</p>
+    </header>
+    <div class="article-list">
+      {tag.posts.map((post) => <ArticleCard post={post} />)}
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,11 @@
+{
+  "date": "2026-08-31",
+  "signals": "empty project",
+  "framework": "Astro 7",
+  "font": "system fonts",
+  "palette": "Almanac cool paper with cobalt signal",
+  "motion": "motion-cut",
+  "spacing": "4pt scale",
+  "slopTest": "static pass; browser unavailable for screenshot QA",
+  "critique": "P5 H5 E4 S5 R5 V5"
+}

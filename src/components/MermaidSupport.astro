@@ -1,0 +1,20 @@
+<script>
+  const sources = [
+    ...document.querySelectorAll<HTMLElement>(".mermaid-source"),
+  ];
+  if (sources.length > 0) {
+    const { default: mermaid } = await import("mermaid");
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+    });
+    for (const source of sources) {
+      const frame = document.createElement("div");
+      frame.className = "mermaid-frame";
+      frame.textContent = source.textContent;
+      source.replaceWith(frame);
+    }
+    await mermaid.run({ nodes: document.querySelectorAll(".mermaid-frame") });
+  }
+</script>

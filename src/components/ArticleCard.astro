@@ -1,0 +1,28 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { postHref } from "../utils/collections";
+import { estimateReadingMinutes } from "../utils/content";
+
+interface Props {
+  post: CollectionEntry<"blog">;
+  headingLevel?: "h2" | "h3";
+}
+
+const { post, headingLevel: Heading = "h2" } = Astro.props;
+const body = "body" in post && typeof post.body === "string" ? post.body : "";
+const date = new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }).format(
+  post.data.publishDate,
+);
+---
+
+<a class="article-card" href={postHref(post)}>
+  <div>
+    <Heading>{post.data.title}</Heading>
+    <p>{post.data.description}</p>
+  </div>
+  <div class="article-card__meta">
+    <time datetime={post.data.publishDate.toISOString()}>{date}</time>
+    <span>{estimateReadingMinutes(body)} 分鐘</span>
+    {post.data.draft && <span>草稿預覽</span>}
+  </div>
+</a>

@@ -1,0 +1,71 @@
+---
+title: "用 Astro 建立可攜的技術內容管線"
+description: "以 Content Collections、靜態輸出與最少 JavaScript 組成可被人與 AI Agent 長期維護的技術 Blog。"
+publishDate: 2026-08-31
+updatedDate: 2026-08-31
+draft: true
+featured: true
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - API 整合
+  - DDD 與 Clean Architecture
+  - 開源專案
+  - 技術選型
+  - 專案復盤
+series: Astro 內容網站實戰
+seriesOrder: 1
+repositoryUrl: https://github.com/CarlLee1983/carlstack
+---
+
+技術內容最耐用的格式通常不是資料庫裡的一筆記錄，而是可以被 Git、文字編輯器與任何建置工具讀懂的純文字。CarlStack 因此把文章留在 repository，讓發布流程只是把內容轉成靜態 HTML。
+
+> 內容的原始檔要比網站框架活得更久；框架可以替換，Markdown 不必跟著重寫。
+
+## 最小內容查詢
+
+Content Collection 在建置前驗證 frontmatter，頁面只處理已通過 schema 的資料：
+
+```ts
+import { getCollection } from "astro:content";
+
+const posts = (await getCollection("blog"))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime());
+```
+
+這段查詢仍會由專案內的共用函式統一執行，避免首頁、RSS 與標籤頁各自發明一套排序規則。
+
+## 取捨表
+
+| 選擇     | 第一版決策       | 原因                           |
+| -------- | ---------------- | ------------------------------ |
+| 內容儲存 | Markdown／MDX    | 可攜、可 diff、適合 Agent 編輯 |
+| 輸出模式 | 靜態 HTML        | 不需要資料庫與常駐後端         |
+| 搜尋     | Pagefind         | 索引隨 build 產生              |
+| 留言     | Giscus，預設關閉 | 不維護自己的留言服務           |
+
+## 圖片
+
+下圖使用明確尺寸，瀏覽器在圖片載入前就能保留版面空間。
+
+<img
+  src="/images/content-pipeline.svg"
+  width="960"
+  height="540"
+  loading="lazy"
+  alt="Markdown 經過 schema 驗證、Astro build、Pagefind 索引，最後部署到 Cloudflare Workers 的內容管線"
+/>
+
+## Mermaid 架構圖
+
+```mermaid
+flowchart LR
+  A[Markdown / MDX] --> B[Content schema]
+  B --> C[Astro static build]
+  C --> D[Pagefind index]
+  D --> E[Cloudflare Workers assets]
+```
+
+這個圖表在文章頁才載入 Mermaid；其他頁面不付出 JavaScript 成本。若圖表或程式碼很寬，容器會在手機上局部捲動，不會讓整個頁面產生水平捲軸。

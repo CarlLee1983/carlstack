@@ -1,0 +1,64 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+  headingLevel?: "h2" | "h3";
+}
+
+const { project, headingLevel: Heading = "h2" } = Astro.props;
+---
+
+<article class="project-card">
+  {
+    project.data.cover && (
+      <Image
+        class="project-card__cover"
+        src={project.data.cover}
+        alt=""
+        widths={[400, 800]}
+        sizes="(min-width: 720px) 33vw, calc(100vw - 3rem)"
+        loading="lazy"
+      />
+    )
+  }
+  <div>
+    <Heading>{project.data.name}</Heading>
+    <p>{project.data.description}</p>
+  </div>
+  <ul class="tag-list" aria-label={`${project.data.name} 標籤`}>
+    {
+      project.data.tags.map((tag) => (
+        <li>
+          <span class="tag">{tag}</span>
+        </li>
+      ))
+    }
+  </ul>
+  <div class="project-card__meta">
+    <span>{project.data.status}</span>
+    {
+      project.data.startedAt && (
+        <time datetime={project.data.startedAt.toISOString()}>
+          {project.data.startedAt.getFullYear()}
+        </time>
+      )
+    }
+  </div>
+  <p>
+    <a class="text-link" href={project.data.repositoryUrl} rel="external"
+      >檢視 GitHub repository →</a
+    >
+    {
+      project.data.homepageUrl && (
+        <>
+          <br />
+          <a class="text-link" href={project.data.homepageUrl} rel="external">
+            開啟專案網站 →
+          </a>
+        </>
+      )
+    }
+  </p>
+</article>

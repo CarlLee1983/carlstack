@@ -1,0 +1,316 @@
+---
+import { navigation, siteConfig } from "../config/site";
+---
+
+<header class="site-header" data-pagefind-ignore>
+  <div class="site-header__inner shell">
+    <a class="wordmark" href="/" aria-label={`${siteConfig.name} 首頁`}>
+      <span aria-hidden="true">C/</span>{siteConfig.name}
+    </a>
+    <nav class="desktop-nav" aria-label="主要導覽">
+      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+    <button
+      class="search-pill"
+      type="button"
+      data-search-open
+      aria-haspopup="dialog"
+    >
+      <span aria-hidden="true">⌕</span><span class="search-pill__label"
+        >搜尋</span
+      ><kbd>⌘ K</kbd>
+    </button>
+    <button
+      class="theme-toggle"
+      type="button"
+      data-theme-toggle
+      aria-label="切換深色或淺色模式"
+      aria-pressed="false"
+    >
+      <span aria-hidden="true" data-theme-icon>◐</span>
+    </button>
+    <details class="mobile-nav">
+      <summary>選單</summary>
+      <nav aria-label="行動版導覽">
+        {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+        <a href="/search/">搜尋</a>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<dialog class="cmdk" data-search-dialog aria-labelledby="cmdk-title">
+  <form class="cmdk__panel" action="/search/" method="get">
+    <div class="cmdk__head">
+      <strong id="cmdk-title">搜尋 CarlStack</strong>
+      <button type="button" data-search-close aria-label="關閉搜尋">關閉</button
+      >
+    </div>
+    <label for="site-search">關鍵字</label>
+    <input
+      class="cmdk__input"
+      id="site-search"
+      name="q"
+      type="search"
+      autocomplete="off"
+      autofocus
+    />
+    <button class="button" type="submit">開啟全文搜尋</button>
+    <p>按 Esc 關閉；完整結果會顯示文章摘要、標籤與日期。</p>
+  </form>
+</dialog>
+
+<script>
+  const root = document.documentElement;
+  const toggle = document.querySelector<HTMLButtonElement>(
+    "[data-theme-toggle]",
+  );
+  const currentTheme = () =>
+    root.dataset.theme ??
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const updateThemeState = () => {
+    if (!toggle) return;
+    const dark = currentTheme() === "dark";
+    toggle.setAttribute("aria-pressed", String(dark));
+    toggle.setAttribute(
+      "aria-label",
+      dark ? "切換為淺色模式" : "切換為深色模式",
+    );
+  };
+  updateThemeState();
+  toggle?.addEventListener("click", () => {
+    const current = currentTheme();
+    const next = current === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    localStorage.setItem("carlstack-theme", next);
+    updateThemeState();
+  });
+
+  const dialog = document.querySelector<HTMLDialogElement>(
+    "[data-search-dialog]",
+  );
+  const openSearch = () => {
+    if (!dialog?.open) dialog?.showModal();
+  };
+  document
+    .querySelector("[data-search-open]")
+    ?.addEventListener("click", openSearch);
+  document
+    .querySelector("[data-search-close]")
+    ?.addEventListener("click", () => dialog?.close());
+  dialog?.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      openSearch();
+    }
+  });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--z-sticky);
+    border-block-end: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper);
+  }
+
+  .site-header__inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    min-height: 4.5rem;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .wordmark {
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .wordmark span {
+    color: var(--color-accent);
+  }
+
+  .desktop-nav {
+    display: flex;
+    justify-content: center;
+    gap: clamp(var(--space-xs), 2vw, var(--space-lg));
+  }
+
+  .desktop-nav a,
+  .mobile-nav a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-ink-2);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .search-pill,
+  .theme-toggle,
+  .mobile-nav > summary,
+  .cmdk__head button {
+    min-height: 2.75rem;
+    border: var(--rule-hair) solid var(--color-rule-2);
+    border-radius: var(--radius-sm);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+  }
+
+  .search-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding-inline: var(--space-sm);
+    white-space: nowrap;
+  }
+
+  kbd {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .theme-toggle {
+    width: 2.75rem;
+  }
+
+  .mobile-nav {
+    display: none;
+    position: relative;
+    font-family: var(--font-display);
+  }
+
+  .mobile-nav > summary {
+    display: grid;
+    min-width: 3.75rem;
+    place-items: center;
+    padding-inline: var(--space-sm);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    list-style: none;
+    white-space: nowrap;
+  }
+
+  .mobile-nav > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-nav nav {
+    position: absolute;
+    inset-block-start: calc(100% + var(--space-xs));
+    inset-inline-end: 0;
+    z-index: var(--z-dropdown);
+    display: grid;
+    min-width: 12rem;
+    padding: var(--space-xs) var(--space-md);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    background: var(--color-paper);
+  }
+
+  .cmdk {
+    position: fixed;
+    inset: 0;
+    width: min(38rem, calc(100% - 2rem));
+    height: fit-content;
+    max-height: min(80svh, 40rem);
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    color: var(--color-ink-2);
+  }
+
+  .cmdk::backdrop {
+    background: var(--color-overlay);
+  }
+
+  .cmdk__panel {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+  }
+
+  .cmdk__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    color: var(--color-ink);
+    font-family: var(--font-display);
+  }
+
+  .cmdk__head button {
+    padding-inline: var(--space-sm);
+    white-space: nowrap;
+  }
+
+  .cmdk label {
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+
+  .cmdk p {
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .desktop-nav a:hover,
+    .mobile-nav a:hover {
+      color: var(--color-accent);
+    }
+
+    .search-pill:hover,
+    .theme-toggle:hover,
+    .mobile-nav > summary:hover {
+      border-color: var(--color-accent);
+    }
+  }
+
+  @media (max-width: 59.99rem) {
+    .site-header__inner {
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+    }
+
+    .desktop-nav {
+      display: none;
+    }
+
+    .mobile-nav {
+      display: block;
+    }
+  }
+
+  @media (max-width: 31rem) {
+    .site-header__inner {
+      gap: var(--space-xs);
+    }
+
+    .search-pill__label,
+    .search-pill kbd,
+    .theme-toggle {
+      display: none;
+    }
+
+    .search-pill {
+      width: 2.75rem;
+      justify-content: center;
+      padding: 0;
+    }
+  }
+</style>

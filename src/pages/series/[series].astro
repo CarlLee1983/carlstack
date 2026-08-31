@@ -1,0 +1,35 @@
+---
+import type { GetStaticPaths } from "astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  collectTaxonomy,
+  getSeriesPosts,
+  getVisiblePosts,
+} from "../../utils/collections";
+
+export const getStaticPaths = (async () => {
+  const posts = await getVisiblePosts();
+  return collectTaxonomy(posts, "series").map((series) => ({
+    params: { series: series.slug },
+    props: { series: { ...series, posts: getSeriesPosts(posts, series.name) } },
+  }));
+}) satisfies GetStaticPaths;
+
+const { series } = Astro.props;
+---
+
+<BaseLayout
+  title={`系列：${series.name}`}
+  description={`CarlStack「${series.name}」系列文章。`}
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>{series.name}</h1>
+      <p>依系列順序閱讀，共 {series.posts.length} 篇。</p>
+    </header>
+    <div class="article-list">
+      {series.posts.map((post) => <ArticleCard post={post} />)}
+    </div>
+  </div>
+</BaseLayout>

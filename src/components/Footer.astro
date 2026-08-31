@@ -1,0 +1,77 @@
+---
+import { siteConfig } from "../config/site";
+---
+
+<footer class="site-footer" data-pagefind-ignore>
+  <div class="shell site-footer__inner">
+    <div>
+      <p class="site-footer__name">{siteConfig.name}</p>
+      <p>{siteConfig.subtitle}</p>
+    </div>
+    <nav aria-label="頁尾導覽">
+      <a href="/rss.xml">RSS</a>
+      <a href={siteConfig.github} rel="me">GitHub</a>
+      <a href="/about/">關於作者</a>
+    </nav>
+    <p class="site-footer__legal">
+      © {new Date().getFullYear()}
+      {siteConfig.author}。內容著作權依各文章標示；程式碼依 repository 授權。
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-block-start: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .site-footer__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-lg) var(--space-2xl);
+    padding-block: var(--space-2xl) var(--space-xl);
+  }
+
+  .site-footer__name {
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .site-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-xs) var(--space-lg);
+  }
+
+  .site-footer a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+
+  .site-footer__legal {
+    grid-column: 1 / -1;
+    padding-block-start: var(--space-md);
+    border-block-start: var(--rule-hair) solid var(--color-rule);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 39.99rem) {
+    .site-footer__inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .site-footer nav {
+      justify-content: flex-start;
+    }
+  }
+</style>

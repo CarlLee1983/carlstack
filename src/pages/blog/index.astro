@@ -1,0 +1,39 @@
+---
+import ArticleCard from "../../components/ArticleCard.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getVisiblePosts } from "../../utils/collections";
+
+const posts = await getVisiblePosts();
+---
+
+<BaseLayout
+  title="全部文章"
+  description="CarlStack 的系統工程、AI 工程化、API 整合與專案復盤文章。"
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>全部文章</h1>
+      <p>
+        依發布日期倒序排列。production 不包含
+        draft；本地開發會把草稿清楚標示為預覽。
+      </p>
+    </header>
+    {
+      posts.length > 0 ? (
+        <div class="article-list">
+          {posts.map((post) => (
+            <ArticleCard post={post} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="還沒有正式文章"
+          description="新增 Markdown 或 MDX 檔並將 draft 設為 false 後，文章會自動出現在這裡、RSS、Sitemap 與搜尋索引。"
+          href="/rss.xml"
+          action="訂閱 RSS"
+        />
+      )
+    }
+  </div>
+</BaseLayout>

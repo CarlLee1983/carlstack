@@ -1,0 +1,38 @@
+---
+import EmptyState from "../../components/EmptyState.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
+
+const series = collectTaxonomy(await getVisiblePosts(), "series");
+---
+
+<BaseLayout
+  title="系列文章"
+  description="CarlStack 依 seriesOrder 編排的技術文章系列。"
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>系列文章</h1>
+      <p>
+        需要連續閱讀的主題會組成系列，並依 frontmatter 的 seriesOrder 排序。
+      </p>
+    </header>
+    {
+      series.length > 0 ? (
+        <div class="project-grid">
+          {series.map((item) => (
+            <a class="article-card" href={`/series/${item.slug}/`}>
+              <h2>{item.name}</h2>
+              <p>{item.posts.length} 篇文章</p>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="尚無已發布文章系列"
+          description="文章設定 series 與 seriesOrder 後，系列入口會自動產生。"
+        />
+      )
+    }
+  </div>
+</BaseLayout>

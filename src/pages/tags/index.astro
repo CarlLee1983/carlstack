@@ -1,0 +1,44 @@
+---
+import EmptyState from "../../components/EmptyState.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
+
+const tags = collectTaxonomy(await getVisiblePosts(), "tags");
+---
+
+<BaseLayout
+  title="標籤"
+  description="由 CarlStack 已發布文章自動產生的技術標籤。"
+>
+  <div class="page shell">
+    <header class="page-header">
+      <h1>標籤</h1>
+      <p>
+        標籤名稱與穩定 URL 由 Content Collections
+        內容產生，不在頁面元件重複維護。
+      </p>
+    </header>
+    {
+      tags.length > 0 ? (
+        <ul class="tag-list">
+          {tags.map((tag) => (
+            <li>
+              <a
+                class="tag"
+                data-count={tag.posts.length}
+                href={`/tags/${tag.slug}/`}
+              >
+                {tag.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          title="尚無已發布文章標籤"
+          description="發布第一篇文章後，這裡會自動建立標籤入口。"
+        />
+      )
+    }
+  </div>
+</BaseLayout>

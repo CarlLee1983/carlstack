@@ -1,0 +1,39 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="找不到頁面"
+  description="這個 CarlStack 頁面不存在或已移動。"
+>
+  <div class="page shell not-found">
+    <p class="eyebrow">404</p>
+    <h1>這個路徑沒有內容。</h1>
+    <p>
+      可能是連結已更新，或文章還在草稿階段。可以回到文章索引或用全文搜尋找相近主題。
+    </p>
+    <div>
+      <a class="text-link" href="/blog/">查看全部文章 →</a>
+      <a class="text-link" href="/search/">搜尋 CarlStack →</a>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: grid;
+    max-width: 54rem;
+    gap: var(--space-lg);
+    align-content: center;
+  }
+
+  .not-found h1 {
+    font-size: var(--text-display);
+  }
+
+  .not-found > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md) var(--space-xl);
+  }
+</style>

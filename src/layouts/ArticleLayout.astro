@@ -1,0 +1,169 @@
+---
+import { Image } from "astro:assets";
+import { render, type CollectionEntry } from "astro:content";
+import Giscus from "../components/Giscus.astro";
+import MermaidSupport from "../components/MermaidSupport.astro";
+import { siteConfig } from "../config/site";
+import { getSeriesPosts, postHref } from "../utils/collections";
+import { estimateReadingMinutes, normalizeTaxonomy } from "../utils/content";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  post: CollectionEntry<"blog">;
+  posts: CollectionEntry<"blog">[];
+}
+
+const { post, posts } = Astro.props;
+const { Content } = await render(post);
+const body = "body" in post && typeof post.body === "string" ? post.body : "";
+const dateFormatter = new Intl.DateTimeFormat("zh-TW", { dateStyle: "long" });
+const index = posts.findIndex((item) => item.id === post.id);
+const newer = index > 0 ? posts[index - 1] : undefined;
+const older = index >= 0 ? posts[index + 1] : undefined;
+const seriesPosts = post.data.series
+  ? getSeriesPosts(posts, post.data.series)
+  : [];
+const canonical = post.data.canonicalUrl;
+const pageUrl = new URL(postHref(post), Astro.site);
+const articleJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.publishDate.toISOString(),
+  dateModified: (post.data.updatedDate ?? post.data.publishDate).toISOString(),
+  inLanguage: siteConfig.language,
+  mainEntityOfPage: canonical ?? pageUrl.href,
+  author: {
+    "@type": "Person",
+    name: siteConfig.author,
+    url: siteConfig.github,
+  },
+  publisher: { "@type": "Person", name: siteConfig.author },
+  image: post.data.cover
+    ? new URL(post.data.cover.src, Astro.site).href
+    : new URL(siteConfig.defaultSocialImage, Astro.site).href,
+  keywords: post.data.tags.join(", "),
+};
+---
+
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  image={post.data.cover?.src}
+  canonicalUrl={canonical}
+  type="article"
+  publishDate={post.data.publishDate}
+  updatedDate={post.data.updatedDate}
+  tags={post.data.tags}
+  jsonLd={articleJsonLd}
+>
+  <article class="page shell">
+    <header class="article-header">
+      {
+        post.data.draft && (
+          <p class="eyebrow">草稿預覽，不會出現在 production build</p>
+        )
+      }
+      <h1 data-pagefind-meta="title">{post.data.title}</h1>
+      <p class="article-header__description">{post.data.description}</p>
+      <div class="article-meta">
+        <time datetime={post.data.publishDate.toISOString()}
+          >發布於 {dateFormatter.format(post.data.publishDate)}</time
+        >
+        {
+          post.data.updatedDate && (
+            <time datetime={post.data.updatedDate.toISOString()}>
+              更新於 {dateFormatter.format(post.data.updatedDate)}
+            </time>
+          )
+        }
+        <span>{estimateReadingMinutes(body)} 分鐘閱讀</span>
+      </div>
+      <ul class="tag-list" aria-label="文章標籤">
+        {
+          post.data.tags.map((tag) => (
+            <li>
+              <a
+                class="tag"
+                href={`/tags/${encodeURIComponent(normalizeTaxonomy(tag))}/`}
+              >
+                {tag}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </header>
+
+    {
+      post.data.cover && (
+        <Image
+          class="article-cover"
+          src={post.data.cover}
+          alt={post.data.coverAlt ?? ""}
+          widths={[640, 960, 1280]}
+          sizes="(min-width: 1200px) 1120px, calc(100vw - 2rem)"
+          loading="eager"
+        />
+      )
+    }
+
+    <div class="prose">
+      <Content />
+    </div>
+    <MermaidSupport />
+
+    <footer class="article-footer">
+      {
+        post.data.repositoryUrl && (
+          <p>
+            <a class="text-link" href={post.data.repositoryUrl}>
+              查看本文相關 repository →
+            </a>
+          </p>
+        )
+      }
+      {
+        post.data.series && seriesPosts.length > 0 && (
+          <section aria-labelledby="series-posts">
+            <h2 id="series-posts">同系列：{post.data.series}</h2>
+            <ol>
+              {seriesPosts.map((item) => (
+                <li>
+                  <a
+                    href={postHref(item)}
+                    aria-current={item.id === post.id ? "page" : undefined}
+                  >
+                    {item.data.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
+      {
+        (older || newer) && (
+          <nav class="post-nav" aria-label="上一篇與下一篇">
+            {older ? (
+              <a href={postHref(older)}>
+                <span>上一篇（較舊）</span>
+                <strong>{older.data.title}</strong>
+              </a>
+            ) : (
+              <span />
+            )}
+            {newer && (
+              <a href={postHref(newer)}>
+                <span>下一篇（較新）</span>
+                <strong>{newer.data.title}</strong>
+              </a>
+            )}
+          </nav>
+        )
+      }
+      <Giscus />
+    </footer>
+  </article>
+</BaseLayout>
