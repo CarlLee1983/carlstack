@@ -20,15 +20,17 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 然而，當這些 Demo 試圖走進生產環境，面對真實世界的高併發、資料一致性要求、安全性審計與持續迭代時，脆弱性便一覽無遺。
 
-[Andrew Ng（吳恩達）在其發布的「AI Engineering Skills Map」中給出了一個清晰的解答](https://x.com/andrewyng/status/2093388974194872781)：**Agentic Coding 沒有消滅軟體工程，而是將工程師的核心價值從「語法打字員」推向了「系統架構與機制設計者」**。
+[Andrew Ng（吳恩達）在「AI Engineering Skills Map：Software Engineering Fundamentals」中提出更精確的說法](https://x.com/andrewyng/status/2093388974194872781)：即使 Coding Agent 撰寫全部程式碼，工程師仍要理解可選的權衡，才能把 Agent 導向符合應用情境的決策。
+
+原文將這部分能力拆成五項：全端應用、資料管理、系統架構、安全與可靠性，以及 production 的擴展與維運；並點出 Vibe Coding 容易忽略延遲、可用性、一致性、可靠性、可維護性、簡單性與成本之間的取捨。
 
 ---
 
-## AI Engineering Skills Map 的四大支柱
+## 從軟體工程基本功到本文的工程化解讀
 
 <ProcessPipeline
   title="AI Engineering 核心能力地圖"
-  caption="吳恩達提出的四大支柱：從駕馭 Agent 到塑造產品的系統性能力"
+  caption="本文以原文的五項軟體工程基本功為底，收斂出使用 Coding Agent 時需要顯性管理的控制面"
   steps={[
     {
       num: "01",
@@ -75,6 +77,6 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ## 結語：回歸問題解決的本質
 
-軟體工程的本質從來都不是「在編輯器裡敲進字元」，而是**在複雜的約束條件下，構建可預測、可維護且能解決真實問題的系統**。
+軟體工程的本質從來都不是「在編輯器裡敲進字元」，而是**在複雜的約束條件下，構建可預測、可維護且能解決真實問題的系統**。Agent 能代替部分實作，但不會自動知道資料生命週期、架構邊界或可接受的營運風險。
 
 當編寫程式碼的阻力被 AI 降低，紮實工程基本功就成為槓桿：它讓開發者能更快把清晰的架構思考轉化為可驗證的生產級軟體。

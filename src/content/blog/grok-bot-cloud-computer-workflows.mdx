@@ -18,20 +18,20 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 隨著以 Grok Bot 為代表的**「雲端電腦（Cloud Computer）型 Agent」**出現，自動化應用的門檻被大幅降低。
 
-[@maiyangai 的實作解析](https://x.com/maiyangai/status/2090919833366040919)以 Grok Bot 為例說明：當 Bot 具備獨立的虛擬執行環境（Cloud VM）、專屬 Skill 與 Routine 排程時，日常研報解讀、資料整理與跨 Bot 協作可以放進受控的自動化流程。
+[@maiyangai 的實作解析](https://x.com/maiyangai/status/2090919833366040919)以 Grok Bot 為例說明：Bot 可在雲端電腦使用瀏覽器、檔案系統與終端，並藉由 Skill、Routine 與多人 Bot 協作處理日常工作。重要限制是：**同一使用者帳號下的所有 Bot 共用同一台雲端電腦、檔案、瀏覽器 Session 與登入狀態**；Bot 是工作分工，不是彼此隔離的安全邊界。
 
 ---
 
 ## 為什麼需要「雲端電腦」型 Agent？
 
-將 Agent 從本機遷移至雲端虛擬環境，解決了三個長久以來的核心痛點：
+將工作從本機移至雲端電腦，可帶來三項能力；但隔離單位是使用者帳號的雲端電腦，而不是單一 Bot：
 
-1. **環境安全與爆炸半徑隔離（Blast Radius Containment）**：
-   - Bot 在獨立的雲端沙盒內運作，即使程式出錯或產生非預期寫入，也不會影響本機工作環境或企業核心資料庫。
+1. **與本機分離的執行環境**：
+   - 雲端電腦可降低對本機檔案的直接影響；但同帳號 Bot 之間可互見檔案與登入，因此敏感資料與高權限登入仍應排除或嚴格限制。
 2. **24/7 持久自走（Continuous Execution）**：
-   - 不受限於個人電腦開關機，任務可全天候在雲端根據排程或 Webhook 自動觸發。
-3. **工具與身分隔離**：
-   - 每個 Bot 可使用各自配置的外部服務身分（如 GitHub、Slack、Notion）；憑證仍應由平台的祕密管理與最小權限機制保護。
+   - 不受限於個人電腦開關機，任務可在雲端依 Routine 排程持續執行。
+3. **帳號層級的工具與身分管理**：
+   - 外部服務的登入會在共享雲端電腦中可見；密碼、2FA、CAPTCHA 與付款確認需由人接管，而 API key 應走平台的 secure secret card。
 
 <ProcessPipeline
   title="雲端電腦 Agent 執行流"
@@ -41,15 +41,15 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
       num: "01",
       title: "Routine 排程觸發",
       tag: "Event / Cron",
-      desc: "根據定時設定（如每日 8 點）或外部 Webhook 事件，自動喚醒對應的專屬 Bot。",
+      desc: "根據 Routine 的定時設定（如每日 8 點），自動喚醒對應的專屬 Bot。",
       gate: "觸發條件與權限核驗",
     },
     {
       num: "02",
       title: "雲端沙盒執行",
-      tag: "Cloud VM Sandbox",
-      desc: "在隔離的虛擬機環境中調用專屬 Skills 執行爬蟲、代碼編譯或研報結構化萃取。",
-      gate: "爆炸半徑與環境隔離",
+      tag: "Shared Cloud Computer",
+      desc: "在帳號共用的雲端電腦中調用 Skills 執行資料整理、研究或程式工作。",
+      gate: "共享登入與檔案的風險控管",
     },
     {
       num: "03",
@@ -80,7 +80,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ---
 
-## 多 Bot 協作：特化分工的流水線
+## 多 Bot 協作：分工不是隔離
 
 在進階應用中，複雜任務不再由單一龐大的 Bot 獨立承擔，而是拆解為**多 Bot 協作流水線**：
 
@@ -88,7 +88,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 2. **分析與合成 Bot（Analyst Bot）**：接手原始資料，進行跨來源比對、邏輯推理與結構化總結；
 3. **分發與通知 Bot（Dispatcher Bot）**：將通過審批的最終產物推播至 Slack、Email 或內部知識庫。
 
-這種模組化的設計大幅降低了單一 Agent 的推理負擔，並使每個環節都具備獨立的容錯與重試能力。
+原文建議先把一隻 Bot 的真實工作跑順、確認交付格式後，再沉澱成 Skill 或 Routine，最後才增加第二、第三隻 Bot。這種模組化能讓責任較清楚，但不會自動提供獨立容錯、獨立登入或安全隔離；共享雲端電腦的 blast radius 仍需由審批規則與最小權限管理。
 
 ---
 

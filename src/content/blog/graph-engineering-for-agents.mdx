@@ -28,7 +28,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ## 什麼是 Graph Engineering？
 
-Graph Engineering 是將 Agent 系統建模為**有向圖（Directed Graph）或狀態機（State Graph）**的工程方法。
+原文把 Graph 說得很樸素：它是一張畫出「哪些工作要做」與「哪些工作必須等待前一步結果」的工作計畫。節點是有明確輸入與輸出的單一工作；邊則只在有真實資料需要交接時才存在。本文再把這個概念對應到有向圖與狀態轉移的工程實作。
 
 在圖工程中：
 
@@ -71,6 +71,10 @@ Graph Engineering 是將 Agent 系統建模為**有向圖（Directed Graph）或
   ]}
 />
 
+### 先做 fake-edge test
+
+原文最實用的檢查是逐一問每條箭頭：「下一步真的需要前一步的結果嗎？」若不需要，這條邊就是假相依，兩個工作應平行執行。常見的菱形流程則是 **fan-out → 用一般程式碼 reduce → 由最終 Agent synthesize**；把 reduce 留給確定性程式，而非再交給模型，可減少不必要的上下文與推理成本。
+
 ### 三種核心圖拓撲
 
 1. **平行展開與匯聚（Fan-out / Fan-in，菱形模式）**：
@@ -106,3 +110,5 @@ Graph Engineering 是將 Agent 系統建模為**有向圖（Directed Graph）或
 3. **Token 與時間浪費**：對於「修改單一變數名稱」或「修復拼寫錯誤」等微小任務，啟動多 Agent 圖工作流如同用大砲打蚊子。
 
 > **工程準則**：從最簡單的單一迴圈（Loop）或線性流程開始。唯有在出現明確的「平行加速需求」、「多維度獨立審查」或「複雜分支條件」時，才升級為 Graph Engineering。
+
+圖的拓撲也不等於事實正確。原文稱之為 **anchors**：實際通過的測試、已入帳的資料或其他不可由 Agent 自行辯解的外部證據。沒有這些錨點，再多互相審查的節點也可能只是在一致地犯錯。

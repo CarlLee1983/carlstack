@@ -23,13 +23,15 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 - **錯誤具備複合傳播性**：第 2 輪工具回傳的微小資訊偏差，經過 5 輪推理後演變成嚴重的方向漂移；
 - **非確定性難以重現**：同一個任務重新執行一次，模型可能走出完全不同的路徑，導致根本無法除錯。
 
-[@marfinxx 指出](https://x.com/marfinxx/status/2094016175617241109)：要想在無人值守的情況下信任 Agent，必須建立專屬的**「Trace Engineering」**體系。
+[@marfinxx 將這類架構稱為「Trace Engineering」](https://x.com/marfinxx/status/2094016175617241109)：它不把可觀測性當成被動的 log 蒐集，而是用來做執行期驗證、因果故障定位、重播與從 trace 萃取長期記憶。這是作者提出的架構主張，並非所有 Agent 平台既有的標準能力。
 
 ---
 
 ## 什麼是 Trace Engineering？
 
 Trace Engineering 並非單純把 Prompt 與 LLM 輸出寫入 log 檔，而是**將 Agent 的決策、工具互動、環境回饋與狀態流轉，組織為具備因果關係的證據鏈**。
+
+原文區分三種東西：**log** 只記錄印出的文字、**trajectory** 記錄回合順序、**trace** 則要能沿著資料相依關係追問是哪一次狀態變更導致後續失敗。這個區別決定了事故發生後能否只回溯相關 span，而不是在所有歷史輸出中盲找。
 
 <ProcessPipeline
   title="Trace Engineering 四大控制支柱"
@@ -77,6 +79,8 @@ Trace Engineering 並非單純把 Prompt 與 LLM 輸出寫入 log 檔，而是**
 1. **提取失敗片段**：截取導致語意漂移的特定 Turn 與工具互動；
 2. **建立 Mock 環境**：利用 Trace 中的工具回傳資料作為假資料（Fixtures）；
 3. **加入斷言測試**：驗證調整後的 Prompt、Harness 護欄或 Tool 介面能否在相同情境下做出正確決策。
+
+原文進一步區分兩種重播：離線 mocked replay 以事件帳本中的快取工具與模型結果重建前段執行，再只執行待驗證的 turn；live state resumption 則從快照恢復工作記憶，讓模型在固定的歷史前綴上重新決策。對會寫入外部世界的工具，應先標成 mutating，並在重播時攔截或乾跑，避免把除錯變成重複副作用。
 
 ---
 

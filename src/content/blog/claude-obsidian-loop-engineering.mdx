@@ -19,7 +19,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 每次開啟新的對話，AI 未必帶著任務所需的脈絡；隨著 Session 推進，讀取的長篇資料、多輪修改與無關命令又會稀釋可用的 Context Window。即便透過手動複製貼上將結論存回筆記軟體，維護標籤、雙向連結（Backlinks）與索引的認知負擔依然落在人類身上，最終讓個人知識庫（PKM）淪為「只進不出」的資訊墓地。
 
-[@polydao（Mr. Buzzoni）提出了一種結合 Claude Code 與 Obsidian 的解法](https://x.com/polydao/status/2094307289280716815)：**「Loop Engineering」**。其核心心智模型是「**Human mostly reads, LLM mostly writes**」——將 Obsidian Vault 視為 AI Agent 的可寫狀態機（State Machine），讓 Agent 在受控的自動化迴圈中完成知識收集、關聯提取、結構化草稿與持續維護。
+[@polydao（Mr. Buzzoni）提出了一種結合 Claude Code 與 Obsidian 的解法](https://x.com/polydao/status/2094307289280716815)：**「Loop Engineering」**。原文把 Vault 視為迴圈的狀態，而非聊天視窗；其具體順序是 capture、context、在 Git Worktree 草擬、由 Critic 檢查 diff，最後只以 append 的方式 commit 回 Vault。
 
 本文從系統架構出發，拆解如何將本地純文字 Vault 作為狀態層，以及在無人值守或半自動迴圈中必須建立的邊界與工程防護。
 
@@ -43,7 +43,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ## 五步自動化知識迴圈（The Loop）
 
-Loop Engineering 並非讓模型漫無目的地在資料夾中亂竄，而是將知識流轉收斂為一個五階段的標準閉環：
+本文沿用原文的五個階段，並補上可操作的工程護欄：
 
 <ProcessPipeline
   title="知識自轉流水線 (The 5-Step Loop)"
@@ -118,6 +118,10 @@ Agent 在暫存工作區或 Git Worktree 中撰寫結構化筆記。此階段包
 ### 5. Persistence & Compounding（沉澱回寫與複利）
 
 通過審查的草稿移入正式筆記目錄（如 `01-cards/`），原始 Inbox 檔案移至歸檔區，並在變更日誌記錄本輪更新。這讓下一次迴圈能把本輪產出的成果作為既有知識繼續疊加。
+
+### 成本是升級圖工作流的門檻
+
+原文估計，單純迴圈的成本約為一次直接呼叫的 2 到 4 倍；只有在狀態必須跨 Session、需要多 Agent 協調，或必須解釋變更時，才值得升級成完整圖工作流，成本可能升至 10 到 50 倍。這些是作者的經驗數字，而非通用基準；它提醒我們先把 review gate 做好，再用評估結果決定是否加大協調規模。
 
 ---
 

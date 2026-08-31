@@ -21,6 +21,8 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 [@rvaniaaaa 提出了一種視角](https://x.com/rvaniaaaa/status/2094035746369749246)：結合專門分工的 AI Agent 團隊，將靜態筆記庫升級為**具備團隊記憶、可支援後續行動的知識系統**。
 
+原文的具體設計比「多 Agent」更完整：`raw/` 保存不可變的原始素材，`wiki/` 保存已編譯、可連結的知識，所有 Agent 先讀取 `CLAUDE.md` 的目標與權限邊界；再由 Scout、Analyst、Strategist、Executor、Guardian、Observer 六個角色依序覆蓋偵測、脈絡、規劃、執行、防護與回寫。以下四角色與流程，是將這套分工收斂成可在一般專案採用的本文架構。
+
 ---
 
 ## 從被動儲存到主動自組織
@@ -64,7 +66,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ---
 
-## Agent 團隊的四種特化角色
+## 本文的四種特化角色
 
 | 角色名稱                           | 核心職責                 | 關鍵工作機制                                                                       |
 | ---------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
@@ -77,7 +79,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ## 讓 Agent 團隊「越用越聰明」的關鍵：覆盤回寫
 
-傳統 AI 助理最令人沮喪的一點是「永遠重蹈覆轍」——即便你昨天才糾正過它的某個錯誤，今天的全新 Session 它依然會犯一模一樣的錯。
+原文特別把 Observer 視為閉環：它記錄 Executor 的結果、成功與失敗，再讓下一輪任務讀取這些紀錄。本文將這個概念落在可審查的變更收據與知識回寫，而不是假設模型會自行記住前一個 Session。
 
 在「主動第二大腦」架構下，每次任務完成時都會觸發**經驗沉澱機制**：
 
