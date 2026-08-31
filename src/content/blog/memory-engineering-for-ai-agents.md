@@ -2,7 +2,7 @@
 title: "AI Agent 需要的不是更長 Context，而是 Memory Engineering"
 description: "從 Capture、Consolidate、Retrieve、Reconcile 到 Decay，拆解 AI Agent 如何建立可更新、可遺忘，也能被驗證的長期記憶。"
 publishDate: 2026-08-31
-draft: true
+draft: false
 featured: false
 tags:
   - AI 工程化
