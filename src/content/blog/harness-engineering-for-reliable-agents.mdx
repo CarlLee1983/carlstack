@@ -1,0 +1,152 @@
+---
+title: "AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面"
+description: "從一篇談 Harness Engineering 的長文出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
+publishDate: 2026-08-31
+draft: false
+featured: true
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 軟體品質
+cover: ../../assets/covers/harness-engineering.png
+coverAlt: "中央藍色推理核心連接契約、專案地圖、工具、資料、感測與權限等七個控制節點的工程圖"
+---
+
+Agent 忘記決策、選錯工具、略過驗證，或在同一個錯誤裡反覆打轉時，我們很容易先改 prompt，再換模型，最後增加 context window。這些調整有時有效，卻也可能只是在修飾症狀。
+
+[@0xwhrrari 的〈Harness Engineering: How to Build AI Agents That Don't Fall Apart〉](https://x.com/0xwhrrari/status/2093685107534000560)提出另一個診斷角度：模型只是推理引擎；真正決定 Agent 是否可靠的，是包住模型的執行環境，也就是 harness。
+
+這不是替 prompt engineering 換一個新名字。Prompt 決定「如何描述任務」，harness 則決定「任務在哪個世界裡執行」：模型能讀什麼、能改什麼、哪些狀態會留下、用什麼證據驗收、風險由誰核准，以及失敗後如何復原。
+
+## 同一顆腦，放進不同世界
+
+同一個模型放在聊天框裡，主要產物是回答。把它放進 repository，提供 terminal、tests、browser、project memory、隔離環境與 review loop，它才有機會交付可驗證的軟體。
+
+模型權重沒有因此改變，改變的是模型與真實世界之間的介面。
+
+OpenAI 在整理 Codex 的 agent loop 時，也把 harness 描述成協調使用者、模型與工具的核心：模型提出工具呼叫，環境執行後把結果放回 context，再讓模型決定下一步。這表示一次 Agent 執行不是單次生成，而是一個由環境控制的回饋迴圈。[OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
+
+```mermaid
+flowchart LR
+  A[任務契約] --> B[模型推理]
+  B --> C[工具執行]
+  C --> D[測試與觀測]
+  D -->|證據不足| B
+  D -->|符合驗收| E[變更收據]
+  P[權限與預算] -.限制.-> C
+  S[持久狀態] <--> B
+```
+
+## 一個 production harness 要做的七件事
+
+原文把可靠 Agent 的周邊系統拆成七項工作。以下不是產品採購清單，而是七個需要有人負責的控制面。
+
+### 1. 把需求變成任務契約
+
+「幫我把這個功能做好」不是可驗收的工作單位。Agent 動手前，至少要固定四件事：目標、不能破壞的條件、完成標準，以及必須留下的證據。
+
+契約的價值不是寫更多文件，而是防止任務在執行中悄悄改義。否則 Agent 很可能完成另一件相近的事，最後仍宣告成功。
+
+### 2. 給地圖，不要塞整本手冊
+
+Agent 需要知道專案的邊界、入口、驗證命令與文件位置，但不需要每次都把所有規格塞進 context。
+
+根目錄指南應像索引：告訴 Agent 去哪裡找答案。細節則靠近所治理的程式碼或工作流程，需要時再載入。Anthropic 對 context engineering 的建議也是保留高訊號內容，搭配即時檢索、摘要與外部筆記，而不是無限制擴張 prompt。[Anthropic：Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+
+### 3. 只暴露正確的工具
+
+工具不是按鈕清單，而是模型接觸真實世界的 API。可靠的工具要有清楚用途、明確輸入、可預期輸出、失敗狀態與權限邊界。
+
+如果一個工具回傳大量無關資料，或成功與失敗長得一樣，模型就必須猜測剛才發生了什麼。Anthropic 的工具設計經驗同樣強調單一責任、清楚參數、錯誤處理與精簡回應，並以 evaluation 驗證工具是否真的容易被 Agent 使用。[Anthropic：Writing effective tools for AI agents](https://www.anthropic.com/engineering/writing-tools-for-agents)
+
+### 4. 把記憶外部化成持久狀態
+
+對話不是 system of record。決策、產物、失敗原因與未解風險若只存在 context window，下一次 session 得到的只是失真摘要。
+
+長任務至少要留下可被新 session 讀懂的進度檔、git history、測試結果或結構化狀態。Anthropic 在長時間 Agent 實驗中，使用初始化 Agent、進度檔、啟動腳本與 git 紀錄，讓新的 context window 能接續前一輪工作。[Anthropic：Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+
+### 5. 先裝感測器，再增加自治
+
+Agent 無法修正自己看不見的問題。Tests、linters、type checks、screenshots、logs、metrics 與 schema validators，會把「看起來可以」轉成可比較的證據。
+
+這也是為什麼 coding Agent 相對容易形成閉環：程式輸出常能由自動測試回饋；但人類仍需檢查測試未涵蓋的整體需求。[Anthropic：Building Effective AI Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+### 6. 在模型之外強制權限
+
+模型可以建議動作，harness 才能授權動作。讓同一個機率系統同時規劃、評估風險並執行不可逆操作，等於把安全邊界寫成一句「請小心」。
+
+檔案、網路、憑證、部署與破壞性操作應分層控制，高風險動作要求明確核准。OpenAI 公開的 Codex 安全實務也把 sandbox、approval policy、網路白名單、憑證管理與 audit log 放在模型之外。[OpenAI：Running Codex safely at OpenAI](https://openai.com/index/running-codex-safely/)
+
+### 7. 留下 trace，並支援局部復原
+
+沒有 trace，失敗只是一個謎；有 trace，才知道錯在模型判斷、工具介面、缺少 context，還是驗收條件。
+
+復原也應盡量局部化。工具失敗時重跑工具，測試失敗時修正該 slice，不要讓整個任務從頭生成。一次失敗若能補上一條測試、一個 schema 或一道權限護欄，就不只修好當次輸出，而是修掉一整類後續失敗。
+
+## 把重要規則寫兩次
+
+純文字規則會被忽略；只有機械檢查則讓人不知道限制的原因。較穩定的做法是把重要邊界寫兩次：
+
+1. 指南說明決策與原因。
+2. 測試、lint、schema、hook 或 permission gate 負責強制執行。
+
+例如「公開文章一定要有 description」可以先寫進內容指南，再由 Content Collection schema 阻止缺欄位的 build。下一個 Agent 不必記得哪次事故促成這條規則，因為 harness 已替團隊記住。
+
+## 「繼續做到成功」不是控制系統
+
+長任務需要迭代，但無限重試會把錯誤變成成本。可控的 Agent loop 至少要有：
+
+- 每輪可觀測的證據；
+- 明確的重試上限或 token／時間預算；
+- 能判斷是否有進展的停止條件；
+- 超出權限或連續失敗時的升級路徑；
+- 與 builder 分離的 evaluator，避免產出者自行核准。
+
+模型可以決定如何修補局部缺口，harness 則決定是否允許下一輪。Anthropic 對 Agent 架構的建議也很務實：先用最簡單的方案，只有在 evaluation 顯示不足時才增加複雜度。[Anthropic：Building Effective AI Agents](https://www.anthropic.com/engineering/building-effective-agents)
+
+## 每次執行留一張 change receipt
+
+最終答案可能隱藏一個壞掉的過程。除了產物，harness 應保留一張精簡的變更收據：
+
+```yaml
+outcome: 已完成文章發布流程
+changed:
+  - src/content/blog/example.mdx
+evidence:
+  - pnpm check
+  - pnpm test
+decisions:
+  - 使用既有 Content Collection，不新增 CMS
+remaining_risk:
+  - 尚未在正式網域做視覺檢查
+```
+
+這不是要求保存完整 chain of thought，而是記錄可稽核的動作、產物、驗證與剩餘風險。有了它，團隊才能比較模型升級前後的結果，定位 regression，也能讓下一個 session 從事實接手。
+
+## 從能閉環的最小 harness 開始
+
+Harness engineering 不等於先蓋平台。控制面應與失敗面成比例：
+
+| 任務                       | 最小可用 harness                           |
+| -------------------------- | ------------------------------------------ |
+| 低風險、一次性文字工作     | 任務契約、來源檢查、人工 review            |
+| 可修改 repository 的短任務 | repo map、隔離權限、測試、diff review      |
+| 跨 session 的長任務        | 持久進度、checkpoint、預算、獨立 evaluator |
+| 會連網或產生外部副作用     | allowlist、秘密隔離、動作前核准、audit log |
+
+OpenAI 在 agent-first codebase 的實作回顧中，也把早期進展慢歸因於環境規格不足，後續做法是把缺少的能力變得可被 Agent 讀懂，並由工具或檢查強制執行。[OpenAI：Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/)
+
+## 結語：先找失敗的控制面
+
+下次 Agent 重複失敗，不妨先停止微調 prompt 裡的形容詞，改問：
+
+- 任務是否有不會漂移的契約？
+- Context 裡是否只有當下需要的資訊？
+- 工具是否回傳足以判斷成敗的結果？
+- 狀態能否跨 session 保存？
+- 測試與觀測是否能看見錯誤？
+- 權限是否在模型之外執行？
+- 失敗能否留下 trace 並局部復原？
+
+更強的模型能提高上限；完整的 harness 才能讓能力穩定落在可交付範圍。真正會累積的優勢，不只是哪個模型最聰明，而是哪個環境能讓它的聰明被可靠地使用。

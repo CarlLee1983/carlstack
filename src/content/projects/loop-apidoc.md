@@ -10,4 +10,4 @@ tags:
   - OpenAPI
 ---
 
-專案頁面內容完全來自 Projects Content Collection，可直接修改此檔案替換描述與連結。
+把 PDF、HTML、Word、Markdown 與既有 OpenAPI 等異質整合來源，整理成 OpenAPI 3.1、繁中串接指南、provenance、validation report 與離線 review 頁。來源未提供的內容不猜測，產物可重建、可比較，也能保留每項事實的來處。

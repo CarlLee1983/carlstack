@@ -1,6 +1,6 @@
 # CarlStack
 
-李卡爾的系統工程與 AI 工程實戰筆記。CarlStack 是內容優先的繁體中文技術 Blog：文章與專案資料保存在 Git repository，以 Markdown／MDX 編輯，輸出靜態 HTML，部署到 GitHub Pages。
+李卡爾的系統工程與 AI 工程實戰筆記。CarlStack 是內容優先的繁體中文技術 Blog：文章與專案資料保存在 Git repository，以 Markdown／MDX 編輯，輸出靜態 HTML，部署到 Cloudflare Workers。
 
 第一版刻意不包含 CMS、資料庫、登入、會員、付費或自製留言服務。內容能被一般編輯器、Codex 與其他 AI Agent 直接修改，框架也不會成為內容的唯一出口。
 
@@ -9,18 +9,18 @@
 - Astro 7、TypeScript strict mode、Astro Content Collections
 - Markdown、MDX、Shiki 與 Mermaid
 - Pagefind build-time 靜態全文索引
-- 靜態 HTML + GitHub Pages（無 SSR adapter）
+- 靜態 HTML + Cloudflare Workers Static Assets（無 SSR adapter）
 - RSS、Sitemap、robots.txt、Open Graph、Twitter Card 與 JSON-LD
 - Node 內建 test runner；Prettier 與 Astro Check
 - GitHub Actions 驗證 pull request，並在 `main` 更新後自動部署
 
-發布管線：`src/content` → schema 驗證 → Astro static build → Pagefind 索引 → `dist` → GitHub Pages。
+發布管線：`src/content` → schema 驗證 → Astro static build → Pagefind 索引 → `dist` → Cloudflare Workers。
 
 ## 系統需求
 
 - Node.js 22.13 以上（CI 固定 22.17.1）
 - pnpm 12.1.0
-- 本地開發與 production build 不需要 GitHub 憑證
+- 本地開發與 production build 不需要 Cloudflare 憑證
 
 建議讓 Corepack 使用專案指定版本：
 
@@ -53,7 +53,7 @@ pnpm dev
 
 ## 新增文章
 
-在 `src/content/blog` 新增 `.md` 或 `.mdx`。可複製 `astro-content-site-draft.mdx`，先保留 `draft: true`：
+在 `src/content/blog` 新增 `.md` 或 `.mdx`。可參考既有文章的 frontmatter，並先保留 `draft: true`：
 
 ```yaml
 ---
@@ -139,21 +139,28 @@ Mermaid 只在含文章內容的頁面載入，安全層級固定為 `strict`。
 SITE_URL=https://blog.your-domain.com pnpm build
 ```
 
-GitHub deployment workflow 使用 repository/environment variable `SITE_URL`。Astro 會用它產生 canonical、RSS、Sitemap、Open Graph URL 與 robots.txt。不要在頁面元件硬編測試網域。
+Deployment workflow 使用 repository variable `SITE_URL`。Astro 會用它產生 canonical、RSS、Sitemap、Open Graph URL 與 robots.txt。不要在頁面元件硬編測試網域。
 
 ### Hashnode、Medium 等 cross-post
 
 CarlStack 預設把自有網站設為 canonical。先在 CarlStack 發布原文，再同步到外部平台，並在外部平台把 canonical 指回 CarlStack。只有當 CarlStack 文章本身不是原始來源時，才在 frontmatter 設定 `canonicalUrl`；這個欄位會覆寫該篇文章的 canonical。
 
-## 部署到 GitHub Pages
+## 部署到 Cloudflare Workers
 
-Repository 的 Pages source 設為 GitHub Actions，正式網址由 repository variable `SITE_URL` 提供。每次 push 到 `main` 時，deployment workflow 會執行 `pnpm check` 與 `pnpm test`，再上傳 `dist` 並部署；也可以從 Actions 頁面手動執行。
+Wrangler 會把 `dist` 以 Workers Static Assets 部署，不需要 Astro Cloudflare adapter。首次本地部署先登入，再執行：
 
-部署完成後確認 `/`, `/rss.xml`, `/sitemap-index.xml`, `/robots.txt` 與 `/search/`。GitHub Pages deployment 不需要額外 secrets。
+```bash
+pnpm exec wrangler login
+SITE_URL=https://carlstack.gravito.dev pnpm run deploy
+```
+
+GitHub Actions 需要 `cloudflare-production` environment secrets `CLOUDFLARE_ACCOUNT_ID` 與 `CLOUDFLARE_API_TOKEN`，正式網址由 repository variable `SITE_URL` 提供。API token 只授予目標 Cloudflare account 的 Workers Scripts Edit 權限。每次 push 到 `main` 時，deployment workflow 會執行 `pnpm check` 與 `pnpm test`，再部署到 Cloudflare Workers；也可以從 Actions 頁面手動執行。
+
+部署完成後確認 `/`, `/rss.xml`, `/sitemap-index.xml`, `/robots.txt` 與 `/search/`。
 
 ### 綁定自訂網域
 
-CarlStack 使用 `carlstack.gravito.dev`。GitHub Pages 設定此 custom domain 後，在 DNS 加入 `CNAME carlstack → carllee1983.github.io`；若使用 Cloudflare proxy，可先設為 DNS only，等 GitHub 核發 HTTPS 憑證後再決定是否開啟。綁定後檢查 canonical 與 Sitemap 是否使用正式網域。
+CarlStack 使用 `carlstack.gravito.dev`。首次 Workers 部署成功後，在 Cloudflare 刪除原本指向 GitHub Pages 的 `carlstack` CNAME，再到 Worker 的 Settings → Domains & Routes 新增 `carlstack.gravito.dev` Custom Domain；Cloudflare 會建立 DNS 與 TLS 憑證。綁定後檢查 canonical 與 Sitemap 是否使用正式網域。
 
 ## Giscus
 
@@ -173,7 +180,7 @@ Giscus 預設完全關閉。先在 GitHub repository 啟用 Discussions、安裝
 ## GitHub Actions
 
 - `.github/workflows/ci.yml`：所有 pull request 執行 frozen install、`pnpm check` 與 `pnpm test`。
-- `.github/workflows/deploy.yml`：push 到 `main` 或手動觸發時先驗證，再部署到 GitHub Pages。
+- `.github/workflows/deploy.yml`：push 到 `main` 或手動觸發時先驗證，再部署到 Cloudflare Workers。
 
 ## 常見問題
 
@@ -193,9 +200,9 @@ Giscus 預設完全關閉。先在 GitHub repository 啟用 Discussions、安裝
 
 正式 build 沒有取得 `SITE_URL`。確認 shell、GitHub variable 或 deployment environment 有設定，然後重新 build；這是 build-time 設定，不是部署後即時變數。
 
-### GitHub Pages 顯示 404 或自訂網域無法連線
+### Workers 顯示 404 或自訂網域無法連線
 
-確認 Pages source 是 GitHub Actions、deployment workflow 已成功，且 DNS 的 `carlstack` CNAME 指向 `carllee1983.github.io`。DNS 與 HTTPS 憑證生效前可能需要等待。
+確認 deployment workflow 已成功、Worker 的 Static Assets directory 是 `dist`，且 `carlstack.gravito.dev` 已加為 Worker Custom Domain。DNS 與 TLS 憑證生效前可能需要等待。
 
 ### Mermaid 沒有顯示
 

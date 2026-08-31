@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
+    "deploy": "pnpm validate:site-url && pnpm build && wrangler deploy",
     "preview": "pnpm build && astro preview",
     "check": "pnpm format:check && astro check && pnpm build",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
@@ -24,13 +25,15 @@
     "@astrojs/rss": "4.0.19",
     "@astrojs/sitemap": "3.7.3",
     "astro": "7.2.9",
-    "mermaid": "11.17.2"
+    "mermaid": "11.17.2",
+    "sharp": "0.35.2"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "pagefind": "1.5.2",
     "prettier": "3.9.6",
     "prettier-plugin-astro": "0.14.1",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "wrangler": "^4.127.1"
   }
 }

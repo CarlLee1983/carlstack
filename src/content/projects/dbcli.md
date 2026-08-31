@@ -10,4 +10,4 @@ tags:
   - CLI
 ---
 
-範例專案資料取自公開 GitHub repository；網站不在建置時抓取 Star、版本或其他易變動數據。
+面向 AI Agent 的統一資料庫 CLI，讓 Claude Code、Gemini、Copilot 與 Cursor 等工具透過同一介面探索、查詢及操作資料庫。權限控管、敏感資料保護與命令黑名單放在 CLI 邊界執行，避免每個 Agent 各自處理資料存取風險。
