@@ -1,6 +1,15 @@
 [
   {
     "date": "2026-08-31",
+    "macrostructure": "Split Studio",
+    "theme": "Almanac",
+    "enrichment": "E5 tier-A CSS system blueprint",
+    "brief": "CarlStack homepage visual depth refresh",
+    "nav": "N13 retained",
+    "footer": "Ft1 retained"
+  },
+  {
+    "date": "2026-08-31",
     "macrostructure": "Ecosystem Index",
     "theme": "Almanac",
     "enrichment": "none",
