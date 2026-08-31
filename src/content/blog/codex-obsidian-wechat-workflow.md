@@ -1,7 +1,7 @@
 ---
 title: "Codex × Obsidian：從寫作到公眾號發布的 Agent 工作流"
 description: "拆解 WeSight 如何把 Codex、Obsidian 與微信公眾號串成同一條內容管線，並釐清本地優先、人工審核、雲端傳輸與積分服務的實際邊界。"
-publishDate: 2026-08-31
+publishDate: 2026-08-31T21:10:41+08:00
 draft: false
 featured: false
 tags:
