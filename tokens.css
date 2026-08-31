@@ -56,7 +56,7 @@
   --radius-lg: 0.75rem;
   --page-gutter: clamp(1rem, 4vw, 3.5rem);
   --page-width: 76rem;
-  --prose-width: 68ch;
+  --prose-width: 48rem;
 
   --z-base: 1;
   --z-raised: 10;
