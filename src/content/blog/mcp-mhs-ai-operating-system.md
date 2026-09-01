@@ -9,6 +9,8 @@ tags:
   - AI Agent Workflow
   - 系統設計
   - API 整合
+cover: ../../assets/covers/mcp-mhs-ai-operating-system.png
+coverAlt: "發光資料導管與機械臂分別接入中央控制模組，正面設有紅色實體安全鑰匙。"
 ---
 
 MCP 把 AI Agent 接上檔案、資料庫與企業軟體；MHS 則進一步嘗試讓 Agent 操作顯微鏡、機械手臂、液體處理設備與量子電腦的雷射系統。

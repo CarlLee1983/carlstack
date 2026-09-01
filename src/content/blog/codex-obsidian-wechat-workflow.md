@@ -9,6 +9,8 @@ tags:
   - AI Agent Workflow
   - 知識管理
   - 開源專案
+cover: ../../assets/covers/codex-obsidian-wechat-workflow.png
+coverAlt: "深色筆記本、轉換裝置與一疊成品頁面由銅色連線串接，中段保留人工審核槓桿。"
 ---
 
 寫一篇公眾號文章，真正耗時的往往不只有寫作。

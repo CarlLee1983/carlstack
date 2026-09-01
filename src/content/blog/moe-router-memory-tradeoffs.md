@@ -7,6 +7,8 @@ featured: false
 tags:
   - AI 工程化
   - 系統設計
+cover: ../../assets/covers/moe-router-memory-tradeoffs.png
+coverAlt: "紫色透明路由器把發光資料流導向少數亮起的專家艙，其餘專家仍置於後方機櫃。"
 ---
 
 近年的大型語言模型看起來有一個矛盾：總參數持續增加，推論速度與單次成本卻不一定等比例上升。

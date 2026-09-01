@@ -10,6 +10,8 @@ tags:
   - 系統設計
   - 資訊安全
 repositoryUrl: https://github.com/zhaoxuya520/reverse-skill
+cover: ../../assets/covers/reverse-skill-security-agent-router.png
+coverAlt: "證據膠囊依序通過授權閘門、工具架與觀察艙，再進入帶有重播路徑的封存發現庫。"
 ---
 
 看到 `reverse-skill` 收錄 APK、IDA、Frida、Burp、CTF、韌體與滲透測試模組，很容易把它理解成「裝上後，AI 就會自動完成逆向」。但從原始碼看，它真正解決的不是分析能力，而是工作流失控：Agent 不知道該選哪套方法、工具散落在不同機器、結論沒有證據鏈，同一個坑又在下一次任務重踩。

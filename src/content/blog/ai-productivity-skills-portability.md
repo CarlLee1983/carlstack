@@ -9,6 +9,8 @@ tags:
   - AI Agent Workflow
   - 系統設計
   - 軟體品質
+cover: ../../assets/covers/ai-productivity-skills-portability.png
+coverAlt: "三組不同的模組化插槽承接同一批任務卡，中央的檢查清單以紅色驗證印記固定契約。"
 ---
 
 一份整理了 25 個用途的 AI Skills 清單，很容易讓人產生一個直覺：把這些 `.md` 檔收藏起來，就能在 Claude、ChatGPT 與 Gemini 之間共用一套生產力外掛。
