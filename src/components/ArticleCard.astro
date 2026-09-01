@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import { postHref } from "../utils/collections";
 import { estimateReadingMinutes } from "../utils/content";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const { post, headingLevel: Heading = "h2" } = Astro.props;
+const cover = post.data.cover;
 const body = "body" in post && typeof post.body === "string" ? post.body : "";
 const date = new Intl.DateTimeFormat("zh-TW", {
   year: "numeric",
@@ -19,7 +21,22 @@ const primaryTag =
   post.data.tags && post.data.tags.length > 0 ? post.data.tags[0] : null;
 ---
 
-<a class="article-card-item" href={postHref(post)}>
+<a
+  class:list={["article-card-item", cover && "article-card-item--with-cover"]}
+  href={postHref(post)}
+>
+  {
+    cover && (
+      <Image
+        class="article-card-item__cover"
+        src={cover}
+        alt=""
+        widths={[220, 440]}
+        sizes="(min-width: 40rem) 9rem, 100vw"
+        loading="lazy"
+      />
+    )
+  }
   <div class="article-card-item__content">
     <div class="article-card-item__meta">
       {primaryTag && <span class="tag-chip">{primaryTag}</span>}
@@ -68,6 +85,7 @@ const primaryTag =
   .article-card-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "content action";
     gap: var(--space-lg);
     align-items: center;
     padding: var(--space-xl);
@@ -89,6 +107,42 @@ const primaryTag =
     box-shadow: var(--shadow-md);
     border-color: var(--color-accent);
     background: var(--color-card-hover);
+  }
+
+  .article-card-item__content {
+    grid-area: content;
+  }
+
+  .article-card-item__action {
+    grid-area: action;
+  }
+
+  .article-card-item__cover {
+    grid-area: cover;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: var(--color-paper-2);
+  }
+
+  /* 封面在窄視窗跨滿整列，寬視窗才收成左側縮圖 */
+  .article-card-item--with-cover {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "cover cover"
+      "content action";
+  }
+
+  @media (min-width: 40rem) {
+    .article-card-item--with-cover {
+      grid-template-columns: 9rem minmax(0, 1fr) auto;
+      grid-template-areas: "cover content action";
+    }
+
+    .article-card-item__cover {
+      aspect-ratio: 4 / 3;
+    }
   }
 
   .article-card-item__content {
