@@ -2,6 +2,7 @@
 title: "Graph Engineering：超越線性 Prompt 的 Agent 架構與適用邊界"
 description: "真實工程任務很少是單向線性的。從菱形展開、平行審查到條件迴圈，拆解 Graph Engineering 的核心拓撲模式、適用情境與過度工程陷阱。"
 publishDate: 2026-08-31
+updatedDate: 2026-09-01T16:43:07+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/graph-engineering-for-agents.png
@@ -23,6 +24,8 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 3. **缺乏回饋機制**：驗收失敗時無法精準回退到特定節點重試，只能推倒重來。
 
 [@anatolikopadze 提出的「Graph Engineering」](https://x.com/anatolikopadze/status/2080668775796314331)，提供了處理這類多維度協同問題的架構視角。當任務確實具有平行、分支或局部重試需求時，將 Agent 工作流建模為「圖（Graph）」會是合適的選項。
+
+Lunar 的後續長文把這個焦點說得更精確：多 Agent 最難的層次不是再調好一個節點的 prompt，而是決定工作能否並行、每條邊交接什麼資料、哪裡匯聚、哪裡拒絕，以及哪些狀態根本不該在人工核准前跨越。[原始 X 討論](https://x.com/lunarresearcher/status/2086071302272528833) 這是作者的架構提案，不是「圖一定更快、更便宜或更可靠」的普遍證明。
 
 ---
 
@@ -86,6 +89,60 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 3. **受控回饋迴圈（Bounded Cyclic Loops）**：
    - 允許工作流在「實作 → 測試 → 失敗 → 修復」之間循環，但必須具備最大重試次數、超時與人工介入的跳出條件（Escalation Path）。
 
+## 讓邊傳遞資料，讓節點只負責一件事
+
+一張圖不能只畫出「A 完成後換 B」。那是狀態通知，不是資料相依。每條邊最好都能用一句話說明交換物，例如：「reviewer 收到 claim、來源 URL、證據片段與信心等級」，而不是「reviewer 知道研究完成」。
+
+這會迫使工作流把跨節點狀態做成可檢查的物件：
+
+```ts
+type ResearchFinding = {
+  claim: string;
+  sourceUrl: string;
+  evidence: string;
+  confidence: "low" | "medium" | "high";
+  collectedAt: string;
+};
+```
+
+結構化 state 讓下游節點能替換、重跑與稽核，而不用重新閱讀一大段對話。OpenAI 的 agent orchestration 文件也將 structured outputs、鏈式轉換、evaluator loop 與獨立任務的 parallel execution 列為可組合的控制面；這支持介面要明確，並不保證某個模型在節點內的判斷正確。[OpenAI Agents：Multi-agent orchestration](https://openai.github.io/openai-agents-python/multi_agent/)
+
+## 平行不是免費的：先訂依賴與寬度預算
+
+只有在兩項工作不讀取彼此產物時，才應把它們平行化。研究價格、評論與產品文件可以同時跑，最後再交給市場摘要；實作與測試若共用尚未穩定的檔案，則仍需要明確交接或隔離工作區。
+
+新增 worker 前，同時問兩個問題：它是否增加了新的獨立覆蓋面？匯聚它的結果是否比它帶來的資訊更昂貴？這就是 width budget：限制同一輪可展開的 worker 數量、成本與等待時間。Anthropic 的多 agent 研究系統顯示，orchestrator-worker 架構適合平行探索與綜合，但也指出其內部評估的 token 使用量約為單一 chat 的 15 倍，且在 worker 高度共享 context 或相依很多時並不適合。[Anthropic：How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+
+因此，優化目標不是 agent 數量，而是「每一個並行分支帶來多少不重複、可用的證據」。這也把注意力轉到 critical path：端到端延遲由最長的必要相依鏈決定，不由流程圖上的方塊總數決定。
+
+## 匯聚前先用程式縮減，驗證要與產生分工
+
+fan-in 最常見的失敗是把所有 worker 的原始長文塞給最後一個模型。它於是同時要去重、排序、補欄位、找矛盾與寫結論，變成昂貴又難除錯的垃圾收集器。
+
+先把不需要判斷的事交給一般程式：依 ID 去重、排序、驗證 schema、分組、過濾缺欄位與計數；再讓模型處理真正含糊的取捨與綜合。這是 reducer 的邊界，不是另一個「萬用 agent」。
+
+驗證也應有不同目標：worker 尋找最好的可行答案，verifier 則尋找拒絕它的理由、來源衝突、過期資料或測試反例。若 verifier 永遠不能阻擋結果，它只是裝飾。對研究可要求來源與日期；對程式則用測試、靜態分析與獨立 review 作為圖之外的 anchors。
+
+## 核准不是節點，而是不能繞過的邊
+
+「提醒 agent 發布前先問」不是 human-in-the-loop。真正的設計是把 publish、付款、刪除、權限變更等節點做成在 approval 記錄存在前不可達；核准是 state 跨越邊界的條件，而不是聊天中的禮貌規則。
+
+OpenAI 的 guardrail 文件區分 agent-level 與 tool-level guardrails，並明確提醒 parallel guardrails 可能在拒絕前就允許模型或工具造成 side effect。這正是高風險操作不能只靠 prompt 的理由。[OpenAI Agents：Guardrails](https://openai.github.io/openai-agents-python/guardrails/) NIST 也建議將 oversight 責任、授權、audit history、override 與 go/no-go 決策留下紀錄；它沒有指定你必須採用哪一種圖拓撲。[NIST AI RMF Playbook](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+
+每個會失敗的節點還要有可見的 policy：重試幾次、何時換工具或模型、哪些失敗可降級繼續、哪些必須阻擋整個 run。不要把少一個 worker 的輸出偽裝成完整結果；讓最終 state 帶上缺失與重試紀錄。
+
+## 用圖的指標改善圖，不要只回看聊天紀錄
+
+開始觀測後，不必先做複雜 dashboard。先量五個值就足以定位下一個瓶頸：
+
+- critical-path latency：真正不可避免的等待在哪裡；
+- node failure 與 retry rate：哪個工具、schema 或 prompt 最脆弱；
+- fan-out efficiency：多少平行輸出帶來不重複的可用資訊；
+- verifier kill rate：驗證是否真的形成選擇壓力；
+- human intervention rate：人仍在手動補救哪一個邊界。
+
+這些指標不是品質本身，但能避免用 token、session 或開了多少 agent 代替系統健康度。當任務很小、每一步確實相依、需要一個連貫觀點，或協調成本大於工作本身時，單一 agent 仍是更好的架構。
+
 ---
 
 ## 何時使用 Graph Engineering？
@@ -112,3 +169,12 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 > **工程準則**：從最簡單的單一迴圈（Loop）或線性流程開始。唯有在出現明確的「平行加速需求」、「多維度獨立審查」或「複雜分支條件」時，才升級為 Graph Engineering。
 
 圖的拓撲也不等於事實正確。原文稱之為 **anchors**：實際通過的測試、已入帳的資料或其他不可由 Agent 自行辯解的外部證據。沒有這些錨點，再多互相審查的節點也可能只是在一致地犯錯。
+
+## 參考資料
+
+- [使用者提供的原始 X 討論：Graph Engineering: The Complete Guide to Building Multi-Agent AI Systems](https://x.com/lunarresearcher/status/2086071302272528833)
+- [原有來源：@anatolikopadze 的 Graph Engineering 討論](https://x.com/anatolikopadze/status/2080668775796314331)
+- [OpenAI Agents：Multi-agent orchestration](https://openai.github.io/openai-agents-python/multi_agent/)
+- [OpenAI Agents：Guardrails](https://openai.github.io/openai-agents-python/guardrails/)
+- [Anthropic：How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
+- [NIST：AI RMF Playbook](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
