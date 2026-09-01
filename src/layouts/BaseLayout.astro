@@ -88,6 +88,11 @@ const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
       const savedTheme = localStorage.getItem("carlstack-theme");
       if (savedTheme === "light" || savedTheme === "dark")
         document.documentElement.dataset.theme = savedTheme;
+
+      const savedFontScale = localStorage.getItem("carlstack-font-scale");
+      if (savedFontScale) {
+        document.documentElement.dataset.fontScale = savedFontScale;
+      }
     </script>
   </head>
   <body>

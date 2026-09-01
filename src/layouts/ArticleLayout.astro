@@ -1,6 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import { render, type CollectionEntry } from "astro:content";
+import FontSizeControl from "../components/FontSizeControl.astro";
 import Giscus from "../components/Giscus.astro";
 import MermaidSupport from "../components/MermaidSupport.astro";
 import { siteConfig } from "../config/site";
@@ -67,33 +68,79 @@ const articleJsonLd = {
       }
       <h1 data-pagefind-meta="title">{post.data.title}</h1>
       <p class="article-header__description">{post.data.description}</p>
+
       <div class="article-meta">
-        <time datetime={post.data.publishDate.toISOString()}
-          >發布於 {dateFormatter.format(post.data.publishDate)}</time
-        >
+        <div class="meta-item">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <time datetime={post.data.publishDate.toISOString()}>
+            發布於 {dateFormatter.format(post.data.publishDate)}
+          </time>
+        </div>
         {
           post.data.updatedDate && (
-            <time datetime={post.data.updatedDate.toISOString()}>
-              更新於 {dateFormatter.format(post.data.updatedDate)}
-            </time>
+            <>
+              <span class="meta-dot">·</span>
+              <time datetime={post.data.updatedDate.toISOString()}>
+                更新於 {dateFormatter.format(post.data.updatedDate)}
+              </time>
+            </>
           )
         }
-        <span>{estimateReadingMinutes(body)} 分鐘閱讀</span>
+        <span class="meta-dot">·</span>
+        <div class="meta-item">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>{estimateReadingMinutes(body)} 分鐘閱讀</span>
+        </div>
       </div>
-      <ul class="tag-list" aria-label="文章標籤">
-        {
-          post.data.tags.map((tag) => (
-            <li>
-              <a
-                class="tag"
-                href={`/tags/${encodeURIComponent(normalizeTaxonomy(tag))}/`}
-              >
-                {tag}
-              </a>
-            </li>
-          ))
-        }
-      </ul>
+
+      <div class="article-toolbar">
+        <ul class="tag-list" aria-label="文章標籤">
+          {
+            post.data.tags.map((tag) => (
+              <li>
+                <a
+                  class="tag"
+                  href={`/tags/${encodeURIComponent(normalizeTaxonomy(tag))}/`}
+                >
+                  {tag}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+
+        <div class="article-tools">
+          <FontSizeControl />
+        </div>
+      </div>
     </header>
 
     {
@@ -117,18 +164,32 @@ const articleJsonLd = {
     <footer class="article-footer">
       {
         post.data.repositoryUrl && (
-          <p>
+          <p class="article-repo-link">
             <a class="text-link" href={post.data.repositoryUrl}>
-              查看本文相關 repository →
+              <span>查看本文相關 repository</span>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </a>
           </p>
         )
       }
       {
         post.data.series && seriesPosts.length > 0 && (
-          <section aria-labelledby="series-posts">
-            <h2 id="series-posts">同系列：{post.data.series}</h2>
-            <ol>
+          <section class="series-section" aria-labelledby="series-posts">
+            <h2 id="series-posts">同系列文章：{post.data.series}</h2>
+            <ol class="series-list">
               {seriesPosts.map((item) => (
                 <li>
                   <a
@@ -167,3 +228,41 @@ const articleJsonLd = {
     </footer>
   </article>
 </BaseLayout>
+
+<style>
+  .series-section {
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    border: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper-2);
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .series-section h2 {
+    font-size: var(--text-md);
+    font-weight: 700;
+  }
+
+  .series-list {
+    display: grid;
+    gap: var(--space-xs);
+    padding-inline-start: 1.25rem;
+    margin: 0;
+  }
+
+  .series-list a {
+    color: var(--color-ink-2);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .series-list a[aria-current="page"] {
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+
+  .series-list a:hover {
+    color: var(--color-accent);
+  }
+</style>

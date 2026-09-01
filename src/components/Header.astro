@@ -13,7 +13,8 @@ const currentState = (href: string) =>
 <header class="site-header" data-pagefind-ignore>
   <div class="site-header__inner shell">
     <a class="wordmark" href="/" aria-label={`${siteConfig.name} 首頁`}>
-      <span aria-hidden="true">C/</span>{siteConfig.name}
+      <span class="wordmark__badge">C/</span>
+      <span class="wordmark__text">{siteConfig.name}</span>
     </a>
     <nav class="desktop-nav" aria-label="主要導覽">
       {
@@ -24,38 +25,108 @@ const currentState = (href: string) =>
         ))
       }
     </nav>
-    <button
-      class="search-pill"
-      type="button"
-      data-search-open
-      aria-haspopup="dialog"
-    >
-      <span aria-hidden="true">⌕</span><span class="search-pill__label"
-        >搜尋</span
-      ><kbd>⌘ K</kbd>
-    </button>
-    <button
-      class="theme-toggle"
-      type="button"
-      data-theme-toggle
-      aria-label="切換深色或淺色模式"
-      aria-pressed="false"
-    >
-      <span aria-hidden="true" data-theme-icon>◐</span>
-    </button>
-    <details class="mobile-nav">
-      <summary>選單</summary>
-      <nav aria-label="行動版導覽">
-        {
-          navigation.map((item) => (
-            <a href={item.href} aria-current={currentState(item.href)}>
-              {item.label}
-            </a>
-          ))
-        }
-        <a href="/search/">搜尋</a>
-      </nav>
-    </details>
+    <div class="site-header__actions">
+      <button
+        class="search-pill"
+        type="button"
+        data-search-open
+        aria-haspopup="dialog"
+        aria-label="開啟搜尋"
+      >
+        <svg
+          class="icon-search"
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span class="search-pill__label">搜尋</span>
+        <kbd>⌘ K</kbd>
+      </button>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-theme-toggle
+        aria-label="切換深色或淺色模式"
+        aria-pressed="false"
+      >
+        <!-- Sun icon (shown in dark mode) -->
+        <svg
+          class="theme-icon-sun"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon icon (shown in light mode) -->
+        <svg
+          class="theme-icon-moon"
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+      <details class="mobile-nav">
+        <summary aria-label="切換選單">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </summary>
+        <nav aria-label="行動版導覽">
+          {
+            navigation.map((item) => (
+              <a href={item.href} aria-current={currentState(item.href)}>
+                {item.label}
+              </a>
+            ))
+          }
+          <a href="/search/">搜尋文章</a>
+        </nav>
+      </details>
+    </div>
   </div>
 </header>
 
@@ -67,14 +138,17 @@ const currentState = (href: string) =>
       >
     </div>
     <label for="site-search">關鍵字</label>
-    <input
-      class="cmdk__input"
-      id="site-search"
-      name="q"
-      type="search"
-      autocomplete="off"
-      autofocus
-    />
+    <div class="cmdk__input-wrap">
+      <input
+        class="cmdk__input"
+        id="site-search"
+        name="q"
+        type="search"
+        placeholder="搜尋文章、Agent 架構、專案..."
+        autocomplete="off"
+        autofocus
+      />
+    </div>
     <button class="button" type="submit">開啟全文搜尋</button>
     <p>按 Esc 關閉；完整結果會顯示文章摘要、標籤與日期。</p>
   </form>
@@ -136,84 +210,146 @@ const currentState = (href: string) =>
     z-index: var(--z-sticky);
     border-block-end: var(--rule-hair) solid var(--color-rule);
     background: var(--color-paper);
+    backdrop-filter: blur(12px);
+    transition:
+      background-color var(--dur-short) var(--ease-out),
+      border-color var(--dur-short) var(--ease-out);
   }
 
   .site-header__inner {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    min-height: 4.5rem;
+    display: flex;
+    justify-content: space-between;
+    min-height: 4.25rem;
     align-items: center;
     gap: var(--space-md);
   }
 
   .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     color: var(--color-ink);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    letter-spacing: -0.04em;
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    font-size: 1.15rem;
     text-decoration: none;
     white-space: nowrap;
   }
 
-  .wordmark span {
-    color: var(--color-accent);
+  .wordmark__badge {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    background: var(--color-accent);
+    color: #ffffff;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 800;
   }
 
   .desktop-nav {
     display: flex;
-    justify-content: center;
-    gap: clamp(var(--space-xs), 2vw, var(--space-lg));
+    align-items: center;
+    gap: var(--space-xs);
   }
 
-  .desktop-nav a,
-  .mobile-nav a {
-    min-height: 2.75rem;
+  .desktop-nav a {
+    min-height: 2.25rem;
     display: inline-flex;
     align-items: center;
-    color: var(--color-ink-2);
+    padding-inline: var(--space-md);
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
     font-family: var(--font-display);
     font-size: var(--text-sm);
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
     white-space: nowrap;
+    transition: all var(--dur-micro) var(--ease-out);
+  }
+
+  .desktop-nav a:hover {
+    color: var(--color-ink);
+    background: var(--color-paper-2);
   }
 
   .desktop-nav a[aria-current="page"],
-  .desktop-nav a[aria-current="location"],
-  .mobile-nav a[aria-current="page"],
-  .mobile-nav a[aria-current="location"] {
-    color: var(--color-accent);
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.4em;
+  .desktop-nav a[aria-current="location"] {
+    color: var(--color-ink);
+    background: var(--color-paper-2);
+    font-weight: 700;
+  }
+
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
   }
 
   .search-pill,
   .theme-toggle,
   .mobile-nav > summary,
   .cmdk__head button {
-    min-height: 2.75rem;
-    border: var(--rule-hair) solid var(--color-rule-2);
-    border-radius: var(--radius-sm);
+    min-height: 2.35rem;
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-pill);
     background: var(--color-paper-2);
     color: var(--color-ink-2);
+    transition: all var(--dur-micro) var(--ease-out);
   }
 
   .search-pill {
     display: flex;
     align-items: center;
     gap: var(--space-xs);
-    padding-inline: var(--space-sm);
+    padding-inline: var(--space-md);
     white-space: nowrap;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-muted);
   }
 
-  kbd {
+  .search-pill kbd {
     font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: 0.7rem;
+    background: var(--color-card);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    border: var(--rule-hair) solid var(--color-rule);
+    color: var(--color-muted);
   }
 
   .theme-toggle {
-    width: 2.75rem;
+    width: 2.35rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  .theme-icon-sun {
+    display: none;
+  }
+  .theme-icon-moon {
+    display: block;
+  }
+
+  :root[data-theme="dark"] .theme-icon-sun {
+    display: block;
+  }
+  :root[data-theme="dark"] .theme-icon-moon {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .theme-icon-sun {
+      display: block;
+    }
+    :root:not([data-theme]) .theme-icon-moon {
+      display: none;
+    }
   }
 
   .mobile-nav {
@@ -224,13 +360,10 @@ const currentState = (href: string) =>
 
   .mobile-nav > summary {
     display: grid;
-    min-width: 3.75rem;
+    width: 2.35rem;
     place-items: center;
-    padding-inline: var(--space-sm);
-    font-size: var(--text-sm);
-    font-weight: 700;
+    padding: 0;
     list-style: none;
-    white-space: nowrap;
   }
 
   .mobile-nav > summary::-webkit-details-marker {
@@ -243,11 +376,27 @@ const currentState = (href: string) =>
     inset-inline-end: 0;
     z-index: var(--z-dropdown);
     display: grid;
-    min-width: 12rem;
-    padding: var(--space-xs) var(--space-md);
+    gap: var(--space-xs);
+    min-width: 13rem;
+    padding: var(--space-sm);
     border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-card);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .mobile-nav nav a {
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-md);
-    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .mobile-nav nav a:hover {
+    background: var(--color-paper-2);
+    color: var(--color-accent);
   }
 
   .cmdk {
@@ -258,20 +407,22 @@ const currentState = (href: string) =>
     max-height: min(80svh, 40rem);
     margin: auto;
     padding: 0;
-    border: 0;
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-lg);
-    background: var(--color-paper);
+    background: var(--color-card);
     color: var(--color-ink-2);
+    box-shadow: var(--shadow-lg);
   }
 
   .cmdk::backdrop {
     background: var(--color-overlay);
+    backdrop-filter: blur(4px);
   }
 
   .cmdk__panel {
     display: grid;
     gap: var(--space-md);
-    padding: var(--space-lg);
+    padding: var(--space-xl);
   }
 
   .cmdk__head {
@@ -284,39 +435,42 @@ const currentState = (href: string) =>
   }
 
   .cmdk__head button {
-    padding-inline: var(--space-sm);
-    white-space: nowrap;
+    padding-inline: var(--space-md);
+    font-size: var(--text-xs);
+    font-weight: 600;
   }
 
   .cmdk label {
     color: var(--color-ink);
     font-family: var(--font-display);
     font-weight: 700;
+    font-size: var(--text-sm);
+  }
+
+  .cmdk__input-wrap {
+    display: grid;
+  }
+
+  .cmdk__input {
+    width: 100%;
   }
 
   .cmdk p {
     color: var(--color-muted);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .desktop-nav a:hover,
-    .mobile-nav a:hover {
-      color: var(--color-accent);
-    }
-
     .search-pill:hover,
     .theme-toggle:hover,
-    .mobile-nav > summary:hover {
+    .mobile-nav > summary:hover,
+    .cmdk__head button:hover {
       border-color: var(--color-accent);
+      color: var(--color-accent);
     }
   }
 
   @media (max-width: 59.99rem) {
-    .site-header__inner {
-      grid-template-columns: minmax(0, 1fr) auto auto auto;
-    }
-
     .desktop-nav {
       display: none;
     }
@@ -327,18 +481,13 @@ const currentState = (href: string) =>
   }
 
   @media (max-width: 31rem) {
-    .site-header__inner {
-      gap: var(--space-xs);
-    }
-
     .search-pill__label,
-    .search-pill kbd,
-    .theme-toggle {
+    .search-pill kbd {
       display: none;
     }
 
     .search-pill {
-      width: 2.75rem;
+      width: 2.35rem;
       justify-content: center;
       padding: 0;
     }

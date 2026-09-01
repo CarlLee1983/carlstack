@@ -1,0 +1,176 @@
+---
+// src/components/FontSizeControl.astro
+---
+
+<div class="font-size-control" aria-label="文章字級調整">
+  <div class="font-size-indicator">
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="4 7 4 4 20 4 20 7"></polyline>
+      <line x1="9" y1="20" x2="15" y2="20"></line>
+      <line x1="12" y1="4" x2="12" y2="20"></line>
+    </svg>
+    <span class="control-label">字級</span>
+  </div>
+  <div class="font-size-group" role="radiogroup" aria-label="選擇文章字體大小">
+    <button
+      type="button"
+      class="font-size-btn"
+      data-scale="sm"
+      role="radio"
+      aria-checked="false"
+      title="緊湊字級 (16px)"
+    >
+      小
+    </button>
+    <button
+      type="button"
+      class="font-size-btn"
+      data-scale="md"
+      role="radio"
+      aria-checked="true"
+      title="預設黃金閱讀字級 (18px)"
+    >
+      標準
+    </button>
+    <button
+      type="button"
+      class="font-size-btn"
+      data-scale="lg"
+      role="radio"
+      aria-checked="false"
+      title="放大字級 (21px)"
+    >
+      大
+    </button>
+    <button
+      type="button"
+      class="font-size-btn"
+      data-scale="xl"
+      role="radio"
+      aria-checked="false"
+      title="特大字級 (24px)"
+    >
+      特大
+    </button>
+  </div>
+</div>
+
+<script>
+  function initFontSizeControl() {
+    const group = document.querySelector(".font-size-group");
+    if (!group) return;
+
+    const buttons = group.querySelectorAll<HTMLButtonElement>(".font-size-btn");
+    const currentScale =
+      document.documentElement.dataset.fontScale ||
+      localStorage.getItem("carlstack-font-scale") ||
+      "md";
+
+    function setActive(scale: string) {
+      document.documentElement.dataset.fontScale = scale;
+      try {
+        localStorage.setItem("carlstack-font-scale", scale);
+      } catch {}
+
+      buttons.forEach((btn) => {
+        const isMatch = btn.dataset.scale === scale;
+        btn.setAttribute("aria-checked", isMatch ? "true" : "false");
+        btn.classList.toggle("is-active", isMatch);
+      });
+    }
+
+    setActive(currentScale);
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const scale = btn.dataset.scale;
+        if (scale) {
+          setActive(scale);
+        }
+      });
+    });
+  }
+
+  // Run on initial load and after Astro page transitions if any
+  initFontSizeControl();
+  document.addEventListener("astro:page-load", initFontSizeControl);
+</script>
+
+<style>
+  .font-size-control {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 0.25rem 0.35rem 0.25rem 0.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
+    font-size: var(--text-xs);
+    width: fit-content;
+  }
+
+  .font-size-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--color-muted);
+    font-weight: 600;
+    margin-inline-end: 0.25rem;
+    user-select: none;
+  }
+
+  .font-size-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .font-size-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-pill);
+    color: var(--color-muted);
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--dur-micro) var(--ease-out);
+    line-height: 1.2;
+  }
+
+  .font-size-btn:hover {
+    color: var(--color-ink);
+    background: var(--color-card);
+  }
+
+  .font-size-btn.is-active,
+  .font-size-btn[aria-checked="true"] {
+    background: var(--color-card);
+    color: var(--color-accent);
+    font-weight: 700;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (max-width: 40rem) {
+    .font-size-control {
+      padding: 0.2rem 0.3rem 0.2rem 0.5rem;
+    }
+
+    .font-size-btn {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.78rem;
+    }
+  }
+</style>

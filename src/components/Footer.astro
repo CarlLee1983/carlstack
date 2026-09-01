@@ -4,18 +4,55 @@ import { siteConfig } from "../config/site";
 
 <footer class="site-footer" data-pagefind-ignore>
   <div class="shell site-footer__inner">
-    <div>
+    <div class="site-footer__brand">
       <p class="site-footer__name">{siteConfig.name}</p>
-      <p>{siteConfig.subtitle}</p>
+      <p class="site-footer__tagline">
+        {siteConfig.subtitle}。思考、架構與可重現的工程實踐。
+      </p>
     </div>
-    <nav aria-label="頁尾導覽">
-      <a href="/rss.xml">RSS</a>
-      <a href={siteConfig.github} rel="me">GitHub</a>
+    <nav class="site-footer__nav" aria-label="頁尾導覽">
+      <a href="/rss.xml">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 11a9 9 0 0 1 9 9"></path>
+          <path d="M4 4a16 16 0 0 1 16 16"></path>
+          <circle cx="5" cy="19" r="1"></circle>
+        </svg>
+        <span>RSS 訂閱</span>
+      </a>
+      <a href={siteConfig.github} rel="me">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+          ></path>
+        </svg>
+        <span>GitHub</span>
+      </a>
       <a href="/about/">關於作者</a>
     </nav>
     <p class="site-footer__legal">
       © {new Date().getFullYear()}
-      {siteConfig.author}。內容著作權依各文章標示；程式碼依 repository 授權。
+      {siteConfig.author}。內容著作權依各文章標示；程式碼依 repository
+      授權開放。
     </p>
   </div>
 </footer>
@@ -23,6 +60,9 @@ import { siteConfig } from "../config/site";
 <style>
   .site-footer {
     border-block-start: var(--rule-hair) solid var(--color-rule);
+    margin-block-start: var(--space-4xl);
+    background: var(--color-paper);
+    transition: background-color var(--dur-short) var(--ease-out);
   }
 
   .site-footer__inner {
@@ -30,47 +70,73 @@ import { siteConfig } from "../config/site";
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     gap: var(--space-lg) var(--space-2xl);
     padding-block: var(--space-2xl) var(--space-xl);
+    align-items: start;
+  }
+
+  .site-footer__brand {
+    display: grid;
+    gap: var(--space-xs);
   }
 
   .site-footer__name {
     color: var(--color-ink);
     font-family: var(--font-display);
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: 800;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
   }
 
-  .site-footer nav {
+  .site-footer__tagline {
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    max-width: 38ch;
+  }
+
+  .site-footer__nav {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-xs) var(--space-lg);
+    gap: var(--space-xs) var(--space-md);
   }
 
-  .site-footer a {
-    min-height: 2.75rem;
+  .site-footer__nav a {
+    min-height: 2.25rem;
     display: inline-flex;
     align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+    font-size: var(--text-xs);
+    font-weight: 600;
     white-space: nowrap;
-    font-family: var(--font-display);
-    font-weight: 700;
+    text-decoration: none;
+    transition: all var(--dur-micro) var(--ease-out);
+  }
+
+  .site-footer__nav a:hover {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
   }
 
   .site-footer__legal {
     grid-column: 1 / -1;
-    padding-block-start: var(--space-md);
+    padding-block-start: var(--space-lg);
     border-block-start: var(--rule-hair) solid var(--color-rule);
     color: var(--color-muted);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    line-height: 1.6;
   }
 
-  @media (max-width: 39.99rem) {
+  @media (max-width: 44rem) {
     .site-footer__inner {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .site-footer nav {
+    .site-footer__nav {
       justify-content: flex-start;
     }
   }

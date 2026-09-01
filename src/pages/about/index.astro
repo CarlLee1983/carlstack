@@ -7,36 +7,125 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   title="關於李卡爾"
   description="CarlStack 作者李卡爾與這個技術內容網站的寫作原則。"
 >
-  <div class="page shell">
-    <header class="page-header">
-      <h1>關於李卡爾</h1>
-      <p>系統工程與 AI 工程實作者，偏好能被驗證、維護與交接的解法。</p>
+  <div class="page shell about-page">
+    <!-- Profile Hero Card with Dedicated Avatar Space -->
+    <header class="profile-hero">
+      <div class="profile-avatar-container">
+        <!-- 
+          【頭像設定位置】
+          若要放置真實照片，可在 src/assets/ 新增 avatar.jpg 並使用 Astro <Image />
+          或在 public/avatar.jpg 放置檔案後將下方替換為：
+          <img class="profile-avatar__img" src="/avatar.jpg" alt={siteConfig.author} />
+        -->
+        <div class="profile-avatar-slot" aria-label="作者頭像空間">
+          <div class="profile-avatar-placeholder">
+            <span class="avatar-monogram">CL</span>
+          </div>
+          <div class="profile-avatar-status" title="Active & Building"></div>
+        </div>
+      </div>
+
+      <div class="profile-info">
+        <div class="profile-eyebrow">
+          <span class="eyebrow-dot"></span>
+          <span>AUTHOR & ARCHITECT</span>
+        </div>
+        <h1>{siteConfig.author}</h1>
+        <p class="profile-lede">
+          系統工程與 AI
+          工程實作者。專注於打造具備可驗證性、可維護性與可交接性的分散式架構與
+          Agent 工作流。
+        </p>
+        <div class="profile-links">
+          <a class="profile-btn" href={siteConfig.github} rel="me">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+              ></path>
+            </svg>
+            <span>GitHub (@{siteConfig.githubUser})</span>
+          </a>
+          <a class="profile-btn" href="/rss.xml">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 11a9 9 0 0 1 9 9"></path>
+              <path d="M4 4a16 16 0 0 1 16 16"></path>
+              <circle cx="5" cy="19" r="1"></circle>
+            </svg>
+            <span>RSS 訂閱</span>
+          </a>
+        </div>
+      </div>
     </header>
+
     <div class="about-grid">
       <article class="prose">
-        <h2>這裡寫什麼</h2>
+        <h2>這裡記錄什麼</h2>
         <p>
           CarlStack 記錄系統設計、AI Agent workflow、API 整合、DDD、Clean
-          Architecture、開源工具與專案復盤。文章以真實限制、決策依據與可重現步驟為核心。
+          Architecture、開源工具與專案復盤。所有文章以真實工程限制、決策依據與可重現步驟為核心。
         </p>
-        <h2>寫作原則</h2>
+
+        <h2>寫作與發布原則</h2>
         <p>
-          原始內容使用 Markdown／MDX 保存在 Git repository。沒有 CMS
-          鎖定、沒有會員牆，也不靠侵入式追蹤決定哪些內容值得留下。
+          原始內容完全使用 Markdown／MDX 保存在 Git repository。沒有 CMS
+          鎖定、沒有會員牆，也不靠侵入式追蹤決定哪些內容值得留下。每一次部署皆為乾淨的純靜態產物。
         </p>
-        <h2>聯絡與追蹤</h2>
+
+        <h2>交流與聯繫</h2>
         <p>
-          可以在 <a href={siteConfig.github} rel="me"
-            >GitHub 上找到 {siteConfig.githubUser}</a
-          >，或透過 <a href="/rss.xml">RSS</a> 跟上新文章。
+          如果你對文章中的系統架構、代理人工作流或開源專案有任何想法或回饋，歡迎在
+          <a href={siteConfig.github} rel="me">GitHub</a> 上開啟討論，或透過各篇文章底部的
+          Giscus 留言交流。
         </p>
       </article>
-      <aside aria-label="網站資訊">
+
+      <aside class="site-spec-card" aria-label="網站工程規格">
+        <h3>網站規格</h3>
         <dl>
-          <div><dt>作者</dt><dd>{siteConfig.author}</dd></div>
-          <div><dt>語言</dt><dd>繁體中文</dd></div>
-          <div><dt>內容格式</dt><dd>Markdown／MDX</dd></div>
-          <div><dt>發布平台</dt><dd>Cloudflare Workers</dd></div>
+          <div>
+            <dt>作者</dt>
+            <dd>{siteConfig.author}</dd>
+          </div>
+          <div>
+            <dt>語系</dt>
+            <dd>繁體中文 (zh-TW)</dd>
+          </div>
+          <div>
+            <dt>原始格式</dt>
+            <dd>Markdown / MDX</dd>
+          </div>
+          <div>
+            <dt>靜態引擎</dt>
+            <dd>Astro + TypeScript</dd>
+          </div>
+          <div>
+            <dt>邊緣運算</dt>
+            <dd>Cloudflare Workers</dd>
+          </div>
+          <div>
+            <dt>全文搜尋</dt>
+            <dd>Client-side Pagefind</dd>
+          </div>
         </dl>
       </aside>
     </div>
@@ -44,10 +133,146 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 </BaseLayout>
 
 <style>
+  .about-page {
+    display: grid;
+    gap: var(--space-3xl);
+  }
+
+  /* Profile Hero Card */
+  .profile-hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2xl);
+    align-items: center;
+    padding: var(--space-2xl);
+    background: var(--color-card);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .profile-avatar-container {
+    position: relative;
+  }
+
+  .profile-avatar-slot {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    border-radius: var(--radius-lg);
+    padding: 3px;
+    background: linear-gradient(
+      135deg,
+      var(--color-accent),
+      var(--color-secondary)
+    );
+    box-shadow: var(--shadow-md);
+  }
+
+  .profile-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--radius-lg) - 3px);
+    background: var(--color-paper-2);
+    display: grid;
+    place-items: center;
+    color: var(--color-ink);
+    user-select: none;
+  }
+
+  .avatar-monogram {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--color-accent);
+  }
+
+  .profile-avatar__img {
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--radius-lg) - 3px);
+    object-fit: cover;
+  }
+
+  .profile-avatar-status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-secondary);
+    border: 3px solid var(--color-card);
+    box-shadow: 0 0 8px rgba(74, 124, 89, 0.4);
+  }
+
+  .profile-info {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .profile-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: 0.05em;
+  }
+
+  .eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-accent);
+    border-radius: 50%;
+  }
+
+  .profile-info h1 {
+    font-size: clamp(1.8rem, 3.5vw, var(--text-2xl));
+    font-weight: 800;
+  }
+
+  .profile-lede {
+    color: var(--color-muted);
+    font-size: var(--text-md);
+    line-height: 1.65;
+    max-width: 52ch;
+  }
+
+  .profile-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-xs);
+  }
+
+  .profile-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--dur-micro) var(--ease-out);
+  }
+
+  .profile-btn:hover {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+
+  /* About Grid */
   .about-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.38fr);
-    gap: var(--space-3xl);
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.42fr);
+    gap: var(--space-2xl);
     align-items: start;
   }
 
@@ -55,37 +280,55 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     margin: 0;
   }
 
-  aside {
-    padding: var(--space-lg);
-    border-block-start: 3px solid var(--color-accent);
-    background: var(--color-paper-2);
+  .site-spec-card {
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    border: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-card);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .site-spec-card h3 {
+    font-size: var(--text-md);
+    font-weight: 700;
+    padding-bottom: var(--space-xs);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
   }
 
   dl {
     display: grid;
-    gap: var(--space-md);
+    gap: var(--space-sm);
     margin: 0;
   }
 
   dl div {
     display: grid;
-    grid-template-columns: 6rem minmax(0, 1fr);
-    gap: var(--space-md);
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: var(--space-xs);
+    align-items: baseline;
   }
 
   dt {
     color: var(--color-muted);
-    font-family: var(--font-mono);
     font-size: var(--text-xs);
+    font-weight: 500;
   }
 
   dd {
     margin: 0;
     color: var(--color-ink);
-    font-family: var(--font-display);
+    font-size: var(--text-xs);
+    font-weight: 600;
   }
 
-  @media (max-width: 49.99rem) {
+  @media (max-width: 48rem) {
+    .profile-hero {
+      grid-template-columns: 1fr;
+      text-align: start;
+    }
+
     .about-grid {
       grid-template-columns: minmax(0, 1fr);
     }
