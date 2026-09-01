@@ -1,7 +1,7 @@
 ---
 title: "AI 回答很快，但代價可能慢慢出現：用二階思考設計使用方式"
 description: "把「然後呢？」變成 AI 工作流的固定檢查：區分交付、判斷與學習任務，在速度之外保留驗證、能力與資料邊界。"
-publishDate: 2026-09-01
+publishDate: 2026-09-01T12:57:24+08:00
 draft: false
 featured: false
 tags:
