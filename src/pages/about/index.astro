@@ -11,16 +11,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     <!-- Profile Hero Card with Dedicated Avatar Space -->
     <header class="profile-hero">
       <div class="profile-avatar-container">
-        <!-- 
-          【頭像設定位置】
-          若要放置真實照片，可在 src/assets/ 新增 avatar.jpg 並使用 Astro <Image />
-          或在 public/avatar.jpg 放置檔案後將下方替換為：
-          <img class="profile-avatar__img" src="/avatar.jpg" alt={siteConfig.author} />
-        -->
         <div class="profile-avatar-slot" aria-label="作者頭像空間">
-          <div class="profile-avatar-placeholder">
-            <span class="avatar-monogram">CL</span>
-          </div>
+          <img
+            class="profile-avatar__img"
+            src="/avatar-rpg-architect.png"
+            alt="原創動漫風格的像素 RPG 鍊金術師頭像"
+          />
           <div class="profile-avatar-status" title="Active & Building"></div>
         </div>
       </div>
@@ -169,30 +165,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     box-shadow: var(--shadow-md);
   }
 
-  .profile-avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    border-radius: calc(var(--radius-lg) - 3px);
-    background: var(--color-paper-2);
-    display: grid;
-    place-items: center;
-    color: var(--color-ink);
-    user-select: none;
-  }
-
-  .avatar-monogram {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    color: var(--color-accent);
-  }
-
   .profile-avatar__img {
+    display: block;
     width: 100%;
     height: 100%;
     border-radius: calc(var(--radius-lg) - 3px);
     object-fit: cover;
+    image-rendering: pixelated;
   }
 
   .profile-avatar-status {
