@@ -2,7 +2,7 @@
 title: "AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面"
 description: "從一篇談 Harness Engineering 的長文出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-01T17:10:48+08:00
+updatedDate: 2026-09-01T17:28:12+08:00
 draft: false
 featured: true
 tags:
@@ -31,6 +31,20 @@ Agent 忘記決策、選錯工具、略過驗證，或在同一個錯誤裡反�
 OpenAI 在整理 Codex 的 agent loop 時，也把 harness 描述成協調使用者、模型與工具的核心：模型提出工具呼叫，環境執行後把結果放回 context，再讓模型決定下一步。這表示一次 Agent 執行不是單次生成，而是一個由環境控制的回饋迴圈。[OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
 
 <HarnessAgentLoopDiagram />
+
+## Context、state 與 memory 不是同一個抽屜
+
+[@Nikki Siapno](https://x.com/nikkisiapno/status/2094311999941599490)把 Agent 濃縮成一個 `Context → Reason → Act → Observe → Update → Repeat` 的迴圈：harness 在每輪組裝資訊、呼叫模型、執行工具，並把結果帶進下一輪。這是解釋系統的實用模型，不是唯一的架構標準；但它剛好點出一個常被混在一起的邊界。
+
+| 名稱    | 它回答的問題                        | 典型內容                                     |
+| ------- | ----------------------------------- | -------------------------------------------- |
+| Context | 模型**這一輪**能看見什麼？          | 任務、相關文件、工具結果與被選取的記憶       |
+| State   | 任務**目前**進行到哪裡？            | 已完成步驟、重試次數、待處理項目、預算與狀態 |
+| Memory  | 什麼資訊值得跨輪或跨 session 保留？ | 可檢索的決策、偏好、知識、來源與有效期限     |
+
+記憶被寫入，不代表它應自動進入下一輪 context；state 也不應只藏在對話歷史裡。前者需要依任務相關性取回，後者需要讓 harness 能檢查、更新與交接。否則長 context 會塞進過期資料，跨 session 任務又會遺失已完成的工作。更完整的記憶生命週期可參考 [Memory Engineering](/blog/memory-engineering-for-ai-agents/)。
+
+Oracle 對 agent loop 的說法與此一致：harness 每輪組裝 instructions、conversation state、retrieved memory 與工具輸出，再由終止檢查決定是否繼續；模型不再呼叫工具，不等於使用者目標已完成。[Oracle：The Agent Loop Decoded](https://blogs.oracle.com/developers/the-agent-loop-decoded-three-levels-every-agent-engineer-must-know)
 
 ## 先找第一個偏離點，不先換模型
 
