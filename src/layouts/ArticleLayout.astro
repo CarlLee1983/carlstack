@@ -236,7 +236,17 @@ const articleJsonLd = {
 <style>
   .article-body {
     display: grid;
+    /* minmax(0, 1fr)：grid item 的自動最小尺寸是 min-content，
+       不壓成 0 的話表格的 min-width 會把整篇內文撐出容器 */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-xl);
+  }
+
+  /* .prose 帶 margin-inline: auto，grid item 有自動邊界時 stretch 會失效，
+     改用 fit-content 計算而撐出軌道；明確給 width 才會跟著軌道走 */
+  .article-body .prose {
+    min-width: 0;
+    width: 100%;
   }
 
   /* 74rem 版心扣掉 46rem 內文後仍有餘裕，寬螢幕才把目錄挪到側欄。 */

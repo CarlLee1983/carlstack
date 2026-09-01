@@ -89,6 +89,8 @@ img,
 svg {
   display: block;
   max-width: 100%;
+  /* 沒有 height: auto 時，HTML 的 height 屬性會蓋掉 CSS 的 aspect-ratio */
+  height: auto;
 }
 
 h1,
