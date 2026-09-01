@@ -12,21 +12,21 @@
 
 ## Blog frontmatter
 
-| 欄位            | 必填     | 說明                              |
-| --------------- | -------- | --------------------------------- |
-| `title`         | 是       | 頁面 h1、搜尋與 SEO title         |
-| `description`   | 是       | 一到兩句具體摘要                  |
-| `publishDate`   | 是       | ISO 日期；決定倒序排列            |
-| `updatedDate`   | 否       | 有實質更新才設定                  |
-| `draft`         | 是       | production 排除 `true`            |
-| `featured`      | 是       | 是否進入首頁精選                  |
-| `tags`          | 是       | 由內容生成 taxonomy，可為空陣列   |
-| `series`        | 否       | 系列名稱                          |
-| `seriesOrder`   | 否       | 正整數；設定時必須同時有 `series` |
-| `cover`         | 否       | `src/assets` 相對圖片路徑         |
-| `coverAlt`      | cover 時 | 描述圖片傳達的資訊                |
-| `canonicalUrl`  | 否       | 只有本站不是原始來源時覆寫        |
-| `repositoryUrl` | 否       | 本文對應 repository               |
+| 欄位            | 必填           | 說明                                              |
+| --------------- | -------------- | ------------------------------------------------- |
+| `title`         | 是             | 頁面 h1、搜尋與 SEO title                         |
+| `description`   | 是             | 一到兩句具體摘要                                  |
+| `publishDate`   | 是             | ISO 日期；決定倒序排列                            |
+| `updatedDate`   | 否             | 有實質更新才設定                                  |
+| `draft`         | 是             | production 排除 `true`                            |
+| `featured`      | 是             | 是否進入首頁精選                                  |
+| `tags`          | 是             | 由內容生成 taxonomy，可為空陣列                   |
+| `series`        | 否             | 系列名稱                                          |
+| `seriesOrder`   | 否             | 正整數；設定時必須同時有 `series`                 |
+| `cover`         | 新正式文章必填 | `src/assets` 相對圖片路徑；歷史文章可維持無 cover |
+| `coverAlt`      | 是             | 描述圖片傳達的資訊                                |
+| `canonicalUrl`  | 否             | 只有本站不是原始來源時覆寫                        |
+| `repositoryUrl` | 否             | 本文對應 repository                               |
 
 日期不要加引號也可以；schema 會轉成 `Date` 並在格式錯誤時讓 check/build 失敗。
 
@@ -81,14 +81,15 @@ Mermaid 以 `securityLevel: strict` 在瀏覽器渲染。避免在節點中加�
 
 1. 新檔設 `draft: true`。
 2. `pnpm dev` 檢查內容、程式碼、圖片、Mermaid、深淺色與手機版。
-3. 執行 `pnpm format && pnpm check && pnpm test`。
-4. 設定正確 `publishDate`，將 `draft` 改為 `false`。
-5. 再次執行 production build，確認文章出現在 RSS、Sitemap 與 Pagefind。
-6. merge 到 `main` 後由 GitHub Actions 自動部署。
+3. 依 Cover Direction 生成、檢視並驗收封面；將圖片放進 `src/assets`，設定 `cover` 與 `coverAlt`。
+4. 執行 `pnpm format && pnpm check && pnpm test`。
+5. 設定正確 `publishDate`，將 `draft` 改為 `false`。新正式文章不得在此步驟前缺少封面。
+6. 再次執行 production build，確認文章出現在 RSS、Sitemap 與 Pagefind。
+7. merge 到 `main` 後由 GitHub Actions 自動部署。
 
 ## SEO 與 cross-post
 
-title、description 與 cover 會生成 Open Graph、Twitter Card；BlogPosting JSON-LD 使用發布／更新日期、作者、標籤與 canonical。沒有 cover 時使用 `public/social-card.png`。
+title、description 與 cover 會生成 Open Graph、Twitter Card；BlogPosting JSON-LD 使用發布／更新日期、作者、標籤與 canonical。`public/social-card.png` 只作為既有無封面文章或使用者明確要求不做封面時的 fallback，不能作為新正式文章跳過封面的理由。
 
 先發布 CarlStack 原文，再同步到 Hashnode 或 Medium，並在外部平台設定 CarlStack URL 為 canonical。若內容原先發布在其他自有來源，才在 CarlStack frontmatter 設 `canonicalUrl` 指回該來源。
 

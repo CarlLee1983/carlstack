@@ -2,12 +2,15 @@
 title: "AI Business Partner 不是新職稱：把 AI 導入變成有人負責的業務迴路"
 description: "從 AI Business Partner 的觀點出發，拆解如何以工作流、結果指標、權限與例外處理，讓 AI 導入從 demo 走向可持續負責的業務改進。"
 publishDate: 2026-09-01T15:11:17+08:00
+updatedDate: 2026-09-01T15:31:33+08:00
 draft: false
 featured: false
 tags:
   - AI 工程化
   - AI Agent Workflow
   - 系統設計
+cover: ../../assets/covers/ai-business-partner-workflow-ownership.png
+coverAlt: "暖白紙材上的綠色工作流環繞目標、設定、驗收與回饋四站，最後回到中央紅色 owner 卡片。"
 ---
 
 AI 導入很容易停在一次漂亮的 demo：模型能摘要文件、產生報表、回覆客戶，大家都同意「應該有用」，但隔週回到原本流程。這時不必先假定模型不夠好；更值得先檢查的是，是否有人對流程結果負責。
