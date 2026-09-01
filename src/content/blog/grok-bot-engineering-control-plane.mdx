@@ -1,0 +1,195 @@
+---
+title: "Grok Bot 真正放大的不是 Agent 數量，而是工程管理迴路"
+description: "從五個專責 Bot、Notion 任務帳本、定期巡檢與證據式驗收，拆解如何把雲端 Coding Agents 組成可持續運作的工程控制平面。"
+publishDate: 2026-09-01
+draft: false
+featured: false
+cover: ../../assets/covers/grok-bot-engineering-control-plane.png
+coverAlt: "多條工程工作線由高塔協調，低風險任務直行、高風險任務轉入人工檢查站的紙雕模型。"
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+---
+
+import ProcessPipeline from "../../components/ProcessPipeline.astro";
+
+一個人同時管理 200 個 Coding Agents，真正的瓶頸不會是「再開一個 Agent」，而是誰替你追蹤進度、處理 CI 失敗、檢查畫面證據、追加指令，並判斷哪些變更可以合併。
+
+[Lingxi Li 在〈Grok Bot for Engineering〉](https://x.com/lingxi/status/2094493172516966781)描述了她如何用 Grok Bot 管理五個專責工程 Bot，再由這些 Bot 啟動、監看與推進 Cursor Cloud Agents。她自述，人工管理的上限原本約為 15 個 Cloud Agents，加入這層管理後可同時處理超過 200 個；團隊也曾在一個月內交付超過 2,000 個 PR。這些數字是作者的實務紀錄，不是跨團隊可直接套用的效能基準。
+
+這套做法最值得拆解的，不是替 Bot 取名字，也不是追求 Agent 數量，而是它把工程師原本反覆做的協調工作做成一個**管理平面（control plane）**：執行任務的 Agent 可以來去，任務狀態、驗收證據、風險規則與失敗後的修正則留在外部系統。
+
+本站先前整理的 [Grok Bot 雲端電腦工作流](/blog/grok-bot-cloud-computer-workflows/)談的是執行環境、共享登入與審批邊界；本文只聚焦下一層問題：當可並行的執行環境已經存在，如何避免人類成為兩百條工作線的排程器與監控台？
+
+## 五個 Bot 不是五名工程師，而是五個 Context 邊界
+
+原文的五個工程 Bot 各自負責 iOS、Desktop 與 CI/CD、基礎設施與模糊歸屬問題、Android，以及 Agent Harness。它們可以跨區支援，但各自有不同記憶與有限 Context，因此單一領域內的規格、設計原則與失敗經驗會更集中。
+
+這種分工的價值是縮小 Context，而不是模擬公司組織圖：
+
+| 邊界         | Bot 應持有的內容                   | 不該假設的能力               |
+| ------------ | ---------------------------------- | ---------------------------- |
+| 領域 Context | 模組規則、常見失敗、驗收方式       | 看過所有 repository 細節     |
+| 任務 Context | 這次需求、限制、預期證據           | 自動知道產品意圖             |
+| 執行環境     | 原始碼、工具、測試與必要服務       | 擁有無限制的正式環境權限     |
+| 交付契約     | PR、CI、截圖、影片、日誌與未解風險 | 產出 diff 就等於工作完成     |
+| 升級規則     | 什麼情況可重試、何時中斷、何時找人 | 以模型信心取代真正的風險判斷 |
+
+如果兩個角色使用同一套規則、資料與驗收方式，就先不要拆成兩個 Bot。只有穩定的 Context 或權限差異出現時，角色分離才會降低成本；否則只是增加交接與 Token 消耗。
+
+## 真正的架構是執行平面與管理平面分離
+
+Cursor 的 Cloud Agents 本身是執行平面：官方說明指出，每個 Agent 可在獨立環境中修改程式、執行測試並產出 PR；[Automations](https://prod.cursor.com/help/ai-features/automations)則可由排程、PR、CI、Slack、PagerDuty 或 webhook 事件啟動 Cloud Agent。
+
+Grok Bot 在原文中扮演的則是管理平面。它不必親自完成所有程式工作，而是：
+
+1. 把需求與對應 Skill 組成任務契約；
+2. 啟動 Cloud Agent；
+3. 讀取 transcript 與 artifacts；
+4. 在方向偏離或環境失敗時 queue 或 interrupt；
+5. 將結果同步到外部任務帳本；
+6. 依證據與風險決定自動合併或交給人類。
+
+<ProcessPipeline
+  title="多 Agent 工程管理迴路"
+  caption="執行 Agent 可以更換，外部狀態與驗收規則必須持續存在"
+  steps={[
+    {
+      num: "01",
+      title: "接收與路由",
+      tag: "Intake",
+      desc: "從人類訊息、Slack 回報或排程收到任務，依領域交給持有正確 Context 的 Bot。",
+      gate: "責任範圍與成功條件明確",
+    },
+    {
+      num: "02",
+      title: "產生任務契約",
+      tag: "Contract",
+      desc: "附上需求、限制、相關 Skill、驗證方式與必須回傳的證據。",
+      gate: "沒有可觀察驗收就不啟動",
+    },
+    {
+      num: "03",
+      title: "啟動執行 Agent",
+      tag: "Dispatch",
+      desc: "在獨立 Cloud Agent 或 Private Worker 執行修改與測試。",
+      gate: "環境與權限符合任務範圍",
+    },
+    {
+      num: "04",
+      title: "巡檢與介入",
+      tag: "Reconcile",
+      desc: "讀取 transcript、CI 與 PR 狀態；遇到阻塞時追加指令、重試或中止。",
+      gate: "介入必須改變下一步",
+    },
+    {
+      num: "05",
+      title: "證據式驗收",
+      tag: "Verify",
+      desc: "比對需求、測試、畫面或日誌，確認 Agent 證明的是成果，不只是執行過程。",
+      gate: "缺證據就回到 Working",
+    },
+    {
+      num: "06",
+      title: "風險分流與回寫",
+      tag: "Ship / Learn",
+      desc: "低風險且通過強制檢查的變更才可自動合併；其餘交由人類並把失敗模式寫回 playbook。",
+      gate: "平台規則而非 Prompt 決定能否合併",
+    },
+  ]}
+/>
+
+## Notion 的角色不是長期記憶，而是任務帳本
+
+原文讓每個工程 Bot 管理一個共享 Notion database，並每 30 分鐘檢查 PR 的 Bugbot 或安全性意見、CI、merge conflict 與目前狀態。異常時把任務降回 `Working`，繼續推進原本的 Cloud Agent；條件滿足後才標記為 `Ready for Review`。
+
+這個設計解決的是 Context Window 之外的**持久工作狀態**。聊天紀錄可以被壓縮，Agent 執行環境可以銷毀，但控制平面仍要知道：
+
+| 欄位            | 用途                                           |
+| --------------- | ---------------------------------------------- |
+| `owner_domain`  | 哪個 Bot 對這項工作負責                        |
+| `agent_run`     | 目前執行中的 Agent 與可回查連結                |
+| `pr`            | 對應 PR 與最新 commit                          |
+| `state`         | Working、Blocked、Verifying、Ready 或 Done     |
+| `last_checked`  | 上次 reconciliation 的時間                     |
+| `open_findings` | CI、Review、安全性與 merge conflict 的未解項目 |
+| `proof`         | 測試、截圖、影片、日誌與人工判斷               |
+| `next_action`   | 下一次巡檢應採取的明確動作                     |
+
+Notion 不是必要元件；一張資料表、issue tracker 或 queue 都能扮演同樣角色。真正必要的是單一可查詢狀態來源，以及 idempotent 的巡檢規則。若每次巡檢只重述「還在工作」，那是輪詢成本；只有在偵測到新 commit、CI 結果、Review finding 或逾時時才介入，才是 reconciliation。
+
+## 驗收的單位不是 diff，而是 proof bundle
+
+原文特別強調完整 feedback loop：Cloud Agent 可以附上截圖，Grok Bot 再以多模態能力判斷視覺變更是否符合要求，不符合就繼續推回去。Cursor 也公開說明，[Cloud Agents 可操作自己的電腦並產出影片、截圖與日誌](https://cursor.com/blog/agent-computer-use)，讓審查者不用只從 diff 猜測 UI 是否真的可用。
+
+一份最小 proof bundle 應包含：
+
+- **變更證據**：PR、commit 與精確 diff；
+- **機械證據**：型別檢查、測試、lint、build 與 CI 結果；
+- **行為證據**：可重現步驟、畫面、影片、日誌或 API response；
+- **範圍證據**：哪些路徑有測、哪些情境未測；
+- **風險聲明**：資料、權限、部署或不可逆操作是否受到影響。
+
+截圖本身也不是通行證。它只能證明某個畫面在某一狀態出現過，不能證明資料遷移安全、錯誤路徑完整或沒有回歸。證據要對應任務風險：UI 需要畫面，效能需要量測，資料變更需要 migration 與 rollback，安全性需要威脅模型與權限驗證。
+
+## 自動合併要靠可強制的風險閘門
+
+原文的策略是：Review 高信心且 blast radius 低時自動合併，否則等人類回來決定。方向合理，但「信心」與「低風險」不能只存在 Prompt 裡。
+
+最低限度應把規則放到 repository 平台：
+
+- [GitHub protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)可強制 required review、status checks、conversation resolution 與 merge queue；
+- 資料庫 migration、權限、付款、Secrets、基礎設施與大範圍刪除一律升級給人類或指定 owner；
+- Agent 使用專用 service account，只取得建立分支與 PR 所需權限，不直接取得繞過保護規則的能力；
+- 風險分類器可以路由工作，不能取代 branch rule、CI 或 deployment gate。
+
+需要 VPN、內部依賴或 iOS Simulator 時，原文建議把專用機器接成 Private Worker。Cursor 的[自架 Cloud Agents 說明](https://cursor.com/blog/self-hosted-cloud-agents)顯示，每個 Agent session 可使用專屬 worker，在既有網路與安全模型內執行。但 worker 能進內網，不代表它應取得所有內網權限；環境隔離與最小權限仍是兩個不同問題。
+
+## Jenny 做的不是開會，而是校準系統
+
+原文還加入一個營運 Bot「Jenny」：每天與工程 Bot 對齊 playbook；出現「沒有追到真正目標」之類失誤時，做 root-cause analysis、更新規則，再把變更同步給其他 Bot。
+
+把這件事稱為每日一對一很有記憶點，但工程上真正有用的是校準迴路：
+
+```text
+failure → trace review → root cause → rule or check → replay → rollout
+```
+
+不是每次失敗都該新增一條 Prompt。先判斷根因屬於哪一層：
+
+- 任務契約不清楚：修正 intake template；
+- Agent 缺少工具或環境：補執行能力；
+- 驗收漏掉重要情境：加入可重跑的 check；
+- 風險規則錯放：調整 branch rule 或權限；
+- 單次環境波動：保留紀錄，不急著永久化。
+
+規則更新後要拿原失敗案例 replay，確認它真的阻止同類錯誤，也沒有讓正常任務全部停住。否則「每天提醒」只會讓 playbook 持續膨脹，最後每個 Bot 都帶著一份互相衝突的長 Prompt。
+
+## 最小導入：先管理三條工作線，不要直接追兩百個 Agent
+
+要驗證這套模式，只需一個 Bot、一張任務表與三種事件：
+
+1. **先限制在一個 repository 與低風險任務**：例如小型 bug、文件或 UI 修正；每項任務都要求 PR、檢查與 proof bundle。
+2. **只監看狀態改變**：PR 更新、CI 結束或逾時才觸發 reconciliation，不做無意義的高頻輪詢。
+3. **記錄人工介入原因**：規格不清、環境失敗、驗收缺口或風險過高；每週只修正最常見的一個根因。
+4. **量測管理成本**：完成時間之外，也看每項任務的 Agent 重啟次數、人工介入分鐘數、一次通過率與錯誤合併率。
+5. **瓶頸穩定後才拆 Bot**：只有 iOS、Infra 或 CI/CD 的 Context 明顯互相污染時，才新增專責角色。
+
+兩百個 Agent 是結果，不是起點。若三條工作線仍需要人類逐條追問進度，把規模放大只會把 Context Switching 換成告警洪水。
+
+## 結語：工程師從執行者變成系統設計者
+
+Grok Bot 的這個案例，展示的不是 AI 已經能取代整個工程組織，而是 Coding Agent 的抽象層正在上移：從生成 diff，走向管理長時間、可並行、可驗收的工作。
+
+可擴張的核心不是 Bot 名字，而是五個可被強制與觀察的結構：**專責 Context、持久任務狀態、事件驅動的 reconciliation、對應風險的 proof bundle，以及失敗後可 replay 的校準迴路**。
+
+先把一條工作線做成不需反覆追問的閉環，再增加第二條。當外部狀態知道工作在哪裡、平台規則知道什麼不能過、證據知道什麼才算完成，Agent 數量才不會直接轉化成人類的管理負債。
+
+## 延伸閱讀
+
+- [Lingxi Li：Grok Bot for Engineering](https://x.com/lingxi/status/2094493172516966781)
+- [Cursor：Automations](https://prod.cursor.com/help/ai-features/automations)
+- [Cursor：Agents can now control their own computers](https://cursor.com/blog/agent-computer-use)
+- [Cursor：Run cloud agents in your own infrastructure](https://cursor.com/blog/self-hosted-cloud-agents)
+- [GitHub：About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
