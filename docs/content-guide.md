@@ -63,6 +63,17 @@
 
 首屏主要圖片不要 lazy-load。下方圖片使用 `loading="lazy"`。需要多尺寸輸出的 cover 放 `src/assets`，在 schema 中使用 image metadata；不要把遠端圖片 URL 當長期依賴。
 
+## 提示區塊
+
+需要把提醒、前提或警告從正文拉出來時，用 GitHub alert 語法，不要自己刻樣式或引入元件：
+
+```markdown
+> [!NOTE]
+> 這段是補充說明。
+```
+
+可用標記為 `NOTE`／`TIP`／`IMPORTANT`／`WARNING`／`CAUTION`，大小寫不拘，會分別渲染成「備註／提示／重點／注意／警告」。標記可以獨立一行，也可以和內文同一行。未列出的標記與一般引言維持 `blockquote`，所以既有引言不受影響。轉換由 `src/utils/remark-callout.mjs` 處理，`.md` 與 `.mdx` 寫法相同。
+
 ## 圖解
 
 新文章內的流程、架構、資料流與狀態圖一律使用原生 SVG；需要樣式時以 Astro 元件封裝，不使用 Mermaid。SVG 必須有 `title`／`desc`、可縮放的 `viewBox`，並在 320 px 寬度維持可讀性；窄螢幕需要不同編排時，提供專用 SVG 版面。

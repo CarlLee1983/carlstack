@@ -4,6 +4,7 @@ import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark";
 import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
+import remarkCallout from "./src/utils/remark-callout.mjs";
 import remarkMermaid from "./src/utils/remark-mermaid.mjs";
 import rehypeHeadingAnchor from "./src/utils/rehype-heading-anchor.mjs";
 import rehypeTableScroll from "./src/utils/rehype-table-scroll.mjs";
@@ -25,7 +26,7 @@ export default defineConfig({
   integrations: [mdx(), sitemap({ filter: (page) => !page.endsWith("/404/") })],
   markdown: {
     processor: unified({
-      remarkPlugins: [remarkMermaid],
+      remarkPlugins: [remarkMermaid, remarkCallout],
       // 使用者外掛跑在 Astro 內建的 rehypeHeadingIds 之前，錨點外掛要靠
       // 標題 id，所以在這裡先手動掛一次。
       rehypePlugins: [rehypeTableScroll, rehypeHeadingIds, rehypeHeadingAnchor],
