@@ -1,0 +1,378 @@
+<figure class="reverse-diagram" aria-labelledby="reverse-diagram-caption">
+  <svg
+    class="reverse-diagram__desktop"
+    viewBox="0 0 960 380"
+    role="img"
+    aria-labelledby="reverse-diagram-title reverse-diagram-desc"
+  >
+    <title id="reverse-diagram-title">reverse-skill 的六段狀態與資料流</title>
+    <desc id="reverse-diagram-desc">
+      任務提示經過確定性規則路由選出主技能，在執行動作前必須通過授權與範圍閘門；隨後按需自舉工具能力，在分析過程中建立
+      Evidence→Finding→Path 證據鏈，最後將脫敏經驗回寫至案例日誌。
+    </desc>
+    <defs>
+      <marker
+        id="rev-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="reverse-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Top flow arrows -->
+    <path
+      class="reverse-diagram__arrow"
+      d="M 140 105 H 175"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 315 105 H 350"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 490 105 H 525"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 665 105 H 700"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 840 105 H 870"
+      marker-end="url(#rev-arrow)"></path>
+
+    <!-- Feedback & Evolution Arrow -->
+    <path
+      class="reverse-diagram__arrow reverse-diagram__arrow--feedback"
+      d="M 875 160 V 240 Q 875 270 845 270 H 260 Q 230 270 230 240 V 160"
+      marker-end="url(#rev-arrow)"></path>
+    <text
+      class="reverse-diagram__return-label"
+      x="480"
+      y="260"
+      text-anchor="middle"
+    >
+      脫敏經驗回寫案例庫，供下一次任務檢索與重用
+    </text>
+
+    <!-- 01 Task Hint -->
+    <g class="reverse-diagram__card" transform="translate(15 55)">
+      <rect width="125" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="14" y="26">01</text>
+      <text class="reverse-diagram__title" x="14" y="52">任務輸入</text>
+      <text class="reverse-diagram__detail" x="14" y="76">Task Hint</text>
+    </g>
+
+    <!-- 02 Deterministic Router -->
+    <g
+      class="reverse-diagram__card reverse-diagram__card--focus"
+      transform="translate(175 55)"
+    >
+      <rect width="140" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="14" y="26">02</text>
+      <text class="reverse-diagram__title" x="14" y="52">確定性路由</text>
+      <text class="reverse-diagram__detail" x="14" y="76">routing.json</text>
+    </g>
+
+    <!-- 03 Scope & Guard -->
+    <g
+      class="reverse-diagram__card reverse-diagram__card--guard"
+      transform="translate(350 55)"
+    >
+      <rect width="140" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="14" y="26">03</text>
+      <text class="reverse-diagram__title" x="14" y="52">授權門禁</text>
+      <text class="reverse-diagram__detail" x="14" y="76">Scope Guard</text>
+    </g>
+
+    <!-- 04 Primary Skill & Tools -->
+    <g class="reverse-diagram__card" transform="translate(525 55)">
+      <rect width="140" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="14" y="26">04</text>
+      <text class="reverse-diagram__title" x="14" y="52">專屬技能與工具</text>
+      <text class="reverse-diagram__detail" x="14" y="76"
+        >Skill + Bootstrap</text
+      >
+    </g>
+
+    <!-- 05 Evidence Chain -->
+    <g class="reverse-diagram__card" transform="translate(700 55)">
+      <rect width="140" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="14" y="26">05</text>
+      <text class="reverse-diagram__title" x="14" y="52">證據與路徑鏈</text>
+      <text class="reverse-diagram__detail" x="14" y="76">Evidence→Finding</text
+      >
+    </g>
+
+    <!-- 06 Field Journal -->
+    <g class="reverse-diagram__card" transform="translate(870 55)">
+      <rect width="75" height="100" rx="12"></rect>
+      <text class="reverse-diagram__step" x="12" y="26">06</text>
+      <text class="reverse-diagram__title" x="12" y="52">日誌</text>
+      <text class="reverse-diagram__detail" x="12" y="76">Journal</text>
+    </g>
+
+    <!-- Bottom annotations / boundaries -->
+    <g class="reverse-diagram__badge" transform="translate(175 168)">
+      <text x="70" y="14" text-anchor="middle">規則比對・拒絕猜測</text>
+    </g>
+    <g
+      class="reverse-diagram__badge reverse-diagram__badge--guard"
+      transform="translate(350 168)"
+    >
+      <text x="70" y="14" text-anchor="middle">無授權禁止主動 ACT</text>
+    </g>
+    <g class="reverse-diagram__badge" transform="translate(700 168)">
+      <text x="70" y="14" text-anchor="middle">嚴格 Hash 與可重現</text>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical flow -->
+  <svg
+    class="reverse-diagram__mobile"
+    viewBox="0 0 320 680"
+    role="img"
+    aria-labelledby="reverse-diagram-mobile-title reverse-diagram-mobile-desc"
+  >
+    <title id="reverse-diagram-mobile-title">
+      reverse-skill 的六段狀態與資料流（手機版）
+    </title>
+    <desc id="reverse-diagram-mobile-desc">
+      由上至下的六個執行階段：任務輸入、確定性路由、授權門禁、專屬技能與工具、證據與路徑鏈、日誌回寫。
+    </desc>
+
+    <path
+      class="reverse-diagram__arrow"
+      d="M 160 80 V 105"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 160 185 V 210"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 160 290 V 315"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 160 395 V 420"
+      marker-end="url(#rev-arrow)"></path>
+    <path
+      class="reverse-diagram__arrow"
+      d="M 160 500 V 525"
+      marker-end="url(#rev-arrow)"></path>
+
+    <!-- 01 -->
+    <g class="reverse-diagram__card" transform="translate(20 15)">
+      <rect width="280" height="65" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">01</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >任務輸入 (Task Hint)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >使用者提供的逆向、資安或 CTF 目標</text
+      >
+    </g>
+
+    <!-- 02 -->
+    <g
+      class="reverse-diagram__card reverse-diagram__card--focus"
+      transform="translate(20 105)"
+    >
+      <rect width="280" height="80" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">02</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >確定性路由 (routing.json)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >43 條規則與計分選路，不靠模型猜測</text
+      >
+      <text class="reverse-diagram__subdetail" x="50" y="68"
+        >產出 route-scope.md</text
+      >
+    </g>
+
+    <!-- 03 -->
+    <g
+      class="reverse-diagram__card reverse-diagram__card--guard"
+      transform="translate(20 210)"
+    >
+      <rect width="280" height="80" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">03</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >授權與範圍門禁 (Scope Guard)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >必須有 auth granted + network profile</text
+      >
+      <text class="reverse-diagram__subdetail" x="50" y="68"
+        >未獲授權禁止對目標發動 ACT</text
+      >
+    </g>
+
+    <!-- 04 -->
+    <g class="reverse-diagram__card" transform="translate(20 315)">
+      <rect width="280" height="80" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">04</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >專屬技能與工具自舉 (Bootstrap)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >載入 Scenario Skill，按需安裝工具</text
+      >
+      <text class="reverse-diagram__subdetail" x="50" y="68"
+        >固定 release / SHA-256 鎖定供應鏈</text
+      >
+    </g>
+
+    <!-- 05 -->
+    <g class="reverse-diagram__card" transform="translate(20 420)">
+      <rect width="280" height="80" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">05</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >證據鏈與審核 (Evidence Chain)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >Evidence → Finding → Path 結構化引用</text
+      >
+      <text class="reverse-diagram__subdetail" x="50" y="68"
+        >review_case.py 自動核對 hash</text
+      >
+    </g>
+
+    <!-- 06 -->
+    <g class="reverse-diagram__card" transform="translate(20 525)">
+      <rect width="280" height="80" rx="10"></rect>
+      <text class="reverse-diagram__step" x="14" y="24">06</text>
+      <text class="reverse-diagram__title" x="50" y="27"
+        >脫敏日誌回寫 (Field Journal)</text
+      >
+      <text class="reverse-diagram__detail" x="50" y="49"
+        >沉澱脫敏 scope、避坑手記與 pattern</text
+      >
+      <text class="reverse-diagram__subdetail" x="50" y="68"
+        >作為下一次任務的檢索案例庫</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="reverse-diagram-caption">
+    reverse-skill
+    的核心控制流：以確定性路由選路、硬性授權阻斷盲目攻擊、嚴格證據鏈支撐結論，並用脫敏日誌沉澱經驗。
+  </figcaption>
+</figure>
+
+<style>
+  .reverse-diagram {
+    margin: var(--space-xl) 0;
+  }
+
+  .reverse-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .reverse-diagram__mobile {
+    display: none !important;
+  }
+
+  .reverse-diagram__card rect {
+    fill: var(--color-paper-2);
+    stroke: var(--color-rule-2);
+    stroke-width: 1.5;
+  }
+
+  .reverse-diagram__card--focus rect {
+    fill: var(--color-accent);
+    stroke: var(--color-accent);
+  }
+
+  .reverse-diagram__card--guard rect {
+    stroke: var(--color-ink-2);
+    stroke-width: 1.5;
+  }
+
+  .reverse-diagram__arrow {
+    fill: none;
+    stroke: var(--color-rule-2);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  .reverse-diagram__arrow--feedback {
+    stroke-dasharray: 6 6;
+  }
+
+  .reverse-diagram__arrow-head {
+    fill: var(--color-rule-2);
+  }
+
+  .reverse-diagram__step,
+  .reverse-diagram__return-label {
+    fill: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  .reverse-diagram__title {
+    fill: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .reverse-diagram__detail {
+    fill: var(--color-ink-2);
+    font-family: var(--font-sans);
+    font-size: 12px;
+  }
+
+  .reverse-diagram__subdetail {
+    fill: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .reverse-diagram__badge text {
+    fill: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .reverse-diagram__badge--guard text {
+    fill: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .reverse-diagram__card--focus .reverse-diagram__step,
+  .reverse-diagram__card--focus .reverse-diagram__title,
+  .reverse-diagram__card--focus .reverse-diagram__detail {
+    fill: var(--color-accent-ink);
+  }
+
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  @media (max-width: 48rem) {
+    .reverse-diagram__desktop {
+      display: none !important;
+    }
+
+    .reverse-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

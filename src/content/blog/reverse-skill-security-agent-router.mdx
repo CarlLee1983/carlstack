@@ -1,0 +1,276 @@
+---
+title: "reverse-skill 原理拆解：把資安 Agent 的路由、授權與證據鏈寫成可驗證流程"
+description: "從 routing.json、case scope 授權門禁、按需自舉到 Evidence→Finding→Path 證據鏈，深度拆解 reverse-skill 如何約束資安與逆向 Agent 的工作狀態，並透過 173 個路由回歸案例與實測檢視其工程價值與防禦邊界。"
+publishDate: 2026-08-31
+updatedDate: 2026-09-01T20:36:10+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 資訊安全
+repositoryUrl: https://github.com/zhaoxuya520/reverse-skill
+cover: ../../assets/covers/reverse-skill-security-agent-router.png
+coverAlt: "證據膠囊依序通過授權閘門、工具架與觀察艙，再進入帶有重播路徑的封存發現庫。"
+---
+
+import ReverseSkillPipelineDiagram from "../../components/ReverseSkillPipelineDiagram.astro";
+
+看到 `reverse-skill` 收錄 APK、IDA、Frida、Burp、CTF、OLLVM、韌體與滲透測試等 44 個專門模組，很多人直覺會把它當成「裝上後，AI 就會一鍵自動完成逆向與攻防」的萬能工具箱。然而從原始碼與架構設計來看，它真正解決的不是單點分析演算法，而是 **AI Agent 在安全任務中的工作流失控**。
+
+在傳統對話模式下，資安 Agent 最常面臨四個致命問題：
+
+1. **工具迷失**：面對未知樣本（如 APK、ELF、混淆 JS、PCAP），Agent 不知道該走靜態反編譯、動態 Hook 還是流量重放，容易在數百個工具間隨機嘗試；
+2. **缺乏授權邊界**：沒有強制要求確認目標範圍與合法授權，可能直接對外部目標發動具有破壞性的主動掃描或利用（ACT）；
+3. **幻覺結論與證據脫節**：模型給出長篇漏洞報告，卻沒有可重現指令、原始輸出摘錄或 SHA-256 雜湊值來證明結論成立；
+4. **重複踩坑**：上一次任務中辛苦摸索出的反混淆腳本或環境配置，在對話結束後隨風飄散，下一次遇到類似情境依然從零猜測。
+
+因此，`reverse-skill` 的核心定位是 **Client-Neutral 的資安 Skill Router 與工作流狀態框架**。它不依賴特定客戶端（完整兼容 Claude Code、Codex CLI、Cursor、Cline、Windsurf、Kiro 與 OpenCode），而是將「任務路由」、「授權範圍」、「工具能力」、「操作紀錄」與「經驗回寫」落實為一套結構化的檔案契約，讓 AI coding agent 沿著受約束、可驗證的軌道前進。[專案 README 定位與主流程](https://github.com/zhaoxuya520/reverse-skill/blob/main/README.md#about)、[Client-neutral 整合規範](https://github.com/zhaoxuya520/reverse-skill/blob/main/README_AI.md)
+
+<ReverseSkillPipelineDiagram />
+
+## 主幹不是工具清單，而是六段狀態與資料流
+
+整套框架的運作流程可清晰劃分為六個遞進階段：
+
+1. **階段 01：任務輸入（Task Hint）**——使用者提供一句話需求或樣本路徑（例如 `"decompile app.apk and bypass ssl pinning"` 或 `"analyze obfuscated js token"`）。
+2. **階段 02：確定性路由（Deterministic Routing）**——依據 `routing.json` 規則庫對輸入提示進行正則計分，選出最高優先級的 `PRIMARY Skill` 與備選路由，產出 `work/master-route-<timestamp>/route-scope.md`。
+3. **階段 03：授權與範圍門禁（Scope Guard）**——在執行目標動作前，由 `case-init` 在使用者分析專案的 `work/<case>/` 初始化 `scope.md`。必須明確宣告合法授權來源與網路設定檔，否則強制阻斷後續動作。
+4. **階段 04：專屬場景技能與按需自舉（Scenario Skill & Bootstrap）**——進入目標 Skill（如 `apk-reverse`、`js-reverse`），並透過鎖定 SHA-256 與版本號的 manifest 按需安裝缺失工具或掛載 MCP 服務。
+5. **階段 05：證據鏈與結構化審核（Evidence Chain）**——嚴格區分 `Evidence`（原始客觀數據）、`Finding`（分析結論）與 `Path`（重現/攻擊鏈），並由 Python 腳本自動驗證檔案雜湊與引用完整性。
+6. **階段 06：脫敏案例日誌回寫（Field Journal）**——任務完成後將脫敏後的架構模式、避坑手記與關鍵證據沉澱至 `skills/field-journal/`，更新索引供未來的 Agent 檢索。
+
+這六個階段環環相扣，確保 Agent 在進入深水區前「有路可循、有權才動、有據可查」。
+
+---
+
+## 1. 路由控制面：確定性規則評分 vs. 模型二次猜測
+
+在 AI Agent 系統設計中，一個常見的誤區是「什麼都交給 LLM 再想一輪」。如果路由決策交給另一段未受約束的 prompt，不僅增加延遲與 Token 開銷，更會引入非確定性，導致同一個任務在不同時間跑進完全不同的技能模組。
+
+`reverse-skill` 的路由中心是 [`skills/config/routing.json`](https://github.com/zhaoxuya520/reverse-skill/blob/main/skills/config/routing.json)，它是整個專案的 Single Source of Truth。分析版本中收錄了 43 條路由規則（R0–R44），涵蓋 APK、iOS、JS 混淆、二進位反編譯、惡意代碼分析、雲原生/K8s、API 滲透、韌體 IoT、LLM 安全、Windows AD 等場景。
+
+```json
+{
+  "routes": [
+    {
+      "id": "R1_APK",
+      "skill": "apk-reverse",
+      "priority": 90,
+      "must": ["\\.apk\\b", "\\bandroid\\b", "\\b(jadx|apktool|dex2jar)\\b"],
+      "mustAll": [],
+      "exclude": ["\\bios\\b", "\\bipa\\b"]
+    }
+  ]
+}
+```
+
+路由腳本（Bash 版本的 `master-route.sh` 與 PowerShell 版本的 `master-route.ps1`）的執行邏輯非常純粹：
+
+1. 將使用者的 `task hint` 全部轉為小寫；
+2. 比對各規則的 `exclude` 條件，若命中則直接排除該規則；
+3. 檢查 `mustAll` 陣列中的所有正則表達式，必須全部符合；
+4. 檢查 `must` 陣列，計算符合的正則表達式命中個數，每命中一項加 1 分；
+5. 依據 `(得分, priority)` 排序，選出分數最高且優先級最高的作為 `PRIMARY Skill`；
+6. 若無任何特異特徵命中，則安全回退（Fallback）至通用的 `R0` 逆向工程模組。
+
+```bash
+# 執行確定性路由
+bash skills/scripts/master-route.sh --hint "apk ssl pinning bypass with frida"
+```
+
+> [!TIP]
+> **確定性路由的工程價值**：
+> 規則式路由讓系統具備完整的 **回歸測試能力（Regression Benchmark）**。該專案收錄了 173 個歷史提示詞測試案例（`test-routing.sh`），可以在 CI 中瞬間驗證路由是否受到改動破壞，完全杜絕了 LLM 路由時難以復現與自動化測試的弊端。
+
+---
+
+## 2. 授權與安全硬門檻：解耦「目標點名」與「授權宣告」
+
+在滲透測試與逆向工程領域，法律與道德邊界是第一道底線。許多開源安全工具直接把 target 傳入執行，容易造成意外衝擊或非法探測。
+
+`reverse-skill` 透過 `case-init` 腳本強制推行 **Scope 契約（`scope.md`）**。在 Agent 呼叫任何主動探測工具前，必須在 caller 分析專案的 `work/<case>/` 建立以下檔案結構：
+
+```text
+work/<case-name>/
+  ├── scope.md          # 核心授權與範圍契約
+  ├── timeline.md       # 時間軸狀態演進（Append-only）
+  ├── workitems.md      # 待辦與工作覆蓋清單
+  ├── evidence/         # 原始證據落盤目錄
+  ├── notes/            # 分析筆記
+  └── report/           # 最終交付報告
+```
+
+`scope.md` 的關鍵宣告欄位包含：
+
+```markdown
+# Case Scope
+
+## meta
+
+- case_id: 20260901-apk-auth
+- primary_skill: apk-reverse
+- operator: local-engineer
+
+## auth
+
+- status: granted | pending | denied
+- basis: written_contract | bug_bounty_scope | ctf_public | own_system | lab_only
+- evidence_of_auth: "Ticket #SEC-8821 / Authorized Lab"
+
+## network_profile
+
+- mode: offline | lab_only | authorized_target_only | unrestricted_lab
+
+## in_scope
+
+- assets: ["com.example.app", "192.168.1.50"]
+- activities: ["static-re", "local-hook"]
+
+## out_of_scope
+
+- assets: ["*.production.com"]
+- forbidden: ["dos", "data-exfiltration"]
+```
+
+系統以 `case-guard.sh` 進行硬性檢查：
+
+- 只有當 `auth.status = granted` 且 `evidence_of_auth` 具備有效填寫時，才允許標記為 `ready_for_act = true`；
+- 若指定 `--preset offline-sample`，則在離線模式且給定本地明確檔案路徑時，允許安全進行離線分析；
+- 即使操作者加上 `--force` / `-Force` 參數，也**無法繞過**缺少授權或不合規網路模式的硬性阻擋。
+
+> [!IMPORTANT]
+> **宣告式契約的安全邊界**：
+> `scope.md` 本質上是 Agent 與操作者之間的規範性契約，`case-guard.sh` 是在 CLI 與腳本層提供的防禦護欄。它並非作業系統核心級（如 eBPF 或 Network Namespace）的硬性網路阻斷；在高度敏感的環境中，Host 平台仍需搭配隔離 Sandbox、容器網路原則與權限隔離，才能構建縱深防禦。
+
+---
+
+## 3. 工具架構：被動探測與按需自舉的權限隔離
+
+在傳統的 Agent 實作中，經常發生「安裝了整整 5GB 的資安工具箱，但當前任務只需一個 `jadx`」的資源浪費，或是 Agent 自行在主機上胡亂執行 `curl | bash` 引發供應鏈風險。
+
+`reverse-skill` 將工具治理拆成兩個權限完全隔離的層次：
+
+| 機制                          | 核心腳本                         | 觸發時機                        | 行為與權限邊界                                                                                                                                              |
+| :---------------------------- | :------------------------------- | :------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **被動能力索引 (Tool Index)** | `refresh-tool-index.sh` / `.ps1` | 初始化與路由前                  | 唯讀探測本機既有 binary（`PATH`）、讀取 Claude Code / Codex 之 MCP 配置，並向 localhost 登記連接埠發送 `tools/list` HTTP 請求。**不修改環境、不下載檔案**。 |
+| **按需工具自舉 (Bootstrap)**  | `bootstrap-reverse.sh` / `.ps1`  | 進入特定 Skill 且缺少必要工具時 | 讀取 `bootstrap-manifest.json`，精確安裝單一 capability 所需工具。預設 `--mcp-host=none`，不隨意覆寫全域 MCP 設定。                                         |
+
+### 供應鏈鎖定策略
+
+在 `bootstrap-manifest.json` 中，專案展現了嚴謹的供應鏈安全考量：
+
+- **雜湊校驗**：`jadx`、`apktool` 等二進位發行版強制校驗固定 release 與 `SHA-256`；
+- **版本鎖定**：`frida`、`frida-tools` 等 Python 套件固定明確版本號；
+- **Commit 鎖定**：Git 依賴（如 `anything-analyzer`）固定至特定 commit hash；
+- **商業軟體合規保護**：對於 JEB Pro、IDA Pro 等商業付費軟體，manifest 明確標註 `"licensed_commercial"`，僅提供合規指引與本機環境檢查，絕不進行未授權下載。
+
+---
+
+## 4. 證據鏈架構：Evidence → Finding → Path 三層解耦
+
+資安分析最怕「推測被當成事實」。Agent 看到一段未混淆代碼，可能直接宣稱「發現高危漏洞」；但真實世界中，漏洞需要完整的可重現鏈條。
+
+`reverse-skill` 在 [`skills/ops/evidence-finding-path.md`](https://github.com/zhaoxuya520/reverse-skill/blob/main/skills/ops/evidence-finding-path.md) 中規範了三層嚴格架構：
+
+```text
++-------------------------------------------------------------+
+| Evidence (客觀原始證據)                                       |
+| - 證據檔案落盤 (evidence/ev-001.txt)                           |
+| - 記錄可重現命令、時間戳與 SHA-256 檔案雜湊                      |
++-------------------------------------------------------------+
+                              │ (被引用)
+                              ▼
++-------------------------------------------------------------+
+| Finding (分析結論)                                           |
+| - 漏洞標題、影響範圍、CVSS 評級與修復建議                       |
+| - 強制宣告 evidence_ids: ["EV-001"] (已驗證項目需雙重獨立證據)   |
++-------------------------------------------------------------+
+                              │ (被串聯)
+                              ▼
++-------------------------------------------------------------+
+| Path (攻擊路徑 / 重現步驟)                                    |
+| - Step 1 → Step 2 → Step 3 的循序利用或分析鏈條               |
+| - 包含前置條件與重現驗證方式                                   |
++-------------------------------------------------------------+
+```
+
+為了確保該契約不流於形式，專案提供了自動化驗證腳本：
+
+```bash
+python3 skills/case-review/scripts/review_case.py work/my-case --verify-hashes --strict
+```
+
+`review_case.py` 會自動執行下列檢驗：
+
+1. 檢查 `scope.md`、`timeline.md` 與 `workitems.md` 的必填欄位是否存在；
+2. 逐一讀取 `evidence/` 中的所有實體檔案，重新計算 SHA-256 雜湊值，比對是否與 Markdown 內記錄的 hash 一致；
+3. 檢查每一個 `Finding` 是否至少關聯了一筆有效且存在的 `Evidence ID`；若宣告為 `validated: true`，則檢查是否具備多項證據交叉比對；
+4. 驗證 `Path` 中的步驟節點是否前後銜接。
+
+任何一項不符合，檢驗即報錯，阻止產出不負責任的虛假報告。
+
+---
+
+## 5. 自演進知識庫：脫敏 Field Journal
+
+在許多宣傳中，AI 的「自我進化」常被包裝成高深的在線模型微調（Online Fine-tuning）。但對於工程落地而言，微調模型權重成本極高、不可解釋且極易引發災難性遺忘。
+
+`reverse-skill` 採取了務實的 **檔案型案例日誌（Field Journal）** 機制：
+
+- 每次 Case 結束後，由 `docs-generator` 產生報告，並引導 Agent 提煉一篇脫敏案例日誌至 `skills/field-journal/`；
+- 日誌必須依照範本移除所有機密目標資訊（URL、憑證、專有代碼），僅保留 **目標架構特徵**、**執行步驟鏈**、**最多 3 項關鍵 Evidence 摘錄**、**踩坑排錯手記（Gotchas）** 與 **可重用模式（Reusable Patterns）**；
+- 同步更新 `skills/field-journal/_index.md`。
+
+當未來的 Agent 接收到新的分析任務時，除了依賴基礎 Skill 指引，還能檢索歷史 Field Journal，重用前人已驗證過的反混淆正規化腳本或 Hook 策略。
+
+---
+
+## 6. 本機實測與工程驗證
+
+為了客觀檢驗其工程品質，我們在實際開發環境中進行了全面測試：
+
+- **測試環境**：macOS Sonoma / Darwin、GNU Bash 3.2.57、Python 3.9.6、Node.js 22。
+
+### 路由基準測試（Routing Benchmark）
+
+執行 173 個提示詞路由回歸測試：
+
+```text
+$ bash skills/scripts/test-routing.sh
+TOTAL=173 PASS=173 FAIL=0
+OVERALL: ALL PASS (173 routing cases + default-root regression)
+```
+
+173 個橫跨 Android、iOS、二進位、Web JS、OLLVM、韌體與 CTF 的多維度提示詞全部命中預期的 PRIMARY Skill 與 fallback 路由，展現了規則配置的高確定性與高穩定性。
+
+### 跨平台相容性發現：文件承諾 vs. 實體夾具
+
+在進一步執行 `test-bash-workflow.sh` 時，我們觀察到一個值得工程師警惕的跨平台相容細節：
+
+- 測試前兩項（Case 初始化與有效 Scope 驗證）順利通過；
+- 但在第三項「拒絕不合法網路模式」的測試夾具建立階段，腳本發生中斷。
+
+深入分析原始碼發現，原因在於測試腳本使用了 GNU 特有的 `sed -i "s/.../.../" file` 語法，而在 macOS 的 BSD `sed` 規範中，`-i` 必須明確指定備份後綴（如 `sed -i '' "s/.../.../" file`）。
+
+```bash
+# test-bash-workflow.sh 中的失敗點 (GNU sed 語法)
+sed -i 's/mode: offline/mode: invalid_mode/' "$PROJECT_ROOT/work/test-case/scope.md"
+```
+
+這項發現具有重要的工程借鏡意義：**在多平台支援中，「核心腳本可跑」不等於「所有測試夾具跨平台全綠」**。專案的 CI 主要將完整 Workflow 測試跑在 Ubuntu 環境中，macOS CI 則著重於語法檢查與基本流程。對於在 macOS 上進行深度開發的工程師，建議留意 BSD 工具鏈的差異。
+
+---
+
+## 7. 架構啟示：如何構建高可靠的 AI Agent 系統？
+
+`reverse-skill` 不僅是一套資安工具包，其架構理念為所有需要構建複雜 Agent 系統的工程師提供了五個高度可移植的設計原則：
+
+1. **確定性路由優先於模糊推理**：在流程入口處，使用透明、可測試的規則配置（JSON/Regex）約束主路徑，將 LLM 的推理能力保留在真正的分析環節，保留強大的回歸測試能力。
+2. **在產生副作用前設立硬性契約**：任何具備修改、寫入或網路呼叫能力的 Agent，必須在「動作前（Pre-Act）」落地範圍契約與授權檢查，嚴格區分「目標識別」與「授權核准」。
+3. **客觀事實、推論結論與執行路徑分層**：將 `Evidence`（可重現輸出與 SHA-256）、`Finding`（分析觀點與影響評估）與 `Path`（重現步驟）徹底解耦，杜絕無源幻覺。
+4. **環境探測與環境變更的權限隔離**：查詢環境現狀（被動唯讀）與安裝工具/修改配置（主動變更）必須分為不同指令與權限層，避免 Agent 肆意污染本機環境。
+5. **以結構化檔案沉澱演進知識**：Agent 的經驗沉澱應以 Git 可追蹤、可 review、可脫敏的 Markdown 案例庫（Field Journal）為主，而非寄望於成本高昂且難以驗證的模型在線微調。
+
+無論你是在打造資安輔助工具、自動化運維 Agent 還是軟體開發助理，這套「路由確定性、授權硬門檻、證據可驗證、經驗結構化」的工程控制面，都是讓 Agent 從「玩具」走向「生產可用系統」的關鍵基石。
