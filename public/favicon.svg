@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
   <title id="title">CarlStack</title>
   <rect width="64" height="64" rx="14" fill="#0b1017"/>
-  <rect x="9" y="9" width="46" height="46" rx="12" fill="#111b27" stroke="#2d4357" stroke-width="2"/>
-  <path d="M15 23h10l4 9m-14 9h10l4-9m21 0H40" fill="none" stroke="#67d8ff" stroke-linecap="round" stroke-width="3"/>
-  <circle cx="32" cy="32" r="9" fill="#f2a63d"/>
-  <circle cx="32" cy="32" r="3" fill="#fff0cf"/>
+  <path d="M48 19H28a13 13 0 0 0 0 26h20" fill="none" stroke="#f4f1e8" stroke-width="8"/>
+  <path d="m42 22-10 20" stroke="#f2a63d" stroke-linecap="square" stroke-width="6"/>
 </svg>
