@@ -1,6 +1,6 @@
 ---
-title: "Grok Bot 的 10 步自動化：角色、Routine 與審批邊界"
-description: "從第一個可驗證任務、登入接管、Skill 與 Routine，到多 Bot 分工與每週巡檢，整理 Grok Bot 10 步教學中可真正落地的自動化方法。"
+title: "Grok Bot 的安全自動化：Four Cs、Routine 與審批邊界"
+description: "用 Context、Connections、Capabilities、Cadence 四層框架，從第一個可驗證任務走到多 Bot 分工、背景 Routine 與可控放權。"
 publishDate: 2026-08-31
 updatedDate: 2026-09-01
 draft: false
@@ -17,7 +17,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 一般 AI 助手等人打開視窗、輸入問題，再回傳一份草稿。雲端電腦型 Agent 的差別，是它可以在持久環境裡使用瀏覽器、檔案與工具，把工作一路做到需要人類決定的位置。
 
-[@0xCodez 的〈Grok Bot Agents: how to automate your life in 10 Steps〉](https://x.com/0xCodez/status/2089676836619878567)把導入方式拆成十步：安裝、定義角色、連接工具、接管登入、示範流程、建立 Routine、增加專家、群組協作、畫出審批線，以及定期清理。這份清單的價值不在功能數量，而是導入順序：**先讓一件真實工作可驗證，再讓成功路徑重複，最後才增加 Bot。**
+[@0xCodez 的〈Grok Bot Agents: how to automate your life in 10 Steps〉](https://x.com/0xCodez/status/2089676836619878567)把導入方式拆成十步：安裝、定義角色、連接工具、接管登入、示範流程、建立 Routine、增加專家、群組協作、畫出審批線，以及定期清理。[Nate Herk 的兩小時實作課程](https://x.com/nateherk/status/2094263221645377911)則用一間虛構 HVAC 公司，示範 Inbox Bot 如何分類急件、先建立回覆草稿，再把需要人工處理的案件交給 ClickUp Bot。兩份材料指向同一個導入順序：**先讓一件真實工作可驗證，再讓成功路徑重複，最後才增加 Bot。**
 
 不過原文有一個不能照字面採用的描述：Bot 並不是各自擁有安全隔離的電腦。依 [Grok Bot 官方 Overview](https://docs.x.ai/grok-bot/overview)，同一使用者的所有 Bot 共用一台持久雲端電腦、檔案、瀏覽器 Session 與登入；每個 Bot 有自己的畫面與對話 Context，但不是獨立安全邊界。
 
@@ -73,6 +73,19 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 停止：不得修改正式環境或聯絡客戶；先提交草稿等待批准。
 ```
 
+## Four Cs：缺一層，自動化就會在錯的地方卡住
+
+Nate Herk 把 AI 作業系統拆成四層：**Context、Connections、Capabilities、Cadence**。這不是另一套工具清單，而是一個找缺口的順序：
+
+| 層次         | 要回答的問題                         | 缺少時的典型結果                 |
+| ------------ | ------------------------------------ | -------------------------------- |
+| Context      | Bot 知道誰、目標、規則與當前狀態嗎？ | 取得資料，卻不知道什麼值得處理   |
+| Connections  | 它能讀寫完成工作所需的真實系統嗎？   | 只能描述做法，不能交付結果       |
+| Capabilities | 是否有可重跑、可驗證的 Skill？       | 每次重新猜步驟，品質跟著對話漂移 |
+| Cadence      | 什麼時間或事件值得自動觸發？         | 流程雖然存在，仍要靠人記得啟動   |
+
+順序不能倒過來。先開 Routine、再補 Context，等於準時重複一個判斷不足的流程；先連二十個帳號、再找用途，則只會提早擴大權限。最小做法是讓一個 Bot 先讀取一份權威文件、完成一個不對外送出的成果，再把穩定方法保存成 Skill。
+
 ## 3–4：只連接必要工具，敏感登入由人接管
 
 連接器與持久瀏覽器 Session 讓 Bot 不必每次重新設定，但也放大權限範圍。由於所有 Bot 共用同一使用者的雲端電腦，某個 Bot 登入的網站、放進工作區的檔案，以及命令列憑證，其他 Bot 也可能使用。
@@ -100,6 +113,8 @@ Skill 與 Routine 不應混為一談：
 
 先用一個 Bot 完成端到端結果；只有出現穩定的專業邊界時才新增角色。這也符合官方「最小可用 roster」的建議，並能避免多 Bot 只增加交接與 Token 成本。
 
+多 Bot 開始接力後，不要把聊天紀錄當任務系統。Nate Herk 的示範把負責 Bot、狀態、開始時間、截止時間、來源連結與最終交付物寫進 ClickUp；高頻 Inbox 輪詢則只留在 Routine history，避免每半小時製造一張沒有決策價值的卡片。這個區分很實用：**需要 owner 與後續處理的工作進共享帳本；沒有狀態改變的週期檢查只保留執行紀錄。**
+
 ## 9：審批線看可逆性，也看外部影響
 
 原文提出一個好用的起點：可逆工作交給 Bot 完成，不可逆工作留給人。但工程上還要補一個條件——**任何對外代表使用者、移動金錢、改變權限、刪除資料或碰正式環境的動作，即使技術上能回復，也應先審批。**
@@ -107,6 +122,8 @@ Skill 與 Routine 不應混為一談：
 可以自動完成的通常包括研究、比對、分類、建立內部草稿與準備變更；應停下來的包括寄信、發布、購買、刪除、改權限與 production change。審批卡只控制尚未執行的動作，不會撤銷先前工作，因此開始任務時就要寫出停止條件，不能等 Bot 做到最後才補救。
 
 平台提供 Auto Review 時，可用窄範圍的 Require Approval 規則強制這條線；但模型審查仍應搭配來源系統的最小權限，不能把「Prompt 說不要做」當成唯一控制。
+
+公開分享 Bot 模板時也要套用同一條線。官方說明指出，公開連結會暴露 Bot 的描述、Skills 與 Routines；雖然不會一併分享原帳號的登入與對話紀錄，設定裡仍不得留下 API key、內部 URL 或客戶資料。安裝別人的模板前，也應把它當成待審查的第三方程式，而不是無害的 Prompt。
 
 ## 10：每週只問三題，沒有價值的 Routine 就停掉
 
@@ -122,6 +139,6 @@ Skill 與 Routine 不應混為一談：
 
 這十步真正改變的不是「AI 幫你多點幾下」，而是人類工作的重心：從逐步操作，轉向定義成果、提供必要存取、驗證輸出，以及決定哪裡必須停下來。
 
-最小可行做法不需要一支 Bot 軍團。先選一件可核對的工作，把它跑成可靠 Skill，再加一條有明確失敗政策的 Routine。當單一流程已穩定、角色邊界也真的不同，再增加 Bot 與交接；否則更多 Agent 只會把提示詞問題改名為管理問題。
+最小可行做法不需要一支 Bot 軍團。先用 Four Cs 找出目前缺的是資料、存取、方法還是觸發；選一件可核對的工作，把它跑成可靠 Skill，再加一條有明確失敗政策的 Routine。當單一流程已穩定、角色邊界也真的不同，再增加 Bot 與交接；否則更多 Agent 只會把提示詞問題改名為管理問題。
 
 當執行環境已經能長時間並行運作，下一個瓶頸會轉向任務狀態、證據驗收與風險分流；可接著閱讀[如何把多個 Coding Agents 組成工程管理迴路](/blog/grok-bot-engineering-control-plane/)。
