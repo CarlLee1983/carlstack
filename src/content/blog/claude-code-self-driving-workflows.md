@@ -1,8 +1,8 @@
 ---
-title: "Claude Code 不必每次重新指示：把重複要求變成可驗證的開發環境"
-description: "從 CLAUDE.md、Skills、hooks、subagents 到 worktrees，整理如何把一次性 Prompt 拆成持久知識、可重用流程、機械護欄與可驗證的開發迴圈。"
-publishDate: 2026-08-31
-draft: true
+title: "AGENTS.md 不是越長越好：把 Agent 規則變成可驗證的開發環境"
+description: "從 AGENTS.md、CLAUDE.md、Skills、hooks 到 evals，整理如何刪除過期指令、按需載入工作流程，並用失敗案例維護 Agent 上下文。"
+publishDate: 2026-09-01
+draft: false
 featured: false
 tags:
   - AI 工程化
@@ -13,25 +13,25 @@ cover: ../../assets/covers/claude-code-self-driving.png
 coverAlt: "指南、技能、hooks 與調查模組匯入終端核心，完成結果再經查核回饋形成閉環的工程圖"
 ---
 
-Claude Code 用久後，常見的挫折不是它完全不會寫，而是每次都要重新解釋同一批規則：測試要跑哪些、哪些目錄不能碰、該參考哪個既有實作，以及什麼才算完成。Session 拉長後，前面的指示又可能被大量讀檔、命令輸出與失敗嘗試淹沒。
+Coding Agent 用久後，常見的反應是把每次出錯都補進 `AGENTS.md` 或 `CLAUDE.md`：測試要跑哪些、哪些目錄不能碰、該參考哪個既有實作，以及什麼才算完成。久而久之，規則文件會同時包含有效護欄、程式碼已能推導的常識，以及早已失效的操作狀態。
 
-[@swarm_japan 的〈Claude Code への「毎回指示」はオワコン：「自走設計」のススメ〉](https://x.com/swarm_japan/status/2074607688257057121?s=12)從這個困境出發，主張把 Claude Code 從等待逐步指示的聊天工具，改造成能自行推進的 Agent。
+[@PostHog 的〈Your AGENTS.md is holding you back〉](https://x.com/posthog/status/2094485724171223409)記錄了一個具體代價：團隊暫停 GitHub merge queue 後忘了同步更新 `AGENTS.md`，Agent 在 21 小時內持續依照錯誤指令工作。其中一個 PR 卡住 10 小時，另一位工程師花了 45 分鐘才定位到過期規則。PostHog 也在 [build mode 原文](https://newsletter.posthog.com/p/your-agentsmd-is-holding-you-back)保留完整案例與引用。
 
-方向是對的，但「每次指示已經過時」說得太滿。Prompt 仍負責描述當下任務；真正該淘汰的，是把穩定規則、必跑檢查與重複流程永遠留在臨時對話裡。[上一篇談 Harness Engineering 的文章](/blog/harness-engineering-for-reliable-agents/)已經拆過一般性的控制面，這一篇只處理 Claude Code 裡該把每種資訊放在哪裡，以及相關命令的實際限制。
+問題因此不只是 context 太長，而是規則文件已經成為一份沒有型別檢查、沒有更新通知，也沒有自動失效機制的快取。這篇文章從 PostHog 的案例出發，整理規則該放在哪裡、如何刪，以及如何用 evals 與執行回饋維護它。[上一篇談 Harness Engineering 的文章](/blog/harness-engineering-for-reliable-agents/)已經拆過一般性的控制面，這裡只聚焦 Agent 上下文的生命週期。
 
-## 問題不是 session 長，而是訊號被稀釋
+## 問題不是檔案長，而是訊號會過期
 
 Claude Code 的 context 會累積對話、讀過的檔案與命令結果。容量有限，無關資訊愈多，模型愈容易分心；接近容量時系統會自動 compact，也可以用 `/compact` 手動摘要。[Anthropic：Claude Code context window](https://code.claude.com/docs/en/context-window)
 
-這不表示存在一條「超過幾萬 token 就必然失效」的通則。比較實用的判斷是：這項資訊應該只活在本次任務，還是應該被環境長期保存？
+這不表示存在一條「超過幾萬 token 就必然失效」的通則。真正需要判斷的是：這項資訊應該只活在本次任務、按條件載入，還是由環境長期保存？
 
-| 資訊或控制               | 合適位置       | 理由                             |
-| ------------------------ | -------------- | -------------------------------- |
-| 本次目標、範圍、非目標   | Prompt 或 plan | 任務結束後通常失效               |
-| 穩定的專案規則與常用命令 | `CLAUDE.md`    | 跨 session 仍然成立              |
-| 只在特定工作出現的程序   | Skill          | 需要時才載入，不擠滿每次 context |
-| 每次都必須執行的檢查     | Hook           | 由系統觸發，不靠模型記得         |
-| 大量探索或獨立 review    | Subagent       | 隔離 context，只帶回結論         |
+| 資訊或控制               | 合適位置                  | 理由                             |
+| ------------------------ | ------------------------- | -------------------------------- |
+| 本次目標、範圍、非目標   | Prompt 或 plan            | 任務結束後通常失效               |
+| 穩定的專案規則與常用命令 | `AGENTS.md` / `CLAUDE.md` | 跨 session 仍然成立              |
+| 只在特定工作出現的程序   | Skill                     | 需要時才載入，不擠滿每次 context |
+| 每次都必須執行的檢查     | Hook                      | 由系統觸發，不靠模型記得         |
+| 大量探索或獨立 review    | Subagent                  | 隔離 context，只帶回結論         |
 
 這個分流比繼續加長 Prompt 更重要。它把「記住規則」從模型的注意力問題，轉成環境的責任配置問題。
 
@@ -51,11 +51,11 @@ Claude Code 的 context 會累積對話、讀過的檔案與命令結果。容�
 
 ## 四種機制，四種責任
 
-`CLAUDE.md`、Skills、hooks 與 subagents 常被一起列為 Claude Code 的環境設計工具。它們不是 Anthropic 官方定義的「四柱架構」，也不能互相替代；真正有用的是責任邊界。
+規則文件、Skills、hooks 與 subagents 不能互相替代；真正有用的是責任邊界。
 
-### `CLAUDE.md`：保存穩定但程式碼看不出的知識
+### `AGENTS.md` / `CLAUDE.md`：保存穩定但程式碼看不出的知識
 
-`CLAUDE.md` 適合放 build／test 命令、非標準慣例、架構邊界與常見陷阱。專案根目錄的內容會進入 session；巢狀 `CLAUDE.md` 與 path-scoped rules 則在 Claude 讀到相符檔案時才載入，因此可以把局部規則留在局部。[Anthropic：How Claude remembers your project](https://code.claude.com/docs/en/memory)
+這類檔案適合放 build／test 命令、非標準慣例、架構邊界與常見陷阱。以 Claude Code 為例，專案根目錄的內容會進入 session；巢狀 `CLAUDE.md` 與 path-scoped rules 則在 Claude 讀到相符檔案時才載入，因此可以把局部規則留在局部。[Anthropic：How Claude remembers your project](https://code.claude.com/docs/en/memory)
 
 一條規則值不值得留下，可以問：「刪掉它之後，Agent 是否更可能犯一個 repository 本身無法揭露的錯？」如果答案是否定的，讓它留在程式碼、schema 或套件指令裡，避免把環境已有的事實再快取一份。
 
@@ -94,6 +94,45 @@ Subagent 有自己的 context、工具與權限，完成後把摘要交回主 se
 
 Plan Mode 的價值是把「理解問題」與「修改程式」分開。驗證的價值則是把「看起來完成」改成「有外部訊號支持完成」。Commit 或 PR 可以是後續交付步驟，但它們涉及 repository history 與外部狀態，仍應由使用者授權，不該被當成 Agent 自動完成的預設條件。
 
+## 用三個迴圈維護 Agent 上下文
+
+把規則移到正確位置只是第一次整理。模型、工具、repository 與團隊流程都會繼續改變，因此上下文需要一個能持續刪除、驗證與校正的維護迴圈。
+
+### 1. 先人工刪除無法對應失敗的規則
+
+PostHog 建議在 Agent 或 CLI 升級後執行 `/doctor`，再逐行人工檢查規則文件。Claude Code 現行的 `/doctor` 可以找出未使用的 Skills、MCP servers 與 plugins，估算 context 成本，並把可從程式碼推導的內容移出 `CLAUDE.md`；但它無法知道 GitHub merge queue 當下是否啟用，也無法替團隊判斷一條業務規則是否仍然正確。[Anthropic：Claude Code commands](https://code.claude.com/docs/en/commands#doctor)
+
+因此每一行都應回答兩個問題：它防止哪一個實際發生過的失敗？這項事實的權威來源在哪裡？答不出前者就刪除；若後者位於程式碼、schema、CI 或外部設定，規則文件應只指向來源，不要複製一份容易漂移的快照。
+
+Anthropic 在 Claude 5 世代模型上移除了超過 80% 的 Claude Code system prompt，coding eval 沒有出現可測量的損失；OpenAI 也建議從已能工作的 prompt 開始，每次刪除一組重複指令或範例，再以代表性任務重跑 eval。這些結果不是「prompt 愈短愈好」的通則，而是提醒：刪除也必須有測試。[Anthropic：The new rules of context engineering](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models)、[OpenAI：Model guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.6#favor-leaner-prompts)
+
+### 2. 把高成本失敗存成 eval，不要只補一句規則
+
+每次 Agent 犯錯就追加一條警告，只能證明文件變長，不能證明舊問題已修好，也不能發現新規則造成的 regression。
+
+最小做法是建立一份 `failures.md`，保存觸發高成本錯誤的 prompt、必要的初始狀態與預期結果。修改或刪除上下文後，重跑這些案例。當案例能穩定自動化，再移入正式 eval；不需要一開始就建立完整平台。
+
+PostHog 的正式版本更大：`wizard-ci` 在一組乾淨範例應用執行 onboarding Wizard、建立不合併的 PR，再由 `pr-evaluator` 依 diff 與 session log 評分。公開的 `wizard-workbench` repository 也把兩者分成獨立服務，讓產出者與評估者維持不同責任。[PostHog：wizard-workbench](https://github.com/PostHog/wizard-workbench#readme)
+
+這個架構值得複製的不是 PR 數量，而是測試邊界：固定輸入、保留執行軌跡、檢查可觀察結果，並讓修改前後使用同一組案例。
+
+### 3. 收集 Agent 回饋，但先驗證再改規則
+
+Agent 在執行時最早遇到缺少的文件、失效命令與工具錯誤。可以在交付時要求它結構化回報：使用了哪些上下文、哪項資訊互相矛盾、哪個步驟浪費回合，以及什麼證據能重現。
+
+但回饋只是觀測訊號，不是可以直接寫回規則的真相。PostHog 會先聚類 Wizard 的執行回饋，再派出 subagents 重現有意義的問題，確認後才嘗試修改 context。少量團隊不需要自動聚類；定期檢查重複出現的失敗，為可重現問題補上 eval，就已經形成最小閉環。[PostHog：Your AGENTS.md is holding you back](https://x.com/posthog/status/2094485724171223409)
+
+```mermaid
+flowchart LR
+  A[執行任務] --> B[結構化回饋]
+  B --> C{能否重現}
+  C -->|否| D[保留觀測]
+  C -->|是| E[加入失敗案例]
+  E --> F[修改或刪除規則]
+  F --> G[重跑代表性 evals]
+  G --> A
+```
+
 ## 主動管理 session，而不是撐到 context 用完
 
 Claude Code 提供幾個用途不同的控制：
@@ -121,7 +160,7 @@ Writer／Reviewer 是實用的自訂分工，但不是內建固定模式：write
 
 ## 不要從 auto mode 開始
 
-第一個改動應該是把根目錄 `CLAUDE.md` 刪到只剩整個專案都需要的規則，並把局部規則往巢狀檔案移；第二個改動才是把已重複出現的程序做成 Skill，把必跑檢查交給 hook。只有當探索或 review 確實會污染主 context，才新增 subagent；只有多個寫入工作能獨立驗收，才加入 worktree。
+第一個改動應該是把根目錄 `AGENTS.md` 或 `CLAUDE.md` 刪到只剩整個專案都需要的規則，並把局部規則往巢狀檔案移；第二個改動才是把已重複出現的程序做成 Skill，把必跑檢查交給 hook。只有當探索或 review 確實會污染主 context，才新增 subagent；只有多個寫入工作能獨立驗收，才加入 worktree。
 
 這個順序先降低 context 負擔，再增加自動化。它不會讓 Claude Code 擁有無限記憶，也不保證每次判斷都正確；它做的是把每種資訊與控制放到能被檢查、能被替換，也能在失敗時局部重來的位置。
 
