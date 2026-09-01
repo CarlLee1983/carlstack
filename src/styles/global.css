@@ -481,6 +481,26 @@ blockquote {
   margin-block-end: calc(0.75rem * var(--font-scale, 1));
 }
 
+.prose .heading-anchor {
+  margin-inline-start: 0.4em;
+  color: var(--color-faint);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-out);
+}
+
+.prose :is(h2, h3, h4):hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .prose .heading-anchor {
+    display: none;
+  }
+}
+
 .prose ul,
 .prose ol {
   margin-block: calc(1.5rem * var(--font-scale, 1));

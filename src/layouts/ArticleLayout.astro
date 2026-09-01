@@ -4,6 +4,7 @@ import { render, type CollectionEntry } from "astro:content";
 import FontSizeControl from "../components/FontSizeControl.astro";
 import Giscus from "../components/Giscus.astro";
 import MermaidSupport from "../components/MermaidSupport.astro";
+import TableOfContents from "../components/TableOfContents.astro";
 import { siteConfig } from "../config/site";
 import { getSeriesPosts, postHref } from "../utils/collections";
 import { estimateReadingMinutes, normalizeTaxonomy } from "../utils/content";
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const { post, posts } = Astro.props;
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 const body = "body" in post && typeof post.body === "string" ? post.body : "";
 const dateFormatter = new Intl.DateTimeFormat("zh-TW", { dateStyle: "long" });
 const index = posts.findIndex((item) => item.id === post.id);
@@ -156,8 +157,11 @@ const articleJsonLd = {
       )
     }
 
-    <div class="prose">
-      <Content />
+    <div class="article-body">
+      <TableOfContents headings={headings} />
+      <div class="prose">
+        <Content />
+      </div>
     </div>
     <MermaidSupport />
 
@@ -230,6 +234,29 @@ const articleJsonLd = {
 </BaseLayout>
 
 <style>
+  .article-body {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  /* 74rem 版心扣掉 46rem 內文後仍有餘裕，寬螢幕才把目錄挪到側欄。 */
+  @media (min-width: 72rem) {
+    .article-body {
+      grid-template-columns: minmax(0, 1fr) 15rem;
+      align-items: start;
+      column-gap: var(--space-2xl);
+    }
+
+    .article-body :global(.toc) {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .article-body .prose {
+      grid-column: 1;
+      grid-row: 1;
+    }
+  }
   .series-section {
     padding: var(--space-xl);
     border-radius: var(--radius-lg);
