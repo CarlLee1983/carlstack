@@ -1,7 +1,7 @@
 ---
 title: "AGENTS.md 不是越長越好：把 Agent 規則變成可驗證的開發環境"
 description: "從 AGENTS.md、CLAUDE.md、Skills、hooks 到 evals，整理如何刪除過期指令、按需載入工作流程，並用失敗案例維護 Agent 上下文。"
-publishDate: 2026-09-01
+publishDate: 2026-09-01T09:33:00+08:00
 draft: false
 featured: false
 tags:
