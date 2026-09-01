@@ -1,8 +1,8 @@
 ---
 title: "AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面"
-description: "從一篇談 Harness Engineering 的長文出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
+description: "從多篇 Harness Engineering 實務出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-01T17:28:12+08:00
+updatedDate: 2026-09-02T07:38:11+08:00
 draft: false
 featured: true
 tags:
@@ -18,7 +18,7 @@ import HarnessAgentLoopDiagram from "../../components/HarnessAgentLoopDiagram.as
 
 Agent 忘記決策、選錯工具、略過驗證，或在同一個錯誤裡反覆打轉時，我們很容易先改 prompt，再換模型，最後增加 context window。這些調整有時有效，卻也可能只是在修飾症狀。
 
-[@0xwhrrari 的〈Harness Engineering: How to Build AI Agents That Don't Fall Apart〉](https://x.com/0xwhrrari/status/2093685107534000560)提出另一個診斷角度：模型只是推理引擎；真正決定 Agent 是否可靠的，是包住模型的執行環境，也就是 harness。
+[@0xwhrrari 的〈Harness Engineering: How to Build AI Agents That Don't Fall Apart〉](https://x.com/0xwhrrari/status/2093685107534000560)與 [@iiiichigo_chan 的〈Harness Engineering: Build a Reliable AI Agent in 6 Layers〉](https://x.com/iiiichigo_chan/status/2093765205276713218)都提出另一個診斷角度：模型只是推理引擎；真正決定 Agent 是否可靠的，是包住模型的執行環境，也就是 harness。
 
 這不是替 prompt engineering 換一個新名字。Prompt 決定「如何描述任務」，harness 則決定「任務在哪個世界裡執行」：模型能讀什麼、能改什麼、哪些狀態會留下、用什麼證據驗收、風險由誰核准，以及失敗後如何復原。
 
@@ -67,7 +67,7 @@ falsifier: 在乾淨環境重跑仍讓錯誤輸出通過
 
 ## 一個 production harness 要做的七件事
 
-原文把可靠 Agent 的周邊系統拆成七項工作。以下不是產品採購清單，而是七個需要有人負責的控制面。
+兩篇原文對同一套邊界採用不同粒度：一篇整理成七項工作，另一篇濃縮成六層。本文把六層中的「有權限邊界的工具閘道」拆成工具契約與權限控制兩個責任，因此列為七個控制面；這是責任切分不同，不是兩套架構。以下不是產品採購清單，而是七個需要有人負責的控制面。
 
 ### 1. 把需求變成任務契約
 
