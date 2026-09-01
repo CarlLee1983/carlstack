@@ -74,7 +74,7 @@
 1. 新檔設 `draft: true`。
 2. `pnpm dev` 檢查內容、程式碼、圖片、SVG 圖解、深淺色與手機版。
 3. 依 Cover Direction 生成、檢視並驗收封面；將圖片放進 `src/assets`，設定 `cover` 與 `coverAlt`。
-4. 執行 `pnpm format && pnpm check && pnpm test`。
+4. 先執行 `pnpm format`，再將文章檔案 stage；接著執行 `pnpm content:policy -- HEAD && pnpm check && pnpm test`。前者會拒絕本次新增或修改文章中的 Mermaid；`astro check` 會拒絕缺少封面或 `coverAlt` 的正式文章。
 5. 設定正確 `publishDate`，將 `draft` 改為 `false`。新正式文章不得在此步驟前缺少封面。
 6. 再次執行 production build，確認文章出現在 RSS、Sitemap 與 Pagefind。
 7. merge 到 `main` 後由 GitHub Actions 自動部署。

@@ -31,7 +31,21 @@ const blog = defineCollection({
         repositoryUrl: z.url().optional(),
       })
       .superRefine((data, context) => {
-        if (data.cover && !data.coverAlt) {
+        if (!data.draft && !data.cover) {
+          context.addIssue({
+            code: "custom",
+            path: ["cover"],
+            message: "正式文章必須設定 cover。",
+          });
+        }
+        if (!data.draft && !data.coverAlt) {
+          context.addIssue({
+            code: "custom",
+            path: ["coverAlt"],
+            message: "正式文章必須設定 coverAlt。",
+          });
+        }
+        if (data.draft && data.cover && !data.coverAlt) {
           context.addIssue({
             code: "custom",
             path: ["coverAlt"],

@@ -17,6 +17,7 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "content:policy": "node scripts/validate-content-policy.mjs",
     "validate:site-url": "node scripts/validate-site-url.mjs"
   },
   "dependencies": {
