@@ -1,0 +1,121 @@
+---
+title: "多 Agent 工作台不是多開終端：先設計注意力、隔離與權限"
+description: "從一套 2,000 小時的 Agentic Engineering 工作台出發，拆解多 Agent 操作真正需要的狀態、優先級、隔離、持久執行與模型外權限。"
+publishDate: 2026-09-01
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+---
+
+當五個 Coding Agents 同時完成工作，新的瓶頸不是推理速度，而是你的注意力：哪一個結果要先看？哪一個只是 process 結束，哪一個真的通過驗收？如果兩個 Agent 同時改到同一個 checkout，又由誰處理衝突？
+
+[David Ondrej 在〈Agentic Engineering Setup (after 2,000+ hours)〉](https://x.com/davidondrej1/status/2094424967345496191)公開了他在 2026 年第三季使用的完整工作台：bb、cmux、Ghostty、Herdr、自製的優先級工具、遠端 VPS、多種 coding harness、skills、worktrees、ADR、guardrails 與 production database 讀取權限。
+
+這是一份個人工作方式，不是受控效能實驗。文中的模型排名、訂閱價格、使用額度與未發布產品都可能在幾週內失效；「2,000 小時」也無法直接證明哪套工具適合別人。真正值得保留的不是購物清單，而是它暴露的四個工程問題：**人類注意力如何排程、平行工作如何隔離、session 如何接續，以及權限與驗收由誰強制。**
+
+## 看得到 Agent，不等於擁有控制平面
+
+終端分頁解決的是畫面配置。多 Agent 工作台還需要回答工作目前在哪裡，以及什麼事件值得打斷人。
+
+[Herdr](https://github.com/herdrdev/herdr)把 Agent session 放進可 detach、reattach 與遠端連接的 workspace，並顯示 `working`、`blocked`、`done`、`idle` 等狀態；[bb](https://github.com/get-bb/bb)則把 desktop、web、CLI 與 HTTP API 做成同一套 thread 的不同操作介面，讓使用者 follow、steer 或 handoff 工作。這些功能改善的是可見性與接手成本，但畫面上的 `done` 最多表示 Agent 或 process 已停止，不能證明需求已完成。
+
+一個能交付的最小狀態模型，至少要把執行狀態與驗收狀態分開：
+
+| 狀態             | 誰決定           | 需要的證據                           |
+| ---------------- | ---------------- | ------------------------------------ |
+| `running`        | Agent runtime    | session 仍在執行                     |
+| `blocked`        | Agent 或逾時規則 | 阻塞原因與需要的下一步               |
+| `needs-review`   | Agent 完成工作後 | diff、測試、畫面、日誌與剩餘風險     |
+| `changes-needed` | Reviewer 或 CI   | 失敗檢查或未符合的接受條件           |
+| `accepted`       | 人類或平台 gate  | 必要 checks、review 與風險核准已通過 |
+
+本站先前整理的 [Grok Bot 工程控制平面](/blog/grok-bot-engineering-control-plane/)處理的是大量 Cloud Agents 的持久任務帳本、巡檢與 proof bundle；個人工作台可以更小，但同樣不能把 process state 當成 product state。
+
+## 優先級排的是人類注意力，不是 Agent 完成順序
+
+Ondrej 的自製 Corral 會依 P1 到 P4 排序已完成的 Agent，避免人先回應低優先工作。工具尚未開源，無法核對實作，但問題本身很實際：Agent 可以平行，人類 review 仍是有限資源。
+
+優先級不應只看誰先完成，也不該讓 Agent 單方面決定。最小排序可用四個欄位：
+
+1. **使用者影響**：production 事故高於內部整理。
+2. **阻塞關係**：會解鎖其他工作者優先。
+3. **風險**：資料、權限、付款、部署與大範圍刪除需要較早取得人類判斷。
+4. **注意力成本**：五分鐘能解除的阻塞，可能比需要一小時深度 review 的低風險功能更適合先處理。
+
+這是一條給人類的 review queue，不是替每個 Agent 建立複雜排程器。只有同時完成的工作真的開始互相搶注意力，才需要專用介面；兩條工作線用一張 issue board 或清楚的終端名稱就夠了。
+
+## Worktree 隔離檔案，沒有隔離整個世界
+
+[Git worktree](https://git-scm.com/docs/git-worktree)讓同一個 repository 同時擁有多個 linked working trees，各自 checkout 不同 branch。當兩個 Agent 會改到不同功能時，它能避免共用 working directory 互相覆寫，成本也比複製整份 repository 低。
+
+但 worktree 不是 sandbox。工作樹仍共享部分 repository 資料，也可能共用：
+
+- 相同 port、database、cache 與外部測試帳號；
+- 使用者層級的 credentials 與設定；
+- CPU、記憶體、磁碟與網路頻寬；
+- 最後仍需合併的 branch 與相同 CI queue。
+
+所以隔離要依失敗面分層：檔案衝突用 worktree，process 與 dependency 用 container 或獨立 worker，filesystem 與 network 用 sandbox，外部系統則用專用帳號與最小權限。多開目錄不能替代這些邊界。
+
+## 遠端持久執行換來的是營運責任
+
+把 Agent 放進 VPS，再透過 SSH 與可 reattach 的 runtime 連回去，確實能避免筆電睡眠、斷線或關機直接終止 session。這是自架遠端 worker 的價值，不等於幾分鐘內複製了完整 Cloud Agent 平台。
+
+遠端主機至少增加以下責任：
+
+- SSH key、service account 與權限撤銷；
+- secrets 注入、rotation 與 audit；
+- system package 與 Agent runtime 更新；
+- network allowlist、備份、監測與異常處理；
+- 多 session 同時執行測試時的資源限制。
+
+因此選擇不是「本機落後、雲端先進」，而是誰承擔持久性、隔離與維運。只有任務需要跨裝置接續、執行時間長於本機可用時間，或本機資源已成為量測到的瓶頸時，遠端 worker 才有必要。
+
+## Skill 描述流程，平台才強制邊界
+
+Ondrej 建議把單步重複文字做成 snippet，把多步工作流做成 skill。這個判準很實用：先重複、確認流程穩定，再封裝；不要為尚未發生的第二次工作建立抽象。
+
+但 skill、ADR 與操作指南都只是可讀知識。完整的治理需要把「建議」與「不能越過」分開：
+
+- skill 說明怎麼做 review、發布或研究；
+- ADR 記錄程式碼無法表達的核心決策與背景；
+- tests 與 CI 驗證可機械判斷的行為；
+- branch protection 強制必要 checks 與 review；
+- sandbox 限制 filesystem 與 network；
+- approval policy 決定高風險動作何時必須找人。
+
+[OpenAI 的 Codex 安全實務](https://openai.com/index/running-codex-safely/)也把 sandbox 與 approval policy 視為獨立控制：模型可以提出工具呼叫，環境仍決定它實際能碰什麼、何時需要核准。這也是為什麼把 `--dangerously-skip-permissions` 類命令做成快捷鍵，不是工程效率，而是移除保險絲。
+
+若 Agent 需要查 production database，[PostgreSQL 權限](https://www.postgresql.org/docs/current/ddl-priv.html)可以建立只授予 `SELECT` 的專用角色；但 `read-only` 仍不是安全完成式。還要限制 schema／table、套用 row-level security 或敏感資料遮罩、控制昂貴查詢、隔離 credentials 並保留 audit。最小權限的目標是讓 Agent 取得完成診斷所需的證據，而不是讓它取得整個 production 世界。
+
+更完整的任務契約、持久狀態、驗證、權限與 trace，可參考本站的 [Harness Engineering 七個控制面](/blog/harness-engineering-for-reliable-agents/)。個人工作台只是在這些控制面上加了一層注意力管理，不會取代它們。
+
+## 從兩條工作線開始
+
+不用先安裝一整套 Agent cockpit。最小導入只要一個 repository、兩項低風險工作與既有 CI：
+
+1. 為每項工作寫下目標、限制、接受條件與必要證據。
+2. 只有兩項工作會互相覆寫時，才拆成兩個 worktrees。
+3. 統一使用 `running`、`blocked`、`needs-review`、`accepted`，不要讓 `done` 同時表示 process 與產品完成。
+4. 把 review queue 依影響、阻塞、風險與處理成本排序。
+5. 保留每項工作的人工介入次數、返工原因、CI failure 與 review 等待時間。
+
+這些數字比 pane、prompt、commit 或 Agent session 數量更接近真正瓶頸。[Vectal Labs 的 `agentic-productivity`](https://github.com/vectal-labs/agentic-productivity)會記錄 commits、sessions 與 prompts；這類活動量仍要和交付品質、返工與人工注意力一起解讀，不能單獨當成 productivity。
+
+## 結語：複製邊界，不要複製工具清單
+
+Ondrej 的工作台會變，模型、價格與產品功能也會變。比較穩定的是四條邊界：介面顯示狀態，但 gate 決定完成；priority 排程人的注意力；worktree、sandbox 與 worker 各自隔離不同失敗面；skill 傳遞做法，平台權限限制不能做的事。
+
+先讓兩條工作線能被看見、隔離、接續與驗收，再增加第三條。若人類仍需逐一追問「你做到哪裡、測過什麼、為什麼可以合併」，多 Agent 工作台只是把 context switching 換成更多終端分頁。
+
+## 延伸閱讀
+
+- [David Ondrej：Agentic Engineering Setup (after 2,000+ hours)](https://x.com/davidondrej1/status/2094424967345496191)
+- [Herdr：Terminal-native agent runtime](https://github.com/herdrdev/herdr)
+- [bb：Agentic IDE](https://github.com/get-bb/bb)
+- [Git：git-worktree manual](https://git-scm.com/docs/git-worktree)
+- [OpenAI：Running Codex safely at OpenAI](https://openai.com/index/running-codex-safely/)
+- [PostgreSQL：Privileges](https://www.postgresql.org/docs/current/ddl-priv.html)
