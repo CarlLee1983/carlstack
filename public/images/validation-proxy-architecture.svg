@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="760" viewBox="0 0 600 760" role="img" aria-labelledby="title desc">
+  <title id="title">Validation proxy 的 artifact delivery 架構</title>
+  <desc id="desc">Client 透過 validation proxy 每次向 authoritative origin 驗證。未變更時由 local cache 回傳 bytes；變更時 origin 串流回傳並非同步更新 cache；本機快取或 metadata 失效則直通 origin。</desc>
+  <defs>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#38bdf8" /></marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#f59e0b" /></marker>
+    <style>
+      .bg{fill:#08111f}.box{fill:#11233b;stroke:#60a5fa;stroke-width:2}.cache{fill:#103234;stroke:#2dd4bf;stroke-width:2}.origin{fill:#37250e;stroke:#fbbf24;stroke-width:2}.label{fill:#e2e8f0;font:700 23px system-ui,sans-serif}.sub{fill:#cbd5e1;font:16px system-ui,sans-serif}.flow{fill:none;stroke:#38bdf8;stroke-width:4;marker-end:url(#arrow-cyan)}.warm{fill:none;stroke:#f59e0b;stroke-width:4;marker-end:url(#arrow-amber)}.dash{stroke-dasharray:9 7}
+    </style>
+  </defs>
+  <rect class="bg" width="600" height="760" rx="28" />
+  <rect class="box" x="170" y="34" width="260" height="86" rx="15" />
+  <text class="label" x="300" y="72" text-anchor="middle">Build client</text>
+  <text class="sub" x="300" y="99" text-anchor="middle">request artifact</text>
+  <path class="flow" d="M300 120V173" />
+  <rect class="box" x="110" y="177" width="380" height="112" rx="17" />
+  <text class="label" x="300" y="222" text-anchor="middle">Validation proxy</text>
+  <text class="sub" x="300" y="252" text-anchor="middle">conditional request on every read</text>
+  <path class="flow" d="M195 289V361H126V405" />
+  <path class="warm" d="M405 289V361H474V405" />
+  <rect class="cache" x="38" y="409" width="220" height="126" rx="17" />
+  <text class="label" x="148" y="454" text-anchor="middle">Local cache</text>
+  <text class="sub" x="148" y="484" text-anchor="middle">cached bytes + metadata</text>
+  <text class="sub" x="148" y="508" text-anchor="middle">only after 304</text>
+  <rect class="origin" x="342" y="409" width="220" height="126" rx="17" />
+  <text class="label" x="452" y="454" text-anchor="middle">Origin store</text>
+  <text class="sub" x="452" y="484" text-anchor="middle">ETag / Last-Modified</text>
+  <text class="sub" x="452" y="508" text-anchor="middle">source of truth</text>
+  <path class="flow" d="M148 535V587H258V652" />
+  <path class="warm" d="M452 535V587H342V652" />
+  <path class="flow dash" d="M342 628V571H258V535" />
+  <rect class="box" x="145" y="656" width="310" height="68" rx="15" />
+  <text class="sub" x="300" y="684" text-anchor="middle">304 → serve local bytes</text>
+  <text class="sub" x="300" y="710" text-anchor="middle">200 → stream, then update cache</text>
+</svg>
