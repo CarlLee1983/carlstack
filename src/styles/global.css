@@ -540,17 +540,28 @@ blockquote {
   font-weight: 600;
 }
 
-.prose table {
-  display: table;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+.prose .table-scroll {
   margin-block: calc(2.5rem * var(--font-scale, 1));
+  overflow-x: auto;
   border-radius: var(--radius-lg);
   border: var(--rule-hair) solid var(--color-rule);
   background: var(--color-card);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.prose .table-scroll:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.prose table {
+  display: table;
+  width: 100%;
+  /* 窄視窗改用容器捲動，而不是把欄位擠成一字一行 */
+  min-width: 30rem;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: calc(0.95rem * var(--font-scale, 1));
 }
 

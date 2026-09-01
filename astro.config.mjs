@@ -5,6 +5,7 @@ import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import remarkMermaid from "./src/utils/remark-mermaid.mjs";
+import rehypeTableScroll from "./src/utils/rehype-table-scroll.mjs";
 
 const mode =
   process.env.NODE_ENV ??
@@ -22,7 +23,10 @@ export default defineConfig({
   trailingSlash: "always",
   integrations: [mdx(), sitemap({ filter: (page) => !page.endsWith("/404/") })],
   markdown: {
-    processor: unified({ remarkPlugins: [remarkMermaid] }),
+    processor: unified({
+      remarkPlugins: [remarkMermaid],
+      rehypePlugins: [rehypeTableScroll],
+    }),
     shikiConfig: {
       theme: "github-dark-default",
       wrap: true,
