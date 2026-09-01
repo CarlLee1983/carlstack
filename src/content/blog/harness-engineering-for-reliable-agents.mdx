@@ -2,6 +2,7 @@
 title: "AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面"
 description: "從一篇談 Harness Engineering 的長文出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
 publishDate: 2026-08-31
+updatedDate: 2026-09-01T17:10:48+08:00
 draft: false
 featured: true
 tags:
@@ -12,6 +13,8 @@ tags:
 cover: ../../assets/covers/harness-engineering.png
 coverAlt: "中央藍色推理核心連接契約、專案地圖、工具、資料、感測與權限等七個控制節點的工程圖"
 ---
+
+import HarnessAgentLoopDiagram from "../../components/HarnessAgentLoopDiagram.astro";
 
 Agent 忘記決策、選錯工具、略過驗證，或在同一個錯誤裡反覆打轉時，我們很容易先改 prompt，再換模型，最後增加 context window。這些調整有時有效，卻也可能只是在修飾症狀。
 
@@ -27,16 +30,26 @@ Agent 忘記決策、選錯工具、略過驗證，或在同一個錯誤裡反�
 
 OpenAI 在整理 Codex 的 agent loop 時，也把 harness 描述成協調使用者、模型與工具的核心：模型提出工具呼叫，環境執行後把結果放回 context，再讓模型決定下一步。這表示一次 Agent 執行不是單次生成，而是一個由環境控制的回饋迴圈。[OpenAI：Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)
 
-```mermaid
-flowchart LR
-  A[任務契約] --> B[模型推理]
-  B --> C[工具執行]
-  C --> D[測試與觀測]
-  D -->|證據不足| B
-  D -->|符合驗收| E[變更收據]
-  P[權限與預算] -.限制.-> C
-  S[持久狀態] <--> B
+<HarnessAgentLoopDiagram />
+
+## 先找第一個偏離點，不先換模型
+
+[@nyk 的〈Stop Upgrading the Model. Fix the Harness.〉](https://x.com/nykdotdev/status/2094640424770273684)把這個判斷變成較可操作的問題：任務第一次偏離預期，是在模型判斷、context、工具輸出、環境，還是驗證時發生？這是作者提出的診斷框架，不是已被普遍驗證的標準；但它能避免把每次失敗都預設成模型能力不足。
+
+例如，模型因為拿不到目標檔案而改錯位置、工具吞掉 stderr、測試本身無法拒絕錯誤結果，或乾淨環境下無法重現成功，第一個故障點分別落在 context、工具、驗證與環境邊界。先換更強的模型，可能只會讓它更有說服力地跨過同一個壞邊界。
+
+每次失敗只要留下下列最小紀錄，就能把「該換模型嗎」改成可被推翻的假說：
+
+```yaml
+expected: 測試拒絕錯誤的公開輸出
+firstDivergence: 測試只檢查 HTTP 200，沒有檢查內容
+evidence: CI 輸出與最小重現
+owner: verification
+hypothesis: 補上 assertion 後可攔下同類錯誤
+falsifier: 在乾淨環境重跑仍讓錯誤輸出通過
 ```
+
+這張卡不需要保存模型的思考過程；它只保存可稽核的外部證據與下一個檢查。OpenAI 對 Codex 的回顧同樣把環境規格、工具與可讀性視為 agent 能力的一部分，而非事後附加的 prompt。[OpenAI：Harness engineering](https://openai.com/index/harness-engineering/)
 
 ## 一個 production harness 要做的七件事
 

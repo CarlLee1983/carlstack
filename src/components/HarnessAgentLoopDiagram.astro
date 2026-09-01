@@ -1,0 +1,274 @@
+<figure class="harness-loop" aria-labelledby="harness-loop-caption">
+  <svg
+    class="harness-loop__desktop"
+    viewBox="0 0 960 360"
+    role="img"
+    aria-labelledby="harness-loop-title harness-loop-desc"
+  >
+    <title id="harness-loop-title">Agent 的最小可驗證迴圈</title>
+    <desc id="harness-loop-desc">
+      任務契約交給模型推理，再經工具執行與驗證。證據不足時從驗證回到模型修復；持久狀態供模型讀取，權限與預算限制工具。
+    </desc>
+    <defs>
+      <marker
+        id="harness-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z"></path>
+      </marker>
+    </defs>
+
+    <path
+      class="harness-loop__arrow"
+      d="M220 110H270"
+      marker-end="url(#harness-arrow)"></path>
+    <path
+      class="harness-loop__arrow"
+      d="M460 110H510"
+      marker-end="url(#harness-arrow)"></path>
+    <path
+      class="harness-loop__arrow"
+      d="M700 110H750"
+      marker-end="url(#harness-arrow)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--feedback"
+      d="M840 160V230H365V160"
+      marker-end="url(#harness-arrow)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--constraint"
+      d="M395 265V160"
+      marker-end="url(#harness-arrow)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--constraint"
+      d="M605 265V160"
+      marker-end="url(#harness-arrow)"></path>
+
+    <text class="harness-loop__label" x="560" y="220">證據不足，局部修復</text>
+
+    <g class="harness-loop__card" transform="translate(30 60)">
+      <rect width="190" height="100" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="28">01</text>
+      <text class="harness-loop__title" x="16" y="57">任務契約</text>
+      <text class="harness-loop__detail" x="16" y="81">目標、限制、證據</text>
+    </g>
+    <g
+      class="harness-loop__card harness-loop__card--focus"
+      transform="translate(270 60)"
+    >
+      <rect width="190" height="100" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="28">02</text>
+      <text class="harness-loop__title" x="16" y="57">模型推理</text>
+      <text class="harness-loop__detail" x="16" y="81">決定下一步</text>
+    </g>
+    <g class="harness-loop__card" transform="translate(510 60)">
+      <rect width="190" height="100" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="28">03</text>
+      <text class="harness-loop__title" x="16" y="57">工具執行</text>
+      <text class="harness-loop__detail" x="16" y="81">受限的真實動作</text>
+    </g>
+    <g class="harness-loop__card" transform="translate(750 60)">
+      <rect width="180" height="100" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="28">04</text>
+      <text class="harness-loop__title" x="16" y="57">驗證與收據</text>
+      <text class="harness-loop__detail" x="16" y="81">證據決定是否通過</text>
+    </g>
+    <g class="harness-loop__control" transform="translate(305 265)">
+      <rect width="180" height="48" rx="12"></rect>
+      <text x="90" y="29">持久狀態</text>
+    </g>
+    <g class="harness-loop__control" transform="translate(515 265)">
+      <rect width="180" height="48" rx="12"></rect>
+      <text x="90" y="29">權限與預算</text>
+    </g>
+  </svg>
+
+  <svg
+    class="harness-loop__mobile"
+    viewBox="0 0 360 720"
+    role="img"
+    aria-labelledby="harness-loop-mobile-title harness-loop-mobile-desc"
+  >
+    <title id="harness-loop-mobile-title">Agent 的最小可驗證迴圈</title>
+    <desc id="harness-loop-mobile-desc">
+      這是桌面版 Agent
+      迴圈的直向排列。驗證失敗會回到模型推理，持久狀態與權限控制分別連接模型和工具。
+    </desc>
+    <defs>
+      <marker
+        id="harness-arrow-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z"></path>
+      </marker>
+    </defs>
+
+    <path
+      class="harness-loop__arrow"
+      d="M180 132V180"
+      marker-end="url(#harness-arrow-mobile)"></path>
+    <path
+      class="harness-loop__arrow"
+      d="M180 252V300"
+      marker-end="url(#harness-arrow-mobile)"></path>
+    <path
+      class="harness-loop__arrow"
+      d="M180 372V420"
+      marker-end="url(#harness-arrow-mobile)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--feedback"
+      d="M50 471H18V231H50"
+      marker-end="url(#harness-arrow-mobile)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--constraint"
+      d="M105 572V252"
+      marker-end="url(#harness-arrow-mobile)"></path>
+    <path
+      class="harness-loop__arrow harness-loop__arrow--constraint"
+      d="M255 572V372"
+      marker-end="url(#harness-arrow-mobile)"></path>
+
+    <text class="harness-loop__label" x="24" y="330">修復</text>
+
+    <g class="harness-loop__card" transform="translate(50 52)">
+      <rect width="260" height="80" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="27">01</text>
+      <text class="harness-loop__title" x="62" y="31">任務契約</text>
+      <text class="harness-loop__detail" x="62" y="56">目標、限制、證據</text>
+    </g>
+    <g
+      class="harness-loop__card harness-loop__card--focus"
+      transform="translate(50 172)"
+    >
+      <rect width="260" height="80" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="27">02</text>
+      <text class="harness-loop__title" x="62" y="31">模型推理</text>
+      <text class="harness-loop__detail" x="62" y="56">決定下一步</text>
+    </g>
+    <g class="harness-loop__card" transform="translate(50 292)">
+      <rect width="260" height="80" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="27">03</text>
+      <text class="harness-loop__title" x="62" y="31">工具執行</text>
+      <text class="harness-loop__detail" x="62" y="56">受限的真實動作</text>
+    </g>
+    <g class="harness-loop__card" transform="translate(50 412)">
+      <rect width="260" height="80" rx="14"></rect>
+      <text class="harness-loop__step" x="16" y="27">04</text>
+      <text class="harness-loop__title" x="62" y="31">驗證與收據</text>
+      <text class="harness-loop__detail" x="62" y="56">證據決定是否通過</text>
+    </g>
+    <g class="harness-loop__control" transform="translate(35 572)">
+      <rect width="140" height="52" rx="12"></rect>
+      <text x="70" y="31">持久狀態</text>
+    </g>
+    <g class="harness-loop__control" transform="translate(185 572)">
+      <rect width="140" height="52" rx="12"></rect>
+      <text x="70" y="31">權限與預算</text>
+    </g>
+  </svg>
+
+  <figcaption id="harness-loop-caption">
+    模型可提出下一步；環境以狀態、權限與可拒絕的證據控制整個迴圈。
+  </figcaption>
+</figure>
+
+<style>
+  .harness-loop {
+    margin: var(--space-xl) 0;
+  }
+
+  .harness-loop svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .harness-loop__mobile {
+    display: none !important;
+  }
+
+  .harness-loop__card rect,
+  .harness-loop__control rect {
+    fill: var(--color-paper-2);
+    stroke: var(--color-rule-2);
+    stroke-width: 1.5;
+  }
+
+  .harness-loop__card--focus rect {
+    fill: var(--color-accent);
+    stroke: var(--color-accent);
+  }
+
+  .harness-loop__arrow {
+    fill: none;
+    stroke: var(--color-rule-2);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  .harness-loop__arrow--feedback,
+  .harness-loop__arrow--constraint {
+    stroke-dasharray: 5 5;
+  }
+
+  .harness-loop__step,
+  .harness-loop__label {
+    fill: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+
+  .harness-loop__title {
+    fill: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .harness-loop__detail {
+    fill: var(--color-ink-2);
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+
+  .harness-loop__card--focus .harness-loop__step,
+  .harness-loop__card--focus .harness-loop__title,
+  .harness-loop__card--focus .harness-loop__detail {
+    fill: var(--color-accent-ink);
+  }
+
+  .harness-loop__control text {
+    fill: var(--color-ink-2);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 48rem) {
+    .harness-loop__desktop {
+      display: none !important;
+    }
+
+    .harness-loop__mobile {
+      display: block !important;
+    }
+  }
+</style>
