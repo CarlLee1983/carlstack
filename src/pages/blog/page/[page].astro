@@ -1,0 +1,29 @@
+---
+import type { GetStaticPaths } from "astro";
+import BlogArchive from "../../../components/BlogArchive.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { getVisiblePosts } from "../../../utils/collections";
+import { paginate } from "../../../utils/pagination";
+
+/** 第一頁由 /blog/ 提供，這裡只產出第 2 頁之後的路徑。 */
+export const getStaticPaths = (async () => {
+  const posts = await getVisiblePosts();
+  const { total } = paginate(posts, 1);
+  return Array.from({ length: Math.max(0, total - 1) }, (_, index) => {
+    const page = index + 2;
+    return {
+      params: { page: String(page) },
+      props: { pagination: paginate(posts, page), totalPosts: posts.length },
+    };
+  });
+}) satisfies GetStaticPaths;
+
+const { pagination, totalPosts } = Astro.props;
+---
+
+<BaseLayout
+  title={`全部文章（第 ${pagination.current} 頁）`}
+  description={`CarlStack 文章索引第 ${pagination.current} 頁，共 ${pagination.total} 頁。`}
+>
+  <BlogArchive pagination={pagination} totalPosts={totalPosts} />
+</BaseLayout>
