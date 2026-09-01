@@ -1,0 +1,281 @@
+<figure class="aibp-diagram" aria-labelledby="aibp-diagram-caption">
+  <svg
+    class="aibp-diagram__desktop"
+    viewBox="0 0 960 430"
+    role="img"
+    aria-labelledby="aibp-diagram-title aibp-diagram-desc"
+  >
+    <title id="aibp-diagram-title">AIBP 的責任迴路</title>
+    <desc id="aibp-diagram-desc">
+      業務 owner 定義結果，AIBP
+      拆解流程與驗證假設，工程與資料團隊實作，一線使用者在真實工作中執行，結果與例外資料再回到
+      AIBP 與業務 owner。
+    </desc>
+    <defs>
+      <marker
+        id="aibp-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="aibp-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <path
+      class="aibp-diagram__arrow"
+      d="M220 110H270"
+      marker-end="url(#aibp-arrow)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M460 110H510"
+      marker-end="url(#aibp-arrow)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M700 110H740"
+      marker-end="url(#aibp-arrow)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M835 165V225Q835 250 810 250H480V275"
+      marker-end="url(#aibp-arrow)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M385 330H300V205Q300 185 325 185H365V165"
+      marker-end="url(#aibp-arrow)"></path>
+    <path
+      class="aibp-diagram__arrow aibp-diagram__arrow--return"
+      d="M365 165V205Q365 225 345 225H125Q105 225 105 205V165"
+      marker-end="url(#aibp-arrow)"></path>
+
+    <text class="aibp-diagram__return-label" x="155" y="249">調整目標</text>
+    <text class="aibp-diagram__return-label" x="575" y="273">回饋</text>
+
+    <g class="aibp-diagram__card" transform="translate(30 55)">
+      <rect width="190" height="110" rx="14"></rect>
+      <text class="aibp-diagram__step" x="18" y="29">01</text>
+      <text class="aibp-diagram__title" x="18" y="58">業務 owner</text>
+      <text class="aibp-diagram__detail" x="18" y="84">定義可觀察結果</text>
+    </g>
+    <g
+      class="aibp-diagram__card aibp-diagram__card--focus"
+      transform="translate(270 55)"
+    >
+      <rect width="190" height="110" rx="14"></rect>
+      <text class="aibp-diagram__step" x="18" y="29">02</text>
+      <text class="aibp-diagram__title" x="18" y="58">AIBP</text>
+      <text class="aibp-diagram__detail" x="18" y="84">拆流程與驗證假設</text>
+    </g>
+    <g class="aibp-diagram__card" transform="translate(510 55)">
+      <rect width="190" height="110" rx="14"></rect>
+      <text class="aibp-diagram__step" x="18" y="29">03</text>
+      <text class="aibp-diagram__title" x="18" y="58">工程與資料團隊</text>
+      <text class="aibp-diagram__detail" x="18" y="84">整合、實作與維運</text>
+    </g>
+    <g class="aibp-diagram__card" transform="translate(740 55)">
+      <rect width="190" height="110" rx="14"></rect>
+      <text class="aibp-diagram__step" x="18" y="29">04</text>
+      <text class="aibp-diagram__title" x="18" y="58">一線使用者</text>
+      <text class="aibp-diagram__detail" x="18" y="84">在真實工作中執行</text>
+    </g>
+    <g
+      class="aibp-diagram__card aibp-diagram__card--data"
+      transform="translate(385 275)"
+    >
+      <rect width="190" height="110" rx="14"></rect>
+      <text class="aibp-diagram__step" x="18" y="29">05</text>
+      <text class="aibp-diagram__title" x="18" y="58">結果與例外資料</text>
+      <text class="aibp-diagram__detail" x="18" y="84">讓下一輪改善有證據</text>
+    </g>
+  </svg>
+
+  <svg
+    class="aibp-diagram__mobile"
+    viewBox="0 0 360 680"
+    role="img"
+    aria-labelledby="aibp-diagram-mobile-title aibp-diagram-mobile-desc"
+  >
+    <title id="aibp-diagram-mobile-title">AIBP 的責任迴路</title>
+    <desc id="aibp-diagram-mobile-desc">
+      這是桌面版責任迴路的直向排列，讓各個角色與回饋箭頭在窄螢幕上仍可閱讀。
+    </desc>
+    <defs>
+      <marker
+        id="aibp-arrow-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="aibp-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <path
+      class="aibp-diagram__arrow"
+      d="M180 128V170"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M180 250V292"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M180 372V414"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M180 494V536"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+    <path
+      class="aibp-diagram__arrow"
+      d="M330 576H342V280Q342 260 322 260H300"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+    <path
+      class="aibp-diagram__arrow aibp-diagram__arrow--return"
+      d="M30 210H18V148Q18 128 38 128H70"
+      marker-end="url(#aibp-arrow-mobile)"></path>
+
+    <text class="aibp-diagram__return-label" x="270" y="278">回饋</text>
+    <text class="aibp-diagram__return-label" x="24" y="144">調整</text>
+
+    <g class="aibp-diagram__card" transform="translate(30 48)">
+      <rect width="300" height="80" rx="14"></rect>
+      <text class="aibp-diagram__step" x="16" y="27">01</text>
+      <text class="aibp-diagram__title" x="62" y="31">業務 owner</text>
+      <text class="aibp-diagram__detail" x="62" y="56">定義可觀察結果</text>
+    </g>
+    <g
+      class="aibp-diagram__card aibp-diagram__card--focus"
+      transform="translate(30 170)"
+    >
+      <rect width="300" height="80" rx="14"></rect>
+      <text class="aibp-diagram__step" x="16" y="27">02</text>
+      <text class="aibp-diagram__title" x="62" y="31">AIBP</text>
+      <text class="aibp-diagram__detail" x="62" y="56">拆流程與驗證假設</text>
+    </g>
+    <g class="aibp-diagram__card" transform="translate(30 292)">
+      <rect width="300" height="80" rx="14"></rect>
+      <text class="aibp-diagram__step" x="16" y="27">03</text>
+      <text class="aibp-diagram__title" x="62" y="31">工程與資料團隊</text>
+      <text class="aibp-diagram__detail" x="62" y="56">整合、實作與維運</text>
+    </g>
+    <g class="aibp-diagram__card" transform="translate(30 414)">
+      <rect width="300" height="80" rx="14"></rect>
+      <text class="aibp-diagram__step" x="16" y="27">04</text>
+      <text class="aibp-diagram__title" x="62" y="31">一線使用者</text>
+      <text class="aibp-diagram__detail" x="62" y="56">在真實工作中執行</text>
+    </g>
+    <g
+      class="aibp-diagram__card aibp-diagram__card--data"
+      transform="translate(30 536)"
+    >
+      <rect width="300" height="80" rx="14"></rect>
+      <text class="aibp-diagram__step" x="16" y="27">05</text>
+      <text class="aibp-diagram__title" x="62" y="31">結果與例外資料</text>
+      <text class="aibp-diagram__detail" x="62" y="56">讓下一輪改善有證據</text>
+    </g>
+  </svg>
+
+  <figcaption id="aibp-diagram-caption">
+    AIBP 維持責任與回饋的迴路，不取代任何一個角色。
+  </figcaption>
+</figure>
+
+<style>
+  .aibp-diagram {
+    margin: var(--space-xl) 0;
+  }
+
+  .aibp-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .aibp-diagram__mobile {
+    display: none !important;
+  }
+
+  .aibp-diagram__card rect {
+    fill: var(--color-paper-2);
+    stroke: var(--color-rule-2);
+    stroke-width: 1.5;
+  }
+
+  .aibp-diagram__card--focus rect {
+    fill: var(--color-accent);
+    stroke: var(--color-accent);
+  }
+
+  .aibp-diagram__card--data rect {
+    stroke-dasharray: 5 5;
+  }
+
+  .aibp-diagram__step,
+  .aibp-diagram__return-label {
+    fill: var(--color-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .aibp-diagram__card--focus .aibp-diagram__step {
+    fill: var(--color-accent-ink);
+  }
+
+  .aibp-diagram__title {
+    fill: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .aibp-diagram__detail {
+    fill: var(--color-ink-2);
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+
+  .aibp-diagram__card--focus .aibp-diagram__title,
+  .aibp-diagram__card--focus .aibp-diagram__detail {
+    fill: var(--color-accent-ink);
+  }
+
+  .aibp-diagram__arrow {
+    fill: none;
+    stroke: var(--color-rule-2);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  .aibp-diagram__arrow--return {
+    stroke-dasharray: 5 5;
+  }
+
+  .aibp-diagram__arrow-head {
+    fill: var(--color-rule-2);
+  }
+
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  @media (max-width: 42rem) {
+    .aibp-diagram__desktop {
+      display: none !important;
+    }
+
+    .aibp-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

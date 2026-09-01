@@ -63,24 +63,16 @@
 
 首屏主要圖片不要 lazy-load。下方圖片使用 `loading="lazy"`。需要多尺寸輸出的 cover 放 `src/assets`，在 schema 中使用 image metadata；不要把遠端圖片 URL 當長期依賴。
 
-## Mermaid
+## 圖解
 
-````markdown
-```mermaid
-sequenceDiagram
-  Agent->>API: Request
-  API-->>Agent: Response
-```
-````
-
-Mermaid 以 `securityLevel: strict` 在瀏覽器渲染。避免在節點中加入 HTML；複雜圖請拆小，讓手機讀者可局部捲動。
+新文章內的流程、架構、資料流與狀態圖一律使用原生 SVG；需要樣式時以 Astro 元件封裝，不使用 Mermaid。SVG 必須有 `title`／`desc`、可縮放的 `viewBox`，並在 320 px 寬度維持可讀性；窄螢幕需要不同編排時，提供專用 SVG 版面。
 
 ## draft 到發布
 
 尚未成文的題目先加入 [`article-queue.md`](article-queue.md)，依處理順序由上往下排。開始正式整理時，在 `src/content/blog` 建立 `draft: true` 的文章，並在同一次變更刪除對應的佇列項目；不要保留完成標記或另一份待辦清單。
 
 1. 新檔設 `draft: true`。
-2. `pnpm dev` 檢查內容、程式碼、圖片、Mermaid、深淺色與手機版。
+2. `pnpm dev` 檢查內容、程式碼、圖片、SVG 圖解、深淺色與手機版。
 3. 依 Cover Direction 生成、檢視並驗收封面；將圖片放進 `src/assets`，設定 `cover` 與 `coverAlt`。
 4. 執行 `pnpm format && pnpm check && pnpm test`。
 5. 設定正確 `publishDate`，將 `draft` 改為 `false`。新正式文章不得在此步驟前缺少封面。
@@ -99,5 +91,5 @@ title、description 與 cover 會生成 Open Graph、Twitter Card；BlogPosting 
 - 摘要包含具體技術範圍與讀者會得到的結果。
 - 每個外部事實有可追溯來源；時間敏感數據標示日期。
 - 程式碼可以執行，或清楚標示為縮寫／概念片段。
-- 圖片與 Mermaid 在 320 px 寬度不造成整頁水平捲軸。
+- 圖片與 SVG 圖解在 320 px 寬度不造成整頁水平捲軸，且文字可讀。
 - 草稿不會出現在 production build。
