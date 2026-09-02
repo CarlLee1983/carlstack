@@ -1,0 +1,680 @@
+---
+// ELK Stack Distributed Log Management Architecture Diagram
+---
+
+<figure class="elk-diagram" aria-labelledby="elk-caption">
+  <svg
+    class="elk-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="elk-title elk-desc"
+  >
+    <title id="elk-title">ELK Stack 分散式日誌管線與檢索架構</title>
+    <desc id="elk-desc">
+      展示從邊緣 Filebeat 採集、Kafka 削峰緩衝、Logstash 結構化解析，到
+      Elasticsearch 倒排索引分片儲存、Kibana 視覺化與 Loki 架構演進。
+    </desc>
+
+    <defs>
+      <marker
+        id="elk-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="elk-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Ingestion & Buffering -->
+    <g class="elk-diagram__card" transform="translate(25, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="elk-diagram__badge" x="14" y="26"
+        >COLLECTION &amp; INGESTION</text
+      >
+      <text class="elk-diagram__title" x="14" y="54">邊緣採集與削峰緩衝</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--teal"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--teal"
+          x="10"
+          y="20">Filebeat (Go Agent)</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• 部署於 Pod / 宿主機邊緣</text
+        >
+        <text class="elk-diagram__desc" x="10" y="58"
+          >• 極低 CPU / 記憶體開銷</text
+        >
+        <text class="elk-diagram__desc" x="10" y="76"
+          >• 內建背壓控制 (Backpressure)</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--gold"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--gold"
+          x="10"
+          y="20">Kafka / Redis 緩衝池</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40">• 流量尖峰削峰填谷</text>
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 防止 ES 寫入隊列打滿拒絕</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--blue"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--blue"
+          x="10"
+          y="20">Logstash / Vector</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• Grok 正則過濾與結構化</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• GeoIP、脫敏與富化處理</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Elasticsearch Core -->
+    <g class="elk-diagram__card" transform="translate(255, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="elk-diagram__badge" x="14" y="26"
+        >INDEXING &amp; STORAGE</text
+      >
+      <text class="elk-diagram__title" x="14" y="54">Elasticsearch 核心</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--purple"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--purple"
+          x="10"
+          y="20">Lucene 倒排索引 (FST)</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• Term Dictionary ➔ Postings</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 記憶體 FST 有限狀態轉換機</text
+        >
+        <text class="elk-diagram__desc" x="10" y="78"
+          >• 毫秒級關鍵字全文定位</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--orange"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--orange"
+          x="10"
+          y="20">Doc Values 列式儲存</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40">• 正排索引磁碟映射</text>
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 高效排序、聚合與過濾</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="187" height="85" rx="6" class="elk-diagram__subcard"
+        ></rect>
+        <text class="elk-diagram__header" x="10" y="20">分片與高可用架構</text>
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• Primary + Replica Shards</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 冷熱數據階層生命週期 (ILM)</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Kibana Visualization -->
+    <g class="elk-diagram__card" transform="translate(485, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="elk-diagram__badge" x="14" y="26"
+        >VISUALIZATION &amp; ALERTS</text
+      >
+      <text class="elk-diagram__title" x="14" y="54">Kibana 探勘與監控</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--cyan"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--cyan"
+          x="10"
+          y="20">Discover 即時探勘</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• KQL / Lucene 語法查詢</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 關聯 TraceID 秒級排障</text
+        >
+        <text class="elk-diagram__desc" x="10" y="78"
+          >• 實時日誌尾隨 (Tail Logs)</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--green"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--green"
+          x="10"
+          y="20">Dashboard 業務看板</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40">• 5xx 錯誤率熱力圖</text>
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• QPS 與請求延遲分位數</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="187" height="85" rx="6" class="elk-diagram__subcard"
+        ></rect>
+        <text class="elk-diagram__header" x="10" y="20"
+          >動態告警 (Alerting)</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40">• 閾值告警與異常檢測</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 串接 Slack / PagerDuty / Webhook</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Modern Alternatives -->
+    <g class="elk-diagram__card" transform="translate(715, 40)">
+      <rect width="220" height="370" rx="12"></rect>
+      <text class="elk-diagram__badge" x="14" y="26">MODERN EVOLUTION</text>
+      <text class="elk-diagram__title" x="14" y="54">現代替代與成本演進</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="192"
+          height="85"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--gold"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--gold"
+          x="10"
+          y="20">Grafana Loki</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• 僅索引標籤 Label (不索引內容)</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• Chunk 壓縮直寫 S3 物件儲存</text
+        >
+        <text class="elk-diagram__desc" x="10" y="78">• 儲存成本暴降 80%！</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="192"
+          height="80"
+          rx="6"
+          class="elk-diagram__subcard elk-diagram__subcard--purple"></rect>
+        <text
+          class="elk-diagram__header elk-diagram__header--purple"
+          x="10"
+          y="20">OpenSearch</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• AWS 主導的 Apache 2.0 分叉</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 完全開源、無 SSPL 授權風險</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="192" height="85" rx="6" class="elk-diagram__subcard"
+        ></rect>
+        <text class="elk-diagram__header" x="10" y="20"
+          >Vector (Rust 採集器)</text
+        >
+        <text class="elk-diagram__desc" x="10" y="40"
+          >• 極致記憶體安全與吞吐</text
+        >
+        <text class="elk-diagram__desc" x="10" y="60"
+          >• 全面取代重型 Logstash JVM</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Lines -->
+    <path
+      d="M 240 220 L 255 220"
+      class="elk-diagram__flow-line"
+      marker-end="url(#elk-arrow)"></path>
+    <path
+      d="M 470 220 L 485 220"
+      class="elk-diagram__flow-line"
+      marker-end="url(#elk-arrow)"></path>
+    <path
+      d="M 700 220 L 715 220"
+      class="elk-diagram__flow-line"
+      marker-end="url(#elk-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="elk-diagram__mobile">
+    <div class="elk-mobile-card elk-mobile-card--teal">
+      <span class="elk-mobile-badge elk-mobile-badge--teal"
+        >1. COLLECTION &amp; BUFFER</span
+      >
+      <h4>邊緣採集與削峰 (Filebeat + Kafka)</h4>
+      <p>
+        Filebeat 輕量採集日誌，Kafka 削峰避免流量打滿，Logstash / Vector 進行
+        Grok 結構化解析。
+      </p>
+    </div>
+
+    <div class="elk-mobile-arrow">↓ 索引與分散式儲存</div>
+
+    <div class="elk-mobile-card elk-mobile-card--purple">
+      <span class="elk-mobile-badge elk-mobile-badge--purple"
+        >2. ELASTICSEARCH CORE</span
+      >
+      <h4>倒排索引 (FST) 與 Doc Values</h4>
+      <p>
+        Lucene 倒排索引實現毫秒級全文檢索，Doc Values
+        列存加速彙總統計，分片保證水平擴展。
+      </p>
+    </div>
+
+    <div class="elk-mobile-arrow">↓ 視覺化與排障</div>
+
+    <div class="elk-mobile-card elk-mobile-card--cyan">
+      <span class="elk-mobile-badge elk-mobile-badge--cyan"
+        >3. KIBANA &amp; DASHBOARDS</span
+      >
+      <h4>即時探勘與動態告警</h4>
+      <p>
+        Discover 依據 TraceID 精準定位問題，視覺化 Dashboard 監控系統健康度與
+        5xx 錯誤率。
+      </p>
+    </div>
+
+    <div class="elk-mobile-arrow">↓ 現代技術演進</div>
+
+    <div class="elk-mobile-card elk-mobile-card--gold">
+      <span class="elk-mobile-badge elk-mobile-badge--gold"
+        >4. LOKI &amp; OPENSEARCH</span
+      >
+      <h4>成本優化與開源替代</h4>
+      <p>
+        Grafana Loki 僅索引標籤將日誌壓縮直寫 S3（成本降 80%），OpenSearch
+        提供無版權風險的開源選擇。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="elk-caption" class="elk-diagram__caption">
+    圖 1：ELK Stack 分散式日誌管線、Elasticsearch 核心索引與現代日誌架構演進
+  </figcaption>
+</figure>
+
+<style>
+  .elk-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .elk-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .elk-diagram__mobile {
+    display: none;
+  }
+
+  .elk-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .elk-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .elk-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .elk-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+  :global(.dark) .elk-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .elk-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+  :global(.dark) .elk-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .elk-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .elk-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .elk-diagram__subcard--teal {
+    stroke: #14b8a6;
+    fill: #f0fdfa;
+  }
+  :global(.dark) .elk-diagram__subcard--teal {
+    stroke: #0d9488;
+    fill: #042f2e;
+  }
+
+  .elk-diagram__subcard--gold {
+    stroke: #fbbf24;
+    fill: #fefce8;
+  }
+  :global(.dark) .elk-diagram__subcard--gold {
+    stroke: #d97706;
+    fill: #451a03;
+  }
+
+  .elk-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+  :global(.dark) .elk-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .elk-diagram__subcard--purple {
+    stroke: #c084fc;
+    fill: #faf5ff;
+  }
+  :global(.dark) .elk-diagram__subcard--purple {
+    stroke: #9333ea;
+    fill: #3b0764;
+  }
+
+  .elk-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+  :global(.dark) .elk-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .elk-diagram__subcard--cyan {
+    stroke: #22d3ee;
+    fill: #ecfeff;
+  }
+  :global(.dark) .elk-diagram__subcard--cyan {
+    stroke: #0891b2;
+    fill: #083344;
+  }
+
+  .elk-diagram__subcard--green {
+    stroke: #10b981;
+    fill: #f0fdf4;
+  }
+  :global(.dark) .elk-diagram__subcard--green {
+    stroke: #059669;
+    fill: #064e3b;
+  }
+
+  .elk-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .elk-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .elk-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .elk-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .elk-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .elk-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .elk-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .elk-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .elk-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .elk-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .elk-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(.dark) .elk-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .elk-diagram__header--cyan {
+    fill: #0e7490;
+  }
+  :global(.dark) .elk-diagram__header--cyan {
+    fill: #22d3ee;
+  }
+
+  .elk-diagram__header--green {
+    fill: #047857;
+  }
+  :global(.dark) .elk-diagram__header--green {
+    fill: #34d399;
+  }
+
+  .elk-diagram__desc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .elk-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .elk-diagram__flow-line {
+    stroke: #0284c7;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .elk-diagram__arrow-head {
+    fill: #0284c7;
+  }
+
+  @media (max-width: 768px) {
+    .elk-diagram__desktop {
+      display: none;
+    }
+
+    .elk-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .elk-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+    :global(.dark) .elk-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .elk-mobile-card--teal {
+      border-left: 4px solid #0d9488;
+      background: #f0fdfa;
+    }
+    :global(.dark) .elk-mobile-card--teal {
+      background: #042f2e;
+      border-color: #2dd4bf;
+    }
+
+    .elk-mobile-card--purple {
+      border-left: 4px solid #7e22ce;
+      background: #faf5ff;
+    }
+    :global(.dark) .elk-mobile-card--purple {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .elk-mobile-card--cyan {
+      border-left: 4px solid #0891b2;
+      background: #ecfeff;
+    }
+    :global(.dark) .elk-mobile-card--cyan {
+      background: #083344;
+      border-color: #22d3ee;
+    }
+
+    .elk-mobile-card--gold {
+      border-left: 4px solid #d97706;
+      background: #fefce8;
+    }
+    :global(.dark) .elk-mobile-card--gold {
+      background: #451a03;
+      border-color: #fbbf24;
+    }
+
+    .elk-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .elk-mobile-badge--teal {
+      color: #0f766e;
+    }
+    :global(.dark) .elk-mobile-badge--teal {
+      color: #2dd4bf;
+    }
+
+    .elk-mobile-badge--purple {
+      color: #7e22ce;
+    }
+    :global(.dark) .elk-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .elk-mobile-badge--cyan {
+      color: #0891b2;
+    }
+    :global(.dark) .elk-mobile-badge--cyan {
+      color: #22d3ee;
+    }
+
+    .elk-mobile-badge--gold {
+      color: #b45309;
+    }
+    :global(.dark) .elk-mobile-badge--gold {
+      color: #fbbf24;
+    }
+
+    .elk-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .elk-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .elk-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .elk-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .elk-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>
