@@ -1,0 +1,128 @@
+---
+title: "Kubernetes 核心架構全景：API Server、etcd 分散式狀態、Kubelet 與 Controller Manager 協同調度"
+description: "深度拆解現代雲原生作業系統 Kubernetes（K8s）的底層核心：控制平面（Control Plane）與工作節點（Worker Nodes）協同機制、kube-apiserver 宣告式狀態機、etcd 分散式一致性鍵值儲存、kube-scheduler 調度演算法與 kubelet / CRI 容器運行時全景架構。"
+publishDate: 2026-09-02T17:00:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/kubernetes-core-architecture-control-plane-etcd.png
+coverAlt: "Kubernetes 核心架構控制平面與 etcd 協同調度"
+tags:
+  - "Kubernetes"
+  - "雲原生"
+  - "容器技術"
+  - "分散式系統"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在雲原生（Cloud Native）時代，**Kubernetes（K8s）** 已成為跨雲、跨資料中心調度容器化應用的事實作業系統。
+
+然而，許多工程師對 Kubernetes 的理解僅停留在「寫 YAML、跑 `kubectl apply`」的層面，一旦線上叢集出現節點失聯、Pod 處於 Pending 狀態或 etcd 延遲抖動時，往往無從下手。
+
+Kubernetes 的設計哲學本質上是一個**基於宣告式 API（Declarative API）的分散式自動控制反饋系統**。
+
+本文將帶你深入 Kubernetes 內核，完整拆解控制面組件、etcd 狀態儲存與節點 Worker 的底層協同架構。
+
+---
+
+## 1. Kubernetes 總體架構拓撲：控制面與資料面
+
+Kubernetes 叢集嚴格劃分為兩大層級：**控制平面（Control Plane）** 與 **工作節點（Worker Nodes）**。
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                   控制平面 (Control Plane)                  │
+│                                                             │
+│  [ kube-controller-manager ]    [ kube-scheduler ]          │
+│              ▲                         ▲                    │
+│              │ (Watch / List)          │ (Watch Pods)       │
+│              ▼                         ▼                    │
+│      ┌─────────────────────────────────────────┐            │
+│      │        kube-apiserver (核心大腦)        │            │
+│      └────────────────────┬────────────────────┘            │
+│                           │ (唯一直接存取 etcd 的組件)      │
+│                           ▼                                 │
+│                 [ etcd 分散式 KV 叢集 ]                     │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ (gRPC / TLS 雙向通訊)
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    工作節點 (Worker Node)                   │
+│                                                             │
+│       ┌───────────────┐               ┌───────────────┐     │
+│       │    kubelet    │               │  kube-proxy   │     │
+│       └───────┬───────┘               └───────┬───────┘     │
+│               │ (CRI 介面)                    │ (iptables/  │
+│               ▼                               ▼  IPVS 轉發) │
+│     [ 容器運行時 (containerd) ]        [ 叢集網路資料面 ]    │
+│               │                                             │
+│               ▼                                             │
+│     ┌───────────────────┐                                   │
+│     │   Pod (Containers)│                                   │
+│     └───────────────────┘                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. 控制平面四大核心組件剖析
+
+### 2.1 kube-apiserver：唯一的真理守門人
+
+- **職責**：叢集所有操作的唯一入口，提供 RESTful API。
+- **無狀態設計（Stateless）**：API Server 本身不儲存任何狀態，可透過水平擴展部署多個實例進行負載平衡。
+- **請求處理管線**：
+  `HTTP 請求 ➔ 認證 (Authentication) ➔ 授權 (RBAC) ➔ 准入控制 (Admission Controllers / Webhooks) ➔ 寫入 etcd`。
+
+### 2.2 etcd：分散式一致性心臟
+
+- **職責**：儲存 Kubernetes 叢集全部物件的元數據與期望狀態（Desired State）。
+- **底層原理**：基於 **Raft 共識協議** 的強一致性 KV 資料庫。
+- **鐵律**：在整個 Kubernetes 叢集中，**只有 kube-apiserver 具備直接讀寫 etcd 的權限**，其餘所有組件必須透過 API Server 進行通訊！
+
+### 2.3 kube-scheduler：智慧調度大腦
+
+- **職責**：監聽所有處於未調度狀態（`spec.nodeName` 為空）的 Pod，為其挑選最合適的工作節點。
+- **兩階段調度演算法**：
+  1. **預選階段（Filtering / Predicates）**：硬性過濾不符合條件的節點（如節點 CPU/RAM 資源不足、Port 衝突、Taints 污點排斥）；
+  2. **優選階段（Scoring / Priorities）**：對通過預選的節點進行多維度打分（如節點映像檔預加載評分、親和性 Affinity、資源均勻分散），得分最高者獲勝。
+
+### 2.4 kube-controller-manager：閉環反饋控制中樞
+
+- **核心哲學：控制循環（Reconciliation Loop）**：
+  不斷執行 `實際狀態 (Actual State) vs. 期望狀態 (Desired State)` 比對。一旦發現差異（例如 Node 宕機導致實際副本數少於期望），立即向 API Server 發送指令發起修復。
+
+---
+
+## 3. 工作節點（Worker Node）核心架構
+
+### 3.1 kubelet：節點指揮官
+
+- 運行在每個 Worker Node 上的代理進程。
+- 定期向 API Server 上報本節點的健康狀態與資源消耗。
+- 透過 **CRI（Container Runtime Interface）** 調用底層容器運行時（如 containerd 或 CRI-O）建立、重啟或銷毀容器。
+
+### 3.2 kube-proxy：虛擬網路負載平衡器
+
+- 監聽 Service 與 Endpoints 物件的變動。
+- 維護節點上的 **iptables** 或 **IPVS** 轉發規則，將存取 `ClusterIP` 的流量透明負載平衡轉發至後端的實際 Pod IP。
+
+---
+
+## 4. 從 `kubectl run` 到容器啟動全生命週期
+
+```text
+1. 使用者執行 kubectl apply -f nginx.yaml ──> 經 AuthN/AuthZ 驗證寫入 etcd (狀態: Pending)
+2. kube-scheduler 透過 API Server Watch 到新 Pod ──> 執行預選與優選 ──> 將 Pod 綁定至 Node-1 (更新 spec.nodeName)
+3. Node-1 上的 kubelet Watch 到分配給自己的 Pod ──> 調用 containerd 下載 Image 並啟動容器
+4. kubelet 調用 CNI 外掛分配 Pod IP ──> 回報狀態為 Running
+5. kube-proxy 更新節點 IPVS 規則，將 Pod IP 納入 Service 負載平衡池
+```
+
+---
+
+## 5. 總結
+
+- **宣告式與控制循環**：Kubernetes 的強大源於「期望狀態」與「持續自我修復反饋」。
+- **一切皆資源（Everything is a Resource）**：以統一的 RESTful 模型抽象 Pod、Service、Deployment。
+- **高可用設計核心**：確保 etcd 奇數節點跨可用區部署與 NVMe SSD 磁碟 I/O，是維護大規模 K8s 叢集穩定性的第一要務。

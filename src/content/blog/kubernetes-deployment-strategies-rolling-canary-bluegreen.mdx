@@ -1,0 +1,129 @@
+---
+title: "Kubernetes 容器部署策略深度實踐：Recreate、RollingUpdate、Blue-Green 與 Canary 金絲雀發布"
+description: "深度剖析生產級 Kubernetes 應用交付與發布策略：為什麼單純的 RollingUpdate 仍可能導致流量中斷？Recreate 重建部署、RollingUpdate（maxSurge / maxUnavailable 參數調優）、Blue-Green 藍綠雙環境切換與基於 Argo Rollouts / Flagger 的 Canary 自動化金絲雀分析實戰。"
+publishDate: 2026-09-02T17:10:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/kubernetes-deployment-strategies-rolling-canary-bluegreen.png
+coverAlt: "Kubernetes 容器部署策略 RollingUpdate 與金絲雀發布"
+tags:
+  - "Kubernetes"
+  - "CI/CD"
+  - "部署策略"
+  - "Canary"
+  - "DevOps"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在敏捷開發與微服務架構普及的今天，大型科技公司的工程團隊每天可能需要向生產環境執行數十次甚至上百次發布。
+
+如何在不影響線上用戶、維持 **零停機（Zero Downtime）** 的前提下安全發布新版本？一旦新代碼包含未被發現的致命 Bug，如何將影響半徑限制在最小範圍並在秒級內全自動回滾？
+
+Kubernetes 提供了多種部署策略（Deployment Strategies）。本文將帶你深入剖析 4 大主流部署模式的運作原理、資源開銷與選型維度。
+
+---
+
+## 1. 四大部署策略全景對比矩陣
+
+| 部署策略                 | 停機時間 (Downtime)     | 額外硬體資源消耗                  | 回滾速度 (Rollback)              | 風險影響半徑                 | 適用場景                                  |
+| :----------------------- | :---------------------- | :-------------------------------- | :------------------------------- | :--------------------------- | :---------------------------------------- |
+| **Recreate (重建)**      | **有 (全量短暫中斷)**   | **0% (完全無額外開銷)**           | 慢 (需重新啟動舊版)              | 全量用戶受影響               | 不相容資料庫 Schema 破壞性升級、測試環境  |
+| **RollingUpdate (滾動)** | **零停機 (需正確配置)** | **低 (依 maxSurge 比例增加 25%)** | 較慢 (需反向逐步滾動替換)        | 逐步擴大                     | 標準無狀態 Web 應用與常規業務更新         |
+| **Blue-Green (藍綠)**    | **零停機**              | **高 (100% 雙倍叢集資源消耗)**    | **極快 (秒級切換 Service 標籤)** | 全量瞬間切換                 | 關鍵核心交易系統、發布前需全量預熱驗收    |
+| **Canary (金絲雀)**      | **零停機**              | **極低 (僅需 1~2 個額外 Pod)**    | **極快 (立即切斷金絲雀流量)**    | **極小 (僅 1%~5% 灰度用戶)** | 大規模高併發系統、關鍵演算法/架構重構驗證 |
+
+---
+
+## 2. RollingUpdate 滾動更新底層原理與參數調優
+
+Kubernetes Deployment 預設採用 **RollingUpdate** 策略：逐步建立新版本 Pod，待其健康檢查通過後，再逐步銷毀舊版本 Pod。
+
+```text
+[ 階段 1: 原始狀態 ]      [ 階段 2: 滾動中 (Surge) ]       [ 階段 3: 完成發布 ]
+Pod v1 (Running)         Pod v1 (Running)                Pod v2 (Running)
+Pod v1 (Running)   ───>  Pod v1 (Terminating)     ───>   Pod v2 (Running)
+Pod v1 (Running)         Pod v2 (Running)                Pod v2 (Running)
+                         Pod v2 (ContainerCreating)
+```
+
+### 關鍵參數調優：`maxSurge` 與 `maxUnavailable`
+
+```yaml
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25% # 升級期間最多允許超出期望副本數的百分比（如 4 個 Pod 最多建 5 個）
+      maxUnavailable: 0 # 升級期間保證 100% 的可用副本數（絕不提前關閉舊 Pod）
+```
+
+- **避坑守則：必須配置 ReadinessProbe 與 preStop Hook！**
+  - 若無 `readinessProbe`，K8s 在容器進程剛啟動（Spring Boot 尚未載入完畢）就立即將流量導入，導致大量 502 Bad Gateway！
+  - 必須設定 `preStop: exec: command: ["sleep", "10"]`，讓 Pod 在收到 SIGTERM 前有足夠時間讓 kube-proxy 從負載平衡節點中摘除其 IP。
+
+---
+
+## 3. Blue-Green（藍綠部署）架構
+
+藍綠部署維護兩組完全獨立但對等的環境：
+
+```text
+                               [ Service (線上流量) ]
+                                         │
+                   ┌─────────────────────┴─────────────────────┐
+                   ▼ (當前線上流量: selector: version=blue)      │
+         [ Blue 環境 (舊版 v1.0) ]                     [ Green 環境 (新版 v2.0) ]
+         ├── Pod 1 (v1.0)                              ├── Pod 1 (v2.0)
+         ├── Pod 2 (v1.0)                              ├── Pod 2 (v2.0)
+         └── Pod 3 (v1.0)                              └── Pod 3 (v2.0)
+                                                               ▲
+                                                               │ (內部 QA 測試通過後)
+                                              [ 修改 Service selector ➔ version=green ]
+```
+
+- **優勢**：流量切換只在一瞬間（修改 Service Selector 的單一 API 操作）；若發現問題，可在一秒內將 Selector 改回 Blue 完成閃電回滾。
+- **缺點**：在發布期間需要消耗雙倍的伺服器算力資源。
+
+---
+
+## 4. 現代自動化 Canary 金絲雀分析：Argo Rollouts 實戰
+
+在大規模架構中，人工盯著日誌確認金絲雀發布過於低效。現代雲原生標準採用 **Argo Rollouts** 配合 **Prometheus 指標自動分析**：
+
+```text
+[ 1. 發布金絲雀 (SetWeight: 5%) ] ──> 導入 5% 真實線上流量
+               │
+               ▼ (運行 10 分鐘)
+[ 2. 自動執行 AnalysisTemplate ] ──> 查詢 Prometheus: HTTP 5xx 錯誤率是否 < 0.1%? P99 是否 < 200ms?
+               │
+        ┌──────┴──────┐
+        ▼ (指標正常)   ▼ (指標異常: 5xx 突破 1%)
+[ 3. 推進至 20% ➔ 100% ] [ 立即全自動中止並回滾至 v1.0! ]
+```
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: order-service-rollout
+spec:
+  strategy:
+    canary:
+      steps:
+        - setWeight: 5
+        - pause: { duration: 10m } # 觀察 10 分鐘
+        - analysis:
+            templates:
+              - templateName: success-rate-check
+        - setWeight: 20
+        - pause: { duration: 30m }
+        - setWeight: 100
+```
+
+---
+
+## 5. 總結
+
+- **標準微服務**：優先選用調優後的 **RollingUpdate**（`maxUnavailable: 0` + 精準 `readinessProbe`）。
+- **關鍵核心系統**：採用 **Blue-Green** 進行充分預熱與秒級回滾。
+- **億級流量與演算法模型**：採用 **Argo Rollouts + Canary** 實現自動化指標評估與灰度放量。

@@ -1,0 +1,104 @@
+---
+title: "SQL 語句底層執行之旅：Parser 抽象語法樹、CBO/RBO 查詢優化器到火山模型執行器"
+description: "深度拆解關係型資料庫（PostgreSQL / MySQL）內核引擎核心：當你向資料庫發送一條 SQL 查詢，底層究竟經歷了什麼？詞法語法解析（Lexer & Parser）、抽象語法樹（AST）、基於成本的查詢優化器（CBO vs. RBO）、火山模型執行器（Volcano Iterator Model）與向量化執行全景實戰。"
+publishDate: 2026-09-02T17:40:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/sql-query-execution-lifecycle-parser-cbo-executor.png
+coverAlt: "SQL 語句執行全生命週期 Parser CBO 優化器與執行器"
+tags:
+  - "資料庫內核"
+  - "SQL"
+  - "查詢優化器"
+  - "PostgreSQL"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只需要告訴資料庫「我要什麼數據（What）」，而無需關心資料庫「如何去拿數據（How）」**。
+
+然而，將一段人類可讀的 SQL 文字字串，轉換為在硬體磁碟與記憶體上高效跳轉的二進位機器指令，背後凝聚了資料庫工程師半個世紀的智慧結晶。
+
+為什麼有時候資料庫會「選錯索引」？為什麼同樣的 JOIN 順序不同，執行耗時相差 1000 倍？
+
+本文將帶你沿著一條 SQL 語句的完整生命週期，由淺入深拆解資料庫內核四大核心模組：**解析器（Parser）**、**重寫器（Rewriter）**、**優化器（Optimizer）** 與 **執行器（Executor）**。
+
+---
+
+## 1. SQL 執行全流程生命週期鳥瞰圖
+
+```text
+[ 客戶端發送 SQL 字串: "SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id WHERE u.age > 30;" ]
+                                      │
+                                      ▼
+             [ 1. 詞法與語法解析器 (Lexer & Parser) ]
+                                      │ ➔ 輸出: 抽象語法樹 (Abstract Syntax Tree, AST)
+                                      ▼
+             [ 2. 語意分析與重寫器 (Analyzer & Rewriter) ]
+                                      │ ➔ 綁定元數據 (檢查 table/column 是否存在、視圖展開)
+                                      ▼
+             [ 3. 查詢優化器 (Query Optimizer: CBO) ]
+                                      │ ├── 邏輯計畫 (Logical Plan: 謂詞下推、列裁剪)
+                                      │ └── 物理計畫 (Physical Plan: 選擇 Index Scan, Hash Join)
+                                      ▼
+             [ 4. 執行引擎 (Executor: 火山模型 / 向量化) ]
+                                      │
+                                      ▼ (調用儲存引擎 Buffer Pool / 磁碟 I/O)
+             [ 回傳查詢結果集 (Result Set) 給客戶端 ]
+```
+
+---
+
+## 2. 解析與語意分析：從文字到抽象語法樹（AST）
+
+1. **詞法分析（Lexer）**：將 SQL 字串拆解為單詞符號（Tokens，如 `SELECT`、`users`、`JOIN`、`WHERE`）。
+2. **語法分析（Parser）**：依據 SQL 文法（Bison / Flex）構建 **抽象語法樹（AST）**。
+3. **語意分析（Catalog Resolution）**：查詢系統目錄（System Catalog），驗證表名 `users`、欄位 `age` 是否真實存在，當前用戶是否具備 `SELECT` 權限。
+
+---
+
+## 3. 查詢優化器：資料庫內核最複雜的「智慧大腦」
+
+優化器的使命是：**在天文數字般的潛在執行路徑中，找出代價最小的一條物理執行計畫（Physical Plan）！**
+
+### 3.1 RBO vs. CBO 的代際演變
+
+- **RBO（基於規則的優化器，Rule-Based Optimizer）**：遵循死板硬性規則（如「有索引就一定走索引」）。
+- **CBO（基於成本的優化器，Cost-Based Optimizer）**：現代資料庫標配。透過資料庫即時統計資訊（Histogram 直方圖、MCV 高頻值、頁面總數），估算 CPU 週期與磁碟 I/O 代價：
+
+`Cost = (磁碟頁數 × page_io_cost) + (資料列數 × cpu_tuple_cost)`
+
+### 3.2 經典優化技術
+
+1. **謂詞下推（Predicate Pushdown）**：將 `WHERE age > 30` 盡可能推到掃描底層執行，減少後續 JOIN 的資料量。
+2. **JOIN 演算法選型**：
+   - **Nested Loop Join**：適合驅動表極小、被驅動表有高選擇性索引；
+   - **Hash Join**：適合無索引的大表等值連接；
+   - **Sort-Merge Join**：適合兩表已排序的大數據量連接。
+
+---
+
+## 4. 執行器（Executor）：經典火山模型（Volcano Iterator Model）
+
+物理計畫生成後，交由執行器驅動運算。經典資料庫採用 **火山模型（迭代器模型）**：
+
+```text
+[ Top 根節點: Limit / Output ]
+            │ Next() (拉取一列)
+            ▼
+[ Hash Join 算子 ]
+            │ Next() (拉取一列)
+            ▼
+[ Index Scan 算子 (B+ Tree 索引掃描) ]
+```
+
+- 每個算子實作三個標準介面：`open()`、`next()`、`close()`。
+- **一列一拉取（Tuple-at-a-time）**：記憶體佔用極小，但虛擬函數調用與 CPU 分支預測失敗開銷較大。
+- **現代進化：向量化執行（Vectorized Execution）**：如 DuckDB、ClickHouse 一次處理一批（1024 列）二進位陣列，極大提升 CPU 快取與 SIMD 平行計算效率。
+
+---
+
+## 5. 總結
+
+- **優化器依賴精確的統計數據**：定期執行 `ANALYZE` 保持統計資訊更新，是防止 CBO 選錯索引的關鍵維運守則。
+- **善用 `EXPLAIN ANALYZE`**：學會解讀物理執行計畫中的算子類型、實際行數與預估 Cost，是排查慢查詢的必備內功。

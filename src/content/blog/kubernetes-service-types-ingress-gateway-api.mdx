@@ -1,0 +1,123 @@
+---
+title: "Kubernetes 服務暴露與流量拓撲：ClusterIP、NodePort、LoadBalancer、Ingress 到 Gateway API"
+description: "深度剖析 Kubernetes 容器網路與服務暴露的代際演進：Pod 短暫性 IP 難題、四層 Service 類型（ClusterIP / NodePort / LoadBalancer / ExternalName）、七層 Ingress Controller 瓶頸與新一代 Gateway API 角色分工（GatewayClass / Gateway / HTTPRoute）實戰。"
+publishDate: 2026-09-02T17:05:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/kubernetes-service-types-ingress-gateway-api.png
+coverAlt: "Kubernetes 四大 Service 類型與 Gateway API 流量拓撲"
+tags:
+  - "Kubernetes"
+  - "雲原生"
+  - "網路架構"
+  - "Ingress"
+  - "Gateway API"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在 Kubernetes 中，Pod 是動態被建立、銷毀與漂移的臨時實體。每當 Pod 重啟或擴縮容時，其分配的 IP 位址都會發生改變。
+
+如果前端微服務直接透過 Pod IP 調用後端，系統在第一次滾動發布時就會直接崩潰。
+
+為了解決「動態服務發現與負載平衡」以及「外部流量如何安全進入叢集」的問題，Kubernetes 構建了一套精密的 **Service 抽象體系**。
+
+本文將帶你全面梳理從 L4 四層 Service（ClusterIP、NodePort、LoadBalancer）到 L7 七層 Ingress，再到新一代標準 **Gateway API** 的完整演進歷程。
+
+---
+
+## 1. Kubernetes 四大原生 Service 類型對比
+
+```text
+                               [ 外部公網流量 (Internet) ]
+                                             │
+                                             ▼
+                               [ 雲端負載平衡器 (LoadBalancer) ]
+                                             │
+                                             ▼ (流量轉發至節點指定 Port)
+                                 [ 節點實體 IP: 30080 (NodePort) ]
+                                             │
+                                             ▼ (叢集內部虛擬 IP 路由)
+                                   [ ClusterIP (10.96.0.1) ]
+                                             │
+                             ┌───────────────┴───────────────┐
+                             ▼                               ▼
+                      [ Pod 1 (10.244.1.5) ]          [ Pod 2 (10.244.2.8) ]
+```
+
+| Service 類型         | 核心定位與工作機制                                                                                                                 | 適用場景                                         |
+| :------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
+| **ClusterIP (預設)** | 分配一個僅在 K8s 叢集內部可達的虛擬 IP（VIP），由 kube-proxy 自動負載平衡至後端 Pod。                                              | 叢集內部微服務間的內部相互調用（私有通訊）。     |
+| **NodePort**         | 在叢集**所有 Worker 節點**上開放一個固定的靜態連接埠（預設範圍 30000~32767），任何訪問 `NodeIP:NodePort` 的流量均被轉發至後端。    | 測試環境、自建私有雲機房快速暴露服務。           |
+| **LoadBalancer**     | 向公有雲廠商（AWS、GCP、Azure）發起 API 調用，自動佈建一台硬體/雲端 L4 負載平衡器（如 AWS NLB/CLB），並將公網流量路由至 NodePort。 | 生產環境需要直接暴露 L4 TCP/UDP 流量的單個服務。 |
+| **ExternalName**     | 不經過任何代理轉發，僅在 CoreDNS 內部回傳一個外部 CNAME 記錄（例如將 `db-svc` 解析為 `rds.amazonaws.com`）。                       | 叢集內部無縫橋接外部自建資料庫或第三方 SaaS。    |
+
+---
+
+## 2. 七層 Ingress Controller：解決 LoadBalancer 成本膨脹
+
+### 2.1 LoadBalancer 的致命成本痛點
+
+如果你的 K8s 叢集有 50 個對外公開的 HTTP 微服務，若全部使用 `LoadBalancer` Service，公有雲會自動建立 50 台獨立的 Cloud LB，每月雲端帳單高達數千美元！
+
+### 2.2 Ingress 的統一入口架構
+
+**Ingress** 作為 L7 反向代理（通常由 Nginx Ingress、Envoy 或 Traefik 實作）：
+
+- 僅需**單一公網 IP / 單台 LoadBalancer** 作為入口；
+- 依據 **域名（Host）** 與 **路徑（Path）** 執行智慧路由：
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+spec:
+  rules:
+    - host: api.carlstack.dev
+      http:
+        paths:
+          - path: /v1/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 8080
+          - path: /v1/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-service
+                port:
+                  number: 8080
+```
+
+---
+
+## 3. Ingress 的局限與新一代標準：Gateway API
+
+雖然 Ingress 解決了統一路由問題，但其規範過於單薄，導致各大廠商引入了大量互不相容的 `annotations`（如重寫路徑、金絲雀權重、Header 匹配）。
+
+Kubernetes 官方正式推出了 **Gateway API**，其最大的創新在於**角色職責解耦（Role-Oriented Architecture）**：
+
+```text
+[ 基礎設施供應商 (Cloud Provider / Envoy) ] ──> 定義 [ GatewayClass ]
+                                                           │
+[ 叢集維運/平台工程師 (Platform Admin) ]   ──> 定義 [ Gateway ] (管理監聽埠與 TLS 憑證)
+                                                           │
+[ 業務開發團隊 (Application Developer) ]   ──> 定義 [ HTTPRoute / GRPCRoute ] (專注業務路由規則)
+```
+
+### Gateway API 核心優勢
+
+1. **原生支援權重分流（Traffic Splitting）**：無需外掛即可直接在 Route 定義金絲雀發布（90% 流量進 v1，10% 流量進 v2）。
+2. **多協議原生支援**：原生涵蓋 HTTPRoute、GRPCRoute、TCPRoute 與 TLSRoute。
+3. **跨命名空間跨租戶路由（Cross-Namespace Routing）**：平台工程師在 `infra` 命名空間建立 Gateway，各業務線在各自的 namespace 註冊 HTTPRoute 綁定，權限劃分極其乾淨。
+
+---
+
+## 4. 總結與選型建議
+
+- **內部微服務通訊**：一律使用標準 **ClusterIP** 配合 CoreDNS 服務發現（如 `http://user-service.prod.svc.cluster.local`）。
+- **舊有生產 HTTP/HTTPS 流量**：使用成熟的 **Ingress Controller（Nginx / Traefik）**。
+- **現代雲原生與多租戶平台**：全面擁抱 **Gateway API（搭配 Envoy Gateway / Cilium Gateway）**，獲得原生金絲雀發布與精細角色治理能力。

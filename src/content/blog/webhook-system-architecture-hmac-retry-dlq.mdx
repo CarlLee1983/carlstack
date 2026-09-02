@@ -1,0 +1,106 @@
+---
+title: "企業級 Webhook 系統架構設計：HMAC-SHA256 簽名驗證、指數退避重試、死信隊列與流量治理"
+description: "深度剖析現代 SaaS 與金融平台（如 Stripe、GitHub、Shopify）的 Webhook 發送引擎架構：生產級事件發布與非同步投遞管線、HMAC-SHA256 簽名防篡改、帶隨機抖動的指數退避重試演算法（Exponential Backoff with Jitter）、死信隊列（DLQ）與租戶級發送速率治理實戰。"
+publishDate: 2026-09-02T17:25:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/webhook-system-architecture-hmac-retry-dlq.png
+coverAlt: "企業級 Webhook 發送引擎 HMAC 簽名與退避重試"
+tags:
+  - "API 設計"
+  - "Webhook"
+  - "系統設計"
+  - "安全架構"
+  - "分散式系統"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在現代 B2B SaaS、金融支付與開放平台生態中，**Webhook** 是實現系統間即時事件驅動整合的事實標準。
+
+然而，構建一個生產級的 Webhook 系統遠比表面上「發送一個 HTTP POST 請求」複雜得多：
+
+- **對端伺服器隨時可能宕機或響應緩慢**，直接同步發送會瞬間拖垮內部核心交易交易；
+- **惡意中間人可能偽造或篡改請求**，引發嚴重的安全性漏洞；
+- **某個租戶的端點崩潰引發海量重試風暴**，可能擠佔資源導致其他正常租戶的 Webhook 嚴重積壓延遲。
+
+本文將參考 **Stripe** 與 **Svix** 的工業級實踐，帶你完整設計一套高可用、高安全性且具備自適應彈性的企業級 Webhook 發送與接收引擎。
+
+---
+
+## 1. 企業級 Webhook 發送架構全景拓撲
+
+```text
+[ 核心業務事件 (如: 訂單支付成功) ]
+                │
+                ▼ (Transactional Outbox 模式)
+[ Kafka / 消息隊列: webhook.events ]
+                │
+                ▼
+[ Webhook 調度引擎 (Dispatcher Workers) ]
+    ├── 1. 查詢租戶註冊的 Webhook 端點與 Secret Key
+    ├── 2. 計算 HMAC-SHA256 簽名與時間戳標頭
+    └── 3. 投遞至發送 Worker 池 (帶租戶級 Rate Limiter 限流)
+                │
+                ▼ (發送 HTTP POST 請求)
+    ┌───────────┴───────────┐
+    ▼ (對端回傳 200 OK)      ▼ (對端超時 / 500 Error / 網路中斷)
+[ 標記投遞成功 (Success) ]   [ 投遞至延遲重試隊列 (Delayed Retry Queue) ]
+                             ├── 1. 指數退避: 10s ➔ 1m ➔ 10m ➔ 1h ➔ 24h
+                             └── 2. 連續失敗 10 次 ➔ 進入死信隊列 (DLQ) ➔ 發送警報郵件
+```
+
+---
+
+## 2. 密碼學安全防禦：HMAC-SHA256 簽名與防重放攻擊
+
+接收方如何確保這個 HTTP POST 請求真的是由你的官方伺服器發出，而非黑客偽造？
+
+### 2.1 簽名生成演算法標準
+
+發送端在每個 HTTP 請求中附加 `Stripe-Signature` 或 `X-Hub-Signature-256` 標頭：
+
+```text
+標頭格式：
+X-Webhook-Signature: t=1756800000,v1=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
+```
+
+1. **時間戳防重放**：`t` 記錄發送當前的 Unix 時間戳。接收端收到後，先校驗 `|當前時間 - t| ≤ 300 秒`，若超過 5 分鐘直接丟棄，徹底杜絕重放攻擊。
+2. **簽名計算**：
+   `Signature = HMAC-SHA256(SecretKey, t . RawRequestBody)`
+3. **時間恆定比較（Constant-Time Comparison）**：接收端驗證簽名時，必須使用 `crypto.timingSafeEqual()` 防止遭受側信道**時序攻擊（Timing Attack）**。
+
+---
+
+## 3. 彈性重試機制：帶抖動的指數退避（Exponential Backoff with Full Jitter）
+
+如果對端伺服器因大促銷流量過載而返回 `503 Service Unavailable`，若所有 Worker 同時在固定間隔（如每 5 秒）重新發起請求，將形成毀滅性的 **重試雷暴（Retry Storm）**，直接徹底打死對端！
+
+```python
+import random
+
+def calculate_backoff(attempt: int, base_delay: int = 10, max_delay: int = 86400) -> float:
+    # 1. 計算指數退避上限
+    temp_delay = min(max_delay, base_delay * (2 ** attempt))
+    # 2. 加入 Full Jitter 隨機抖動 (0 到 temp_delay 之間隨機均勻分佈)
+    sleep_seconds = random.uniform(0, temp_delay)
+    return sleep_seconds
+```
+
+- **重試時間表**：第 1 次失敗（~10s）、第 2 次（~20s）、第 3 次（~40s）……第 5 次（~5m）……第 10 次（~24h）。
+
+---
+
+## 4. 租戶級隔離與公平性調度（Tenant Rate Limiting & Fair Queuing）
+
+在大規模多租戶環境中，必須防範「吵鬧鄰居（Noisy Neighbor）」問題：
+
+- 某個客戶系統當機，導致累積了 100 萬筆失敗重試；
+- **防禦架構**：採用 **公平排隊（Fair Queueing）** 或 Redis 令牌桶。每個租戶分配獨立的發送配額（如每秒最多 100 個併發請求），超額部分排隊等待，確保其他健康租戶的 Webhook 毫秒級即時發送。
+
+---
+
+## 5. 總結與最佳實踐清單
+
+1. **永遠維持非同步解耦**：核心業務只寫入 Outbox 表或 Kafka，由獨立 Worker 叢集負責網路 I/O。
+2. **強制簽名與防重放**：HMAC-SHA256 + 時間戳標頭是 Webhook 安全的底線。
+3. **提供開發者自助工作台**：記錄每筆 Webhook 的 Request Header、Payload、Response Code 與耗時，並提供「手動一鍵重發（Manual Redeliver）」功能，極大降低技術支援成本。

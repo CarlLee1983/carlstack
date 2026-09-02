@@ -1,0 +1,112 @@
+---
+title: "Kubernetes 容器網路介面（CNI）深度解析：Flannel Overlay、Calico BGP 路由與 Cilium eBPF 革命"
+description: "深入 Kubernetes 底層網路虛擬化與資料面核心：K8s 三大網路不變量、CNI 外掛運作架構、Flannel（VXLAN / Host-GW）疊加網路原理、Calico 純三層 BGP 路由與 NetworkPolicy 安全策略，以及 Cilium 基於 Linux eBPF 繞過 iptables 的極致效能革命全景。"
+publishDate: 2026-09-02T17:15:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/kubernetes-cni-networking-calico-flannel-cilium-ebpf.png
+coverAlt: "Kubernetes CNI 容器網路 Calico Flannel 與 Cilium eBPF"
+tags:
+  - "Kubernetes"
+  - "CNI"
+  - "容器網路"
+  - "eBPF"
+  - "Cilium"
+  - "Calico"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在 Kubernetes 叢集中，容器的排程與生命週期由 Kubelet 管理，但**容器之間如何跨節點通訊？**
+
+Kubernetes 本身並沒有內建具體的網路實現，而是提出了三條嚴格的 **基本網路原則（The Kubernetes Network Model）**，並透過 **CNI（Container Network Interface，容器網路介面）** 標準將具體的網路封包轉發工作委託給開源外掛。
+
+從早期的 **Flannel** 疊加網路，到企業級 **Calico** 純三層路由，再到如今由 **Cilium (eBPF)** 引領的內核革命，K8s 網路架構經歷了深刻的效能與安全進化。
+
+本文將帶你深入 Linux 內核網路棧，拆解三大主流 CNI 的底層轉發原理。
+
+---
+
+## 1. Kubernetes 網路模型的三大鐵律
+
+任何合規的 CNI 外掛都必須無條件滿足以下三個不變量：
+
+```text
+[ Kubernetes 網路三大基本假設 ]
+1. 每個 Pod 都擁有一個全局唯一的獨立 IP 地址 (All Pods have an IP)
+2. 所有 Pod 可以在不依賴 NAT 的情況下與其他所有 Pod 直接通訊 (Pods communicate without NAT)
+3. 節點上的 Agent (如 Kubelet) 可以在不進行 NAT 的情況下與同節點上的所有 Pod 通訊
+```
+
+---
+
+## 2. 三大主流 CNI 外掛架構深度對比
+
+| CNI 外掛    | 核心底層轉發機制                               | 封裝開銷 (Overhead)                              | 網路安全策略 (NetworkPolicy)             | 適用規模與場景                                                 |
+| :---------- | :--------------------------------------------- | :----------------------------------------------- | :--------------------------------------- | :------------------------------------------------------------- |
+| **Flannel** | **Overlay (VXLAN 封裝) 或 Host-GW (直連路由)** | 較高 (VXLAN 額外消耗 50 字節封裝與 CPU 封包解包) | ❌ **不支援** (需外掛其他元件)           | 小型測試叢集、極簡部署需求                                     |
+| **Calico**  | **純三層路由 (BGP / IP-in-IP / WireGuard)**    | **極低 (純三層無封裝損耗，線速轉發)**            | **✅ 強大 (豐富的防火牆 ACL 規則)**      | 中大型企業私有雲、混合雲、對安全有強烈訴求                     |
+| **Cilium**  | **Linux eBPF (內核字節碼直接掛載)**            | **極致 (繞過整個 Linux 網路協定棧與 iptables)**  | **✅ 最強 (支援 L3/L4/L7 七層感知策略)** | 超大規模叢集 (1000+ 節點)、極致低延遲、Service Mesh 無 Sidecar |
+
+---
+
+## 3. Flannel 疊加網路（VXLAN）工作原理
+
+VXLAN（Virtual Extensible LAN）採用「MAC-in-UDP」封裝技術，在實體 L2/L3 網路之上建立一層虛擬的 L2 覆蓋網路：
+
+```text
+[ Node 1: Pod A (10.244.1.2) ] ── (發送原始 IP 封包) ──> [ veth0 ] ──> [ flannel.1 (VXLAN 虛擬網卡) ]
+                                                                               │
+                                                                               ▼ (將原始封包封裝進 UDP:8472)
+                                                                [ 外層 IP: Node 1 ➔ Node 2 ]
+                                                                               │
+                                                                               ▼ (透過實體交換機網路傳輸)
+[ Node 2: Pod B (10.244.2.5) ] <── (解封裝還原原始封包) <── [ flannel.1 ] <───┘
+```
+
+- **痛點**：每個封包都需要經過兩次 Linux 網路棧處理，封裝額外消耗 CPU 運算並降低了網路 MTU（通常由 1500 降為 1450）。
+
+---
+
+## 4. Calico 純三層 BGP 路由原理
+
+Calico 將叢集中的**每一個 Worker Node 都視為一台標準的 BGP 路由器**：
+
+```text
+[ Node 1 (宣告 10.244.1.0/24 屬於我) ] <──── (BGP 路由宣告協議) ────> [ Node 2 (宣告 10.244.2.0/24 屬於我) ]
+                  │                                                                  │
+                  ▼                                                                  ▼
+[ 內核路由表: 直接將目標 10.244.2.0/24 轉發給 Node 2 IP ] ──────────> [ 實體網路線速轉發，零封裝開銷! ]
+```
+
+- **優勢**：資料包不進行任何額外的 UDP/VXLAN 封裝，以原生二進位格式在實體交換機上全速轉發，延遲與裸機（Bare-metal）完全一致！
+
+---
+
+## 5. Cilium 與 eBPF 革命：告別 iptables 效能黑洞
+
+在大規模 Kubernetes 叢集中（例如包含 5,000 個 Service 與 20,000 個 Pod），傳統基於 `kube-proxy + iptables` 的網路面臨毀滅性效能瓶頸：
+
+- iptables 本質是一條**單向線性鏈表**，每次資料包到達都需要進行 $O(N)$ 線性遍歷；
+- 規則更新時需要全量刷新鎖，引發頻繁的 CPU 內核態飆升。
+
+```text
+[ 傳統架構 (iptables / IPVS) ]
+網卡 ──> 驅動 ──> Linux 內核網路棧 ──> Netfilter / iptables 遍歷 (O(N) 延遲) ──> Socket ──> Pod
+
+[ Cilium + eBPF 極速路徑 (XDP / TC) ]
+網卡 ──> eBPF 程序 (XDP/TC: BPF Map O(1) 雜湊查找) ─── (直接 Socket 轉發) ───> Pod
+         (完全繞過 Netfilter、conntrack 與 TCP 內核協定棧開銷!)
+```
+
+### Cilium 的顛覆性價值
+
+1. **$O(1)$ 查找複雜度**：透過 eBPF Map 實現微秒級轉發，即便叢集有 10 萬個 Service，效能依然平穩如一。
+2. **無 Sidecar 服務網格（Ambient Mesh / Service Mesh without Sidecars）**：直接在節點內核層透過 eBPF 攔截 HTTP/gRPC 流量並提供 mTLS 加密與 L7 可觀測性，徹底省去每個 Pod 注入 Envoy Sidecar 所消耗的巨量記憶體！
+
+---
+
+## 6. 總結
+
+- **輕量求穩**：中小型叢集可選用 **Flannel (Host-GW)** 或 **Calico**。
+- **企業級安全合規**：選用 **Calico** 提供強大的基於標籤的 NetworkPolicy 防火牆。
+- **下一代雲原生終極演進**：全面採用 **Cilium (eBPF)**，在獲得極限網路吞吐的同時，無縫解鎖七層可觀測性（Hubble）與無 Sidecar 服務網格能力。

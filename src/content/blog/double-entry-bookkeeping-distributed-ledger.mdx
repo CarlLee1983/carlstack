@@ -1,0 +1,156 @@
+---
+title: "雙式記帳（Double-Entry Bookkeeping）與分散式帳本架構：會計借貸平衡不變量、不可篡改流水與防超賣實踐"
+description: "深度解析金融與電商核心帳務系統架構：為什麼單純的「扣減餘額」在分散式環境下必定崩潰？雙式記帳（Double-Entry Bookkeeping）基本會計等式、借貸平衡不變量（Debits = Credits）、只增不減不可篡改帳本（Append-Only Journal）與分庫分表下的防超賣對帳實戰。"
+publishDate: 2026-09-02T15:25:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/double-entry-bookkeeping-distributed-ledger.png
+coverAlt: "雙式記帳借貸平衡不變量與不可篡改分散式帳本"
+tags:
+  - "系統設計"
+  - "雙式記帳"
+  - "帳務系統"
+  - "分散式帳本"
+  - "金融科技"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在許多初級工程師的直覺中，設計一個錢包或虛擬幣帳戶似乎非常簡單：
+
+```sql
+-- ❌ 致命的直覺設計：直接修改餘額
+UPDATE accounts SET balance = balance - 100 WHERE user_id = 42;
+```
+
+然而在真實的金融與高併發交易系統中，**直接 UPDATE 帳戶餘額無異於災難**！
+
+1. **黑洞問題**：當系統崩潰或網路中斷時，你根本無法追溯這 100 元去了哪裡？是轉給了別人、支付了手續費、還是被重複扣款？
+2. **併發超賣**：多個請求同時扣款時，資料庫行鎖競爭劇烈，稍有不慎即發生餘額變負數的嚴重超賣。
+3. **審計災難**：會計師與審計機關無法透過單一數字還原歷史交易過程。
+
+為了解決這個問題，人類在 700 年前發明了**雙式記帳法（Double-Entry Bookkeeping）**。本文將深入剖析如何將現代雙式記帳原則轉化為高效能、不可篡改的分散式帳本架構。
+
+---
+
+## 1. 雙式記帳核心會計不變量
+
+雙式記帳的核心精神只有一句話：**每一筆資金流動，都必須同時記錄來源與去向，且借方（Debit）總額永遠等於貸方（Credit）總額！**
+
+```text
+[ 核心會計恆等式 ]
+資產 (Assets) = 負債 (Liabilities) + 所有者權益 (Equity)
+```
+
+在帳務系統中，所有帳戶均被劃分為 5 大類型：
+
+| 帳戶類型 | 英文名稱                               | 借方（Debit, Dr）增加/減少 | 貸方（Credit, Cr）增加/減少 |
+| :------- | :------------------------------------- | :------------------------- | :-------------------------- |
+| **資產** | Assets (如銀行存款、庫存現金)          | 增加 (+)                   | 減少 (-)                    |
+| **負債** | Liabilities (如用戶充值餘額、應付帳款) | 減少 (-)                   | 增加 (+)                    |
+| **權益** | Equity (如股本、未分配利潤)            | 減少 (-)                   | 增加 (+)                    |
+| **收入** | Revenue (如平台抽成手續費)             | 減少 (-)                   | 增加 (+)                    |
+| **費用** | Expenses (如通道處理費、伺服器成本)    | 增加 (+)                   | 減少 (-)                    |
+
+### 永遠成立的絕對不變量（Invariant）
+
+對於任意一筆交易分錄（Entry）：
+
+`Σ Debits = Σ Credits`
+
+如果一筆交易寫入資料庫時 `Σ Debits ≠ Σ Credits`，系統必須在資料庫層級（如 Check Constraint 或 Trigger）強制拋出異常並拒絕寫入！
+
+---
+
+## 2. 帳本資料庫 Schema 設計：不可篡改日誌（Append-Only Journal）
+
+金融級帳本嚴禁執行 `UPDATE` 或 `DELETE`。任何更正必須透過**紅字沖正（Reversal）**或發起一筆反向交易。
+
+```text
+┌─────────────────┐       1:N       ┌─────────────────┐
+│   TRANSACTIONS  ├────────────────>│  ENTRY_LEGS     │
+│ (交易主表/事件) │                 │ (借貸明細分錄)  │
+└─────────────────┘                 └────────┬────────┘
+                                             │ N:1
+                                             ▼
+                                    ┌─────────────────┐
+                                    │    ACCOUNTS     │
+                                    │ (科目與帳戶主檔)│
+                                    └─────────────────┘
+```
+
+### 核心表結構設計
+
+```sql
+-- 1. 交易主表（代表一次不可分割的原子業務事件）
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY,
+    idempotency_key VARCHAR(128) NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    posted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 2. 借貸分錄明細（只增不減日誌）
+CREATE TABLE entry_legs (
+    id UUID PRIMARY KEY,
+    transaction_id UUID NOT NULL REFERENCES transactions(id),
+    account_id UUID NOT NULL REFERENCES accounts(id),
+    direction VARCHAR(2) NOT NULL CHECK (direction IN ('DB', 'CR')), -- DB: Debit, CR: Credit
+    amount NUMERIC(18, 4) NOT NULL CHECK (amount > 0),
+    currency VARCHAR(3) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## 3. 真實業務場景拆解：用戶購物與平台抽成
+
+假設用戶 Alice 在電商平台花費 100 元購買商品，平台抽成 5 元手續費，95 元結算給商戶 Bob。在雙式記帳中的分錄如下：
+
+| 分錄序號 | 帳戶 (Account)         | 科目類型         | 借/貸 (Dir) | 金額 (Amount) | 說明                      |
+| :------- | :--------------------- | :--------------- | :---------- | :------------ | :------------------------ |
+| Leg 1    | `user_wallet:alice`    | 負債 (Liability) | **Debit**   | 100.00        | Alice 錢包餘額減少 100 元 |
+| Leg 2    | `merchant_payable:bob` | 負債 (Liability) | **Credit**  | 95.00         | Bob 應結算款項增加 95 元  |
+| Leg 3    | `platform_revenue:fee` | 收入 (Revenue)   | **Credit**  | 5.00          | 平台手續費收入增加 5 元   |
+
+- **借方總額**：`100.00 (Leg 1)`
+- **貸方總額**：`95.00 (Leg 2) + 5.00 (Leg 3) = 100.00`
+- **借貸平衡**：`100.00 == 100.00`，交易成立！
+
+---
+
+## 4. 高併發分散式帳本架構：如何解決鎖競爭？
+
+若每個用戶查詢餘額都要對 `entry_legs` 進行全量 `SUM(amount)`，隨著數據量破千萬，查詢延遲將高達數秒。
+
+現代高併發帳本採用 **CQRS（命令查詢職責分離）** 與 **分段快照（Snapshotting）**：
+
+```text
+[ 寫入鏈路 (Command Path) ]
+寫入請求 ──> [ 驗證借貸平衡 ] ──> [ Append-Only 寫入 Entry Legs ]
+                                            │
+                                            ▼ (CDC / Binlog 異步串流)
+[ 讀取鏈路 (Query Path) ]
+查詢餘額 <── [ 查詢快照餘額表 ] <─── [ 快照聚合作業 (Daily Rollup Worker) ]
+```
+
+### 4.1 帳戶餘額快照表（Balance Snapshot）
+
+- 系統每小時或每天針對每個帳戶計算一次快照點（`snapshot_balance` 與 `last_entry_id`）。
+- 當前即時餘額 = `snapshot_balance + SUM(entry_legs since last_entry_id)`。
+- 計算範圍從數年流水被壓縮至僅需計算最近數筆，查詢時間由數秒降至 **1 毫秒以內**！
+
+### 4.2 熱點帳戶（Hotspot Account）分段隊列
+
+對於平台總利潤帳戶或大促銷商戶帳戶，數萬筆交易同時 Credit 會引發資料庫死鎖：
+
+- **解法**：將平台總帳戶拆分為 $N$ 個虛擬子帳戶（例如 `platform_fee_0` 到 `platform_fee_9`）。
+- 寫入時隨機 Hash 分流至其中一個子帳戶，查詢時聚合 $N$ 個子帳戶的總和，徹底打散鎖競爭！
+
+---
+
+## 5. 總結與工程實踐守則
+
+1. **永遠遵循借貸平衡**：任何業務交易在寫入前必須進行 `Σ Dr = Σ Cr` 數學檢驗。
+2. **只增不減不可篡改**：絕對不使用 `UPDATE` 修改流水，錯誤時以發起反向沖正分錄修正。
+3. **以快照支撐百萬 QPS 讀取**：寫入只走不可變日誌，讀取透過非同步 CDC 聚合快照與熱點拆分，兼顧資料一致性與高併發吞吐。

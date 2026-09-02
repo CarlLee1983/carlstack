@@ -26,18 +26,18 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 四大主流消息隊列架構全景矩陣
 
-| 評估維度               | RabbitMQ             | Apache Kafka         | Apache RocketMQ         | AWS SQS               |
-| :--------------------- | :------------------- | :------------------- | :---------------------- | :-------------------- |
-| 核心架構模型           | AMQP 路由交換機      | 分散式 Append 日誌   | 分散式分區主題          | 雲端託管分散式隊列    |
-| Broker / Consumer 哲學 | Smart Broker         | Dumb Broker          | 平衡型 (具備業務功能)   | 完全託管 Serverless   |
-|                        | Dumb Consumer        | Smart Consumer       |                         |                       |
-| 單機吞吐量極限         | 萬級 (10K~50K EPS)   | 百萬級 (1M+ EPS)     | 十萬至百萬級            | 自動彈性擴展          |
+| 評估維度               | RabbitMQ               | Apache Kafka         | Apache RocketMQ         | AWS SQS               |
+| :--------------------- | :--------------------- | :------------------- | :---------------------- | :-------------------- |
+| 核心架構模型           | AMQP 路由交換機        | 分散式 Append 日誌   | 分散式分區主題          | 雲端託管分散式隊列    |
+| Broker / Consumer 哲學 | Smart Broker           | Dumb Broker          | 平衡型 (具備業務功能)   | 完全託管 Serverless   |
+|                        | Dumb Consumer          | Smart Consumer       |                         |                       |
+| 單機吞吐量極限         | 萬級 (10K~50K EPS)     | 百萬級 (1M+ EPS)     | 十萬至百萬級            | 自動彈性擴展          |
 | 訊息傳輸延遲           | 微秒至次毫秒 (`< 1ms`) | 毫秒級 (2~10ms)      | 毫秒級 (1~5ms)          | 數十至數百毫秒        |
-| 訊息消費確認模型       | 記憶體追蹤 ACK       | Consumer Offset 指標 | Consumer Offset 指標    | Visibility Timeout    |
-| 訊息重播 (Replay)      | 不支援 (消費即刪除)  | 完美支援 (按 Offset) | 支援 (時間/位置回溯)    | 不支援 (消費即刪除)   |
-| 延時消息原生支援       | 需外掛/死信 TTL 模擬 | 不原生支援           | 原生精確支援 (時間輪)   | 原生支援 (最大15分鐘) |
-| 分散式事務消息         | 不原生 (需發布確認)  | 支援 (跨 Topic 事務) | 原生支援 (半消息二階段) | 不支援                |
-| 典型最佳場景           | 企業微服務、複雜路由 | 大數據串流、日誌採集 | 電商交易、金融結算      | 快速雲端開發、無運維  |
+| 訊息消費確認模型       | 記憶體追蹤 ACK         | Consumer Offset 指標 | Consumer Offset 指標    | Visibility Timeout    |
+| 訊息重播 (Replay)      | 不支援 (消費即刪除)    | 完美支援 (按 Offset) | 支援 (時間/位置回溯)    | 不支援 (消費即刪除)   |
+| 延時消息原生支援       | 需外掛/死信 TTL 模擬   | 不原生支援           | 原生精確支援 (時間輪)   | 原生支援 (最大15分鐘) |
+| 分散式事務消息         | 不原生 (需發布確認)    | 支援 (跨 Topic 事務) | 原生支援 (半消息二階段) | 不支援                |
+| 典型最佳場景           | 企業微服務、複雜路由   | 大數據串流、日誌採集 | 電商交易、金融結算      | 快速雲端開發、無運維  |
 
 ---
 

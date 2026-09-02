@@ -1,0 +1,107 @@
+---
+title: "分散式資料庫分片演算法全景對決：範圍分片、雜湊分片、一致性雜湊與目錄分片深度對比"
+description: "深度剖析分散式資料庫與海量資料儲存的核心擴展策略：為什麼單一分片演算法無法適應所有業務？4 大主流分片演算法（Range-based Sharding / Hash Sharding / Consistent Hashing / Directory-based Lookup）深度對決、資料傾斜（Data Skew）與動態擴容再平衡（Rebalancing）實戰。"
+publishDate: 2026-09-02T17:50:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/distributed-database-sharding-algorithms-comparison.png
+coverAlt: "分散式資料庫四大分片演算法對比與資料傾斜治理"
+tags:
+  - "資料庫"
+  - "分片架構"
+  - "Sharding"
+  - "分散式系統"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+當單台關係型資料庫的資料量突破數十 TB、寫入 QPS 突破數萬時，單機硬體垂直擴展（Scale-Up）將迅速觸及物理與成本天花板。
+
+此時，系統架構必須走向水平分片——**資料庫分片（Database Sharding）**：將一個邏輯大表拆分為多個物理分片（Shards），分散存儲在不同的資料庫伺服器節點上。
+
+然而，**選擇哪種分片演算法（Sharding Algorithm）** 是決定整個分散式系統生死存亡的關鍵決策：
+
+- 選錯演算法可能導致某些節點被熱點流量打爆（資料傾斜）；
+- 每次叢集擴容時需要搬遷全量資料；
+- 或者導致跨分片 JOIN 與分散式交易的延遲暴增。
+
+本文將為你深入對比 4 大主流資料庫分片演算法的底層機制與選型權衡。
+
+---
+
+## 1. 四大分片演算法核心架構矩陣
+
+```text
+[ 1. 範圍分片 (Range) ]       [ 2. 雜湊分片 (Hash) ]       [ 3. 一致性雜湊 (Consistent Hash) ]   [ 4. 目錄查表 (Directory) ]
+Key: [1..1000] ➔ Shard 1      hash(key) % N ➔ Shard ID    Hash 環 0 ~ 2^32-1, 虛擬節點對齊      Central Lookup Table 靈活映射
+Key: [1001..2000] ➔ Shard 2
+```
+
+| 分片演算法                       | 核心路由公式                 | 範圍查詢支援 (Range Queries)    | 資料均勻度 (Data Distribution)             | 節點擴容再平衡成本 (Resharding)            |
+| :------------------------------- | :--------------------------- | :------------------------------ | :----------------------------------------- | :----------------------------------------- |
+| **範圍分片 (Range)**             | `key in [min, max]`          | **極佳 (天然支援連續區間掃描)** | 差 (極易產生寫入熱點與傾斜)                | 較低 (僅需分裂單個過大分區)                |
+| **雜湊模分片 (Hash % N)**        | `crc32(key) % N`             | 差 (跨多分片發散查詢)           | **極佳 (均勻散列於各節點)**                | **災難級 (N 變 N+1 時全量資料需重分佈)**   |
+| **一致性雜湊 (Consistent Hash)** | 虛擬節點 Hash 環尋址         | 差                              | **極佳 (透過 100~200 個虛擬節點均勻分攤)** | **極低 (僅相鄰節點受影響，搬遷 1/N 數據)** |
+| **目錄查表分片 (Directory)**     | 查詢中心配置表 `lookup(key)` | 取決於目錄配置                  | **最靈活 (可手動按租戶/地域分配)**         | **最低 (僅需修改元數據路由記錄)**          |
+
+---
+
+## 2. 各演算法深度剖析
+
+### 2.1 範圍分片（Range-Based Sharding）
+
+- **機制**：依據分片鍵的值域區間劃分（例如依時間按月分片：`2026-01` 存 Shard 1，`2026-02` 存 Shard 2；或依用戶 ID 範圍 `1~1,000,000`）。
+- **致命缺陷（熱點寫入）**：若按自增 ID 或時間戳分片，**當前所有最新的寫入請求將 100% 湧入最後一個分片**，其餘歷史分片閒置，形成嚴重的寫入瓶頸！
+- **代表系統**：Google Bigtable、Apache HBase、CockroachDB（採用 Range Split 避免單點）。
+
+### 2.2 雜湊模分片（Hash-Modulo Sharding）
+
+- **機制**：`ShardIndex = hash(user_id) % NodeCount`。
+- **優勢**：資料被極其均勻地打散到所有節點上。
+- **致命缺陷**：一旦從 4 台節點擴容至 5 台節點，`% 4` 變成 `% 5`，**高達 80% 的歷史資料必須重新跨節點搬遷（Resharding）**！
+
+### 2.3 一致性雜湊（Consistent Hashing with Virtual Nodes）
+
+- **機制**：將哈希空間組織為 $0 \sim 2^{32}-1$ 的閉合圓環，每個物理節點在環上映射 100~200 個虛擬節點（Virtual Nodes）。
+- **優勢**：新增或移除節點時，只有相鄰的數據需要遷移，其餘節點完全不受影響。
+- **代表系統**：Amazon DynamoDB、Apache Cassandra、Redis Cluster。
+
+### 2.4 目錄查表分片（Directory-Based / Lookup Sharding）
+
+- **機制**：維護一個中心化的路由表（通常存放在高可用 etcd 或 Redis 中），記錄 `Account_ID ➔ Shard_12` 的顯式映射。
+- **優勢**：支援業務層級的客製化調度（例如將 VIP 企業大客戶分配給專屬獨立的高效能分片）。
+
+---
+
+## 3. 跨分片查詢（Cross-Shard Queries）與 Scatter-Gather 治理
+
+當查詢條件未攜帶 Sharding Key 時（例如 `SELECT * FROM orders WHERE status = 'PAID'`）：
+
+```text
+[ 應用發起無 Sharding Key 查詢 ]
+               │
+               ▼
+[ 分散式中間件 (DBProxy / Vitess / ShardingSphere) ]
+               │ (向所有 16 個分片平行發起查詢: Scatter)
+    ┌──────────┼──────────┬──────────┐
+    ▼          ▼          ▼          ▼
+[ Shard 1 ] [ Shard 2 ] [ Shard 3 ] [ Shard 4 ]
+    │          │          │          │
+    └──────────┼──────────┴──────────┘
+               │ (在記憶體中進行排序與聚合: Gather)
+               ▼
+[ 彙整結果返回給客戶端 ]
+```
+
+### 治理原則
+
+1. **建立全局二級索引（Global Secondary Index, GSI）**：非同步將 `status ➔ order_id` 映射儲存在獨立的索引分片中。
+2. **雙分片維度設計（Dual-Write Sharding）**：例如買家維度與賣家維度透過 CDC 各自存一份分片庫，杜絕低效的 Scatter-Gather。
+
+---
+
+## 4. 總結
+
+- **時間序列日誌與時序數據**：採用 **Range 分片**（搭配生命週期自動歸檔刪除）。
+- **大規模分散式 NoSQL KV**：採用 **一致性雜湊（Consistent Hashing）**。
+- **傳統大型電商/SaaS 業務分庫分表**：採用 **Hash 分片（預先分配 1024 邏輯分片）** 或 **目錄查表**，從根本上避免擴容搬遷之苦。

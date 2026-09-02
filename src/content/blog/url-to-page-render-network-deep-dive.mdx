@@ -1,0 +1,136 @@
+---
+title: "從瀏覽器輸入 URL 到網頁呈現全景：DNS 遞迴解析、TCP 三向交握、TLS 協商到 HTTP 請求全鏈路拆解"
+description: "深度拆解軟體工程史上最經典的面試神題：當你在瀏覽器網址列輸入一個 URL 並按下 Enter，底層究竟發生了什麼？從瀏覽器 HSTS、DNS 多層遞迴解析、TCP 三向交握、TLS 1.3 協商、核心 Socket 緩衝區到瀏覽器 CRP 渲染管線全景實戰。"
+publishDate: 2026-09-02T16:00:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/url-to-page-render-network-deep-dive.png
+coverAlt: "從輸入 URL 到網頁呈現網路傳輸與 CRP 渲染全鏈路"
+tags:
+  - "系統設計"
+  - "計算機網路"
+  - "DNS"
+  - "TCP/IP"
+  - "瀏覽器原理"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+「當你在瀏覽器輸入 URL 並按下 Enter 到頁面渲染出來，這中間發生了什麼事？」
+
+這是全球軟體工程師、SRE 與架構師面試中出現頻率最高、涵蓋領域最廣的「面試神題」。許多人只能背出零散的名詞（DNS、TCP、HTTP、DOM），卻無法將作業系統內核、網路協定棧與瀏覽器渲染引擎串聯成一條條理清晰的完整鏈路。
+
+本文將帶你沿著資料封包的真實流轉軌跡，由淺入深、毫秒級拆解這場跨越微秒、公網與矽晶片的傳輸全景之旅。
+
+---
+
+## 1. 全鏈路旅程鳥瞰圖
+
+```text
+[ 1. URL 解析 & 瀏覽器快取 ]
+              │ (若無快取)
+              ▼
+[ 2. DNS 階層式解析 (遞迴/迭代查詢) ] ──> (獲取目標伺服器 IP: 104.21.5.18)
+              │
+              ▼
+[ 3. TCP 傳輸層建立 (三向交握 SYN/ACK) ]
+              │
+              ▼
+[ 4. TLS 1.3 安全協商 (ECDHE 密鑰交換) ]
+              │
+              ▼
+[ 5. HTTP/2 或 HTTP/3 請求與伺服器回應 ]
+              │
+              ▼
+[ 6. 瀏覽器關鍵渲染路徑 (CRP: DOM + CSSOM ➔ Layout ➔ Composite) ]
+```
+
+---
+
+## 2. 第一站：URL 解析、HSTS 與本機快取檢查
+
+1. **URL 合法性與協議判斷**：瀏覽器判斷輸入的是搜尋關鍵字還是標準 URL。
+2. **HSTS（HTTP Strict Transport Security）檢查**：
+   - 瀏覽器檢查內建的 HSTS Preload 列表。若域名在列表中，瀏覽器會直接在內部將 `http://` 強制重寫為 `https://`，從源頭避免明文跳轉遭受 SSL-Stripping 中間人攻擊。
+3. **階層式快取檢查**：
+   - 檢查 **Service Worker 快取 ➔ Memory Cache ➔ Disk Cache ➔ Push Cache**。若命中強快取（`Cache-Control: max-age=...` 且未過期），直接從本機硬碟/記憶體讀取並結束網路傳輸！
+
+---
+
+## 3. 第二站：DNS 域名解析（Domain Name System）
+
+若無快取，系統必須將人類可讀的域名（如 `carlstack.dev`）轉換為機器識別的 IP 位址：
+
+```text
+[ 瀏覽器 ] ── (1. 查詢) ──> [ 本機 Local DNS Resolver (如 8.8.8.8) ]
+                                      │
+                                      ├── (2. 查詢 .) ───────> [ 根域名伺服器 (Root Server) ]
+                                      │                        └── 返回 .dev TLD IP
+                                      ├── (3. 查詢 .dev) ────> [ 頂級域名伺服器 (TLD Server) ]
+                                      │                        └── 返回權威 NS IP
+                                      └── (4. 查詢權威 NS) ──> [ 權威域名伺服器 (Authoritative NS) ]
+                                                               └── 返回目標 A/AAAA 記錄!
+```
+
+- **遞迴查詢（Recursive Query）**：客戶端與 Local DNS 之間的關係（「請直接給我最終結果」）。
+- **迭代查詢（Iterative Query）**：Local DNS 代表客戶端依序向「根（Root）➔ 頂級域（TLD）➔ 權威域（Authoritative）」發起詢問的過程。
+- **現代優化**：透過 **DoH（DNS over HTTPS）** 或 **DoT（DNS over TLS）** 對 DNS 查詢進行加密，防止 ISP 劫持與流量窺探。
+
+---
+
+## 4. 第三站：TCP 三向交握（Three-Way Handshake）
+
+獲取目標 IP 後，瀏覽器內核透過 `socket()` 系統調用向目標伺服器的 443 埠發起 TCP 連線：
+
+```text
+Client (SYN_SENT)        ── (1. SYN: seq = x) ───────>  Server (LISTEN ➔ SYN_RCVD)
+Client (ESTABLISHED)     <─ (2. SYN + ACK: ack = x+1, ── Server
+                            seq = y)
+Client (ESTABLISHED)     ── (3. ACK: ack = y+1) ─────>  Server (ESTABLISHED)
+```
+
+- **為什麼必須是三次？** 兩次無法確認雙向的發送與接收能力，四次則冗餘浪費。三次是通訊雙方在不可靠網路上達成「初始序列號（ISN）同步」的理論最小次數。
+- **MSS（Maximum Segment Size）協商**：在 SYN 階段同步雙方最大報文段大小（通常為 1460 字節，對應 1500 字節的乙太網 MTU）。
+
+---
+
+## 5. 第四站：TLS 1.3 加密握手與 HTTP 傳輸
+
+在 TCP 管道之上，進行 1-RTT 的 TLS 1.3 握手（協商 AES-GCM 對稱密鑰與校驗 X.509 證書鏈）。
+
+連線就緒後，客戶端發送二進位 HTTP 幀：
+
+```http
+GET /posts/system-design HTTP/2
+Host: carlstack.dev
+User-Agent: Mozilla/5.0 ...
+Accept: text/html,application/xhtml+xml
+```
+
+伺服器網關（如 Envoy / Nginx）接收請求，透過反向代理將其轉發至後端微服務處理，並返回 HTML 響應流（`HTTP/2 200 OK`，帶有 `Content-Type: text/html; charset=utf-8`）。
+
+---
+
+## 6. 第五站：瀏覽器關鍵渲染路徑（Critical Rendering Path）
+
+瀏覽器網路執行緒接收到字節流後，交由渲染引擎（如 Blink / WebKit）的主執行緒解析：
+
+```text
+[ HTML Bytes ] ──> [ Tokens ] ──> [ Nodes ] ──> [ DOM Tree ]  ──┐
+                                                                 ├──> [ Render Tree ] ──> [ Layout (排版) ] ──> [ Paint (繪製) ] ──> [ Composite (合成上屏) ]
+[ CSS Bytes ]  ──> [ Tokens ] ──> [ Nodes ] ──> [ CSSOM Tree ] ──┘
+```
+
+1. **構建 DOM 與 CSSOM**：邊下載邊流式解析 HTML 構建 DOM 樹；遇到 `<link rel="stylesheet">` 時非同步下載並構建 CSSOM 樹。
+2. **生成渲染樹（Render Tree）**：結合 DOM 與 CSSOM，過濾掉 `display: none` 的隱藏節點。
+3. **佈局計算（Layout / Reflow）**：計算每個可見節點在螢幕上的精確幾何座標與尺寸。
+4. **圖層繪製與合成（Paint & Composite）**：將元素繪製到不同圖層，交由 GPU 執行硬體加速合成，最終將像素呈現在螢幕上！
+
+---
+
+## 7. 總結
+
+從輸入 URL 到網頁呈現，是計算機科學各層級協同運作的極致藝術：
+
+- **應用層**：URL 解析、快取匹配與 HTTP 語義封裝；
+- **系統與傳輸層**：DNS 樹狀查詢、TCP 滑動視窗可靠保證與 TLS 密碼學加密；
+- **前端核心**：瀏覽器多進程架構與 GPU 硬體加速渲染管線。

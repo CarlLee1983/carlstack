@@ -1,0 +1,126 @@
+---
+title: "TLS 1.3 握手協議與 0-RTT 早期數據安全：Diffie-Hellman 密鑰交換、前向保密與重放攻擊防禦"
+description: "深度拆解現代網際網路傳輸加密核心：TLS 1.3 如何將連線建立延遲從 2-RTT 砍半至 1-RTT？ECDHE 暫時性密鑰協商、完美前向保密（PFS）、0-RTT 早期數據（Early Data）原理與抗重放攻擊（Anti-Replay）安全架構全解。"
+publishDate: 2026-09-02T15:40:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/tls-1-3-handshake-zero-rtt-security.png
+coverAlt: "TLS 1.3 握手協議與 0-RTT 早期數據安全防禦"
+tags:
+  - "資訊安全"
+  - "密碼學"
+  - "網路協定"
+  - "TLS 1.3"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在現代網路架構中，HTTPS 已成為絕對標配。然而在很長一段時間內，安全與效能往往被視為一對不可調和的矛盾：
+
+- 在 **TLS 1.2** 時代，建立一個安全加密連線需要進行 **2 個往返時延（2-RTT）** 的握手協商；
+- 加上 TCP 的三向交握（1-RTT），瀏覽器在發出第一個真正的 HTTP GET 請求前，已經白白耗費了 **3-RTT（在跨國網路上可達數百毫秒）**！
+
+2018 年，IETF 正式發布了 **TLS 1.3（RFC 8446）**。它被譽為傳輸層安全史上最重大的革新：**標準連線直接砍半至 1-RTT，而在連線復用（Resumption）場景下，更支援驚人的 0-RTT 早期數據傳輸！**
+
+本文將帶你深入底層，全面剖析 TLS 1.3 的密鑰交換機制、加密協定瘦身與 0-RTT 重放攻擊防禦。
+
+---
+
+## 1. TLS 1.2 vs. TLS 1.3 握手流程深度對比
+
+```text
+[ TLS 1.2: 2-RTT 握手 ]                     [ TLS 1.3: 1-RTT 握手 ]
+Client                 Server             Client                 Server
+  │                      │                  │                      │
+  ├─ 1. ClientHello ────>│                  ├─ 1. ClientHello + ──>│ (直接附帶 Key Share)
+  │                      │                  │     Key Share        │
+  │<─ 2. ServerHello ────┤                  │                      │
+  │      Certificate     │                  │<─ 2. ServerHello + ──┤ (完成密鑰協商 + 憑證)
+  │      ServerKeyEx     │                  │      Key Share +     │
+  │      ServerHelloDone │                  │      EncryptedExt +  │
+  │                      │                  │      Certificate +   │
+  ├─ 3. ClientKeyEx ────>│                  │      Finished        │
+  │      ChangeCipher    │                  │                      │
+  │      Finished        │                  ├─ 3. [Encrypted HTTP] ┤ (立刻發送加密數據!)
+  │                      │                  │     Finished ───────>│
+  │<─ 4. ChangeCipher ───┤                  │                      │
+  │      Finished        │                  │                      │
+  │                      │                  │                      │
+  ├─ 5. [Encrypted HTTP]─┤                  │                      │
+```
+
+### TLS 1.3 提速的核心秘密：推測性密鑰共享（Key Share）
+
+- 在 TLS 1.2 中，Client 先告訴 Server 自己支援的密碼套件清單，Server 選定後再告訴 Client，雙方再來回計算密鑰，因此需要 2-RTT。
+- 在 TLS 1.3 中，Client 在發送 `ClientHello` 的同時，**大膽推測** Server 支援的熱門橢圓曲線演算法（如 X25519），直接在第一封包中附帶自己的暫時性公鑰（`Key Share`）。
+- Server 收到後若同意該演算法，立即生成 Server 側密鑰並附在 `ServerHello` 中回傳。**僅需 1-RTT，雙方即已同步完成對稱會話密鑰的派生！**
+
+---
+
+## 2. 徹底廢除不安全演算法與強制前向保密（PFS）
+
+TLS 1.3 大刀闊斧移除了大量歷史遺留的不安全特性：
+
+1. **全面禁用靜態 RSA 密鑰交換**：
+   - 舊版 RSA 密鑰交換中，若伺服器的私鑰在數年後洩漏，攻擊者只要持有過去攔截的所有歷史封包，即可全部解密。
+   - TLS 1.3 **強制採用暫時性 Diffie-Hellman（ECDHE）**，每次連線均生成拋棄式臨時密鑰，具備**完美前向保密性（Perfect Forward Secrecy, PFS）**。
+2. **移除弱雜湊與對稱演算法**：徹底淘汰 MD5、SHA-1、RC4、DES、CBC 模式，僅保留 AEAD 認證加密模式（如 AES-GCM、ChaCha20-Poly1305）。
+
+---
+
+## 3. 0-RTT 早期數據（Early Data）原理
+
+對於曾經存取過該伺服器的客戶端，TLS 1.3 支援連線恢復時的 **0-RTT**：
+
+```text
+[ 0-RTT 連線復用模式 ]
+Client                                  Server
+  │                                       │
+  ├─ 1. ClientHello + PSK Ticket + ──────>│
+  │     [Early Data: HTTP GET /feed]      │ (首個封包立即附帶加密 HTTP 請求!)
+  │                                       │
+  │<─ 2. ServerHello + Finished ──────────┤
+  │      [HTTP Response: 200 OK]          │ (第 1 個 RTT 內即完成數據接收!)
+```
+
+### PSK 預共享密鑰機制
+
+- 首次連線成功後，Server 會發給 Client 一個加密的會話票證（Session Ticket / Pre-Shared Key, PSK）。
+- 下次 Client 再次連線時，直接使用該 PSK 對應用層數據進行加密，並與 `ClientHello` 一併送出，實現 **0-RTT 極速首頁渲染**。
+
+---
+
+## 4. 0-RTT 的致命阿基里斯腱：重放攻擊（Replay Attacks）與防禦
+
+0-RTT 雖然極快，但由於其發送時雙方尚未完成雙向臨時密鑰驗證，**該數據包極易被中間人（MITM）截獲並惡意重放！**
+
+```text
+[ 重放攻擊情境 ]
+Client ─── (0-RTT: POST /api/transfer?amount=100) ───> Server (扣款 100 元)
+                                                          │
+攻擊者攔截該封包並重放 10 次 ───────────────────────────────> Server (重複扣款 1000 元!)
+```
+
+### 4.1 協議級防禦規範：僅對等冪（Idempotent）請求啟用 0-RTT
+
+- **RFC 規範嚴格要求**：**絕對禁止** 在 0-RTT Early Data 中傳輸任何具備副作用的請求（如 `POST`、`PUT`、`DELETE`、支付轉帳）。
+- 0-RTT 僅限於安全的純讀取請求（如 `GET /static/app.js`、`GET /index.html`）。
+
+### 4.2 伺服器端防重放機制
+
+1. **單次使用票證（Single-Use Tickets via Distributed Cache）**：
+   - 伺服器在 Redis / 記憶體中記錄已使用的 PSK Ticket ID，一旦看見重複的 Ticket 直接降級至 1-RTT 或拒絕。
+2. **時間戳滑動視窗驗證（Client Hello Timestamps）**：
+   - Server 檢驗 ClientHello 中的時間戳，若與伺服器當前時鐘偏差超過 ±10 秒，直接丟棄。
+
+---
+
+## 5. 總結
+
+| 維度                 | TLS 1.2              | TLS 1.3                               |
+| :------------------- | :------------------- | :------------------------------------ |
+| **首次連線握手延遲** | 2-RTT                | **1-RTT（延遲砍半）**                 |
+| **連線復用延遲**     | 1-RTT                | **0-RTT（極速首包）**                 |
+| **前向保密（PFS）**  | 可選（支援靜態 RSA） | **強制 ECDHE（全面前向保密）**        |
+| **密碼套件複雜度**   | 30+ 種繁雜組合       | **僅保留 5 種頂級安全 AEAD 套件**     |
+| **0-RTT 安全考量**   | 不支援               | **需嚴格防禦重放攻擊，僅限 GET 請求** |

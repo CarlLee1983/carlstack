@@ -1,0 +1,115 @@
+---
+title: "即時串流運算引擎深度對決：Apache Flink vs. Spark Streaming 架構模型與狀態計算全景"
+description: "深度剖析現代即時大數據計算雙雄：原生事件驅動（Event-driven）的 Apache Flink 與微批次（Micro-batching）的 Spark Structured Streaming 核心對決。事件時間（Event Time）、水位線（Watermark）、分散式狀態管理（RocksDB StateBackend）與 Exactly-Once 語義檢查點機制全解。"
+publishDate: 2026-09-02T16:30:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/stream-processing-apache-flink-vs-spark-streaming.png
+coverAlt: "Apache Flink vs Spark Streaming 即時串流運算架構對決"
+tags:
+  - "大數據"
+  - "串流計算"
+  - "Apache Flink"
+  - "Spark"
+  - "即時計算"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在即時風控、大促銷即時大屏、金融高頻交易與物聯網告警等高時效業務場景中，「資料一到達就必須在毫秒級完成計算」已成為現代企業的剛性需求。
+
+在開源即時計算領域，**Apache Flink** 與 **Apache Spark（Spark Streaming / Structured Streaming）** 是佔據統治地位的兩大巨頭。
+
+儘管兩者在現代版本中功能日益趨同，但在**底層計算模型、狀態儲存架構與時間語義處理**上，兩者存在著根本性的哲學分歧。
+
+本文將帶你深入兩大引擎的底層核心，全面對比兩者的架構機制與選型維度。
+
+---
+
+## 1. 原生事件驅動（Flink）vs. 微批次（Spark）
+
+兩大引擎最根本的差異在於「如何看待一條資料」：
+
+```text
+[ Apache Flink: 原生事件驅動 (Native Streaming) ]
+每到達一條 Event ──> 立即觸發計算 ──> 即時更新狀態 ──> 立即向下游發送 (亞毫秒級延遲, < 10ms)
+
+[ Spark Structured Streaming: 微批次 (Micro-batching) ]
+時間窗口 (如 500ms): 收集一批 Events ──> 打包成微型 RDD ──> 啟動微批次排程計算 (延遲約 100ms ~ 500ms)
+```
+
+| 評估維度                 | Apache Flink                                      | Spark Structured Streaming                                                 |
+| :----------------------- | :------------------------------------------------ | :------------------------------------------------------------------------- |
+| **計算本質**             | **事件驅動（Stream-native，批次被視為流的特例）** | **微批次（Batch-native，流被視為連續的小批次）**                           |
+| **端到端延遲**           | **極致低延遲（亞毫秒 ~ 數毫秒級）**               | 較低延遲（通常為 100ms ~ 500ms，Continuous Processing 模式有諸多算子限制） |
+| **吞吐量（Throughput）** | 極高（透過 Credit-based Flow Control 優化）       | **極致吞吐（批次向量化計算在超大數據量下極具優勢）**                       |
+| **狀態維護（Stateful）** | **原生有狀態運算（支援 TB 級 RocksDB 狀態後端）** | 基於 Checkpoint 與 DeltaState 維護                                         |
+| **生態整合**             | 與 Kafka、Pulsar、即時資料湖（Iceberg）深度整合   | 與 Spark 離線批次、MLlib 機器學習、GraphX 完美統一                         |
+
+---
+
+## 2. 時間語義與水位線機制（Watermark & Event Time）
+
+在分散式網路環境中，由於網路延遲或設備重連，資料到達計算引擎的順序極易發生「亂序（Out-of-Order）」：
+
+```text
+事件發生時間 (Event Time):  12:00:01 ───> 12:00:02 ───> 12:00:03
+引擎接收時間 (Processing Time): 12:00:01 ───> 12:00:05 ───> 12:00:03 (亂序到達!)
+```
+
+### Watermark（水位線）如何解決亂序？
+
+Flink 引入了 **Watermark（水位線）** 機制：
+
+- 水位線是一種特殊的控制事件，攜帶時間戳 $t$。
+- 當 Watermark($t$) 到達時，代表引擎判定：**所有 Event Time $\le t$ 的資料均已被接收完畢，可以安全觸發視窗計算！**
+- **延遲容忍（Allowed Lateness）**：若在 Watermark 推進後仍有極端遲到的資料到達，Flink 支援透過側輸出流（Side Output）將其捕獲至死信隊列，避免資料丟失。
+
+---
+
+## 3. 分散式狀態管理：Flink RocksDB vs. JVM Heap
+
+在高階即時運算中（如滑動視窗聚合、雙流 JOIN、用戶連鎖行為識別），引擎必須在記憶體中維護龐大的中間狀態（State）：
+
+```text
+[ Flink Stateful Operator ]
+      │
+      ├── MemoryStateBackend (純 JVM 堆記憶體，適合輕量除錯)
+      ├── FsStateBackend (狀態在記憶體，Checkpoint 存 S3/HDFS)
+      └── EmbeddedRocksDBStateBackend (狀態溢出至本地 NVMe SSD，突破 JVM GC 瓶頸!)
+```
+
+- **RocksDB StateBackend 的威力**：Flink 將狀態儲存在進程外的嵌入式 RocksDB（C++ 撰寫）中。當單節點狀態高達數百 GB 時，**完全不受 Java GC 停頓影響**，是支撐超大規模狀態運算的定海神針。
+
+---
+
+## 4. Exactly-Once 端到端精確一次語義保證
+
+分散式節點可能隨時宕機崩潰，引擎如何保證「不重複計算、不遺漏計算」？
+
+### Flink 非同步屏障快照（Chandy-Lamport 演算法變體）
+
+```text
+[ Source ] ─── Barrier 1 ───> [ Transform Operator ] ─── Barrier 1 ───> [ Sink ]
+    │                                  │                                    │
+    ▼                                  ▼                                    ▼
+[ 快照 1: Kafka Offset ]       [ 快照 1: 當前計數器狀態 ]           [ 快照 1: 2PC 預提交事務 ]
+    └──────────────────────────────────┴────────────────────────────────────┘
+                                       │
+                                       ▼ (全部寫入分散式耐久儲存 S3 / HDFS)
+```
+
+1. Flink JobManager 定期向資料流注入 **Checkpoint Barrier（屏障）**；
+2. 每個算子收到 Barrier 後，非同步將自身當前狀態寫入持久化儲存（S3 / HDFS）；
+3. 當所有算子均回報快照完成，該 Checkpoint 被標記為成功。
+4. **配合 2PC（兩階段提交）Sink**：下游輸出端（如 Kafka Producer 或 Iceberg）在 Checkpoint 成功時執行最終 Commit，實現真正的 **端到端 Exactly-Once**！
+
+---
+
+## 5. 選型決策指南
+
+- **選 Apache Flink**：
+  - 業務對延遲有嚴苛要求（`< 100ms`，如金融高頻風控、電競反作弊）；
+  - 需要複雜的即時狀態計算（超長視窗雙流 JOIN、CEP 複雜事件處理）。
+- **選 Spark Structured Streaming**：
+  - 業務對延遲容忍度在秒級以上（如 5 秒更新一次業務報表）；
+  - 團隊現有大數據技術棧高度依賴 Spark（希望離線批次與即時流共用同一套代碼與 ML Pipeline）。

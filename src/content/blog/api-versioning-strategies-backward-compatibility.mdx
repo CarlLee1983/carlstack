@@ -1,0 +1,104 @@
+---
+title: "API 版本控制與平滑演進策略：URI Path、Header、Query Param 與破壞性變更相容性治理"
+description: "深度剖析現代企業級 API 平台演進核心：如何在業務快速迭代的同時維護數十萬活躍客戶端的平滑相容？4 大主流 API 版本控制策略（URI Path / Custom Header / Content Negotiation Accept / Query Parameter）優缺點對比、向後相容性（Backward Compatibility）鐵律與 Stripe 式雙向轉換適配器架構實戰。"
+publishDate: 2026-09-02T17:30:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/api-versioning-strategies-backward-compatibility.png
+coverAlt: "API 版本控制策略與向後相容平滑演進"
+tags:
+  - "API 設計"
+  - "版本控制"
+  - "系統設計"
+  - "架構演進"
+  - "向後相容"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在軟體系統的生命週期中，**「變更是唯一的不變」**。
+
+然而，當你的 API 已經發布給數以萬計的行動端 App、第三方開發者或企業客戶使用時，任何一個看似微小的欄位重命名（如將 `user_name` 改為 `username`）或型別變更（如將數字改為字串），都會直接導致舊版客戶端崩潰。
+
+**API 版本控制（API Versioning）** 是保證系統可持續演進的最關鍵基礎設施。
+
+本文將帶你深入剖析 4 大主流版本控制策略，並拆解全球頂級 API 典範 **Stripe** 如何在單一核心代碼庫下維護數百個歷史 API 版本的黑科技架構。
+
+---
+
+## 1. 四大 API 版本控制策略全景對比
+
+```text
+[ 1. URI Path 版本控制 ] ──> GET /v1/users/42  vs.  GET /v2/users/42
+[ 2. Header 版本控制 ]   ──> GET /users/42  +  Header: X-API-Version: 2026-09-01
+[ 3. Accept 內容協商 ]   ──> GET /users/42  +  Header: Accept: application/vnd.company.v2+json
+[ 4. Query Parameter ]   ──> GET /users/42?version=2
+```
+
+| 版本控制方式               | 具體實現範例                          | 優點                                                     | 缺點                                                           | 適用場景                                     |
+| :------------------------- | :------------------------------------ | :------------------------------------------------------- | :------------------------------------------------------------- | :------------------------------------------- |
+| **URI Path (路徑)**        | `/api/v1/orders` ➔ `/api/v2/orders`   | **直觀清晰、可透過瀏覽器直接點擊、CDN 邊緣快取天然隔離** | 違反 REST 資源純粹性（同一資源有多個 URL）、跨版本重構代碼重複 | **公眾開放 API、大型主版本破壞性重構**       |
+| **Custom Header (標頭)**   | `X-API-Version: 2026-09-02`           | **保持 URL 乾淨一致、易於語意化日期發布管理**            | 無法直接在瀏覽器網址列存取、CDN 需配置 Vary Header             | **企業級內部微服務、B2B SaaS 平台 (Stripe)** |
+| **Accept 內容協商**        | `Accept: application/vnd.app.v1+json` | **完全符合 RESTful HATEOAS 標準**                        | 語法繁瑣、客戶端接入門檻高、除錯不易                           | 學術標準嚴格的 REST 架構                     |
+| **Query Parameter (參數)** | `/api/orders?v=2`                     | 實現極其簡單、支援預設缺省值                             | URL 雜亂、容易與業務篩選參數混淆                               | 臨時過渡、輕量內部專案                       |
+
+---
+
+## 2. 什麼是相容變更 vs. 破壞性變更（Breaking Changes）？
+
+### 2.1 ✅ 安全的向後相容變更（無需升級 API 版本）
+
+1. **新增可選欄位（Optional Fields）**：在 Response JSON 中新增新欄位；
+2. **新增獨立 API 端點**：如新增 `POST /v1/users/export`；
+3. **放寬請求參數約束**：將某個原本必填的參數改為可選。
+
+### 2.2 ❌ 破壞性變更（必須引入新版本管理）
+
+1. **重新命名或刪除欄位**：如將 `tele` 改為 `phone_number`；
+2. **修改欄位資料型別**：如將 `price: 100`（整數）改為 `price: "100.00"`（字串）；
+3. **修改 HTTP 狀態碼語義**：如原本返回 `404` 突然改為返回 `200 OK` 帶 `{ "data": null }`；
+4. **新增必填請求參數**。
+
+---
+
+## 3. Stripe 式版本控制架構：雙向變更閘道器（Version Translators）
+
+Stripe 最著名的工程奇蹟在於：**用戶在 2017 年註冊時鎖定的 API 版本，在 2026 年依然能完美執行，而後端核心代碼只有一套最新的版本！**
+
+```text
+[ 舊版客戶端 (請求: 2017-05-10 版本) ]
+                   │
+                   ▼
+     [ API 閘道器 / 版本轉換層 ]
+                   │ (1. 依序向上套用 Request 變更: 2017 ➔ 2019 ➔ 2023 ➔ 2026)
+                   ▼
+     [ 核心業務微服務 (永遠只運行最新 2026 商業邏輯) ]
+                   │
+                   ▼ (2. 回傳最新 2026 格式 Response)
+     [ API 閘道器 / 版本轉換層 ]
+                   │ (3. 依序向下套用 Response 補丁: 2026 ➔ 2023 ➔ 2019 ➔ 2017)
+                   ▼
+[ 舊版客戶端收到完全相容的 2017 格式資料! ]
+```
+
+- **優勢**：開發團隊只需要維護最新版本的主幹代碼；每個歷史版本的微小差異被封裝為單獨的轉換函式（Translators），極大降低了多版本共存時的維護地獄。
+
+---
+
+## 4. API 廢棄（Deprecation）與退役生命週期治理
+
+1. **Sunset Header 標準規範（RFC 8594）**：
+   在即將廢棄的 API 回應中加入標準標頭：
+   ```http
+   Deprecation: @1756800000
+   Sunset: Wed, 02 Sep 2026 00:00:00 GMT
+   Link: <https://docs.carlstack.dev/migration-v2>; rel="sunset"
+   ```
+2. **主動通知與流量監控**：在 API 閘道器統計各個版本的調用量，定期向仍在使用老舊版本的用戶發送自動化遷移提醒。
+
+---
+
+## 5. 總結
+
+- **對外公開 API 推薦 URI Path（`/v1/`）**：簡單直觀，生態工具支援最完美。
+- **複雜平台推薦 Date-based Header（`X-Version: YYYY-MM-DD`）**：搭配雙向轉換層，兼顧靈活性與相容性。
+- **嚴格遵守相容性鐵律**：只增不刪、廢棄先行、提供充足的遷移過渡期。

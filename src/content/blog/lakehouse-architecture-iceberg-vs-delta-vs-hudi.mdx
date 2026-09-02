@@ -1,0 +1,113 @@
+---
+title: "現代 Lakehouse 核心架構對決：Apache Iceberg vs. Delta Lake vs. Apache Hudi 底層技術深析"
+description: "深入現代資料湖倉一體（Lakehouse）底層核心：為什麼直接在 S3/GCS 讀寫 Parquet 會發生數據不一致？開放表格格式（Open Table Formats）三國大對決：Apache Iceberg（元數據樹與隱藏分區）、Delta Lake（ACID 事務日誌）與 Apache Hudi（流批一體 Copy-on-Write / Merge-on-Read）深度對比與選型指南。"
+publishDate: 2026-09-02T16:25:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/lakehouse-architecture-iceberg-vs-delta-vs-hudi.png
+coverAlt: "現代 Lakehouse 核心架構 Iceberg vs Delta vs Hudi"
+tags:
+  - "大數據"
+  - "Lakehouse"
+  - "Apache Iceberg"
+  - "Delta Lake"
+  - "Apache Hudi"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在早期以 Hadoop / Hive 為核心的資料湖時代，資料以 Parquet 或 ORC 列式檔案直接存儲於 HDFS 或 AWS S3 物件儲存中。
+
+然而，單純的物件儲存存在三大硬傷：
+
+1. **缺少 ACID 事務保證**：多個任務同時寫入或更新時，讀取端極易讀取到寫到一半的「髒數據」；
+2. **目錄級元數據瓶頸**：Hive 依賴目錄路徑進行分區查找，當資料量破千萬個檔案時，僅 `S3 LIST` 目錄就需耗費數十分鐘；
+3. **無法時間旅行（Time Travel）與更新刪除（UPSERT / DELETE）**：對於 GDPR 被遺忘權或資料修正極度痛苦。
+
+為此，業界誕生了 **現代開放表格格式（Open Table Formats）**，正式開啟了 **湖倉一體（Lakehouse）** 時代。
+
+當前開源世界形成了「三國鼎立」格局：**Apache Iceberg**、**Delta Lake** 與 **Apache Hudi**。本文將為你深入剖析這三大表格格式的底層元數據結構與架構權衡。
+
+---
+
+## 1. 三大 Table Formats 核心架構矩陣
+
+| 核心特性           | Apache Iceberg (Netflix / Apple 主推)                                 | Delta Lake (Databricks 主推)                                | Apache Hudi (Uber 主推)                        |
+| :----------------- | :-------------------------------------------------------------------- | :---------------------------------------------------------- | :--------------------------------------------- |
+| **元數據組織方式** | **樹狀快照結構 (Metadata Tree: Catalog ➔ Manifest List ➔ Manifests)** | 單一交易日誌目錄 (`_delta_log/*.json` + Checkpoint Parquet) | 時間線 (Timeline) 與 Commit 狀態檔案           |
+| **事務隔離級別**   | 快照隔離（Snapshot Isolation / OCC）                                  | 串行化 / 寫入快照隔離                                       | 快照隔離 / 樂觀鎖                              |
+| **寫入更新模式**   | Copy-on-Write (Positional/Equality Delete)                            | Copy-on-Write 與 Deletion Vectors                           | **Copy-on-Write (COW) 與 Merge-on-Read (MOR)** |
+| **分區機制**       | **隱藏分區（Hidden Partitioning，無須在 SQL 顯式宣告）**              | 物理目錄分區 (`date=2026-09-02/`)                           | 物理目錄分區                                   |
+| **主要優勢場景**   | **跨引擎通用性極佳（Trino, Spark, Flink, StarRocks）**                | 與 Spark / Databricks 生態深度整合                          | **高頻即時 Upsert / CDC 增量入湖**             |
+
+---
+
+## 2. Apache Iceberg 底層結構：樹狀元數據體系
+
+Iceberg 徹底拋棄了「目錄即分區」的傳統 Hive 思維，將表格狀態抽象為一個精密的樹狀層級：
+
+```text
+[ Iceberg Catalog (Glue / REST / Hive) ]
+                 │ (指針指向當前最新 Metadata)
+                 ▼
+[ Table Metadata File (v3.metadata.json) ] ── (記錄 Schema, 分區規格, 快照列表)
+                 │
+                 ▼ (當前 Snapshot ID)
+[ Manifest List File (snap-101.avro) ] ───── (記錄多個 Manifest 檔案與分區摘要範圍)
+                 │
+        ┌────────┴────────┐
+        ▼                 ▼
+[ Manifest File 1 ]   [ Manifest File 2 ] ─── (記錄每個 Parquet 檔案的路徑、欄位 Min/Max 統計)
+        │                 │
+        ▼                 ▼
+  [ data1.parquet ]  [ data2.parquet ] ────── (實際物理資料列)
+```
+
+### 為什麼 Iceberg 查詢速度極快？
+
+- **精確剪枝（Pruning）**：查詢引擎無需掃描任何 S3 目錄，只需在記憶體中讀取 Manifest 的 `Min/Max` 統計資訊，即可直接過濾掉 99% 無關的 Parquet 檔案！
+- **隱藏分區（Hidden Partitioning）**：工程師可以用 `timestamp` 分區，用戶查詢 `WHERE event_time >= '2026-09-01'` 時，Iceberg 自動在底層轉換為天級分區剪枝，防止因忘記指定分區欄位而引發全表全量掃描。
+
+---
+
+## 3. Delta Lake 底層結構：交易日誌與 Checkpoint
+
+Delta Lake 以 `_delta_log` 目錄下的 JSON 事務日誌為核心：
+
+```text
+_delta_log/
+├── 00000000000000000000.json  (Commit 0: 建立表格，寫入 2 個 Parquet)
+├── 00000000000000000001.json  (Commit 1: 刪除 1 個 Parquet，新增 1 個 Parquet)
+├── ...
+└── 00000000000000000010.checkpoint.parquet (每 10 次 Commit 壓縮為一個 Checkpoint)
+```
+
+- **時間旅行（Time Travel）**：只需重放從 0 到指定 Commit 的交易日誌，即可精確重現歷史任意時間點的表格狀態（`SELECT * FROM table VERSION AS OF 5`）。
+
+---
+
+## 4. Apache Hudi 特化模式：Merge-on-Read (MOR)
+
+Hudi 專為高頻即時寫入（CDC 入湖）打造了 **MOR（讀時合併）** 模式：
+
+```text
+[ 即時寫入流 (Flink / Spark) ]
+              │
+              ▼ (高頻更新不重寫整個 Parquet，而是極速 Append 寫入 Avro Delta 日誌)
+   ┌────────────────────────────────────────┐
+   │ 基礎列式檔案: base_data.parquet (歷史快照) │
+   │ 增量行式日誌: delta_log.avro (即時變更)   │
+   └────────────────────────────────────────┘
+              │
+              ├──> [ 實時查詢 (Read Optimized) ] ──> 只讀 Parquet (毫秒級但有微小延遲)
+              ├──> [ 嚴格最新查詢 (Snapshot Query) ] ──> 動態合併 Parquet + Avro
+              └──> [ 後台壓縮 Worker (Compaction) ] ──> 異步合併產出新 Parquet
+```
+
+---
+
+## 5. 架構選型指南
+
+- **選 Apache Iceberg**：如果你的企業是多引擎架構（既用 Spark 跑 ETL，又用 Trino / Presto 做互動分析，還用 Flink / StarRocks 查即時報表），Iceberg 的生態相容性與元數據設計是目前業界公認的最佳選擇。
+- **選 Delta Lake**：如果團隊深度依賴 Databricks 生態與 Apache Spark，Delta Lake 的開箱即用體驗與優化最為絲滑。
+- **選 Apache Hudi**：如果業務有著極端頻繁的 MySQL / PostgreSQL CDC 逐行 Upsert / Delete 增量同步需求。

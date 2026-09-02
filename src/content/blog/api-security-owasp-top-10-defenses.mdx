@@ -1,0 +1,132 @@
+---
+title: "API 安全防禦實戰：OWASP API Security Top 10、BOLA 越權防護與 JWT 簽名混淆攻防"
+description: "深度剖析現代 Web 與微服務 API 面臨的致命安全威脅：OWASP API Security Top 10 核心漏洞防護、BOLA（失效物件級授權）防禦架構、Mass Assignment 批量賦值漏洞修補與 JWT 簽名混淆（alg:none / RS256 降級 HS256）攻防實務。"
+publishDate: 2026-09-02T15:55:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/api-security-owasp-top-10-defenses.png
+coverAlt: "OWASP API Security Top 10 與縱深安全防禦實戰"
+tags:
+  - "資訊安全"
+  - "API 安全"
+  - "OWASP"
+  - "JWT"
+  - "系統設計"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在雲原生與前後端分離的架構下，**API（Application Programming Interface）** 承載了企業 90% 以上的業務流量與敏感數據。
+
+然而，許多工程師往往只注重邊界防火牆（WAF）與身份認證（Authentication），卻忽略了應用層更為致命的邏輯漏洞。攻擊者不需要攻破伺服器操作系統，只需透過惡意構造的 API 請求，就能直接掏空用戶數據庫！
+
+開放網路安全組織（OWASP）專門定義了 **OWASP API Security Top 10**。本文將深度聚焦其中破壞力最強的三大威脅：**BOLA 越權**、**Mass Assignment** 與 **JWT 密碼學攻擊**，並給出生產級的縱深防禦實踐。
+
+---
+
+## 1. 頭號威脅：BOLA（失效物件級授權 / IDOR）
+
+**BOLA（Broken Object Level Authorization）** 長年位居 OWASP API 安全榜首。其根源在於：**系統只檢查了「你是否已登入」，卻忘了檢查「你是否有權存取該 ID 的物件」！**
+
+```text
+[ 攻擊場景 ]
+攻擊者 (User ID: 999) ───> GET /api/v1/invoices/10086 ───> 後端伺服器
+                                                              │
+                                  ❌ 漏洞代碼：僅驗證 Token 有效，未校驗租戶歸屬
+                                  SELECT * FROM invoices WHERE id = 10086;
+                                                              │
+攻擊者成功非法查看他人帳單數據! <───────────────────────────────┘
+```
+
+### 1.1 防禦架構：行級安全（RLS）與防禦性查詢
+
+永遠嚴禁直接根據客戶端傳遞的資源 ID 裸查資料庫！
+
+```python
+# ❌ 危險寫法：容易被 BOLA 攻擊
+@app.get("/invoices/{invoice_id}")
+def get_invoice(invoice_id: str, current_user = Depends(get_current_user)):
+    return db.query(Invoice).filter(Invoice.id == invoice_id).first()
+
+# ✅ 安全寫法：強制綁定當前登入使用者的租戶邊界
+@app.get("/invoices/{invoice_id}")
+def get_invoice(invoice_id: str, current_user = Depends(get_current_user)):
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id,
+        Invoice.tenant_id == current_user.tenant_id # 核心安全約束
+    ).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return invoice
+```
+
+---
+
+## 2. 致命漏洞：Mass Assignment（批量賦值注入）
+
+現代 Web 框架（如 Spring Boot、Ruby on Rails、FastAPI、Prisma）通常提供方便的「自動模型綁定」功能。若未對傳入參數進行嚴格過濾，攻擊者就能隨意修改系統核心欄位：
+
+```json
+// 攻擊者在更新用戶個人資料時，惡意夾帶權限欄位
+PATCH /api/v1/users/me
+{
+  "nickname": "Hacker",
+  "is_admin": true,       // 👈 惡意提權注入
+  "account_balance": 999999 // 👈 惡意修改餘額
+}
+```
+
+### 防禦原則：嚴格使用 DTO / Request Schema 白名單
+
+絕對不將 HTTP 請求 Payload 直接傳給 ORM 實體更新！必須透過顯式的 **DTO（Data Transfer Object）白名單** 過濾非授權屬性。
+
+---
+
+## 3. JWT（JSON Web Token）致命密碼學攻擊與防禦
+
+JWT 是現代分散式系統最常用的無狀態憑證，但其底層如果實作不慎，極易遭受毀滅性攻擊：
+
+```text
+JWT 結構：[ Header (演算法, 類型) ].[ Payload (用戶身份, 過期時間) ].[ Signature (簽名) ]
+```
+
+### 3.1 攻擊一：`alg: none` 簽名剝離攻擊
+
+- **攻擊原理**：早期部分不合格的 JWT 驗證函式庫支援 `none` 演算法。攻擊者將 Header 修改為 `{"alg": "none", "typ": "JWT"}`，將 Payload 中的 `user_id` 改為管理員 `admin`，並直接清空最後的簽名部分。
+- 若伺服器盲目信任 Header 中的 `alg`，會誤以為這是一個不需要校驗簽名的合法 Token！
+- **防禦**：伺服器驗證端必須在代碼中**硬編碼強制指定**期望的演算法（如 `algorithms=["RS256"]`），絕對禁止由 Header 動態決定。
+
+### 3.2 攻擊二：密鑰混淆攻擊（RS256 降級為 HS256）
+
+```text
+[ 密鑰混淆攻擊 (Algorithm Confusion) ]
+伺服器原本預期使用 RS256 (非對稱加密：公鑰驗證，私鑰簽名)
+攻擊者獲取了伺服器的【公開公鑰 (Public Key)】(通常是公開可得的 PEM 格式)
+攻擊者將 Token Header 改為 HS256 (對稱加密：同一個 Secret 簽名與驗證)
+攻擊者使用伺服器的【公開公鑰字串】作為 HS256 的 Secret 來生成偽造簽名！
+                               │
+伺服器執行驗證時，若使用了同一個 verifyKey(publicKey)：
+HS256 演算法誤將公鑰字串當作對稱密鑰校驗 ➔ 驗證通過! 攻擊者成功偽造任意身分!
+```
+
+- **防禦**：使用專門的密鑰管理模組，嚴格分離對稱與非對稱金鑰體系，杜絕公鑰被當作對稱金鑰驗證。
+
+---
+
+## 4. OWASP API Security Top 10 全景防禦矩陣
+
+| 漏洞編號      | 威脅名稱                               | 核心防禦實踐                                                         |
+| :------------ | :------------------------------------- | :------------------------------------------------------------------- |
+| **API1:2023** | **BOLA (物件級授權失效)**              | 查詢強制夾帶 `tenant_id`，採用 RLS（行級安全策略）。                 |
+| **API2:2023** | **Broken Authentication (認證失效)**   | 強制 MFA、防弱密碼、嚴格 Token 輪換與過期時間。                      |
+| **API3:2023** | **BOPLA (物件屬性級授權失效)**         | 採用 DTO 白名單驗證，阻斷 Mass Assignment 注入。                     |
+| **API4:2023** | **Unrestricted Resource Consumption**  | API 閘道層實作 Token Bucket 限流、分頁限制與 Payload 大小上限。      |
+| **API5:2023** | **BFLA (功能級授權失效)**              | 區分使用者與管理員端點，Controller 嚴格註解 RBAC 權限校驗。          |
+| **API6:2023** | **Server Side Request Forgery (SSRF)** | 對外發起請求時，嚴格過濾私有 IP（`10.0.0.0/8`, `169.254.169.254`）。 |
+
+---
+
+## 5. 總結
+
+- **永不信任客戶端輸入**：所有資源存取必須在伺服器端驗證「身份（AuthN）+ 物件權限（AuthZ）」。
+- **收緊模型接口**：透過 DTO 白名單徹底杜絕屬性篡改。
+- **密碼學必須嚴謹**：嚴格鎖定 JWT 簽名演算法，禁止客戶端 Header 動態覆寫安全策略。

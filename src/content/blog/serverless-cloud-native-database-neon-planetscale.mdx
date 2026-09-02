@@ -1,0 +1,117 @@
+---
+title: "雲原生無伺服器資料庫架構演進：Neon（PostgreSQL 計算儲存分離）vs. PlanetScale（Vitess 分散式分片）"
+description: "深度剖析現代無伺服器（Serverless）資料庫技術前沿：為什麼傳統 AWS RDS 在 Serverless 浪潮下難以滿足現代開發需求？Neon 如何在原生 PostgreSQL 內核上實現計算儲存分離、秒級冷啟動分支（Database Branching）與 Scale-to-Zero；PlanetScale 如何基於 YouTube Vitess 引擎實現水平無限擴展與無鎖 Schema 遷移實戰。"
+publishDate: 2026-09-02T17:55:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/serverless-cloud-native-database-neon-planetscale.png
+coverAlt: "雲原生無伺服器資料庫 Neon 與 PlanetScale 架構演進"
+tags:
+  - "雲原生"
+  - "Serverless"
+  - "PostgreSQL"
+  - "Vitess"
+  - "Neon"
+  - "PlanetScale"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在雲原生與 Jamstack / Serverless（如 Vercel、Cloudflare Workers、AWS Lambda）盛行的今天，開發者可以在數秒內全球部署前端與邊緣函數。
+
+然而，傳統的關聯式資料庫（如 AWS RDS PostgreSQL / MySQL）卻成為了現代架構體系中最大的阻礙：
+
+- **連線數瞬間耗盡**：數千個短暫的 Serverless 函數同時連線，瞬間打爆資料庫連線池（Connection Pool）；
+- **無法縮容到零（Scale to Zero）**：即使夜間完全無流量，仍需支付全天候昂貴的實例租金；
+- **分支開發極度痛苦**：無法像 Git Branch 一樣秒級為每個 Pull Request 複製一個獨立的資料庫副本進行測試。
+
+為了徹底打破這些桎梏，**Neon** 與 **PlanetScale** 代表了現代雲原生資料庫的兩大巔峰技術流派。
+
+本文將帶你深入兩者的底層微架構，拆解計算儲存分離與分散式分片的革新秘密。
+
+---
+
+## 1. 兩大技術流派全景對比矩陣
+
+| 評估維度                       | Neon (Serverless PostgreSQL)                                   | PlanetScale (Vitess 分散式 MySQL)                           |
+| :----------------------------- | :------------------------------------------------------------- | :---------------------------------------------------------- |
+| **底層資料庫引擎**             | 原生 100% 相容 **PostgreSQL**                                  | 原生相容 **MySQL** (基於 YouTube Vitess 分散式中介軟體)     |
+| **核心架構哲學**               | **計算與儲存徹底分離 (Disaggregated Compute & Storage)**       | **水平分庫分表與連接池池化 (Horizontal Sharding & VTGate)** |
+| **資料庫分支 (Branching)**     | **極致（基於儲存層 Copy-on-Write，秒級建立 TB 級資料庫分支）** | 基於 Vitess 邏輯分支與 Schema 鏡像                          |
+| **無流量縮容 (Scale-to-Zero)** | **✅ 原生支援（無請求時計算節點完全凍結，秒級冷啟動恢復）**    | 託管環境自適應休眠                                          |
+| **連線池治理**                 | 內建基於 Rust 的 WebSocket / TCP 輕量 Connection Pooler        | **透過 VTGate 提供抗數十萬併發的頂級連接池**                |
+| **水平擴展極限**               | 單計算節點垂直擴展 + 儲存無上限 + 多唯讀副本                   | **跨節點無限水平 Sharding 分片**                            |
+
+---
+
+## 2. Neon 底層架構：PostgreSQL 內核級計算儲存分離
+
+Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）改造成完全無狀態的臨時容器，而將儲存層下沉至自研的 Rust 分散式儲存引擎！**
+
+```text
+[ 邊緣客戶端 (Vercel / Lambda) ]
+              │ (HTTP / WebSocket / Serverless TCP)
+              ▼
+[ Neon 輕量 Connection Pooler (PgBouncer in Rust) ]
+              │
+              ▼
+[ 無狀態 PostgreSQL 計算節點 (Stateless Compute VM) ]
+   ├── 僅保留 Buffer Pool 與 SQL 解析執行引擎
+   └── ❌ 本地無任何持久化資料磁碟!
+              │
+              ▼ (WAL 日誌串流)
+┌─────────────────────────────────────────────────────────────┐
+│             Neon 分散式儲存層 (Pageserver & Safekeeper)      │
+│                                                             │
+│  [ Safekeeper 叢集 ] (基於 Paxos 接收並持久化最新 WAL 日誌) │
+│           │                                                 │
+│           ▼                                                 │
+│  [ Pageserver 儲存節點 ] ──> (按需向計算節點提供 8KB 頁面)   │
+│           │                                                 │
+│           ▼ (不可變歷史數據塊異步歸檔)                     │
+│  [ AWS S3 / 雲端物件儲存 (無限擴展、成本極低) ]             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 秒級資料庫分支（Copy-on-Write Branching）
+
+- 由於儲存層以不可變的 WAL 日誌組織，當開發者執行 `neon branch create pr-123` 時；
+- Neon **完全不需要複製物理數據**，只需記錄一個快照指針（Snapshot LSN），在 **1 秒內** 就能為 PR 提供一個包含生產環境全量資料的獨立測試庫！
+
+---
+
+## 3. PlanetScale 底層架構：承載全球最大流量的 Vitess 引擎
+
+PlanetScale 的底層採用了支撐 YouTube 數十億 QPS 的開源專案 **Vitess**：
+
+```text
+[ 應用程式請求 ]
+       │
+       ▼
+[ VTGate (分散式無狀態路由代理叢集) ]
+    ├── 1. 連接池收斂 (將 100,000 個客戶端連接收斂至後端數百個持久連線)
+    ├── 2. 分布式 SQL 解析與跨分片查詢優化
+    └── 3. 查詢快取與防擊穿保護
+       │
+       ├──> [ VTTablet 1 ] ──> [ MySQL Master 1 (Shard 1) ]
+       ├──> [ VTTablet 2 ] ──> [ MySQL Master 2 (Shard 2) ]
+       └──> [ VTTablet 3 ] ──> [ MySQL Read Replica ]
+```
+
+### PlanetScale 殺手級特性：無鎖 Schema 遷移（Deploy Requests）
+
+在生產環境執行 `ALTER TABLE` 傳統上極易引發鎖表導致系統崩潰：
+
+- PlanetScale 引入了類似 GitHub PR 的 **Deploy Request** 流程；
+- 透過 `gh-ost` 原理在後台建立影子表並以 CDC 雙寫同步，切換過程**零鎖表、零停機時間**！
+
+---
+
+## 4. 總結與架構選型指南
+
+- **選 Neon (Postgres)**：
+  - 開發現代 Serverless 全端應用（Next.js、Supabase、FastAPI）；
+  - 需要強大的 **Git-like 數據庫分支** 進行 CI/CD 預覽與測試；
+  - 流量具有潮汐性，強烈需要 **Scale-to-Zero（降至 0 成本）**。
+- **選 PlanetScale (MySQL / Vitess)**：
+  - 超大型企業核心交易業務，資料量達數十 TB 且持續高速增長；
+  - 需要極致的 **水平分庫分表（Horizontal Sharding）** 與抗數十萬併發連線能力。
