@@ -1,0 +1,534 @@
+---
+// Figma PostgreSQL 100x Scaling Architecture Diagram Component
+---
+
+<figure class="figma-pg-diagram" aria-labelledby="figma-pg-caption">
+  <svg
+    class="figma-pg-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="figma-pg-title figma-pg-desc"
+  >
+    <title id="figma-pg-title">Figma PostgreSQL 100x 擴展與分片架構演進</title>
+    <desc id="figma-pg-desc">
+      展示 Figma 資料庫從單體 RDS 垂直擴展、業務領域垂直拆庫，到透過自研 DBProxy
+      實現水平分片（Horizontal Sharding）與零停機影子讀驗證的完整架構演進。
+    </desc>
+
+    <defs>
+      <marker
+        id="fpg-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="figma-pg-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="fpg-arrow-accent"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="figma-pg-diagram__arrow-head--accent"></path>
+      </marker>
+    </defs>
+
+    <!-- Top Flow: App to Routing Layer -->
+    <!-- App Cluster Box -->
+    <g
+      class="figma-pg-diagram__card figma-pg-diagram__card--app"
+      transform="translate(40, 40)"
+    >
+      <rect width="200" height="90" rx="10"></rect>
+      <text class="figma-pg-diagram__badge" x="16" y="24">CLIENT & ORM</text>
+      <text class="figma-pg-diagram__title" x="16" y="52">應用服務層</text>
+      <text class="figma-pg-diagram__desc" x="16" y="74"
+        >Rails / Go Services</text
+      >
+    </g>
+
+    <!-- Arrow from App to DBProxy -->
+    <path
+      class="figma-pg-diagram__arrow figma-pg-diagram__arrow--accent"
+      d="M 240 85 H 320"
+      marker-end="url(#fpg-arrow-accent)"></path>
+    <text
+      class="figma-pg-diagram__wire-label"
+      x="280"
+      y="75"
+      text-anchor="middle">SQL 請求</text
+    >
+
+    <!-- DBProxy Central Core -->
+    <g
+      class="figma-pg-diagram__card figma-pg-diagram__card--proxy"
+      transform="translate(325, 25)"
+    >
+      <rect width="310" height="120" rx="12"></rect>
+      <text
+        class="figma-pg-diagram__badge figma-pg-diagram__badge--accent"
+        x="18"
+        y="24">ROUTING ENGINE</text
+      >
+      <text
+        class="figma-pg-diagram__title figma-pg-diagram__title--focus"
+        x="18"
+        y="54">自研 DBProxy 核心層</text
+      >
+      <text class="figma-pg-diagram__desc" x="18" y="78"
+        >• AST 解析提取 Shard Key (Org/File ID)</text
+      >
+      <text class="figma-pg-diagram__desc" x="18" y="98"
+        >• 跨分片查詢防護 / 連線池多路復用</text
+      >
+      <text class="figma-pg-diagram__desc" x="18" y="118"
+        >• 影子流量對比 (Shadow Read Validation)</text
+      >
+    </g>
+
+    <!-- Arrow from DBProxy to Logical Routing Table -->
+    <path
+      class="figma-pg-diagram__arrow"
+      d="M 635 85 H 710"
+      marker-end="url(#fpg-arrow)"></path>
+
+    <!-- Logical Topology Map Box -->
+    <g class="figma-pg-diagram__card" transform="translate(715, 40)">
+      <rect width="205" height="90" rx="10"></rect>
+      <text class="figma-pg-diagram__badge" x="16" y="24">TOPOLOGY</text>
+      <text class="figma-pg-diagram__title" x="16" y="52">邏輯分片映射表</text>
+      <text class="figma-pg-diagram__desc" x="16" y="74"
+        >128 Logical Shards</text
+      >
+    </g>
+
+    <!-- Split Paths to Databases -->
+    <!-- Line to Domain DB (Auth/Org) -->
+    <path
+      class="figma-pg-diagram__arrow"
+      d="M 410 145 V 230 Q 410 245 350 245 H 170"
+      marker-end="url(#fpg-arrow)"></path>
+
+    <!-- Line to Shard Cluster 01 -->
+    <path
+      class="figma-pg-diagram__arrow figma-pg-diagram__arrow--accent"
+      d="M 480 145 V 235"
+      marker-end="url(#fpg-arrow-accent)"></path>
+
+    <!-- Line to Shard Cluster 02 -->
+    <path
+      class="figma-pg-diagram__arrow figma-pg-diagram__arrow--accent"
+      d="M 550 145 V 230 Q 550 245 610 245 H 770"
+      marker-end="url(#fpg-arrow-accent)"></path>
+
+    <!-- Bottom Databases Section -->
+    <!-- 1. Vertical DB (Auth / Shared) -->
+    <g class="figma-pg-diagram__card" transform="translate(40, 250)">
+      <rect width="230" height="150" rx="12"></rect>
+      <text class="figma-pg-diagram__badge" x="16" y="26"
+        >VERTICAL PARTITION</text
+      >
+      <text class="figma-pg-diagram__title" x="16" y="54"
+        >業務垂直庫 (Auth/Org)</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="80"
+        >• 存放全域用戶、組織、權限</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="102"
+        >• 讀多寫少、低頻寫入</text
+      >
+      <text class="figma-pg-diagram__tag" x="16" y="132"
+        >AWS RDS Postgres (Master/Replica)</text
+      >
+    </g>
+
+    <!-- 2. Horizontal Shard Group A (Colo 1) -->
+    <g
+      class="figma-pg-diagram__card figma-pg-diagram__card--focus"
+      transform="translate(365, 250)"
+    >
+      <rect width="230" height="150" rx="12"></rect>
+      <text
+        class="figma-pg-diagram__badge figma-pg-diagram__badge--accent"
+        x="16"
+        y="26">PHYSICAL SHARD 01</text
+      >
+      <text
+        class="figma-pg-diagram__title figma-pg-diagram__title--focus"
+        x="16"
+        y="54">分片實例 A (Colo A)</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="80"
+        >• 邏輯分片 #000 - #063</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="102"
+        >• 同 Shard 支援 ACID 事務與 Join</text
+      >
+      <text
+        class="figma-pg-diagram__tag figma-pg-diagram__tag--accent"
+        x="16"
+        y="132">Files, Canvas, Nodes 資料</text
+      >
+    </g>
+
+    <!-- 3. Horizontal Shard Group B (Colo 2) -->
+    <g
+      class="figma-pg-diagram__card figma-pg-diagram__card--focus"
+      transform="translate(690, 250)"
+    >
+      <rect width="230" height="150" rx="12"></rect>
+      <text
+        class="figma-pg-diagram__badge figma-pg-diagram__badge--accent"
+        x="16"
+        y="26">PHYSICAL SHARD 02</text
+      >
+      <text
+        class="figma-pg-diagram__title figma-pg-diagram__title--focus"
+        x="16"
+        y="54">分片實例 B (Colo B)</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="80"
+        >• 邏輯分片 #064 - #127</text
+      >
+      <text class="figma-pg-diagram__desc" x="16" y="102"
+        >• 負載增長時可無縫分拆物理節點</text
+      >
+      <text
+        class="figma-pg-diagram__tag figma-pg-diagram__tag--accent"
+        x="16"
+        y="132">Files, Canvas, Nodes 資料</text
+      >
+    </g>
+
+    <!-- Horizontal Migration CDC Line -->
+    <path
+      class="figma-pg-diagram__arrow figma-pg-diagram__arrow--cdc"
+      d="M 595 325 H 690"
+      marker-end="url(#fpg-arrow)"></path>
+    <text
+      class="figma-pg-diagram__wire-label"
+      x="642"
+      y="315"
+      text-anchor="middle">邏輯複製 / 遷移</text
+    >
+  </svg>
+
+  <!-- Mobile Version for 320px screens -->
+  <div class="figma-pg-diagram__mobile">
+    <div class="figma-pg-mobile-card figma-pg-mobile-card--app">
+      <span class="figma-pg-mobile-badge">01. 應用客戶端</span>
+      <h4>Rails & Go 應用層</h4>
+      <p>發送標準 SQL 查詢，無需手動改寫底層分庫邏輯。</p>
+    </div>
+
+    <div class="figma-pg-mobile-arrow">↓ 轉發 SQL 請求</div>
+
+    <div class="figma-pg-mobile-card figma-pg-mobile-card--proxy">
+      <span class="figma-pg-mobile-badge figma-pg-mobile-badge--accent"
+        >02. 自研路由代理</span
+      >
+      <h4>DBProxy 智慧路由層</h4>
+      <p>
+        SQL AST 解析提取 Shard Key、維護 128 個邏輯分片拓撲，並執行影子讀驗證。
+      </p>
+    </div>
+
+    <div class="figma-pg-mobile-arrow">↓ 依 Key 精準分流</div>
+
+    <div class="figma-pg-mobile-card">
+      <span class="figma-pg-mobile-badge">03. 垂直領域庫</span>
+      <h4>Auth & Org 獨立資料庫</h4>
+      <p>儲存用戶、組織與權限資料，隔離低頻全域查詢與高頻檔案流量。</p>
+    </div>
+
+    <div class="figma-pg-mobile-card figma-pg-mobile-card--shard">
+      <span class="figma-pg-mobile-badge figma-pg-mobile-badge--accent"
+        >04. 水平分片叢集</span
+      >
+      <h4>Colo 分組實體分片 (RDS 叢集)</h4>
+      <p>
+        檔案與畫布節點依 Shard Key 分散於多台 RDS 實例，各分片內部維持 ACID 與
+        Join。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="figma-pg-caption">
+    圖 1：Figma 的 PostgreSQL 擴展架構：結合垂直拆庫、DBProxy 智慧分片路由與
+    Colo 局部一致性分組。
+  </figcaption>
+</figure>
+
+<style>
+  .figma-pg-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .figma-pg-diagram {
+    background: #0f172a;
+    border-color: #1e293b;
+  }
+
+  .figma-pg-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .figma-pg-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .figma-pg-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .figma-pg-diagram__card rect {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .figma-pg-diagram__card--focus rect {
+    stroke: #3b82f6;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .figma-pg-diagram__card--focus rect {
+    stroke: #60a5fa;
+  }
+
+  .figma-pg-diagram__card--proxy rect {
+    fill: #eff6ff;
+    stroke: #2563eb;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .figma-pg-diagram__card--proxy rect {
+    fill: #172554;
+    stroke: #3b82f6;
+  }
+
+  .figma-pg-diagram__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .figma-pg-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .figma-pg-diagram__badge--accent {
+    fill: #2563eb;
+  }
+
+  :global(.dark) .figma-pg-diagram__badge--accent {
+    fill: #60a5fa;
+  }
+
+  .figma-pg-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .figma-pg-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .figma-pg-diagram__title--focus {
+    fill: #1d4ed8;
+  }
+
+  :global(.dark) .figma-pg-diagram__title--focus {
+    fill: #93c5fd;
+  }
+
+  .figma-pg-diagram__desc {
+    font-size: 12px;
+    fill: #475569;
+  }
+
+  :global(.dark) .figma-pg-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .figma-pg-diagram__tag {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #64748b;
+  }
+
+  :global(.dark) .figma-pg-diagram__tag {
+    fill: #94a3b8;
+  }
+
+  .figma-pg-diagram__tag--accent {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #0284c7;
+  }
+
+  :global(.dark) .figma-pg-diagram__tag--accent {
+    fill: #38bdf8;
+  }
+
+  .figma-pg-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .figma-pg-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .figma-pg-diagram__arrow--accent {
+    stroke: #3b82f6;
+    stroke-width: 2.5;
+  }
+
+  :global(.dark) .figma-pg-diagram__arrow--accent {
+    stroke: #60a5fa;
+  }
+
+  .figma-pg-diagram__arrow--cdc {
+    stroke-dasharray: 4 4;
+  }
+
+  .figma-pg-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .figma-pg-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .figma-pg-diagram__arrow-head--accent {
+    fill: #3b82f6;
+  }
+
+  :global(.dark) .figma-pg-diagram__arrow-head--accent {
+    fill: #60a5fa;
+  }
+
+  .figma-pg-diagram__wire-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #64748b;
+  }
+
+  :global(.dark) .figma-pg-diagram__wire-label {
+    fill: #94a3b8;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .figma-pg-diagram__desktop {
+      display: none;
+    }
+
+    .figma-pg-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .figma-pg-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .figma-pg-mobile-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    .figma-pg-mobile-card--proxy {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+
+    :global(.dark) .figma-pg-mobile-card--proxy {
+      background: #172554;
+      border-color: #2563eb;
+    }
+
+    .figma-pg-mobile-card--shard {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .figma-pg-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .figma-pg-mobile-badge--accent {
+      color: #2563eb;
+    }
+
+    :global(.dark) .figma-pg-mobile-badge--accent {
+      color: #60a5fa;
+    }
+
+    .figma-pg-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .figma-pg-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .figma-pg-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .figma-pg-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .figma-pg-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

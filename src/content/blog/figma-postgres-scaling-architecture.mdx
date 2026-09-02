@@ -1,0 +1,183 @@
+---
+title: "從單體到分片：Figma 如何將 PostgreSQL 擴展 100 倍並維持零停機"
+description: "拆解 Figma 在四年內承載 100 倍流量成長的資料庫擴展路徑：從單體 RDS 垂直拆庫、自研 DBProxy 智慧路由、Colo 局部一致性分組，到零停機邏輯複製與影子讀驗證的工程權衡。"
+publishDate: 2026-09-02T09:48:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - PostgreSQL
+  - 資料庫
+  - 架構演進
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/figma-postgres-scaling.png
+coverAlt: "中央智慧路由代理節點解析資料流，並將請求精準分流至周圍多個獨立的 PostgreSQL 資料庫分片實例。"
+---
+
+import FigmaPostgresScalingDiagram from "../../components/FigmaPostgresScalingDiagram.astro";
+
+在現代 SaaS 架構的演進史中，當關聯式資料庫遇到高併發與資料量爆炸時，團隊常面臨兩難抉擇：是徹底重寫系統遷移至 NewSQL（如 CockroachDB、TiDB 或 Google Spanner），還是堅守成熟的關聯式資料庫生態並由架構層進行水平擴展？
+
+Figma 在 2020 至 2024 年間經歷了超過 **100 倍的流量與資料規模暴增**。其核心產品——即時多人協同設計畫布——背後累積了龐大的畫布節點（Canvas Nodes）、版本歷程、評論與組織權限中繼資料。Figma 團隊並未貿然更換儲存引擎，而是選擇在標準 **AWS RDS PostgreSQL** 的基礎上，透過「單體垂直擴展 → 領域垂直拆庫 → 自研 DBProxy 水平分片（Horizontal Sharding）」的三階段漸進演進，成功支撐起數兆級的請求負載，並實現全生命週期的零停機遷移。
+
+本文以 [Figma Engineering 官方技術揭秘](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的分析為基礎，深度拆解這套擴展架構的底層機制、路由邏輯與關鍵權衡。
+
+<FigmaPostgresScalingDiagram />
+
+---
+
+## 階段 1：單體垂直擴展與讀寫分離的物理邊界（1x → 10x）
+
+在初期，Figma 的所有業務邏輯都跑在單一巨大的 Amazon RDS PostgreSQL 實例上。隨著用戶量上升，團隊首先實施了標準的擴展手段：
+
+1. **垂直硬體升級（Vertical Scaling）**：將實例不斷升級至頂規（如 `r5.24xlarge` 與 `io2` 高 IOPS 磁碟），爭取架構改造的緩衝時間。
+2. **連線池治理（Connection Pooling）**：引入 PgBouncer 集中管理應用伺服器的短連線，防止 PostgreSQL 為每個客戶端 Fork 處理程序造成的記憶體開銷與 Context Switch 耗損。
+3. **讀寫分離（Read-Replica Offloading）**：將唯讀查詢、分析報表與搜尋作業導流至多個 Read Replicas。
+4. **快取層引入（Redis Caching）**：對熱門檔案的中繼資料與使用者工作階段進行 Redis 快取。
+
+### 遭遇的硬體天花板
+
+當規模達到 10 倍以上時，單體 Primary 資料庫出現了無法透過硬體解決的瓶頸：
+
+- **Primary 寫入 IOPS 飽和**：高頻協同編輯產生的 WAL（Write-Ahead Logging）寫入速率接近實體磁碟上限。
+- **複寫延遲（Replica Lag）雪崩**：在高寫入壓力下，Replica 節點同步不及，導致應用層讀取到過期資料（Read-After-Write Inconsistency）。
+- **單點故障半徑過大**：任何單一慢查詢（Slow Query）或資料庫鎖爭用（Lock Contention）都會拖垮整個公司的所有功能。
+
+---
+
+## 階段 2：依業務領域垂直拆庫（Vertical Partitioning，10x → 30x）
+
+當單一資料庫無法承擔全域寫入時，下一步標準動作是**垂直拆庫**——依照業務邊界（Bounded Contexts）將彼此低關聯的資料表分離至獨立的 RDS 實例：
+
+```
+                    ┌─────────────────────────┐
+                    │    原單體 RDS 資料庫     │
+                    └────────────┬────────────┘
+                                 │ 垂直領域拆分
+         ┌───────────────────────┼───────────────────────┐
+         ▼                       ▼                       ▼
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   Auth / Org DB  │    │     Files DB     │    │  Activity Log DB │
+│  (用戶、組織、權限) │    │  (檔案、畫布、版本) │    │  (日誌、通知、評論) │
+└──────────────────┘    └──────────────────┘    └──────────────────┘
+```
+
+### 垂直拆庫付出的架構代價
+
+垂直拆庫大幅降低了各業務間的相互干擾，但隨之而來的是架構複雜度的上升：
+
+- **跨庫 Foreign Key 失效**：資料庫層級的參照完整性約束必須移交給應用層程式碼或非同步檢查機制。
+- **跨庫 JOIN 消失**：過去一次 SQL 關聯查詢現在必須拆解為多次 RPC 呼叫並在應用記憶體中拼接。
+- **核心庫再度撞牆**：Figma 的業務重心在於「檔案與畫布（Files DB）」，拆分後僅過了一年，單獨的 Files DB 寫入量與容量再次觸及最高規格 RDS 的極限。
+
+> [!IMPORTANT]
+> **垂直拆庫只是爭取時間的過渡解**。只要業務的核心資料模型（Core Entity）持續集中在單一資料表，單庫瓶頸就必然會再次降臨。
+
+---
+
+## 階段 3：水平分片架構與自研 DBProxy 核心（30x → 100x+）
+
+面對核心資料表的無限增長，Figma 必須採用**水平分片（Horizontal Sharding）**，將同一張表內的資料行（Rows）分散至不同的物理實例。
+
+### 為什麼不直接採用現成的分散式資料庫？
+
+在評估 NewSQL（CockroachDB、Google Cloud Spanner）與既有代理（Vitess、Citus）時，Figma 團隊做出了關鍵技術選型決策：
+
+- **不選 NewSQL**：成熟度與運維成本考量。遷移至全新的分散式儲存引擎需要改寫數千個既有查詢、放棄成熟的 PostgreSQL 除錯工具鏈與監控體系，且可能面臨不可預期的分散式事務延遲（Cross-region Latency）。
+- **不選 Vitess**：Vitess 對 MySQL 生態高度最佳化，但在 PostgreSQL 語法與特性的支援上存在落差。
+- **選擇自研 DBProxy + RDS PostgreSQL**：保留底層經過驗證的 AWS RDS PostgreSQL 穩定性，在應用層與資料庫之間插入一層輕量、智慧的 SQL 路由代理。
+
+---
+
+### DBProxy 的四大核心設計模式
+
+#### 1. 邏輯分片（Logical Shards）與實體節點解耦
+
+Figma 沒有將資料直接映射到特定數量的實體伺服器，而是預先規劃了 **128 個邏輯分片（Logical Shards）**。
+
+- 初始階段：128 個邏輯分片可能平均分配在 16 台實體 RDS 實例上（每台承載 8 個邏輯庫）。
+- 擴容階段：當某台實體 RDS 負載過高時，只需將其中的 4 個邏輯分片遷移到新的實體 RDS，應用層與路由規則無需重新計算 Shard Key 雜湊，避免全域資料 Re-hashing。
+
+#### 2. Colo（Colocation Groups）保障局部 ACID 與關聯
+
+分散式資料庫最痛苦的莫過於跨節點 JOIN 與分散式二階段提交（2PC）。Figma 提出了 **Colo（協同定位分組）** 的概念：
+
+- 具有強關聯的資料實體（例如 `Files`、`CanvasNodes`、`Frames`、`Versions`）必須使用相同的 **Shard Key**（例如以 `OrgID` 或 `FileID` 為分片鍵）。
+- DBProxy 保證同一個 Shard Key 的所有資料必然路由至同一個邏輯分片中。
+- **收益**：在同一個分片內部，工程師依然可以自由使用標準的 SQL `JOIN` 與 ACID 事務，完全不需要分散式事務協調器。
+
+```sql
+-- 在相同 Shard Key (file_id) 下，仍可保有原生關聯與事務效能
+BEGIN;
+  INSERT INTO canvas_nodes (file_id, node_id, data) VALUES ('f_123', 'n_999', '...');
+  UPDATE files SET updated_at = NOW() WHERE file_id = 'f_123';
+COMMIT;
+```
+
+#### 3. SQL AST 解析與精準路由
+
+DBProxy 會在連線轉發前對 SQL 語句進行 AST（抽象語法樹）解析：
+
+- **單分片直通（Point Query）**：若 `WHERE` 條件中包含 Shard Key，DBProxy 直接將 SQL 轉發至目標物理分片。
+- **跨分片查詢阻斷 / 散彈聚合（Scatter-Gather）**：若查詢缺少 Shard Key，DBProxy 在開發環境中發出警報或阻斷；僅有極少數受控的後台報表允許向所有分片並行發送查詢並在 Proxy 記憶體中聚合。
+
+#### 4. 連線多路復用與故障隔離
+
+DBProxy 充當了反向代理與安全網，內建：
+
+- **查詢超時與熔斷（Circuit Breaking）**：防止單一分片的慢查詢堆積耗盡全域連線池。
+- **租戶隔離（Tenant Isolation）**：單一超大組織（Mega Tenant）若產生極端流量，其爆炸半徑（Blast Radius）被嚴格限制在所屬分片內，其餘 90% 以上的用戶完全不受影響。
+
+---
+
+## 階段 4：零停機遷移與生產驗證機制
+
+將數 TB 的生產環境資料從單體庫搬遷至 128 個分片庫，且不能有任何資料丟失或服務中斷，Figma 設計了極為嚴謹的四步遷移流水線：
+
+```
+[1. 歷史資料快照] ───► [2. CDC 邏輯複製追趕] ───► [3. 影子讀比對 (Shadow Read)] ───► [4. 毫秒切流]
+ (Snapshot Copy)       (Postgres Replication)        (Double Read & Diff)             (Write Switch)
+```
+
+1. **基礎快照複製**：建立目標分片實例，從主資料庫備份恢復基礎資料。
+2. **邏輯複製追趕（Change Data Capture）**：利用 PostgreSQL 的 Logical Decoding 機制建立 Replication Slot，即時捕獲主庫的 WAL 變更日誌，並依照 Shard Key 重播至對應的分片庫。
+3. **影子讀驗證（Shadow Reads & Validation）**：
+   - DBProxy 同時向舊單體庫與新分片庫發送讀取請求。
+   - 應用程式只採用舊庫的回傳結果，但在背景比對新舊庫的資料一致性、延遲與錯誤率。
+   - 透過 Datadog 監控比對異常指標，持續運行數週直到比對不一致率（Mismatch Rate）為零。
+4. **即時切流（Traffic Cutover）**：
+   - 在低峰期將 DBProxy 的寫入路由切換至新分片庫。
+   - 整個切換過程在 1 秒內完成，客戶端無感知。
+
+---
+
+## 系統設計權衡與工程約束總結
+
+Figma 的擴展歷程並非追求技術理論上的極致純粹，而是圍繞著**「務實、可維護性與低風險」**進行權衡：
+
+| 評估維度                    | 單體 RDS 架構            | NewSQL 徹底遷移              | Figma DBProxy + 分片方案         |
+| :-------------------------- | :----------------------- | :--------------------------- | :------------------------------- |
+| **擴展能力**                | 僅能垂直升級（受限硬體） | 理論無限水平擴展             | 依邏輯分片彈性水平擴展           |
+| **應用程式侵入性**          | 無                       | 極高（需適配方言與事務特性） | 極低（SQL 解析與 Colo 局部一致） |
+| **維運難度與工具鏈**        | 熟悉、低                 | 高（全新生態、除錯複雜）     | 中等（底層仍為標準 Postgres）    |
+| **爆炸半徑 (Blast Radius)** | 全局受害 (100%)          | 分散式節點故障轉移           | 嚴格隔離於特定 Shard             |
+| **跨分片查詢成本**          | 無                       | 底層分散式協調 (2PC)         | 應用層規避 / Proxy 受控聚合      |
+
+---
+
+## 給系統架構師的 5 個核心啟示
+
+1. **不要過早引入分片**：先榨乾硬體垂直升級、快取、連線池與領域垂直拆庫的潛力，為真正的分片架構爭取足夠的業務沉澱期。
+2. **邏輯分片永遠優於實體分片**：預先規劃固定數量的邏輯分片（如 128 或 256 個），讓未來的實體擴容變成單純的資料搬遷，而非全域雜湊重構。
+3. **用 Colo 保留關鍵交易**：識別核心資料的關聯邊界，將經常需要 JOIN 的關聯表綁定同一個 Shard Key，避免陷入分散式事務的泥淖。
+4. **影子讀是零停機遷移的最高標準**：沒有經過生產影子流量驗證的資料庫遷移，都只是在賭運氣。
+5. **代理層是最好的工程隔離帶**：透過像 DBProxy 這樣的可程式化中介層，可以集中收斂 SQL 語法限制、慢查詢熔斷與租戶配額，無需在數百個微服務中重複造輪子。
+
+---
+
+### 參考資料與一手文獻
+
+- Figma Engineering: [_How Figma scaled to multiple databases_](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/)
+- Figma Engineering: [_How Figma's databases team lived to tell the scale_](https://www.youtube.com/watch?v=kYv_3j3m5mE)
+- ByteByteGo: [_System Design 101: Real World Case Studies_](https://github.com/ByteByteGoHq/system-design-101)
