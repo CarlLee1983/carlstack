@@ -35,7 +35,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 | 線上動態擴容 / 遷移    | 不支援 (需停機重算) | 支援 (平滑無縫遷移) | 支援 (Slot 槽位遷移)  |
 | 額外網路延遲           | 增加一跳 Proxy 延遲 | 增加一跳 Proxy 延遲 | 零額外跳轉 (直連節點) |
 | 協同依賴元件           | 無                  | ZooKeeper / etcd    | 無任何外部依賴        |
-| 多鍵操作 (MGET / MSET) | 有限支援 (同一節點) | 有限支援 (Hash Tag) | 支援 (需使用 {tag})   |
+| 多鍵操作 (MGET / MSET) | 有限支援 (同一節點) | 有限支援 (Hash Tag) | 支援 (需使用 `{tag}`) |
 | 容錯切換 (Failover)    | 需搭配 Sentinel     | Codis Dashboard     | 內建 Gossip 投票選舉  |
 
 ---

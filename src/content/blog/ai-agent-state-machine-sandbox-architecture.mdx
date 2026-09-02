@@ -138,7 +138,7 @@ flowchart TD
 ### 2. 生產級 MicroVM 沙盒架構
 
 - **AWS Firecracker / gVisor**：
-  - **毫秒級冷啟動（< 5ms）**；
+  - **毫秒級冷啟動（`< 5ms`）**；
   - 獨立的輕量級虛擬機內核，系統調用（Syscall）嚴格攔截與過濾；
   - **唯讀 RootFS** + 記憶體臨時檔案系統（Tmpfs），任務結束後整機銷毀（Ephemeral Sandbox）。
 - **網路白名單（Egress Control）**：嚴格封鎖私有內網網段（`10.0.0.0/8`, `192.168.0.0/16`），僅允許訪問授權的外部 API。

@@ -70,7 +70,7 @@ import ElkStackLogPipelineDiagram from "../../components/ElkStackLogPipelineDiag
 
 **Filebeat** 採用 Go 語言重寫：
 
-- **極低資源消耗**：CPU 佔用率 < 1%，記憶體通常小於 30 MB。
+- **極低資源消耗**：CPU 佔用率 `< 1%`，記憶體通常小於 30 MB。
 - **背壓控制（Backpressure Sensitive）**：當下游 Kafka 或 Logstash 繁忙時，Filebeat 自動放慢讀取檔案的速度，防止下游過載崩潰。
 - **記錄讀取位移（Registry File）**：記錄每個檔案讀取的 Inode 與 Offset，即使重啟也能保證 **At-Least-Once（至少一次）** 傳輸。
 

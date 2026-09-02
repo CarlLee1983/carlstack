@@ -32,7 +32,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 | Broker / Consumer 哲學 | Smart Broker         | Dumb Broker          | 平衡型 (具備業務功能)   | 完全託管 Serverless   |
 |                        | Dumb Consumer        | Smart Consumer       |                         |                       |
 | 單機吞吐量極限         | 萬級 (10K~50K EPS)   | 百萬級 (1M+ EPS)     | 十萬至百萬級            | 自動彈性擴展          |
-| 訊息傳輸延遲           | 微秒至次毫秒 (< 1ms) | 毫秒級 (2~10ms)      | 毫秒級 (1~5ms)          | 數十至數百毫秒        |
+| 訊息傳輸延遲           | 微秒至次毫秒 (`< 1ms`) | 毫秒級 (2~10ms)      | 毫秒級 (1~5ms)          | 數十至數百毫秒        |
 | 訊息消費確認模型       | 記憶體追蹤 ACK       | Consumer Offset 指標 | Consumer Offset 指標    | Visibility Timeout    |
 | 訊息重播 (Replay)      | 不支援 (消費即刪除)  | 完美支援 (按 Offset) | 支援 (時間/位置回溯)    | 不支援 (消費即刪除)   |
 | 延時消息原生支援       | 需外掛/死信 TTL 模擬 | 不原生支援           | 原生精確支援 (時間輪)   | 原生支援 (最大15分鐘) |
