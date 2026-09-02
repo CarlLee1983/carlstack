@@ -124,21 +124,17 @@ import StorageTypesComparisonDiagram from "../../components/StorageTypesComparis
 
 ## 4. 三大儲存範式關鍵指標全景橫向對比
 
-```text
-+----------------------+--------------------+--------------------+--------------------+
-| 評估維度             | 區塊儲存 (Block)   | 檔案儲存 (File)    | 物件儲存 (Object)  |
-+----------------------+--------------------+--------------------+--------------------+
-| 代表技術/產品        | AWS EBS, NVMe-oF   | AWS EFS, NFS, SMB  | AWS S3, MinIO, R2  |
-| 資料抽象模型         | 裸磁區 (Raw Block) | 階層式目錄樹       | 扁平 Key-Value     |
-| 存取協議介面         | iSCSI / NVMe-oF    | NFS / SMB / POSIX  | HTTP RESTful API   |
-| 讀寫延遲 (Latency)   | < 1 ms (極低)      | 1 ~ 5 ms (低)      | 10 ~ 50 ms (中等)  |
-| 隨機讀寫支援         | 完美支援 (In-place)| 完美支援           | 不支援 (僅能全覆蓋)|
-| 多機並行共享 (RWX)   | 否 (通常限單機 RWO)| 是 (多節點並行讀寫)| 是 (全球 HTTP 存取)|
-| 最大擴展容量         | TB ~ 數十 TB       | PB 級              | EB 級 (無上限)     |
-| 單位儲存成本         | $$$ (最高)         | $$ (中等)          | $ (最低)           |
-| 雲原生 K8s PV 模式   | ReadWriteOnce      | ReadWriteMany      | S3 CSI / S3-FUSE   |
-+----------------------+--------------------+--------------------+--------------------+
-```
+| 評估維度           | 區塊儲存 (Block)    | 檔案儲存 (File)     | 物件儲存 (Object)   |
+| :----------------- | :------------------ | :------------------ | :------------------ |
+| 代表技術/產品      | AWS EBS, NVMe-oF    | AWS EFS, NFS, SMB   | AWS S3, MinIO, R2   |
+| 資料抽象模型       | 裸磁區 (Raw Block)  | 階層式目錄樹        | 扁平 Key-Value      |
+| 存取協議介面       | iSCSI / NVMe-oF     | NFS / SMB / POSIX   | HTTP RESTful API    |
+| 讀寫延遲 (Latency) | < 1 ms (極低)       | 1 ~ 5 ms (低)       | 10 ~ 50 ms (中等)   |
+| 隨機讀寫支援       | 完美支援 (In-place) | 完美支援            | 不支援 (僅能全覆蓋) |
+| 多機並行共享 (RWX) | 否 (通常限單機 RWO) | 是 (多節點並行讀寫) | 是 (全球 HTTP 存取) |
+| 最大擴展容量       | TB ~ 數十 TB        | PB 級               | EB 級 (無上限)      |
+| 單位儲存成本       | $$$ (最高)          | $$ (中等)           | $ (最低)            |
+| 雲原生 K8s PV 模式 | ReadWriteOnce       | ReadWriteMany       | S3 CSI / S3-FUSE    |
 
 ---
 

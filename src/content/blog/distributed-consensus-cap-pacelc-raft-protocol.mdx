@@ -58,15 +58,11 @@ If P (Partition) -> Choose between A (Availability) and C (Consistency)
 Else (E)         -> Choose between L (Latency) and C (Consistency)
 ```
 
-```text
-+-----------------------+-------------------+-------------------+-----------------------------------+
-| 系統分類              | 分區時 (P) 選擇   | 正常時 (E) 選擇   | 代表系統                          |
-+-----------------------+-------------------+-------------------+-----------------------------------+
-| PC/EC                 | Consistency (強一致)| Consistency (強一致)| Spanner, etcd, ZooKeeper, TiDB    |
-| PA/EL                 | Availability (可用)| Latency (極致低延遲)| DynamoDB (最終一致), Cassandra    |
-| PA/EC                 | Availability (可用)| Consistency (強一致)| MongoDB (預設讀主寫主模式)        |
-+-----------------------+-------------------+-------------------+-----------------------------------+
-```
+| 系統分類 | 分區時 (P) 選擇      | 正常時 (E) 選擇      | 代表系統                       |
+| :------- | :------------------- | :------------------- | :----------------------------- |
+| PC/EC    | Consistency (強一致) | Consistency (強一致) | Spanner, etcd, ZooKeeper, TiDB |
+| PA/EL    | Availability (可用)  | Latency (極致低延遲) | DynamoDB (最終一致), Cassandra |
+| PA/EC    | Availability (可用)  | Consistency (強一致) | MongoDB (預設讀主寫主模式)     |
 
 ---
 
