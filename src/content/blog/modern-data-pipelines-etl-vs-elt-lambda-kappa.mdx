@@ -33,15 +33,30 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. ETL vs. ELT：資料處理範式的根本轉移
 
-```text
-[ 傳統 ETL 模式 ]
-資料源 (OLTP / Logs) ──> [ 專用 ETL 伺服器清洗轉換 (Transform) ] ──> [ 載入資料倉儲 (Load) ]
-                             (算力昂貴，原始數據被丟棄，變更需重新跑管線)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="etl-elt-title etl-elt-desc">
+    <title id="etl-elt-title">傳統 ETL 模式 vs 現代 ELT 模式資料流轉對比圖</title>
+    <desc id="etl-elt-desc">展示傳統 ETL 昂貴中間層清洗轉換丟棄原始資料，而現代 ELT 完整保留原始資料於物件儲存並利用雲端數倉彈性算力隨時轉換。</desc>
+    
+    <defs>
+      <marker id="dp-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-[ 現代 ELT 模式 ]
-資料源 (OLTP / Logs) ──> [ 原始載入資料湖/倉 (Load) ] ──> [ 雲端數倉內 SQL 轉換 (Transform / dbt) ]
-                             (保留 100% 原始數據，善用雲端無窮算力，隨時重新定義模型)
-```
+    <rect x="20" y="15" width="760" height="95" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="40" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 傳統 ETL 模式 (Extract ➔ Transform ➔ Load)：</text>
+    <text x="40" y="65" fill="#c9d1d9" font-size="12" font-family="monospace">資料源 (OLTP/Logs) ──► [專用 ETL 伺服器清洗轉換] ──► [載入資料倉儲]</text>
+    <text x="40" y="90" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">中間算力昂貴・原始數據被裁剪丟棄・指標變更需從頭重新跑整條管線</text>
+
+
+    <rect x="20" y="125" width="760" height="95" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="150" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 現代 ELT 模式 (Extract ➔ Load ➔ Transform)：</text>
+    <text x="40" y="175" fill="#3fb950" font-size="12" font-family="monospace">資料源 (OLTP/Logs) ──► [原始完整載入資料湖/倉] ──► [雲端數倉內 SQL 轉換 (dbt)]</text>
+    <text x="40" y="200" fill="#56d364" font-size="11" font-family="system-ui, sans-serif">保留 100% 原始數據・善用雲端無窮算力・按需隨時調整業務模型與重算！</text>
+
+  </svg>
+</div>
 
 | 評估維度           | 傳統 ETL (Extract-Transform-Load)                       | 現代 ELT (Extract-Load-Transform)                       |
 | :----------------- | :------------------------------------------------------ | :------------------------------------------------------ |
@@ -58,14 +73,35 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 Lambda 架構透過「批次層（Batch Layer）」提供精確結果，透過「速度層（Speed Layer）」提供低延遲近似結果：
 
-```text
-                               ┌─> [ 批次層 (Batch Layer / Spark) ] ───> [ 批次視圖 (Batch View) ] ──┐
-                               │       (每晚運行，保證 100% 正確性)                                   │
-[ 新數據 (Kafka) ] ────────────┤                                                                      ├──> [ 查詢服務層 (Serving Layer) ]
-                               │                                                                      │    (查詢時合併兩層數據)
-                               └─> [ 速度層 (Speed Layer / Flink) ] ───> [ 即時視圖 (Real-time View) ] ─┘
-                                       (即時串流計算，延遲低但可能存在微小誤差)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lambda-arch-title lambda-arch-desc">
+    <title id="lambda-arch-title">大數據 Lambda 架構（批次層 ＋ 速度層 ＋ 服務層）全景圖</title>
+    <desc id="lambda-arch-desc">展示 Kafka 數據分流至 Spark 批次層產出批次視圖，以及 Flink 速度層產出即時視圖，由服務層合併查詢。</desc>
+    
+    <rect x="20" y="90" width="160" height="60" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="100" y="125" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">新數據 (Kafka)</text>
+
+    <path d="M 180 105 L 260 50" stroke="#388bfd" stroke-width="1.5" marker-end="url(#dp-arrow)"/>
+    <path d="M 180 135 L 260 190" stroke="#388bfd" stroke-width="1.5" marker-end="url(#dp-arrow)"/>
+
+    <rect x="270" y="20" width="240" height="65" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="390" y="45" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">批次層 (Spark Batch)</text>
+    <text x="390" y="65" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">每晚運行 ➔ 100% 精確批次視圖</text>
+
+    <rect x="270" y="155" width="240" height="65" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="390" y="180" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">速度層 (Flink Stream)</text>
+    <text x="390" y="200" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">即時計算 ➔ 毫秒級即時視圖</text>
+
+    <path d="M 510 50 L 580 105" stroke="#3fb950" stroke-width="1.5" marker-end="url(#dp-arrow)"/>
+    <path d="M 510 190 L 580 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#dp-arrow)"/>
+
+    <rect x="590" y="80" width="190" height="80" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="685" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">查詢服務層 (Serving)</text>
+    <text x="685" y="132" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">查詢時動態合併兩層</text>
+    <text x="685" y="148" fill="#f85149" font-size="9" text-anchor="middle">⚠️ 需維護兩套代碼！</text>
+
+  </svg>
+</div>
 
 - **致命痛點**：工程師必須維護 **兩套完全不同的代碼庫**（一套 Spark 批次代碼，一套 Flink 串流代碼），只要業務邏輯更新，兩套代碼極易出現邏輯漂移不一致！
 
@@ -73,13 +109,30 @@ Lambda 架構透過「批次層（Batch Layer）」提供精確結果，透過�
 
 Kappa 架構由 Apache Kafka 創始人 Jay Kreps 提出，其核心理念是：**一切皆為流（Everything is a Stream）！**
 
-```text
-[ 核心單一真理源：Kafka / Pulsar 消息日誌 (設定超長 Retain 週期) ]
-                 │
-                 ├── (1. 線上即時串流拓撲) ──> [ Flink 即時作業 v1 ] ──> [ 服務資料庫 v1 ]
-                 │
-                 └── (2. 歷史重新計算時) ────> [ Flink 重算作業 v2 ] ──> [ 服務資料庫 v2 (切換查詢路由) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="kappa-arch-title kappa-arch-desc">
+    <title id="kappa-arch-title">大數據 Kappa 架構（單一真理源 ＋ 純串流重放）架構圖</title>
+    <desc id="kappa-arch-desc">展示 Kafka 作為單一真理源，線上串流運行 Flink v1，歷史重算只需啟動 Flink v2 從 Offset 0 高速重放，全鏈路僅一套代碼。</desc>
+    
+    <rect x="20" y="20" width="300" height="200" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="170" y="55" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">單一真理源 (Single Source of Truth)</text>
+    <rect x="40" y="80" width="260" height="50" rx="6" fill="#1f242c" stroke="#388bfd"/>
+    <text x="170" y="105" fill="#58a6ff" font-size="12" font-family="monospace" text-anchor="middle">Apache Kafka / Pulsar</text>
+    <text x="170" y="122" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">設定超長 Retain 週期 (Append Log)</text>
+
+    <path d="M 320 100 L 410 65" stroke="#3fb950" stroke-width="2" marker-end="url(#dp-arrow)"/>
+    <path d="M 320 140 L 410 175" stroke="#bc8cff" stroke-width="2" marker-end="url(#dp-arrow)"/>
+
+    <rect x="420" y="30" width="360" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="58" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 線上即時串流 (Flink 作業 v1 ➔ DB v1)</text>
+    <text x="600" y="80" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">毫秒級連續事件驅動運算</text>
+
+    <rect x="420" y="135" width="360" height="75" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="600" y="162" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 歷史重算 (Flink 作業 v2 ➔ DB v2)</text>
+    <text x="600" y="184" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">從 Offset 0 極速回溯重放 ➔ 完成後平滑切換路由！</text>
+
+  </svg>
+</div>
 
 - **優勢**：全鏈路僅需維護一套 Flink 串流代碼；當需要重新計算歷史數據時，只需啟動一個新的 Flink 作業從 Kafka 的 Offset 0 開始以極高速度重放回溯即可。
 

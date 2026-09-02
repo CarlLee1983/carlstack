@@ -68,21 +68,43 @@ Linux 2.6 核心引入了 `epoll`，徹底將「註冊監聽」與「等待事�
 
 ### 3.2 核心內部雙核心資料結構
 
-```text
-               ┌─────────────────────────────────────────┐
-               │         eventpoll (核心物件)            │
-               └─────────────────────────────────────────┘
-                     │                             │
-                     ▼                             ▼
-       【紅黑樹 (Red-Black Tree)】       【就緒雙向鏈表 (Ready List)】
-       儲存所有註冊監聽的 Socket         僅儲存當前觸發事件的 Socket
-       (epoll_ctl 高效 O(log N) 增刪)   (epoll_wait 以 O(1) 立即返回)
-                     │                             ▲
-                     │                             │
-                     └── (網卡中斷 / 核心回調) ────┘
-                         當 Socket 有資料到達時，核心中斷處理常式
-                         自動將該節點掛入就緒雙向鏈表！
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="epoll-struct-title epoll-struct-desc">
+    <title id="epoll-struct-title">Linux epoll 核心 eventpoll（紅黑樹 ＋ 就緒鏈表）架構圖</title>
+    <desc id="epoll-struct-desc">展示 eventpoll 包含儲存所有監聽 Socket 的紅黑樹，網卡中斷回調時將活躍節點掛入就緒雙向鏈表，由 epoll_wait 以 O(1) 立即返回。</desc>
+    
+    <defs>
+      <marker id="ep-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="ep-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="14" font-family="monospace" font-weight="700" text-anchor="middle">eventpoll (Linux 核心物件)</text>
+
+    <path d="M 320 57 L 200 85" stroke="#bc8cff" stroke-width="2" marker-end="url(#ep-arrow)"/>
+    <path d="M 480 57 L 600 85" stroke="#3fb950" stroke-width="2" marker-end="url(#ep-arrow)"/>
+
+    <rect x="30" y="85" width="340" height="135" rx="10" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="200" y="110" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【紅黑樹 (Red-Black Tree)】</text>
+    <text x="50" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• 儲存所有註冊監聽的 Socket FD</text>
+    <text x="50" y="158" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• <code>epoll_ctl</code> 高效 O(log N) 增刪改查</text>
+    <text x="50" y="180" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">• 核心內部長期保留，避免重複拷貝</text>
+
+    <path d="M 370 152 L 420 152" stroke="#3fb950" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#ep-arrow-green)"/>
+    <text x="395" y="142" fill="#3fb950" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">中斷回調</text>
+
+    <rect x="430" y="85" width="340" height="135" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【就緒雙向鏈表 (Ready List)】</text>
+    <text x="450" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• 僅儲存當前真正觸發 I/O 事件的 Socket</text>
+    <text x="450" y="158" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif">• <code>epoll_wait</code> 以 O(1) 立即返回就緒陣列</text>
+    <text x="450" y="180" fill="#56d364" font-size="11" font-family="system-ui, sans-serif">• 徹底消滅 O(N) 百萬連線無效線性輪詢！</text>
+
+  </svg>
+</div>
 
 - **零無效輪詢**：`epoll_wait` 永遠只返回就緒列表中的項目，時間複雜度恆定為 `O(就緒連線數)`，完全與總連線數 N 無關！
 - **避免重複拷貝**：透過 `epoll_ctl` 註冊的 Socket 長期保留在核心紅黑樹中，呼叫 `epoll_wait` 時無需重複傳遞監聽清單。

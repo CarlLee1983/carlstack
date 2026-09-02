@@ -29,13 +29,27 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 兩大引擎最根本的差異在於「如何看待一條資料」：
 
-```text
-[ Apache Flink: 原生事件驅動 (Native Streaming) ]
-每到達一條 Event ──> 立即觸發計算 ──> 即時更新狀態 ──> 立即向下游發送 (亞毫秒級延遲, < 10ms)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stream-comp-title stream-comp-desc">
+    <title id="stream-comp-title">Apache Flink 原生事件驅動 vs Spark 微批次架構對比圖</title>
+    <desc id="stream-comp-desc">展示 Flink 每到一筆 Event 立即觸發計算達亞毫秒級延遲，而 Spark 收集時間視窗微批次打包計算延遲約數百毫秒。</desc>
+    
+    <rect x="20" y="15" width="360" height="180" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ Apache Flink (原生事件驅動)</text>
+    <rect x="40" y="60" width="320" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="200" y="86" fill="#3fb950" font-size="11" font-family="monospace" text-anchor="middle">每到 1 筆 Event ➔ 立即觸發計算 ➔ 更新 State</text>
+    <text x="200" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">立即向下游發送 (Stream-native)</text>
+    <text x="200" y="150" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">極致亞毫秒級延遲 (&lt; 10ms)</text>
 
-[ Spark Structured Streaming: 微批次 (Micro-batching) ]
-時間窗口 (如 500ms): 收集一批 Events ──> 打包成微型 RDD ──> 啟動微批次排程計算 (延遲約 100ms ~ 500ms)
-```
+    <rect x="420" y="15" width="360" height="180" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="600" y="42" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Spark Structured Streaming (微批次)</text>
+    <rect x="440" y="60" width="320" height="42" rx="4" fill="#1f242c" stroke="#388bfd"/>
+    <text x="600" y="86" fill="#58a6ff" font-size="11" font-family="monospace" text-anchor="middle">時間視窗 (如 500ms) ➔ 收集 Events 打包 RDD</text>
+    <text x="600" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">啟動微批次排程計算 (Batch-native)</text>
+    <text x="600" y="150" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">延遲約 100ms ~ 500ms</text>
+
+  </svg>
+</div>
 
 | 評估維度                 | Apache Flink                                      | Spark Structured Streaming                                                 |
 | :----------------------- | :------------------------------------------------ | :------------------------------------------------------------------------- |
@@ -51,10 +65,19 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在分散式網路環境中，由於網路延遲或設備重連，資料到達計算引擎的順序極易發生「亂序（Out-of-Order）」：
 
-```text
-事件發生時間 (Event Time):  12:00:01 ───> 12:00:02 ───> 12:00:03
-引擎接收時間 (Processing Time): 12:00:01 ───> 12:00:05 ───> 12:00:03 (亂序到達!)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="wm-disorder-title wm-disorder-desc">
+    <title id="wm-disorder-title">事件時間 (Event Time) 與處理時間 (Processing Time) 亂序對比圖</title>
+    <desc id="wm-disorder-desc">展示事件按 12:00:01, 12:00:02, 12:00:03 產生，但引擎因延遲以 12:00:01, 12:00:05, 12:00:03 亂序接收。</desc>
+    
+    <rect x="20" y="15" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="40" y="41" fill="#3fb950" font-size="12" font-family="monospace">事件發生時間 (Event Time):      12:00:01 ──► 12:00:02 ──► 12:00:03 (物理真實時序)</text>
+
+    <rect x="20" y="68" width="760" height="42" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="94" fill="#f85149" font-size="12" font-family="monospace">引擎接收時間 (Processing Time): 12:00:01 ──► 12:00:05 ──► 12:00:03 (網路延遲引發亂序！)</text>
+
+  </svg>
+</div>
 
 ### Watermark（水位線）如何解決亂序？
 
@@ -70,13 +93,9 @@ Flink 引入了 **Watermark（水位線）** 機制：
 
 在高階即時運算中（如滑動視窗聚合、雙流 JOIN、用戶連鎖行為識別），引擎必須在記憶體中維護龐大的中間狀態（State）：
 
-```text
-[ Flink Stateful Operator ]
-      │
-      ├── MemoryStateBackend (純 JVM 堆記憶體，適合輕量除錯)
-      ├── FsStateBackend (狀態在記憶體，Checkpoint 存 S3/HDFS)
-      └── EmbeddedRocksDBStateBackend (狀態溢出至本地 NVMe SSD，突破 JVM GC 瓶頸!)
-```
+- **MemoryStateBackend**：純 JVM 堆記憶體，適合輕量除錯。
+- **FsStateBackend**：狀態在記憶體，Checkpoint 存 S3/HDFS。
+- **EmbeddedRocksDBStateBackend**：狀態溢出至本地 NVMe SSD，突破 JVM GC 瓶頸！
 
 - **RocksDB StateBackend 的威力**：Flink 將狀態儲存在進程外的嵌入式 RocksDB（C++ 撰寫）中。當單節點狀態高達數百 GB 時，**完全不受 Java GC 停頓影響**，是支撐超大規模狀態運算的定海神針。
 
@@ -88,15 +107,47 @@ Flink 引入了 **Watermark（水位線）** 機制：
 
 ### Flink 非同步屏障快照（Chandy-Lamport 演算法變體）
 
-```text
-[ Source ] ─── Barrier 1 ───> [ Transform Operator ] ─── Barrier 1 ───> [ Sink ]
-    │                                  │                                    │
-    ▼                                  ▼                                    ▼
-[ 快照 1: Kafka Offset ]       [ 快照 1: 當前計數器狀態 ]           [ 快照 1: 2PC 預提交事務 ]
-    └──────────────────────────────────┴────────────────────────────────────┘
-                                       │
-                                       ▼ (全部寫入分散式耐久儲存 S3 / HDFS)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="chkpt-bar-title chkpt-bar-desc">
+    <title id="chkpt-bar-title">Flink Checkpoint Barrier 非同步屏障快照與 2PC Sink 架構圖</title>
+    <desc id="chkpt-bar-desc">展示 Barrier 流經 Source、Transform、Sink 算子觸發非同步快照寫入 S3/HDFS，成功時 2PC Sink 正式提交保證 Exactly-Once。</desc>
+    
+    <defs>
+      <marker id="fl-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="65" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Source (Kafka)</text>
+    <text x="130" y="68" fill="#8b949e" font-size="10" text-anchor="middle">注入 Barrier 1</text>
+
+    <path d="M 240 52 L 290 52" stroke="#bc8cff" stroke-width="2" marker-end="url(#fl-arrow)"/>
+    <text x="265" y="44" fill="#bc8cff" font-size="9" text-anchor="middle">Barrier 1</text>
+
+    <rect x="290" y="20" width="220" height="65" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="400" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Transform 算子</text>
+    <text x="400" y="68" fill="#8b949e" font-size="10" text-anchor="middle">有狀態聚合計算</text>
+
+    <path d="M 510 52 L 560 52" stroke="#bc8cff" stroke-width="2" marker-end="url(#fl-arrow)"/>
+    <text x="535" y="44" fill="#bc8cff" font-size="9" text-anchor="middle">Barrier 1</text>
+
+    <rect x="560" y="20" width="220" height="65" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Sink (2PC Commit)</text>
+    <text x="670" y="68" fill="#3fb950" font-size="10" text-anchor="middle">兩階段提交事務</text>
+
+
+    <path d="M 130 85 L 130 135" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#fl-arrow)"/>
+    <path d="M 400 85 L 400 135" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#fl-arrow)"/>
+    <path d="M 670 85 L 670 135" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#fl-arrow)"/>
+
+    <rect x="50" y="140" width="700" height="75" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="165" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">分散式持久化儲存 (AWS S3 / HDFS)</text>
+    <text x="400" y="188" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">快照 1: Kafka Offset ＋ 算子 State ＋ 2PC 預提交事務 ➔ 全員成功即標記 Checkpoint 成功！</text>
+    <text x="400" y="205" fill="#56d364" font-size="11" font-weight="700" text-anchor="middle">實現端到端 Exactly-Once 精確一次計算！</text>
+
+  </svg>
+</div>
 
 1. Flink JobManager 定期向資料流注入 **Checkpoint Barrier（屏障）**；
 2. 每個算子收到 Barrier 後，非同步將自身當前狀態寫入持久化儲存（S3 / HDFS）；

@@ -105,19 +105,30 @@ Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓�
 - 一階差分：D1 = t1 - t0 = 10
 - 二階差分（Delta-of-Delta）：D = (tn - tn-1) - (tn-1 - tn-2)
 
-```text
-Gorilla 時間戳變長編碼規則：
-1. 若 D == 0 (完美等間隔)：
-   ➔ 僅寫入 1 個 bit: '0'
-2. 若 -63 <= D <= 64：
-   ➔ 寫入 '10' (2 bits) + 7 bits 值 (共 9 bits)
-3. 若 -255 <= D <= 256：
-   ➔ 寫入 '110' (3 bits) + 9 bits 值 (共 12 bits)
-4. 若 -2047 <= D <= 2048：
-   ➔ 寫入 '1110' (4 bits) + 12 bits 值 (共 16 bits)
-5. 其餘情況：
-   ➔ 寫入 '1111' (4 bits) + 32 bits 值 (共 36 bits)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 200" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gorilla-ts-title gorilla-ts-desc">
+    <title id="gorilla-ts-title">Gorilla 時間戳 Delta-of-Delta 變長位元編碼規則圖</title>
+    <desc id="gorilla-ts-desc">展示等間隔 D=0 僅需 1 bit '0'，以及不同差分區間對應的變長前綴與位元長度。</desc>
+    
+    <rect x="20" y="15" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="41" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 情況 1: D == 0 (等間隔採樣，佔比 &gt; 90%) ➔ 僅寫入 1 個 bit: '0' (極致壓縮！)</text>
+
+    <rect x="20" y="65" width="370" height="36" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="35" y="88" fill="#58a6ff" font-size="12" font-family="monospace">情況 2: -63 &le; D &le; 64 ➔ '10' (2b) + 7b (共 9 bits)</text>
+
+    <rect x="410" y="65" width="370" height="36" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="425" y="88" fill="#58a6ff" font-size="12" font-family="monospace">情況 3: -255 &le; D &le; 256 ➔ '110' (3b) + 9b (共 12 bits)</text>
+
+    <rect x="20" y="110" width="370" height="36" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="35" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">情況 4: -2047 &le; D &le; 2048 ➔ '1110' (4b) + 12b (共 16 bits)</text>
+
+    <rect x="410" y="110" width="370" height="36" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="425" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">情況 5: 其餘大跳躍 ➔ '1111' (4b) + 32b (共 36 bits)</text>
+
+    <text x="400" y="178" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">在穩定採樣週期中，每個時間戳平均開銷僅需 1 bit！</text>
+
+  </svg>
+</div>
 
 在絕大多數週期性監控場景中，D = 0 佔比超過 90%，**每個時間戳僅需 1 個 bit 即可完成儲存**！
 
@@ -129,18 +140,21 @@ Gorilla 時間戳變長編碼規則：
 
 令當前值 Vn 與前值 Vn-1 進行 XOR 運算：X = Vn XOR Vn-1。
 
-```text
-Gorilla Float64 浮點數壓縮流程：
-1. 若 X == 0 (數值無變化)：
-   ➔ 僅儲存 1 個 bit: '0'
-2. 若 X != 0：
-   ➔ 寫入 1 個 bit: '1'
-   a. 若當前 XOR 結果的前導零 (Leading Zeros) 與尾隨零 (Trailing Zeros)
-      落在前一個 XOR 結果的區間內：
-      ➔ 寫入 '0' (控制位) + 直接儲存變化區間內的有效位元 (Meaningful bits)
-   b. 若前導/尾隨零超出前一次區間：
-      ➔ 寫入 '1' (控制位) + 5 bits (前導零個數) + 6 bits (有效位長度) + 有效位元
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gorilla-fp-title gorilla-fp-desc">
+    <title id="gorilla-fp-title">Gorilla Float64 XOR 浮點數壓縮流程圖</title>
+    <desc id="gorilla-fp-desc">展示 XOR=0 時僅需 1 bit '0'，XOR!=0 時根據前導零與有效位區間寫入控制位元與變化有效位元。</desc>
+    
+    <rect x="20" y="15" width="760" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="40" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">1. 若 X == 0 (數值無變化) ➔ 僅儲存 1 個 bit: '0'</text>
+
+    <rect x="20" y="65" width="760" height="80" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="90" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600">2. 若 X != 0 ➔ 寫入 1 bit '1'：</text>
+    <text x="60" y="112" fill="#c9d1d9" font-size="11" font-family="monospace">a. 前導/尾隨零落在前一區間 ➔ '0' (控制位) ＋ 直接儲存有效位元 (Meaningful Bits)</text>
+    <text x="60" y="132" fill="#d2a8ff" font-size="11" font-family="monospace">b. 超出前一區間 ➔ '1' (控制位) ＋ 5b (前導零數) ＋ 6b (有效位長度) ＋ 有效位元</text>
+
+  </svg>
+</div>
 
 透過 XOR 消除連續數值冗餘，浮點數平均大小由 8 Bytes 驟降至 **1.37 Bytes**。
 

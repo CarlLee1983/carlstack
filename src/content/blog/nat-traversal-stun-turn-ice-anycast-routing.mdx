@@ -47,15 +47,44 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 為了解決 NAT 阻礙端到端通訊的問題，IETF 制定了完整的穿透框架：
 
-```text
-       [ STUN Server ] ── (發現外網映射 IP:Port)
-              ▲
-              │ (若雙方皆非對稱型 NAT: 直接 P2P 打洞)
-   Peer A ◄────────────────────────────────────────► Peer B
-              │ (若其中一方或雙方為對稱型 NAT: 降級中繼)
-              ▼
-       [ TURN Relay Server ] ── (轉發全部流量)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nat-p2p-title nat-p2p-desc">
+    <title id="nat-p2p-title">P2P NAT 穿透三重奏（STUN、TURN、ICE）架構圖</title>
+    <desc id="nat-p2p-desc">展示 Peer A 與 Peer B 透過 STUN 探測外網映射位址進行 P2P 直連打洞，若遇對稱型 NAT 則降級由 TURN 中繼伺服器轉發。</desc>
+    
+    <defs>
+      <marker id="nat-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="nat-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">STUN Server (探測外網映射 IP:Port)</text>
+
+    <path d="M 160 95 L 300 57" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+    <path d="M 640 95 L 500 57" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+
+    <rect x="30" y="95" width="160" height="55" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="110" y="127" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Peer A (私網)</text>
+
+    <line x1="190" y1="122" x2="600" y2="122" stroke="#3fb950" stroke-width="3" marker-end="url(#nat-arrow-green)"/>
+    <text x="400" y="112" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ P2P Direct Connection (錐形 NAT 成功打洞直連)</text>
+
+    <rect x="610" y="95" width="160" height="55" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="690" y="127" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Peer B (私網)</text>
+
+    <path d="M 160 150 L 300 185" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+    <path d="M 640 150 L 500 185" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+
+    <rect x="250" y="180" width="300" height="45" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="202" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">TURN Relay Server (中繼降級轉發)</text>
+    <text x="400" y="218" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">對稱型 NAT / 防火牆阻擋時兜底</text>
+
+  </svg>
+</div>
 
 ### 2.1 STUN（Session Traversal Utilities for NAT, RFC 5389）
 
@@ -91,16 +120,58 @@ ICE 是整合上述機制的**候選者協商引擎**：
 
 ### 3.1 Unicast vs. Anycast
 
-```text
-[Unicast (單播)]
-全球各地的 Client ─── (透過不同 IP 或固定跨洋光纖) ───> 集中在某單一機房的 Server
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="anycast-comp-title anycast-comp-desc">
+    <title id="anycast-comp-title">Unicast (單播) vs Anycast (選播) 網路架構對比圖</title>
+    <desc id="anycast-comp-desc">展示 Unicast 流量集中至單一中心機房，而 Anycast 全球多個邊緣節點廣播相同 IP，各國用戶依最短 BGP AS-Path 就近存取。</desc>
+    
+    
+    <rect x="20" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="200" y="42" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Unicast (單播架構)</text>
+    
+    <rect x="40" y="60" width="120" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="80" fill="#c9d1d9" font-size="11" text-anchor="middle">美洲 Client</text>
 
-[Anycast (選播)]
-全球多個機房共同廣播【完全相同的一個 IP 位址】(e.g., 198.51.100.1)
-  - 美國 Client ── (最短 BGP AS-Path) ──> 洛杉磯 Edge Node
-  - 歐洲 Client ── (最短 BGP AS-Path) ──> 法蘭克福 Edge Node
-  - 亞洲 Client ── (最短 BGP AS-Path) ──> 東京 Edge Node
-```
+    <rect x="40" y="105" width="120" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">歐洲 Client</text>
+
+    <rect x="40" y="150" width="120" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="170" fill="#c9d1d9" font-size="11" text-anchor="middle">亞洲 Client</text>
+
+    <path d="M 160 75 L 240 120" stroke="#f85149" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+    <path d="M 160 120 L 240 120" stroke="#f85149" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+    <path d="M 160 165 L 240 120" stroke="#f85149" stroke-width="1.5" marker-end="url(#nat-arrow)"/>
+
+    <rect x="240" y="85" width="120" height="70" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="300" y="112" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">中心機房 Server</text>
+    <text x="300" y="132" fill="#8b949e" font-size="10" text-anchor="middle">跨洋高延遲</text>
+
+
+    <rect x="420" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="42" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Anycast (選播架構 - 同一 IP: 1.1.1.1)</text>
+
+    <rect x="440" y="60" width="100" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="490" y="80" fill="#c9d1d9" font-size="10" text-anchor="middle">美洲 Client</text>
+    <path d="M 540 75 L 610 75" stroke="#3fb950" stroke-width="1.5" marker-end="url(#nat-arrow-green)"/>
+    <rect x="620" y="60" width="140" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="690" y="80" fill="#3fb950" font-size="10" font-weight="600" text-anchor="middle">洛杉磯 Edge</text>
+
+    <rect x="440" y="105" width="100" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="490" y="125" fill="#c9d1d9" font-size="10" text-anchor="middle">歐洲 Client</text>
+    <path d="M 540 120 L 610 120" stroke="#3fb950" stroke-width="1.5" marker-end="url(#nat-arrow-green)"/>
+    <rect x="620" y="105" width="140" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="690" y="125" fill="#3fb950" font-size="10" font-weight="600" text-anchor="middle">法蘭克福 Edge</text>
+
+    <rect x="440" y="150" width="100" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="490" y="170" fill="#c9d1d9" font-size="10" text-anchor="middle">亞洲 Client</text>
+    <path d="M 540 165 L 610 165" stroke="#3fb950" stroke-width="1.5" marker-end="url(#nat-arrow-green)"/>
+    <rect x="620" y="150" width="140" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="690" y="170" fill="#3fb950" font-size="10" font-weight="600" text-anchor="middle">東京 Edge</text>
+
+    <text x="600" y="208" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">最短 BGP AS-Path 就近存取・毫秒級極速</text>
+
+  </svg>
+</div>
 
 ### 3.2 BGP 路由選擇與最短 AS-Path
 

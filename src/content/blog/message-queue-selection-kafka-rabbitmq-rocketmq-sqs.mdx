@@ -61,20 +61,40 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在電商下單扣款場景中，如何保證「本地資料庫扣款成功」與「發送 MQ 通知庫存服務」具備原子性？RocketMQ 透過**半消息（Half-Message）二階段機制**完美解決了雙寫一致性難題：
 
-```text
-[ 訂單服務 (Producer) ] ── (1. 發送 Half Message: 半消息暫時對 Consumer 不可見) ──> [ RocketMQ Broker ]
-          │                                                                                 │
-          │ ◄────────────────── (2. Broker 回傳發送成功 ACK) ───────────────────────────────┘
-          │
-          ├── 3. 執行本地資料庫事務 (CREATE ORDER)
-          │
-          ├── (若本地事務成功) ── (4a. 發送 Commit 指令) ──> Broker 將消息標記為可見 ──> [ 庫存服務 Consumer ]
-          │
-          └── (若本地事務超時/無回應)
-                    │
-                    ▼ (Broker 主動發起反查)
-             [ 5. Check Local Transaction 回查接口 ] ── (訂單服務檢查 DB 確認狀態並回傳 Commit / Rollback)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rmq-txn-title rmq-txn-desc">
+    <title id="rmq-txn-title">RocketMQ 事務半消息（Half-Message）二階段提交流程圖</title>
+    <desc id="rmq-txn-desc">展示訂單服務發送半消息，Broker 回傳 ACK 後執行本地事務，成功發送 Commit 投遞庫存服務，超時則由 Broker 反查訂單庫。</desc>
+    
+    <defs>
+      <marker id="mq-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="230" height="210" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="135" y="42" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">訂單服務 (Producer)</text>
+    <text x="35" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">1. 發送 Half-Message</text>
+    <text x="35" y="95" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">3. 執行本地 DB 扣款事務</text>
+    <text x="35" y="120" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">4a. 事務成功 ➔ 發送 Commit</text>
+    <text x="35" y="145" fill="#d2a8ff" font-size="11" font-family="system-ui, sans-serif">5. 提供狀態反查回呼接口</text>
+
+    <path d="M 250 65 L 430 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#mq-arrow)"/>
+    <path d="M 430 85 L 250 85" stroke="#3fb950" stroke-width="2" marker-end="url(#mq-arrow)"/>
+
+    <rect x="440" y="15" width="340" height="140" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="610" y="42" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">RocketMQ Broker</text>
+    <rect x="460" y="55" width="300" height="38" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1"/>
+    <text x="610" y="79" fill="#d2a8ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">半消息寫入 (消費者暫不可見)</text>
+
+    <path d="M 610 93 L 610 165" stroke="#3fb950" stroke-width="2" marker-end="url(#mq-arrow)"/>
+
+    <rect x="440" y="165" width="340" height="60" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="610" y="190" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">收到 Commit ➔ 訊息對外可見</text>
+    <text x="610" y="210" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">庫存服務 (Consumer) 正常拉取消費</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -90,18 +110,28 @@ AWS SQS（Simple Queue Service）是完全託管的雲端隊列服務：
 
 ## 5. 技術選型決策指南
 
-```text
-                                  【消息隊列選型決策樹】
-                                            │
-               ┌────────────────────────────┴────────────────────────────┐
-               ▼                                                         ▼
-       需要百萬級吞吐量、串流計算                                 需要複雜業務邏輯、延遲低
-       或事件重播 (Event Sourcing)                               或事務消息/延時調度
-               │                                                         │
-               ▼                                                         ▼
-      【 Apache Kafka 】                                 全託管 AWS 雲原生環境？
-                                                                 ├── 是 ──> 【 AWS SQS / SNS 】
-                                                                 └── 否 ──> 是否需要金融級事務/延時隊列？
-                                                                              ├── 是 ──> 【 Apache RocketMQ 】
-                                                                              └── 否 ──> 【 RabbitMQ 】(極速路由)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mq-tree-title mq-tree-desc">
+    <title id="mq-tree-title">主流消息隊列技術架構選型決策樹</title>
+    <desc id="mq-tree-desc">展示吞吐量與串流分析選 Kafka，全託管選 SQS/SNS，金融事務選 RocketMQ，靈活極速路由選 RabbitMQ。</desc>
+    
+    <rect x="20" y="15" width="360" height="95" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="200" y="42" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">百萬級吞吐・串流計算・歷史重播</text>
+    <path d="M 200 65 L 200 80" stroke="#58a6ff" stroke-width="2" marker-end="url(#mq-arrow)"/>
+    <rect x="40" y="65" width="320" height="34" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="200" y="87" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">👉 Apache Kafka</text>
+
+    <rect x="420" y="15" width="360" height="200" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">複雜業務邏輯・低延遲・事務消息</text>
+
+    <rect x="440" y="60" width="320" height="42" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1"/>
+    <text x="600" y="86" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">AWS 全託管 Serverless ➔ 👉 AWS SQS / SNS</text>
+
+    <rect x="440" y="110" width="320" height="42" rx="6" fill="#2a2015" stroke="#d29922" stroke-width="1"/>
+    <text x="600" y="136" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">金融級事務 / 精確延時隊列 ➔ 👉 Apache RocketMQ</text>
+
+    <rect x="440" y="160" width="320" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="600" y="186" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">靈活複雜路由 / 次毫秒極速 ➔ 👉 RabbitMQ</text>
+
+  </svg>
+</div>

@@ -46,19 +46,45 @@ NIST SP 800-207 規範將零信任定義為三大不可動搖的原則：
 
 ## 2. Google BeyondCorp 零信任架構組件拓撲
 
-```text
-[ 請求發起 (員工設備 / 行動裝置) ]
-             │
-             ▼
-[ 統一上下文感知存取代理 (Access Proxy / Envoy) ]
-             │
-             ├── 1. 查詢身分 (IdP / Okta) ──> (多因素認證 MFA, OAuth/OIDC)
-             ├── 2. 設備信任引擎 (Device Inventory) ──> (TPM 晶片證書, 磁碟加密狀態, EDR 代理)
-             └── 3. 動態存取控制引擎 (Policy Engine / ABAC)
-                     │
-                     ▼ (動態判定：符合安全等級 4 且處於上班時區)
-[ 內部微服務 / 資料中心 / SaaS 應用 ] ── (服務間強制執行 mTLS 微隔離)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="zt-arch-title zt-arch-desc">
+    <title id="zt-arch-title">Google BeyondCorp 零信任企業上下文感知存取架構圖</title>
+    <desc id="zt-arch-desc">展示員工設備發起請求經 Access Proxy 統一攔截，依據 IdP 身分、Device Inventory 設備信任度與 ABAC 策略引擎動態計算授權放行。</desc>
+    
+    <defs>
+      <marker id="zt-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="80" width="180" height="70" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="110" y="110" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">員工設備 / 行動裝置</text>
+    <text x="110" y="130" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">公網 / 家用 WiFi / 咖啡廳</text>
+
+    <path d="M 200 115 L 260 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#zt-arrow)"/>
+
+    <rect x="270" y="25" width="220" height="180" rx="10" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="380" y="55" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">上下文感知存取代理</text>
+    <text x="380" y="75" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">(Access Proxy / Envoy)</text>
+
+    <rect x="285" y="90" width="190" height="30" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="380" y="110" fill="#d2a8ff" font-size="10" text-anchor="middle">1. IdP 身分 &amp; FIDO2 MFA</text>
+
+    <rect x="285" y="125" width="190" height="30" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="380" y="145" fill="#d2a8ff" font-size="10" text-anchor="middle">2. TPM 晶片 &amp; EDR 健康度</text>
+
+    <rect x="285" y="160" width="190" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="380" y="180" fill="#3fb950" font-size="10" font-weight="600" text-anchor="middle">3. ABAC 動態策略決策引擎</text>
+
+    <path d="M 490 115 L 560 115" stroke="#3fb950" stroke-width="2" marker-end="url(#zt-arrow)"/>
+
+    <rect x="570" y="60" width="210" height="110" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="675" y="92" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">企業內部微服務 / SaaS</text>
+    <text x="675" y="118" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">服務間強制 mTLS 微隔離</text>
+    <text x="675" y="142" fill="#56d364" font-size="10" font-weight="600" text-anchor="middle">依風險等級動態授權放行！</text>
+
+  </svg>
+</div>
 
 ### 關鍵核心組件職責
 
@@ -90,13 +116,26 @@ NIST SP 800-207 規範將零信任定義為三大不可動搖的原則：
 
 零信任不僅保護人對系統的存取，更保護**服務對服務（Service-to-Service）**的通訊。
 
-```text
-[ 訂單服務 (Order Service) ]                       [ 支付服務 (Payment Service) ]
-           │                                                    │
-     [ Envoy Sidecar ] ─── (雙向 mTLS: 驗證 SPIFFE ID) ───> [ Envoy Sidecar ]
-           │                                                    │
-     (發送 x509 證書)                                    (驗證僅允許 order-svc 呼叫)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="zt-mtls-title zt-mtls-desc">
+    <title id="zt-mtls-title">微服務間雙向 mTLS 與 SPIFFE 身分校驗示意圖</title>
+    <desc id="zt-mtls-desc">展示訂單服務透過 Envoy Sidecar 發送 X.509 證書，支付服務 Envoy 校驗 SPIFFE ID 僅放行合法授權調用。</desc>
+    
+    <rect x="20" y="20" width="280" height="100" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="160" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">訂單服務 (Order Service)</text>
+    <rect x="40" y="65" width="240" height="40" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="160" y="90" fill="#c9d1d9" font-size="11" text-anchor="middle">Envoy Sidecar (發送 x509 證書)</text>
+
+    <path d="M 300 70 L 490 70" stroke="#3fb950" stroke-width="2.5" marker-end="url(#zt-arrow)"/>
+    <text x="400" y="60" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">雙向 mTLS (校驗 SPIFFE ID)</text>
+
+    <rect x="500" y="20" width="280" height="100" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="640" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">支付服務 (Payment Service)</text>
+    <rect x="520" y="65" width="240" height="40" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="640" y="90" fill="#56d364" font-size="11" text-anchor="middle">Envoy Sidecar (驗證僅限 order-svc)</text>
+
+  </svg>
+</div>
 
 - **微隔離**：每個微服務被視為獨立的安全邊界，默認禁止跨服務連線。
 - **雙向 TLS（mTLS）與 SPIFFE / SPIRE**：

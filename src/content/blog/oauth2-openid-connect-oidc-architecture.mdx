@@ -54,30 +54,59 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 2.2 完整時序拓撲流程
 
-```text
-+--------+                               +---------------+                               +---------------+
-| Client |                               |  Auth Server  |                               | Resource API  |
-+--------+                               +---------------+                               +---------------+
-    |                                            |                                               |
-    | 1. 生成 Verifier 與 Challenge(S256)        |                                               |
-    | 2. 導向登入頁面 (帶 Challenge & S256)      |                                               |
-    |------------------------------------------->|                                               |
-    |                                            |                                               |
-    | 3. 使用者登入並授權                       |                                               |
-    | 4. 授權伺服器回傳 Auth Code                |                                               |
-    |<-------------------------------------------|                                               |
-    |                                            |                                               |
-    | 5. 用 Auth Code + 原始 Code Verifier 換 Token|                                             |
-    |------------------------------------------->|                                               |
-    |    (Auth Server 驗證 SHA256(Verifier) == Challenge)                                        |
-    | 6. 回傳 ID Token, Access Token, Refresh Token                                              |
-    |<-------------------------------------------|                                               |
-    |                                                                                            |
-    | 7. 帶 Access Token 請求 API                                                                |
-    |------------------------------------------------------------------------------------------->|
-    | 8. 驗證 Token 簽名與 Scopes，回傳業務資料                                                  |
-    |<-------------------------------------------------------------------------------------------|
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 370" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pkce-seq-title pkce-seq-desc">
+    <title id="pkce-seq-title">OAuth 2.0 Authorization Code Flow + PKCE 完整授權時序圖</title>
+    <desc id="pkce-seq-desc">展示 Client 生成 Code Verifier 與 Challenge，跳轉 Auth Server 登入授權取得 Code，再以 Verifier 換取 Access/ID Token 並存取 Resource API。</desc>
+    
+    <defs>
+      <marker id="pkce-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="pkce-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="50" y="15" width="160" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="38" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Client (SPA / App)</text>
+    <line x1="130" y1="51" x2="130" y2="355" stroke="#30363d" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+    <rect x="320" y="15" width="160" height="36" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="38" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Auth Server (OIDC)</text>
+    <line x1="400" y1="51" x2="400" y2="355" stroke="#30363d" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+    <rect x="590" y="15" width="160" height="36" rx="6" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="38" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Resource API</text>
+    <line x1="670" y1="51" x2="670" y2="355" stroke="#30363d" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+
+    <rect x="70" y="65" width="120" height="24" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="130" y="81" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">生成 Verifier &amp; S256</text>
+
+    <line x1="130" y1="110" x2="390" y2="110" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pkce-arrow)"/>
+    <text x="265" y="103" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">1. 導向登入 (帶 Code Challenge)</text>
+
+    <line x1="400" y1="150" x2="140" y2="150" stroke="#d29922" stroke-width="1.5" marker-end="url(#pkce-arrow)"/>
+    <text x="265" y="143" fill="#e3b341" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">2. 使用者授權 ➔ 回傳 Auth Code</text>
+
+    <line x1="130" y1="195" x2="390" y2="195" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pkce-arrow)"/>
+    <text x="265" y="188" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">3. 換 Token (Auth Code + Code Verifier)</text>
+
+    <rect x="330" y="215" width="140" height="22" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="400" y="230" fill="#d2a8ff" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">驗證 SHA256(Verifier)</text>
+
+    <line x1="400" y1="260" x2="140" y2="260" stroke="#3fb950" stroke-width="2" marker-end="url(#pkce-arrow-green)"/>
+    <text x="265" y="253" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">4. 回傳 ID Token + Access Token</text>
+
+    <line x1="130" y1="300" x2="660" y2="300" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pkce-arrow)"/>
+    <text x="400" y="293" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">5. 帶 Bearer Access Token 請求 API</text>
+
+    <line x1="670" y1="335" x2="140" y2="335" stroke="#3fb950" stroke-width="1.5" marker-end="url(#pkce-arrow-green)"/>
+    <text x="400" y="328" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">6. 本地 JWKS 驗證簽名 ➔ 回傳業務資料</text>
+
+  </svg>
+</div>
 
 > [!IMPORTANT]
 > **為什麼 PKCE 能防禦授權碼攔截攻擊？**  

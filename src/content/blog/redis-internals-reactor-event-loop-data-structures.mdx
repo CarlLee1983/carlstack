@@ -46,15 +46,38 @@ Redis 的單執行緒特指**「網路請求解析、命令執行與資料讀寫
 
 Redis 自研了一套極其精簡的高效能事件驅動庫 **`ae`（A simple event-driven library）**：
 
-```text
-[ 核心主循環: aeMain() ]
-          │
-          ├── 1. 呼叫 aeApiPoll() (封裝 epoll_wait) ──> 監聽檔案事件 (File Events: 讀/寫 Socket)
-          │
-          ├── 2. 派發處理讀取請求 ──> 讀取客戶端 Buffer ──> 執行業務命令 (GET/SET) ──> 寫入回應 Buffer
-          │
-          └── 3. 處理時間事件 (Time Events: serverCron) ──> 處理過期鍵清除、主從複製重連、軟體看門狗
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ae-loop-title ae-loop-desc">
+    <title id="ae-loop-title">Redis aeEventLoop 反應器核心事件循環架構圖</title>
+    <desc id="ae-loop-desc">展示 aeMain 呼叫 epoll 監聽檔案事件派發業務命令執行，並處理 serverCron 時間事件。</desc>
+    
+    <defs>
+      <marker id="ae-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="14" font-family="monospace" font-weight="700" text-anchor="middle">aeMain() 核心主事件循環</text>
+
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#ae-arrow)"/>
+
+    <rect x="180" y="85" width="440" height="42" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="400" y="111" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">aeApiPoll() (Linux epoll_wait I/O 多路復用)</text>
+
+    <path d="M 300 127 L 200 155" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ae-arrow)"/>
+    <path d="M 500 127 L 600 155" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#ae-arrow)"/>
+
+    <rect x="40" y="155" width="340" height="70" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="210" y="180" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 檔案事件 (File Events)</text>
+    <text x="210" y="202" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">讀取 Socket ➔ 執行 GET/SET ➔ 寫入回應 Buffer</text>
+
+    <rect x="420" y="155" width="340" height="70" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="590" y="180" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 時間事件 (serverCron)</text>
+    <text x="590" y="202" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">過期鍵清除、主從複製重連、漸進式 Rehash</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -98,18 +121,31 @@ ZSet 在大資料量時採用跳躍表。相較於紅黑樹或 AVL 樹，跳躍�
 
 ### 4.1 多執行緒架構邊界
 
-```text
-[ Client Sockets ] ── (多個請求同時到達)
-          │
-          ▼
-[ I/O Threads (多個非同步執行緒) ] ── (平行讀取 Socket、解析協議生成命令)
-          │
-          ▼
-[ Main Thread (核心主執行緒 - 依然單執行緒！) ] ── (依序、原子執行所有業務命令)
-          │
-          ▼
-[ I/O Threads (多個非同步執行緒) ] ── (平行將結果寫回 Socket 回傳給客戶端)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="r6-threads-title r6-threads-desc">
+    <title id="r6-threads-title">Redis 6.0+ 多執行緒網路 I/O 與單執行緒核心執行架構圖</title>
+    <desc id="r6-threads-desc">展示 Client Sockets 經多個 I/O Threads 平行讀取與協議解析，再由 Main Thread 單執行緒原子執行業務指令，最後由 I/O Threads 平行回寫 Socket。</desc>
+    
+    <rect x="220" y="15" width="360" height="38" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="39" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Client Sockets (海量並發請求抵達)</text>
+
+    <path d="M 400 53 L 400 75" stroke="#58a6ff" stroke-width="2" marker-end="url(#ae-arrow)"/>
+
+    <rect x="150" y="75" width="500" height="42" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="101" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">I/O Threads (多執行緒平行讀取 Socket 與協議解析)</text>
+
+    <path d="M 400 117 L 400 140" stroke="#3fb950" stroke-width="2" marker-end="url(#ae-arrow)"/>
+
+    <rect x="150" y="140" width="500" height="42" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="166" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Main Thread (核心主執行緒 ➔ 100% 維持單執行緒原子執行！)</text>
+
+    <path d="M 400 182 L 400 205" stroke="#bc8cff" stroke-width="2" marker-end="url(#ae-arrow)"/>
+
+    <rect x="150" y="205" width="500" height="30" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="400" y="225" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">I/O Threads (多執行緒平行回寫 Socket 輸出至客戶端)</text>
+
+  </svg>
+</div>
 
 - **核心原則不變**：**所有命令的執行依然在單一主執行緒中完成**，因此原有命令的原子性保證與無鎖特性 100% 得到保留！
 - **突破極限**：僅將最耗費 CPU 週期與系統呼叫的「網路 Socket 讀取、協議解析、網路 Socket 寫入」交由多執行緒平行處理，使 Redis 吞吐量再次獲得 **2 倍以上的翻倍暴增**！

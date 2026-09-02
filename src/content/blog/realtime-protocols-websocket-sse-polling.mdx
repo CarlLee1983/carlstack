@@ -31,18 +31,47 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
   - **致命缺點**：若 99% 的時間都沒有新訊息，這 99% 的 HTTP 請求就是純粹的 CPU、頻寬與 Header 開銷浪費；若拉長輪詢間隔，訊息即時性則顯著下降。
 - **長輪詢（Long Polling）**：客戶端發起 HTTP 請求，若伺服器端當前無新資料，**伺服器會將該 HTTP 請求掛起（Hold Connection）**，直到有新資料產生或達到超時時間（Timeout，通常設為 20~60 秒）。客戶端收到回應（或超時中斷）後，立即再發起下一個長輪詢請求。
 
-```text
-[Short Polling]
-Client ─── HTTP GET ───> Server (無資料，立即回傳空 200 OK)
-Client ─── HTTP GET ───> Server (無資料，立即回傳空 200 OK)
-Client ─── HTTP GET ───> Server (有新資料，回傳資料 200 OK)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="polling-comp-title polling-comp-desc">
+    <title id="polling-comp-title">短輪詢（Short Polling）vs 長輪詢（Long Polling）時序對比圖</title>
+    <desc id="polling-comp-desc">展示短輪詢無資料時頻繁空回傳浪費資源，而長輪詢在無資料時掛起連線直到新訊息產生立即返回並建立下一輪。</desc>
+    
+    <defs>
+      <marker id="poll-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="poll-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
 
-[Long Polling]
-Client ─── HTTP GET ───> Server (無資料，掛起連線等待...)
-                                  ... 5 秒後產生新訊息 ...
-Client <── 200 OK ────── Server (帶回新訊息)
-Client ─── HTTP GET ───> Server (立即建立下一輪掛起連線...)
-```
+    <rect x="20" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="200" y="42" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 短輪詢 (Short Polling)</text>
+
+    <rect x="40" y="60" width="320" height="34" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="50" y="82" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">1. GET ➔ Server (無資料 ➔ 立即回傳空 200)</text>
+
+    <rect x="40" y="105" width="320" height="34" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="50" y="127" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">2. 1秒後 GET ➔ Server (仍無 ➔ 立即回傳空)</text>
+
+    <rect x="40" y="150" width="320" height="34" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="50" y="172" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">3. 2秒後 GET ➔ Server (有資料 ➔ 回傳訊息)</text>
+    <text x="200" y="208" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">99% 請求皆為無效空查詢，浪費頻寬與 CPU</text>
+
+    <rect x="420" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="42" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ 長輪詢 (Long Polling)</text>
+
+    <rect x="440" y="60" width="320" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="450" y="80" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="600">1. Client ── GET ──► Server</text>
+    <text x="450" y="98" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">Server 無資料 ➔ 掛起連線等待 (Hold 20~60s)</text>
+
+    <rect x="440" y="120" width="320" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="450" y="140" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" font-weight="600">2. 5 秒後產生新訊息 ➔ 立即回傳 200 OK</text>
+    <text x="450" y="158" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">Client 收到後立即建立下一輪掛起連線</text>
+    <text x="600" y="208" fill="#3fb950" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">大幅減少無效請求・兼具即時性與 HTTP 相容</text>
+
+  </svg>
+</div>
 
 ### 1.2 伺服器發送事件（Server-Sent Events, SSE）
 

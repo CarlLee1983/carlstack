@@ -44,21 +44,53 @@ import ElkStackLogPipelineDiagram from "../../components/ElkStackLogPipelineDiag
 
 標準的現代 Elastic Stack 管線採用四層分工架構：
 
-```text
-[邊緣節點: Pod / VM]
-   │ (Filebeat 輕量採集)
-   ▼
-[消息隊列: Apache Kafka / Redis] ➔ (流量削峰填谷、防止 ES 寫入阻塞)
-   │
-   ▼
-[解析引擎: Logstash / Vector]   ➔ (Grok 正則提取、GeoIP、JSON 解析、敏感資訊脫敏)
-   │
-   ▼
-[分散式搜尋庫: Elasticsearch]   ➔ (Lucene 倒排索引、Doc Values 列存、分片儲存)
-   │
-   ▼
-[視覺化層: Kibana]               ➔ (Discover 探勘、Dashboard 儀表板、異常告警)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="elk-pipe-title elk-pipe-desc">
+    <title id="elk-pipe-title">ELK Stack 端到端日誌收集、緩衝、清洗、搜尋與視覺化管線架構圖</title>
+    <desc id="elk-pipe-desc">展示邊緣節點 Filebeat 輕量採集發送至 Kafka 緩衝削峰，經 Logstash 解析清洗入庫 Elasticsearch 倒排索引，最終由 Kibana 視覺化呈現。</desc>
+    
+    <defs>
+      <marker id="elk-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="85" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 邊緣採集 (Filebeat)</text>
+    <text x="130" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pod / VM 本地日誌搬運</text>
+    <text x="130" y="88" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">背壓控制・記憶體 &lt; 30MB</text>
+
+    <path d="M 240 62 L 290 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#elk-arrow)"/>
+
+    <rect x="290" y="20" width="220" height="85" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="48" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 消息緩衝 (Kafka)</text>
+    <text x="400" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">流量削峰填谷・日誌蓄水池</text>
+    <text x="400" y="88" fill="#e3b341" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">徹底防禦 ES 寫入雪崩！</text>
+
+    <path d="M 510 62 L 560 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#elk-arrow)"/>
+
+    <rect x="560" y="20" width="220" height="85" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="670" y="48" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">3. 清洗解析 (Logstash)</text>
+    <text x="670" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Grok 正則提取 / JSON</text>
+    <text x="670" y="88" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">GeoIP 富化・敏感資料脫敏</text>
+
+
+    <path d="M 670 105 L 670 135" stroke="#3fb950" stroke-width="2" marker-end="url(#elk-arrow)"/>
+
+    <rect x="440" y="135" width="340" height="85" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="610" y="162" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4. 儲存與檢索 (Elasticsearch)</text>
+    <text x="610" y="184" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Lucene 倒排索引・Doc Values 列存・ILM 生命週期</text>
+    <text x="610" y="202" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">支援百億級日誌毫秒定位</text>
+
+    <path d="M 440 177 L 390 177" stroke="#58a6ff" stroke-width="2" marker-end="url(#elk-arrow)"/>
+
+    <rect x="40" y="135" width="340" height="85" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="210" y="162" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">5. 視覺化層 (Kibana)</text>
+    <text x="210" y="184" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Discover 快速探勘・Dashboard 即時看板</text>
+    <text x="210" y="202" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">異常告警通知 (Slack / PagerDuty)</text>
+
+  </svg>
+</div>
 
 ---
 

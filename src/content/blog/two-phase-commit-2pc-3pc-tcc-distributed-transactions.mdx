@@ -30,18 +30,39 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 2PC 由一個**協調者（Coordinator）** 與多個**參與者（Participants / Resource Managers）** 組成。
 
-```text
-[ 階段一：準備階段 (Prepare Phase) ]
-Coordinator ── (1. Prepare / CanCommit?) ──> Participants (A, B, C)
-Participants: 執行本地事務、寫 Undo/Redo 日誌、加排他鎖 (不提交！)
-Participants ── (2. 投出 Yes 票 / No 票) ──> Coordinator
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="two-pc-title two-pc-desc">
+    <title id="two-pc-title">兩階段提交（2PC）準備與提交階段架構圖</title>
+    <desc id="two-pc-desc">展示 Coordinator 在 Prepare 階段向參與者發送請求，全員 Yes 則發送 DoCommit，否則發送 DoAbort 回滾。</desc>
+    
+    <defs>
+      <marker id="tpc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-[ 階段二：提交階段 (Commit Phase) ]
-若全員投 Yes:
-Coordinator ── (3. DoCommit) ──> Participants ── (提交並釋放鎖) ──> 回傳 Ack
-若任一人投 No 或逾時:
-Coordinator ── (3. DoAbort)  ──> Participants ── (執行 Rollback 釋放鎖)
-```
+    <rect x="20" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="200" y="42" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段一：準備階段 (Prepare Phase)</text>
+    <rect x="40" y="60" width="320" height="42" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1"/>
+    <text x="200" y="86" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Coordinator ── Prepare? ──► Participants</text>
+    <rect x="40" y="115" width="320" height="95" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="200" y="140" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Participants (A, B, C):</text>
+    <text x="200" y="160" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">• 執行本地 SQL、寫 Undo/Redo 日誌</text>
+    <text x="200" y="180" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">• 鎖定排他鎖 (持續持有直到 Phase 2!)</text>
+    <text x="200" y="200" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">➔ 投出 Yes 票 / No 票回傳 Coordinator</text>
+
+    <rect x="420" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="42" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段二：提交階段 (Commit Phase)</text>
+    <rect x="440" y="60" width="320" height="65" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="600" y="85" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ 若全員投 Yes：</text>
+    <text x="600" y="105" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Coordinator 發送 DoCommit ➔ 提交並釋放鎖</text>
+
+    <rect x="440" y="140" width="320" height="65" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1"/>
+    <text x="600" y="165" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 若任一人投 No 或逾時：</text>
+    <text x="600" y="185" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Coordinator 發送 DoAbort ➔ 全員 Rollback 釋放鎖</text>
+
+  </svg>
+</div>
 
 ### 1.1 2PC 的三大致命缺陷
 
@@ -59,15 +80,29 @@ Coordinator ── (3. DoAbort)  ──> Participants ── (執行 Rollback �
 
 為了緩解 2PC 的同步阻塞與單點當機問題，3PC 引入了**逾時機制（Timeouts）** 並將提交過程拆分為三段：
 
-```text
-           [ 階段一: CanCommit ] ── 輕量詢問參與者狀態 (不鎖定資源)
-                    │
-                    ▼
-           [ 階段二: PreCommit ] ── 執行事務操作、鎖定資源、寫日誌
-                    │
-                    ▼
-           [ 階段三: DoCommit ]  ── 正式提交並釋放鎖
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="three-pc-title three-pc-desc">
+    <title id="three-pc-title">三階段提交（3PC）流程圖</title>
+    <desc id="three-pc-desc">展示 3PC 透過 CanCommit 輕量詢問、PreCommit 預提交鎖定、DoCommit 正式提交三步驟減少阻塞。</desc>
+    
+    <rect x="20" y="25" width="220" height="75" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="130" y="55" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段一: CanCommit</text>
+    <text x="130" y="78" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">輕量詢問 (不鎖定資源)</text>
+
+    <path d="M 240 62 L 290 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#tpc-arrow)"/>
+
+    <rect x="290" y="25" width="220" height="75" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="55" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段二: PreCommit</text>
+    <text x="400" y="78" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">鎖定資源・寫日誌・參與者設逾時</text>
+
+    <path d="M 510 62 L 560 62" stroke="#3fb950" stroke-width="2" marker-end="url(#tpc-arrow)"/>
+
+    <rect x="560" y="25" width="220" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="55" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段三: DoCommit</text>
+    <text x="670" y="78" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">正式提交・超時自動 Commit</text>
+
+  </svg>
+</div>
 
 ### 2.1 3PC 如何解決阻塞？
 
@@ -90,22 +125,23 @@ Coordinator ── (3. DoAbort)  ──> Participants ── (執行 Rollback �
 
 假設從帳戶 A 向帳戶 B 轉帳 100 元：
 
-```text
-[ 傳統 2PC (資料庫層鎖定) ]
-UPDATE account SET balance = balance - 100 WHERE id = 'A'; (持續鎖定 A 直到全局 Commit)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tcc-comp-title tcc-comp-desc">
+    <title id="tcc-comp-title">傳統 2PC 長期行鎖 vs TCC 業務資源預留架構對比</title>
+    <desc id="tcc-comp-desc">展示傳統 2PC 跨服務長週期鎖定行記錄，而 TCC 透過 Try 凍結預留資源使底層事務立即提交釋放鎖。</desc>
+    
+    <rect x="20" y="15" width="760" height="70" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="42" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 傳統 2PC (資料庫層死鎖隱患)：</text>
+    <text x="40" y="65" fill="#c9d1d9" font-size="12" font-family="monospace">UPDATE account SET balance = balance - 100 WHERE id = 'A'; (持續長週期鎖定 A 行記錄直到全局 Commit)</text>
 
-[ TCC 模式 (業務資源預留) ]
-1. Try 階段:
-   - 帳戶 A: balance 不變，frozen_balance += 100 (成功預留 100 元，事務立即 Commit 釋放鎖！)
-   - 帳戶 B: 檢查帳戶狀態是否正常可用。
+    <rect x="20" y="95" width="760" height="130" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="122" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ TCC 模式 (業務資源預留・底層事務秒級釋放)：</text>
+    <text x="40" y="148" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif">1. Try 階段：帳戶 A frozen_balance += 100 ➔ 成功預留 100 元，底層事務立即 Commit 釋放行鎖！</text>
+    <text x="40" y="173" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif">2. Confirm 階段 (全員 Try 成功)：帳戶 A 正式扣減凍結金額，帳戶 B balance += 100 正式入帳</text>
+    <text x="40" y="198" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif">3. Cancel 階段 (任一 Try 失敗)：帳戶 A frozen_balance -= 100 (解凍資金，完全無鎖回退)</text>
 
-2. Confirm 階段 (全員 Try 成功):
-   - 帳戶 A: balance -= 100, frozen_balance -= 100 (正式扣減)
-   - 帳戶 B: balance += 100 (正式入帳)
-
-3. Cancel 階段 (任一 Try 失敗):
-   - 帳戶 A: frozen_balance -= 100 (解凍資金，恢復如初)
-```
+  </svg>
+</div>
 
 ### 3.2 TCC 實踐必須防禦的三大異常
 

@@ -103,17 +103,48 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 2. 將實體伺服器節點的 IP 或名稱進行雜湊，落在環上的特定點。
 3. 資料鍵（Data Key）計算雜湊後，**沿順時針方向尋找第一個大於或等於該雜湊值的伺服器節點**。
 
-```text
-                   Node A (0 / 2^32-1)
-                      /           \
-                     /             \
-             Key 3  /               \  Key 1
-                   /                 \
-            Node C                    Node B
-                   \                 /
-                    \               /
-                     \    Key 2    /
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ch-ring-title ch-ring-desc">
+    <title id="ch-ring-title">一致性雜湊環（Consistent Hashing Ring）與順時針尋址拓撲圖</title>
+    <desc id="ch-ring-desc">展示 0 至 2^32-1 圓環上節點 A、B、C 分佈，Key 1 順時針映射至 Node B，Key 2 映射至 Node C，Key 3 映射至 Node A，單節點變更僅影響局部。</desc>
+    
+    
+    <circle cx="260" cy="120" r="85" fill="none" stroke="#58a6ff" stroke-width="2.5" stroke-dasharray="4 2"/>
+    <text x="260" y="24" fill="#8b949e" font-size="10" font-family="monospace" text-anchor="middle">0 / 2^32 - 1</text>
+
+    <circle cx="260" cy="35" r="10" fill="#238636" stroke="#3fb950" stroke-width="2"/>
+    <text x="260" y="20" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Node A</text>
+
+
+    <circle cx="330" cy="80" r="5" fill="#e3b341"/>
+    <text x="345" y="82" fill="#e3b341" font-size="10" font-family="monospace">Key 1 (順時針 ➔ Node B)</text>
+
+
+    <circle cx="335" cy="165" r="10" fill="#1f6feb" stroke="#58a6ff" stroke-width="2"/>
+    <text x="375" y="175" fill="#58a6ff" font-size="11" font-weight="700">Node B</text>
+
+
+    <circle cx="260" cy="205" r="5" fill="#e3b341"/>
+    <text x="260" y="228" fill="#e3b341" font-size="10" font-family="monospace" text-anchor="middle">Key 2 (順時針 ➔ Node C)</text>
+
+
+    <circle cx="185" cy="165" r="10" fill="#8957e5" stroke="#bc8cff" stroke-width="2"/>
+    <text x="120" y="175" fill="#bc8cff" font-size="11" font-weight="700">Node C</text>
+
+
+    <circle cx="190" cy="80" r="5" fill="#e3b341"/>
+    <text x="175" y="82" fill="#e3b341" font-size="10" font-family="monospace" text-anchor="end">Key 3 (➔ Node A)</text>
+
+
+    <rect x="440" y="30" width="340" height="175" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="460" y="58" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">一致性雜湊核心特性：</text>
+    <text x="460" y="90" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 節點下線：僅受影響節點的 Key 順延至下一節點</text>
+    <text x="460" y="115" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">• 其餘所有無關 Key 快取命中率保持 100%！</text>
+    <text x="460" y="145" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 引入虛擬節點 (Virtual Nodes, 如 160 個/節點)</text>
+    <text x="460" y="170" fill="#d2a8ff" font-size="11" font-family="system-ui, sans-serif">• 徹底消除資料傾斜，負載分佈均勻平坦！</text>
+
+  </svg>
+</div>
 
 - **節點下線**：若 Node B 下線，受影響的僅有原先映射到 Node B 的 Key 1（順延至 Node C），其餘 Key 2、Key 3 完全不受影響。
 - **節點新增**：新增節點僅需分擔其逆時針方向相鄰節點的部分資料。

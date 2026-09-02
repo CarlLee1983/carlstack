@@ -33,16 +33,29 @@ UUIDv4 採用 128 位元偽隨機數生成（如 `f47ac10b-58cc-4372-a567-0e02b2
 
 MySQL InnoDB 引擎採用 B+ Tree 組織聚簇索引，資料實體行直接儲存在葉子節點（Leaf Pages）中，並依據主鍵大小嚴格物理排序：
 
-```text
-[順序單調遞增 ID 寫入 (如 Snowflake / UUIDv7)]
-[Page 1: 1, 2, 3] ──> [Page 2: 4, 5, 6] ──> [Page 3: 7, 8, 9]
-* 每次寫入都直接追加在最末尾的 Page，頁面填充率高達 95% 以上，磁碟為純順序寫入！
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="id-split-title id-split-desc">
+    <title id="id-split-title">順序遞增 ID (Snowflake/UUIDv7) vs 隨機 UUIDv4 在 B+ Tree 中的寫入差異</title>
+    <desc id="id-split-desc">展示單調遞增 ID 順序追加至末尾 Page 填充率 95%，隨機 UUIDv4 隨機插入中間引發 Page Split 頁分裂與磁碟隨機讀寫。</desc>
+    
+    <rect x="20" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ 順序單調遞增 ID (Snowflake / UUIDv7)</text>
+    <rect x="40" y="60" width="320" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="200" y="86" fill="#3fb950" font-size="11" font-family="monospace" text-anchor="middle">[Page 1: 1..3] ➔ [Page 2: 4..6] ➔ [Page 3: 7..9]</text>
+    <text x="200" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">• 每次直接追加在最末尾 Page</text>
+    <text x="200" y="150" fill="#3fb950" font-size="11" text-anchor="middle">• 頁面填充率高達 95% 以上</text>
+    <text x="200" y="175" fill="#56d364" font-size="12" font-weight="700" text-anchor="middle">純順序寫入・Buffer Pool 效率極致</text>
 
-[隨機 UUIDv4 寫入]
-新產生的隨機 UUID 必須隨機插入到歷史 Page 中間：
-  - 若目標 Page 空間已滿，InnoDB 必須暫停寫入，分配一個新 Page，將舊 Page 中 50% 的資料搬移過去 (Page Split)。
-  - 引發大量的磁碟隨機讀寫、空間碎片化（填充率暴跌至 50%~60%），導致 Buffer Pool 命中率雪崩。
-```
+    <rect x="420" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="600" y="42" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 隨機 UUIDv4 寫入 (InnoDB 噩夢)</text>
+    <rect x="440" y="60" width="320" height="42" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="600" y="86" fill="#f85149" font-size="11" font-family="monospace" text-anchor="middle">隨機插入中間滿載 Page ➔ 觸發 Page Split</text>
+    <text x="600" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">• 舊 Page 強制搬移 50% 數據至新頁</text>
+    <text x="600" y="150" fill="#f85149" font-size="11" text-anchor="middle">• 空間碎片化，填充率暴跌至 50%</text>
+    <text x="600" y="175" fill="#f85149" font-size="12" font-weight="700" text-anchor="middle">吞吐量斷崖式暴跌 70%~85%！</text>
+
+  </svg>
+</div>
 
 基準測試表明：在千萬級資料寫入壓力下，**使用 UUIDv4 作為 InnoDB 主鍵的寫入吞吐量相比單調遞增 ID 會暴跌 70%~85%**。
 
@@ -54,12 +67,29 @@ MySQL InnoDB 引擎採用 B+ Tree 組織聚簇索引，資料實體行直接儲�
 
 ### 2.1 64-bit 二進位位元拓撲
 
-```text
- 0 (1 bit)   41-bit 時間戳 (毫秒)             10-bit 工作節點 ID    12-bit 序列號
-+---------+----------------------------------+-------------------+---------------+
-|    0    | 01101011000... (可支撐 69 年)    | DataCenter + Worker| 000000000000  |
-+---------+----------------------------------+-------------------+---------------+
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sf-layout-title sf-layout-desc">
+    <title id="sf-layout-title">Twitter Snowflake 64-bit 二進位結構圖</title>
+    <desc id="sf-layout-desc">展示 1-bit 符號位 (0)、41-bit 時間戳毫秒數 (支撐 69 年)、10-bit 工作節點 ID (1024 節點) 與 12-bit 計數序列號 (每毫秒 4096 個)。</desc>
+    
+    <rect x="20" y="20" width="50" height="70" rx="4" fill="#161b22" stroke="#8b949e"/>
+    <text x="45" y="48" fill="#8b949e" font-size="11" font-weight="700" text-anchor="middle">0</text>
+    <text x="45" y="72" fill="#8b949e" font-size="9" text-anchor="middle">1 bit</text>
+
+    <rect x="80" y="20" width="370" height="70" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="265" y="48" fill="#3fb950" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle">41-bit 毫秒時間戳 (可支撐 69 年)</text>
+    <text x="265" y="72" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">相對於自定義 Epoch 的時間差</text>
+
+    <rect x="460" y="20" width="160" height="70" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="540" y="48" fill="#d2a8ff" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">10-bit 節點 ID</text>
+    <text x="540" y="72" fill="#d2a8ff" font-size="10" text-anchor="middle">5b DC + 5b Worker</text>
+
+    <rect x="630" y="20" width="150" height="70" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="705" y="48" fill="#58a6ff" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">12-bit 序列號</text>
+    <text x="705" y="72" fill="#58a6ff" font-size="10" text-anchor="middle">4096 個 ID / 毫秒</text>
+
+  </svg>
+</div>
 
 1. **1-bit 符號位**：固定為 `0`，保證生成的 64 位元整數在 Java / C++ 等語言中為正數。
 2. **41-bit 時間戳毫秒數**：記錄相對於系統自定義 Epoch（起始時間）的毫秒差。`2^41 - 1` 毫秒約等於 **69 年**。
@@ -91,14 +121,38 @@ MySQL InnoDB 引擎採用 B+ Tree 組織聚簇索引，資料實體行直接儲�
 
 針對 Snowflake 的時鐘問題與純資料庫號段的高頻 I/O，美團推出了 **Leaf-Segment** 雙 Buffer 優化架構：
 
-```text
-[應用記憶體 Buffer 1] ─── (持續消耗當前號段 ID: 1001 ~ 2000)
-       │ (當 Buffer 1 消耗達到 10% 閾值時，非同步執行緒自動預載入)
-       ▼
-[非同步背景執行緒] ── (向 MySQL / DB 發起單次 UPDATE 取得新號段 2001 ~ 3000) ──> [載入至 Buffer 2]
-       │
-[平滑切換] ─── (Buffer 1 耗盡瞬間，毫秒級無縫指針切換至 Buffer 2，完全零阻塞！)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="leaf-buf-title leaf-buf-desc">
+    <title id="leaf-buf-title">美團 Leaf 雙 Buffer 異步號段平滑切換架構圖</title>
+    <desc id="leaf-buf-desc">展示 Buffer 1 消耗至 10% 閾值時非同步執行緒向 DB 預載新號段至 Buffer 2，耗盡時指針毫秒級平滑切換零阻塞。</desc>
+    
+    <defs>
+      <marker id="id-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="340" height="90" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">應用記憶體 Buffer 1 (當前使用)</text>
+    <text x="200" y="70" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">持續消耗 ID: 1001 ~ 2000</text>
+    <text x="200" y="92" fill="#e3b341" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">剩餘 10% ➔ 觸發非同步預加載</text>
+
+    <path d="M 370 65 L 430 65" stroke="#bc8cff" stroke-width="2" marker-end="url(#id-arrow)"/>
+
+    <rect x="440" y="20" width="330" height="90" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="605" y="48" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">非同步背景執行緒 ➔ DB 交互</text>
+    <text x="605" y="70" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">UPDATE tbl SET max_id = max_id + 1000</text>
+    <text x="605" y="92" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">單次 I/O 獲取新號段 2001 ~ 3000</text>
+
+    <path d="M 605 110 L 605 135" stroke="#3fb950" stroke-width="2" marker-end="url(#id-arrow)"/>
+
+    <rect x="440" y="135" width="330" height="85" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="605" y="162" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">預加載至 Buffer 2 (待命)</text>
+    <text x="605" y="184" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Buffer 1 耗盡瞬間 ➔ 指針毫秒級無縫切換！</text>
+    <text x="605" y="202" fill="#56d364" font-size="10" font-weight="700" text-anchor="middle">100% 零阻塞 ＋ 資料庫暫時當機無感</text>
+
+  </svg>
+</div>
 
 - **優點**：極致的資料庫 I/O 削峰（每 10 萬個 ID 只需訪問 1 次資料庫）、完全不依賴系統時鐘、資料庫暫時當機 10~30 分鐘系統依然能正常發號。
 

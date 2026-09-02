@@ -46,22 +46,50 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 Iceberg 徹底拋棄了「目錄即分區」的傳統 Hive 思維，將表格狀態抽象為一個精密的樹狀層級：
 
-```text
-[ Iceberg Catalog (Glue / REST / Hive) ]
-                 │ (指針指向當前最新 Metadata)
-                 ▼
-[ Table Metadata File (v3.metadata.json) ] ── (記錄 Schema, 分區規格, 快照列表)
-                 │
-                 ▼ (當前 Snapshot ID)
-[ Manifest List File (snap-101.avro) ] ───── (記錄多個 Manifest 檔案與分區摘要範圍)
-                 │
-        ┌────────┴────────┐
-        ▼                 ▼
-[ Manifest File 1 ]   [ Manifest File 2 ] ─── (記錄每個 Parquet 檔案的路徑、欄位 Min/Max 統計)
-        │                 │
-        ▼                 ▼
-  [ data1.parquet ]  [ data2.parquet ] ────── (實際物理資料列)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 290" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iceberg-meta-title iceberg-meta-desc">
+    <title id="iceberg-meta-title">Apache Iceberg 樹狀元數據體系（Metadata Tree）架構圖</title>
+    <desc id="iceberg-meta-desc">展示 Catalog 指針指向 Table Metadata，經 Manifest List、Manifest Files 最終定位底層 Parquet 資料檔。</desc>
+    
+    <defs>
+      <marker id="lake-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="220" y="10" width="360" height="38" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="34" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Iceberg Catalog (AWS Glue / REST / Nessie)</text>
+
+    <path d="M 400 48 L 400 70" stroke="#58a6ff" stroke-width="2" marker-end="url(#lake-arrow)"/>
+
+    <rect x="180" y="70" width="440" height="42" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="96" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Table Metadata (v3.metadata.json - Schema, 分區規格, 快照清單)</text>
+
+    <path d="M 400 112 L 400 135" stroke="#bc8cff" stroke-width="2" marker-end="url(#lake-arrow)"/>
+
+    <rect x="200" y="135" width="400" height="42" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="400" y="161" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Manifest List File (snap-101.avro - 記錄多個 Manifest 檔案)</text>
+
+    <path d="M 330 177 L 230 205" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lake-arrow)"/>
+    <path d="M 470 177 L 570 205" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lake-arrow)"/>
+
+    <rect x="60" y="205" width="320" height="38" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="220" y="229" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Manifest File 1 (記錄 Min/Max 統計)</text>
+
+    <rect x="420" y="205" width="320" height="38" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="580" y="229" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Manifest File 2 (記錄 Min/Max 統計)</text>
+
+    <path d="M 220 243 L 220 260" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lake-arrow)"/>
+    <path d="M 580 243 L 580 260" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lake-arrow)"/>
+
+    <rect x="120" y="260" width="200" height="26" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="220" y="278" fill="#8b949e" font-size="10" font-family="monospace" text-anchor="middle">data1.parquet (資料列)</text>
+
+    <rect x="480" y="260" width="200" height="26" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="580" y="278" fill="#8b949e" font-size="10" font-family="monospace" text-anchor="middle">data2.parquet (資料列)</text>
+
+  </svg>
+</div>
 
 ### 為什麼 Iceberg 查詢速度極快？
 
@@ -90,19 +118,48 @@ _delta_log/
 
 Hudi 專為高頻即時寫入（CDC 入湖）打造了 **MOR（讀時合併）** 模式：
 
-```text
-[ 即時寫入流 (Flink / Spark) ]
-              │
-              ▼ (高頻更新不重寫整個 Parquet，而是極速 Append 寫入 Avro Delta 日誌)
-   ┌────────────────────────────────────────┐
-   │ 基礎列式檔案: base_data.parquet (歷史快照) │
-   │ 增量行式日誌: delta_log.avro (即時變更)   │
-   └────────────────────────────────────────┘
-              │
-              ├──> [ 實時查詢 (Read Optimized) ] ──> 只讀 Parquet (毫秒級但有微小延遲)
-              ├──> [ 嚴格最新查詢 (Snapshot Query) ] ──> 動態合併 Parquet + Avro
-              └──> [ 後台壓縮 Worker (Compaction) ] ──> 異步合併產出新 Parquet
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hudi-mor-title hudi-mor-desc">
+    <title id="hudi-mor-title">Apache Hudi Merge-on-Read (MOR) 即時讀寫架構圖</title>
+    <desc id="hudi-mor-desc">展示即時寫入追加 Avro Delta 日誌，查詢端可選擇只讀 Parquet 或動態合併 Parquet+Avro，非同步 Worker 執行壓實。</desc>
+    
+    <defs>
+      <marker id="hudi-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="220" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="41" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">即時寫入流 (Flink / Spark)</text>
+
+    <path d="M 240 36 L 310 36" stroke="#58a6ff" stroke-width="2" marker-end="url(#hudi-arrow)"/>
+
+    <rect x="320" y="15" width="460" height="85" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="550" y="40" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">基礎列式檔案 + 增量行式日誌 (MOR 儲存層)</text>
+    <text x="340" y="65" fill="#3fb950" font-size="11" font-family="monospace">• base_data.parquet (歷史歷史快照)</text>
+    <text x="340" y="85" fill="#d2a8ff" font-size="11" font-family="monospace">• delta_log.avro (即時 Append 追加日誌，極速入湖！)</text>
+
+    <path d="M 400 100 L 220 135" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#hudi-arrow)"/>
+    <path d="M 550 100 L 550 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#hudi-arrow)"/>
+    <path d="M 700 100 L 700 135" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#hudi-arrow)"/>
+
+    <rect x="30" y="135" width="230" height="85" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="145" y="160" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Read Optimized 查詢</text>
+    <text x="145" y="180" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">只讀 Parquet 檔案</text>
+    <text x="145" y="200" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">毫秒級響應・微小延遲</text>
+
+    <rect x="280" y="135" width="240" height="85" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="160" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Snapshot Query (即時)</text>
+    <text x="400" y="180" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">動態合併 Parquet + Avro</text>
+    <text x="400" y="200" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">100% 嚴格最新資料</text>
+
+    <rect x="540" y="135" width="240" height="85" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="660" y="160" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Compaction Worker</text>
+    <text x="660" y="180" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">非同步背景壓縮壓實</text>
+    <text x="660" y="200" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">合併產出全新 Parquet</text>
+
+  </svg>
+</div>
 
 ---
 

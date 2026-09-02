@@ -30,35 +30,53 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 現代統一推播通知系統全鏈路架構
 
-```text
-[ 各業務微服務 (Auth, Order, Marketing) ]
-          │ (統一發送通知請求 API: NotifyRequest)
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 推播通知網關與前置治理層 】                       │
-│  ├── 1. 參數校驗與模板渲染 (Template Engine)                           │
-│  ├── 2. 防重複去重過濾 (Redis Deduplication: Hash of UserId+EventId)   │
-│  ├── 3. 使用者偏好與勿擾模式檢查 (User Preferences & DND Filter)      │
-│  └── 4. 優先級分流 (Priority Classifier: P0 交易驗證 / P2 行銷推播)    │
-└────────────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 分散式優先級消息隊列 (Kafka / MQ) 】               │
-│  ├── Topic: notifications-high (P0/P1: 驗證碼、付款成功、安全警告)      │
-│  └── Topic: notifications-low  (P2/P3: 優惠券發放、系統週報、好友動態)  │
-└────────────────────────────────────────────────────────────────────────┘
-          │
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 多管道分發與連接池調度引擎 】                     │
-│  ├── APNs Worker ── (HTTP/2 多路復用連線池 + JWT 憑證) ──> Apple APNs │
-│  ├── FCM Worker  ── (HTTP v1 REST 批次傳輸) ───────────> Google FCM    │
-│  ├── WebPush Worker ── (VAPID 協定簽名) ───────────────> Browser Push │
-│  ├── In-App WS Worker ── (長連線 Gateway 直推) ────────> 在線用戶前端  │
-│  └── Fallback Worker ── (第三方電信閘道 / SendGrid) ───> SMS / Email   │
-└────────────────────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 300" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="push-full-title push-full-desc">
+    <title id="push-full-title">現代統一推播通知系統全鏈路分層架構圖</title>
+    <desc id="push-full-desc">展示微服務發送請求至前置網關進行去重、DND過濾與優先級分流，經 Kafka 優先級隊列分發至 APNs、FCM、WebSocket 與 SMS 等多管道 Workers。</desc>
+    
+    <defs>
+      <marker id="push-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="220" y="10" width="360" height="38" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="34" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">業務微服務 (Auth, Order, Marketing)</text>
+
+    <path d="M 400 48 L 400 70" stroke="#58a6ff" stroke-width="2" marker-end="url(#push-arrow)"/>
+
+    <rect x="80" y="70" width="640" height="60" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="93" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 推播網關與前置治理層 】</text>
+    <text x="400" y="115" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">模板渲染 ｜ Redis 去重 (UserId+EventId) ｜ 勿擾模式 (DND) ｜ 優先級分流 (P0~P3)</text>
+
+    <path d="M 400 130 L 400 155" stroke="#bc8cff" stroke-width="2" marker-end="url(#push-arrow)"/>
+
+    <rect x="80" y="155" width="640" height="50" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="177" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 分散式優先級隊列 (Kafka Priority Topics) 】</text>
+    <text x="400" y="194" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Topic: notifications-high (P0/P1) ｜ Topic: notifications-low (P2/P3)</text>
+
+    <path d="M 400 205 L 400 225" stroke="#3fb950" stroke-width="2" marker-end="url(#push-arrow)"/>
+
+
+    <rect x="30" y="225" width="170" height="60" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="115" y="248" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Apple APNs</text>
+    <text x="115" y="268" fill="#8b949e" font-size="9" text-anchor="middle">HTTP/2 + ES256 JWT</text>
+
+    <rect x="225" y="225" width="170" height="60" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="310" y="248" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Google FCM</text>
+    <text x="310" y="268" fill="#8b949e" font-size="9" text-anchor="middle">HTTP v1 REST 批次</text>
+
+    <rect x="420" y="225" width="170" height="60" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="505" y="248" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">In-App WebSocket</text>
+    <text x="505" y="268" fill="#8b949e" font-size="9" text-anchor="middle">在線網關直推 (&lt;100ms)</text>
+
+    <rect x="615" y="225" width="155" height="60" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.2"/>
+    <text x="692" y="248" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Fallback (SMS/Email)</text>
+    <text x="692" y="268" fill="#8b949e" font-size="9" text-anchor="middle">第三方電信閘道兜底</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -106,19 +124,34 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 當主要通道受阻時，系統必須具備自動降級與狀態追蹤能力：
 
-```text
-                        [ 發起關鍵交易通知 (e.g., 銀行扣款 1 萬元) ]
-                                            │
-                                            ▼
-                             [ 檢查使用者是否在線 (WebSocket) ]
-                                     ├── 在線 ──> 【 WebSocket 毫秒級直推 (零成本) 】
-                                     └── 離線 ──┐
-                                                ▼
-                                   [ 透過 APNs / FCM 發送 Push ]
-                                                │
-                                                ▼ (若 30 秒內未收到 Client 讀取回執)
-                                   【 降級觸發 SMS 簡訊發送 (保證觸達) 】
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="push-fall-title push-fall-desc">
+    <title id="push-fall-title">推播通知多管道降級決策樹</title>
+    <desc id="push-fall-desc">展示關鍵交易通知先檢查在線狀態，在線走 WebSocket，離線走 APNs/FCM，30秒無回執降級觸發 SMS 簡訊保證抵達。</desc>
+    
+    <rect x="220" y="15" width="360" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="39" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">發起關鍵交易通知 (e.g., 銀行扣款)</text>
+
+    <path d="M 400 55 L 400 80" stroke="#58a6ff" stroke-width="2" marker-end="url(#push-arrow)"/>
+
+    <rect x="250" y="80" width="300" height="40" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="400" y="105" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">檢查使用者是否在線 (WebSocket Gateway)</text>
+
+    <path d="M 250 100 L 150 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#push-arrow)"/>
+    <path d="M 550 100 L 650 135" stroke="#d29922" stroke-width="1.5" marker-end="url(#push-arrow)"/>
+
+    <rect x="30" y="135" width="240" height="85" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="150" y="162" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">在線 ➔ WebSocket 直推</text>
+    <text x="150" y="184" fill="#56d364" font-size="11" text-anchor="middle">毫秒級抵達・零額外成本！</text>
+    <text x="150" y="202" fill="#8b949e" font-size="10" text-anchor="middle">即時 UI 彈窗更新</text>
+
+    <rect x="530" y="135" width="240" height="85" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="650" y="162" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">離線 ➔ APNs / FCM Push</text>
+    <text x="650" y="184" fill="#c9d1d9" font-size="10" text-anchor="middle">若 30s 未收到 Client 讀取回執 ➔</text>
+    <text x="650" y="202" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">降級觸發 SMS 簡訊保證 100% 觸達！</text>
+
+  </svg>
+</div>
 
 ---
 

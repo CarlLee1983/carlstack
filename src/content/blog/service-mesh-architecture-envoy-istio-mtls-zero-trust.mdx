@@ -32,29 +32,62 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 服務網格核心架構：控制面與資料面分離
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 控制面 (Control Plane: Istiod) 】                  │
-│  ├── Pilot (服務發現與 xDS 配置轉換)                                   │
-│  ├── Citadel (CA 憑證簽發與 SPIFFE 身分管理)                           │
-│  └── Galley (Kubernetes CRD 配置驗證)                                  │
-└────────────────────────────────────────────────────────────────────────┘
-          │ (透過 gRPC 雙向串流推送 xDS 動態配置與 mTLS 憑證)
-          ▼
-┌────────────────────────────────────────┐    ┌────────────────────────────────────────┐
-│             【 Pod A 】                │    │             【 Pod B 】                │
-│  ┌──────────────────────────────────┐  │    │  ┌──────────────────────────────────┐  │
-│  │ 業務應用 (App A: Go / Java / Node)│  │    │  │ 業務應用 (App B)                 │  │
-│  └──────────────────────────────────┘  │    │  └──────────────────────────────────┘  │
-│               │ (Localhost: 127.0.0.1) │    │               ▲ (Localhost: 127.0.0.1) │
-│               ▼                        │    │               │                        │
-│  ┌──────────────────────────────────┐  │    │  ┌──────────────────────────────────┐  │
-│  │ Sidecar Proxy (Envoy)            │ ─┼────┼─>│ Sidecar Proxy (Envoy)            │  │
-│  └──────────────────────────────────┘  │    │  └──────────────────────────────────┘  │
-└────────────────────────────────────────┘    └────────────────────────────────────────┘
-                    ▲                                      ▲
-                    └─────── [ mTLS 零信任雙向加密傳輸 ] ────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 280" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mesh-arch-title mesh-arch-desc">
+    <title id="mesh-arch-title">Service Mesh 控制面（Istiod）與資料面（Envoy Sidecar）架構圖</title>
+    <desc id="mesh-arch-desc">展示 Istiod 透過 xDS 推送配置與 mTLS 憑證，Pod A 與 Pod B 透過各自 Envoy 邊車代理進行零信任 mTLS 雙向加密傳輸。</desc>
+    
+    <defs>
+      <marker id="sm-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="sm-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="100" y="10" width="600" height="50" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 控制面 (Control Plane: Istiod) 】</text>
+    <text x="400" y="48" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pilot (服務發現與 xDS 轉換) ｜ Citadel (CA 憑證簽發) ｜ Galley (CRD 驗證)</text>
+
+    <path d="M 260 60 L 200 95" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#sm-arrow)"/>
+    <path d="M 540 60 L 600 95" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#sm-arrow)"/>
+    <text x="400" y="80" fill="#bc8cff" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">gRPC 雙向串流推送 xDS 動態配置與 mTLS 憑證</text>
+
+
+    <rect x="40" y="95" width="320" height="170" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="200" y="120" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 Pod A (Kubernetes) 】</text>
+
+    <rect x="60" y="130" width="280" height="38" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1"/>
+    <text x="200" y="154" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">業務應用 (App A: Go / Node / Java)</text>
+
+    <path d="M 200 168 L 200 185" stroke="#58a6ff" stroke-width="2" marker-end="url(#sm-arrow)"/>
+    <text x="245" y="180" fill="#8b949e" font-size="9">127.0.0.1</text>
+
+    <rect x="60" y="185" width="280" height="65" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="200" y="210" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Sidecar Proxy (Envoy)</text>
+    <text x="200" y="232" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">透明劫持流量・自動注入憑證</text>
+
+
+    <path d="M 340 217 L 430 217" stroke="#3fb950" stroke-width="3" marker-end="url(#sm-arrow-green)"/>
+    <text x="400" y="208" fill="#3fb950" font-size="10" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">mTLS 雙向加密</text>
+
+
+    <rect x="440" y="95" width="320" height="170" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="600" y="120" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 Pod B (Kubernetes) 】</text>
+
+    <rect x="460" y="130" width="280" height="38" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1"/>
+    <text x="600" y="154" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">業務應用 (App B)</text>
+
+    <path d="M 600 185 L 600 168" stroke="#58a6ff" stroke-width="2" marker-end="url(#sm-arrow)"/>
+    <text x="645" y="180" fill="#8b949e" font-size="9">127.0.0.1</text>
+
+    <rect x="460" y="185" width="280" height="65" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="600" y="210" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Sidecar Proxy (Envoy)</text>
+    <text x="600" y="232" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">校驗 SPIFFE 身分・解密交付</text>
+
+  </svg>
+</div>
 
 ---
 

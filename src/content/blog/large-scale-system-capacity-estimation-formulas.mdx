@@ -33,20 +33,54 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 由 Google 傳奇工程師 Jeff Dean 總結的經典延遲常數：
 
-```text
-[ 延遲金字塔 (時間換算成人類感知尺度: 設 L1 快取為 1 秒) ]
-┌───────────────────────────────┬────────────┬───────────────────┐
-│ 操作行為                      │ 實際時間   │ 人類等比放大尺度  │
-├───────────────────────────────┼────────────┼───────────────────┤
-│ L1 快取讀取 (L1 Cache Hit)    │ 0.5 ~ 1 ns │ 1 秒              │
-│ L2 快取讀取 (L2 Cache Hit)    │ 3 ~ 4 ns   │ 4 秒              │
-│ 主記憶體存取 (RAM Access)     │ 100 ns     │ 1.5 分鐘          │
-│ NVMe SSD 隨機讀取             │ 10 ~ 50 µs │ 3.5 天            │
-│ 同一機房網路往返 (Intra-DC)   │ 500 µs     │ 5.5 個月          │
-│ 傳統 HDD 磁頭尋道 (Seek)      │ 10 ms      │ 3 個月            │
-│ 跨大西洋海底光纜往返 (NY ➔ LN)│ 150 ms     │ 4.7 年            │
-└───────────────────────────────┴────────────┴───────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 290" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lat-pyr-title lat-pyr-desc">
+    <title id="lat-pyr-title">電腦硬體延遲金字塔與人類感知尺度放大對照圖</title>
+    <desc id="lat-pyr-desc">展示 L1 快取 0.5ns 等同人類 1 秒，主記憶體 100ns 等同 1.5 分鐘，NVMe SSD 等同 3.5 天，跨國網路等同 4.7 年。</desc>
+    
+    
+    <rect x="20" y="15" width="760" height="34" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="35" y="37" fill="#3fb950" font-size="12" font-family="monospace">L1 快取讀取 (L1 Cache Hit)</text>
+    <text x="450" y="37" fill="#c9d1d9" font-size="12" font-family="monospace">0.5 ~ 1 ns</text>
+    <text x="650" y="37" fill="#3fb950" font-size="12" font-weight="700">1 秒 (基準)</text>
+
+    <rect x="20" y="53" width="760" height="34" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="35" y="75" fill="#3fb950" font-size="12" font-family="monospace">L2 快取讀取 (L2 Cache Hit)</text>
+    <text x="450" y="75" fill="#c9d1d9" font-size="12" font-family="monospace">3 ~ 4 ns</text>
+    <text x="650" y="75" fill="#3fb950" font-size="12" font-weight="700">4 秒</text>
+
+
+    <rect x="20" y="91" width="760" height="34" rx="4" fill="#161b22" stroke="#388bfd" stroke-width="1"/>
+    <text x="35" y="113" fill="#58a6ff" font-size="12" font-family="monospace">主記憶體存取 (RAM Access)</text>
+    <text x="450" y="113" fill="#c9d1d9" font-size="12" font-family="monospace">100 ns</text>
+    <text x="650" y="113" fill="#58a6ff" font-size="12" font-weight="700">1.5 分鐘</text>
+
+
+    <rect x="20" y="129" width="760" height="34" rx="4" fill="#161b22" stroke="#d29922" stroke-width="1"/>
+    <text x="35" y="151" fill="#e3b341" font-size="12" font-family="monospace">NVMe SSD 隨機讀取</text>
+    <text x="450" y="151" fill="#c9d1d9" font-size="12" font-family="monospace">10 ~ 50 &mu;s</text>
+    <text x="650" y="151" fill="#e3b341" font-size="12" font-weight="700">3.5 天</text>
+
+
+    <rect x="20" y="167" width="760" height="34" rx="4" fill="#161b22" stroke="#bc8cff" stroke-width="1"/>
+    <text x="35" y="189" fill="#d2a8ff" font-size="12" font-family="monospace">同機房網路往返 (Intra-DC)</text>
+    <text x="450" y="189" fill="#c9d1d9" font-size="12" font-family="monospace">500 &mu;s</text>
+    <text x="650" y="189" fill="#d2a8ff" font-size="12" font-weight="700">5.5 個月</text>
+
+
+    <rect x="20" y="205" width="760" height="34" rx="4" fill="#161b22" stroke="#da3633" stroke-width="1"/>
+    <text x="35" y="227" fill="#f85149" font-size="12" font-family="monospace">傳統 HDD 磁頭尋道 (Seek)</text>
+    <text x="450" y="227" fill="#c9d1d9" font-size="12" font-family="monospace">10 ms</text>
+    <text x="650" y="227" fill="#f85149" font-size="12" font-weight="700">3 個月</text>
+
+
+    <rect x="20" y="243" width="760" height="34" rx="4" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="35" y="265" fill="#f85149" font-size="12" font-family="monospace">跨大西洋海底光纜 (NY ➔ London)</text>
+    <text x="450" y="265" fill="#c9d1d9" font-size="12" font-family="monospace">150 ms</text>
+    <text x="650" y="265" fill="#f85149" font-size="12" font-weight="700">4.7 年！</text>
+
+  </svg>
+</div>
 
 - **核心啟發**：記憶體比 SSD 快 1000 倍，SSD 比跨國網路快 1000 倍。架構設計的第一準則就是**盡可能在記憶體中解決運算，並透過 CDN 將數據推到離用戶最近的邊緣！**
 

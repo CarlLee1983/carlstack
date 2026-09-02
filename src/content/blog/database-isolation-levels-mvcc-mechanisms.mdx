@@ -121,10 +121,46 @@ struct HeapTupleHeaderData {
 
 當用戶端發起查詢時，PostgreSQL 會為其建立一個快照資料結構 `SnapshotData`：
 
-```text
-Snapshot 定義格式：xmin:xmax:xip_list
-例如：100:108:102,105
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="snap-vis-title snap-vis-desc">
+    <title id="snap-vis-title">PostgreSQL SnapshotData 快照可見性判定時間軸</title>
+    <desc id="snap-vis-desc">展示 Snapshot 格式 xmin:xmax:xip_list 在時間軸上如何判定早期提交可見、活躍交易不可見以及未來交易不可見。</desc>
+    
+    <defs>
+      <marker id="snap-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <line x1="40" y1="90" x2="760" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#snap-arrow)"/>
+    <text x="760" y="115" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="end">交易 XID 遞增時間軸 ➔</text>
+
+
+    <rect x="50" y="30" width="220" height="46" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="160" y="52" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">XID &lt; xmin (例如 &lt; 100)</text>
+    <text x="160" y="68" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">早於活躍交易 ➔ 必定已提交 (可見)</text>
+
+    <line x1="280" y1="80" x2="280" y2="100" stroke="#f85149" stroke-width="3"/>
+    <text x="280" y="125" fill="#f85149" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">xmin = 100</text>
+
+
+    <rect x="290" y="30" width="260" height="46" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="420" y="52" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">xmin &le; XID &lt; xmax (100 ~ 108)</text>
+    <text x="420" y="68" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">若在 xip [102, 105] 則不可見，否則可見</text>
+
+    <line x1="560" y1="80" x2="560" y2="100" stroke="#f85149" stroke-width="3"/>
+    <text x="560" y="125" fill="#f85149" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">xmax = 108</text>
+
+
+    <rect x="570" y="30" width="180" height="46" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="660" y="52" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">XID &ge; xmax (&ge; 108)</text>
+    <text x="660" y="68" fill="#f85149" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">快照後未來交易 ➔ (不可見)</text>
+
+    <rect x="220" y="150" width="360" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1"/>
+    <text x="400" y="175" fill="#58a6ff" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">Snapshot 格式範例：100:108:102,105</text>
+
+  </svg>
+</div>
 
 - **`xmin`**：快照建立時，系統中**最小尚未提交的活躍交易 XID**。任何 `XID < xmin` 的交易必定已經提交或回滾。
 - **`xmax`**：快照建立時，系統已分配的最大交易 XID + 1。任何 `XID >= xmax` 的交易在快照建立時尚不存在，視為「未來的交易」。
