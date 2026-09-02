@@ -1,0 +1,647 @@
+---
+// Message Delivery Semantics Architecture Diagram
+---
+
+<figure class="mds-diagram" aria-labelledby="mds-caption">
+  <svg
+    class="mds-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="mds-title mds-desc"
+  >
+    <title id="mds-title">分散式消息交付語義對決與 Exactly-Once 架構</title>
+    <desc id="mds-desc">
+      對比 At-Most-Once、At-Least-Once 與 Exactly-Once 的生產者發送、Broker
+      儲存、消費者確認與事務協調機制。
+    </desc>
+
+    <defs>
+      <marker
+        id="mds-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="mds-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: At-Most-Once -->
+    <g class="mds-diagram__card" transform="translate(20, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mds-diagram__badge" x="14" y="26"
+        >1. AT-MOST-ONCE (至多一次)</text
+      >
+      <text class="mds-diagram__title" x="14" y="54">Fire &amp; Forget</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="85"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--teal"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--teal"
+          x="10"
+          y="20">Producer (發送即忘)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• acks = 0 (不等待 ACK)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 不進行任何重試機制</text
+        >
+        <text class="mds-diagram__desc" x="10" y="74"
+          >• 極致超低延遲、高吞吐</text
+        >
+      </g>
+
+      <g transform="translate(14, 175)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--blue"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--blue"
+          x="10"
+          y="20">Consumer (提前提交)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• 讀取訊息即 Commit Offset</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 隨後再執行業務邏輯</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• 若崩潰則訊息永久丟失</text
+        >
+        <text class="mds-diagram__desc" x="10" y="92">• 絕不會發生重複處理</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="182"
+          height="125"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--gold"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--gold"
+          x="10"
+          y="20">適用場景與代價</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40">• 物聯網感測器打點</text>
+        <text class="mds-diagram__desc" x="10" y="58">• 頁面點擊日誌採集</text>
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• 即時影音/遊戲狀態同步</text
+        >
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• ❌ 風險：資料丟失不可找回</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 230 235 L 260 235"
+      class="mds-diagram__line"
+      marker-end="url(#mds-arrow)"></path>
+
+    <!-- Column 2: At-Least-Once -->
+    <g class="mds-diagram__card" transform="translate(265, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mds-diagram__badge" x="14" y="26"
+        >2. AT-LEAST-ONCE (至少一次)</text
+      >
+      <text class="mds-diagram__title" x="14" y="54">Retry on Failure</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="85"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--teal"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--teal"
+          x="10"
+          y="20">Producer (失敗重試)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• acks = all / 1 (等寫入)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58"
+          >• 逾時未收到 ACK 即重發</text
+        >
+        <text class="mds-diagram__desc" x="10" y="74">• 保證訊息絕對不丟失</text
+        >
+      </g>
+
+      <g transform="translate(14, 175)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--blue"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--blue"
+          x="10"
+          y="20">Consumer (處理後提交)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• 業務執行成功後才 Commit</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 崩潰重啟時重新拉取</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• ⚠️ 網路抖動會引發重複</text
+        >
+        <text class="mds-diagram__desc" x="10" y="92"
+          >• 必須依賴消費端冪等設計</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="182"
+          height="125"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--gold"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--gold"
+          x="10"
+          y="20">適用場景與代價</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• 絕大多數分散式業務標準</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 訂單通知、郵件寄送</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76">• 用戶註冊事件廣播</text>
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• ⚠️ 風險：重複消費造成超賣</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 475 235 L 505 235"
+      class="mds-diagram__line"
+      marker-end="url(#mds-arrow)"></path>
+
+    <!-- Column 3: Exactly-Once Producer -->
+    <g class="mds-diagram__card" transform="translate(510, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mds-diagram__badge" x="14" y="26"
+        >3. EOS: PRODUCER IDEMPOTENCE</text
+      >
+      <text class="mds-diagram__title" x="14" y="54">生產者冪等性</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="115"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--purple"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--purple"
+          x="10"
+          y="20">PID + Sequence Number</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• Broker 分配唯一 PID</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58"
+          >• 每則訊息附帶單調 SeqID</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• (PID, Topic-Partition, Seq)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• 重發時由 Broker 自動丟棄</text
+        >
+        <text class="mds-diagram__desc" x="10" y="112"
+          >• 零業務侵入、底層自動去重</text
+        >
+      </g>
+
+      <g transform="translate(14, 205)">
+        <rect
+          width="182"
+          height="105"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--teal"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--teal"
+          x="10"
+          y="20">Transactional Coordinator</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• Transactional ID (TID)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58"
+          >• __transaction_state 儲存</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• 跨 Partition 原子寫入</text
+        >
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• 2PC Commit/Abort 標記</text
+        >
+      </g>
+
+      <g transform="translate(14, 325)">
+        <rect
+          width="182"
+          height="85"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--blue"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--blue"
+          x="10"
+          y="20">雙階段提交標記</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• Prepare 階段寫入控制標記</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58"
+          >• Commit 階段寫入 CommitMarker</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• 下游消費者僅讀已提交</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 720 235 L 750 235"
+      class="mds-diagram__line"
+      marker-end="url(#mds-arrow)"></path>
+
+    <!-- Column 4: EOS Consumer & E2E -->
+    <g class="mds-diagram__card" transform="translate(755, 35)">
+      <rect width="185" height="400" rx="12"></rect>
+      <text class="mds-diagram__badge" x="14" y="26"
+        >4. EOS: END-TO-END EXACTLY</text
+      >
+      <text class="mds-diagram__title" x="14" y="54">端到端精確一次</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="157"
+          height="100"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--purple"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--purple"
+          x="10"
+          y="20">Read Committed 隔離</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• isolation.level 設置</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 跳過未 Commit 事務</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76">• 避免髒讀與幽靈訊息</text
+        >
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• LSO (Last Stable Offset)</text
+        >
+      </g>
+
+      <g transform="translate(14, 190)">
+        <rect
+          width="157"
+          height="115"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--teal"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--teal"
+          x="10"
+          y="20">Consumer 冪等實踐</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40"
+          >• 唯一業務流水號 (ReqID)</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58"
+          >• Redis SETNX / DB 去重表</text
+        >
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• 狀態機單向流轉防回退</text
+        >
+        <text class="mds-diagram__desc" x="10" y="94"
+          >• 事務內更新 Offset+業務</text
+        >
+        <text class="mds-diagram__desc" x="10" y="110"
+          >• 達成嚴格端到端 EOS</text
+        >
+      </g>
+
+      <g transform="translate(14, 320)">
+        <rect
+          width="157"
+          height="90"
+          rx="6"
+          class="mds-diagram__subcard mds-diagram__subcard--blue"></rect>
+        <text
+          class="mds-diagram__header mds-diagram__header--blue"
+          x="10"
+          y="20">適用核心領域</text
+        >
+        <text class="mds-diagram__desc" x="10" y="40">• 銀行轉帳與金融扣款</text
+        >
+        <text class="mds-diagram__desc" x="10" y="58">• 即時庫存扣減</text>
+        <text class="mds-diagram__desc" x="10" y="76"
+          >• Flink 串流 Exactly-Once</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="mds-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="mds-mobile-title mds-mobile-desc"
+  >
+    <title id="mds-mobile-title">消息交付語義對決簡圖</title>
+    <desc id="mds-mobile-desc">
+      At-Most-Once 不重試可丟失 ➔ At-Least-Once 重試可重複 ➔ Exactly-Once
+      (PID+Seq + 2PC + 消費端去重) 精確一次。
+    </desc>
+
+    <g class="mds-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="mds-diagram__badge" x="12" y="22"
+        >1. At-Most-Once (至多一次)</text
+      >
+      <text class="mds-diagram__desc" x="12" y="45"
+        >• acks=0 發送即忘，不重試</text
+      >
+      <text class="mds-diagram__desc" x="12" y="65"
+        >• 消費端先提交 Offset 再處理業務</text
+      >
+      <text class="mds-diagram__desc" x="12" y="85"
+        >• 極低延遲、高吞吐、絕不重複</text
+      >
+      <text class="mds-diagram__desc" x="12" y="105"
+        >• ❌ 崩潰或網路中斷會丟失訊息</text
+      >
+    </g>
+
+    <g class="mds-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mds-diagram__badge" x="12" y="22"
+        >2. At-Least-Once (至少一次)</text
+      >
+      <text class="mds-diagram__desc" x="12" y="45"
+        >• acks=all 收到 ACK 才算成功</text
+      >
+      <text class="mds-diagram__desc" x="12" y="65"
+        >• 逾時自動重傳，保證不丟失</text
+      >
+      <text class="mds-diagram__desc" x="12" y="85"
+        >• 消費端業務處理成功後手動 Commit</text
+      >
+      <text class="mds-diagram__desc" x="12" y="105"
+        >• ⚠️ 網路抖動會產生重複訊息</text
+      >
+      <text class="mds-diagram__desc" x="12" y="125"
+        >• 消費者必須實作業務級冪等去重</text
+      >
+    </g>
+
+    <g class="mds-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mds-diagram__badge" x="12" y="22"
+        >3. Exactly-Once: Producer 冪等</text
+      >
+      <text class="mds-diagram__desc" x="12" y="45"
+        >• Broker 分配 Producer ID (PID)</text
+      >
+      <text class="mds-diagram__desc" x="12" y="65"
+        >• 每則訊息帶單調遞增 Sequence Number</text
+      >
+      <text class="mds-diagram__desc" x="12" y="85"
+        >• 重發訊息在 Broker 記憶體直接去重</text
+      >
+      <text class="mds-diagram__desc" x="12" y="105"
+        >• Transaction Coordinator 兩階段事務日誌</text
+      >
+      <text class="mds-diagram__desc" x="12" y="125"
+        >• 跨 Topic/Partition 達成原子寫入</text
+      >
+    </g>
+
+    <g class="mds-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mds-diagram__badge" x="12" y="22"
+        >4. Exactly-Once: 端到端落地</text
+      >
+      <text class="mds-diagram__desc" x="12" y="45"
+        >• 隔離層級 read_committed 拒絕髒讀</text
+      >
+      <text class="mds-diagram__desc" x="12" y="65"
+        >• 消費端使用 Redis / DB 去重表防重放</text
+      >
+      <text class="mds-diagram__desc" x="12" y="85"
+        >• 狀態機單向流轉（如 PAID 狀態鎖定）</text
+      >
+      <text class="mds-diagram__desc" x="12" y="105"
+        >• Kafka Streams / Flink 端到端精確一次</text
+      >
+      <text class="mds-diagram__desc" x="12" y="125"
+        >• 金融交易、帳務清算、扣款必備</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="mds-caption" class="mds-diagram__caption">
+    圖 1：分散式消息交付語義對決 — At-Most-Once、At-Least-Once 與 Exactly-Once
+    底層架構實踐
+  </figcaption>
+</figure>
+
+<style>
+  .mds-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mds-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .mds-diagram__desktop {
+    display: block;
+  }
+
+  .mds-diagram__mobile {
+    display: none;
+  }
+
+  .mds-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .mds-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .mds-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .mds-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .mds-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .mds-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .mds-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .mds-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .mds-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .mds-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .mds-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .mds-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .mds-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .mds-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .mds-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .mds-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .mds-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mds-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .mds-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .mds-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .mds-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .mds-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .mds-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .mds-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .mds-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .mds-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .mds-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .mds-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .mds-diagram__line {
+    stroke: #475569;
+  }
+
+  .mds-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .mds-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .mds-diagram__desktop {
+      display: none;
+    }
+    .mds-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

@@ -2,17 +2,6 @@
 
 只放還沒寫成正式草稿的題目，依處理順序由上往下排列。
 
-## ⏳ 排隊中（第 7 批：分散式高階儲存與資料一致性）
-
-1. [Erasure Coding（糾刪碼 / RS Code）架構原理](https://bytebytego.com/guides/erasure-coding) — 告別 3 副本 200% 儲存成本膨脹、范德蒙矩陣編解碼與節點修復頻寬優化
-2. [Event Sourcing（事件溯源）與 CQRS 讀寫分離架構](https://bytebytego.com/guides/differences-in-event-sourcing-system-design) — 不可篡改 Event Store、投影（Projections）構建、事件重放與最終一致性補償
-3. [分散式消息交付語義（Delivery Semantics）深析](https://bytebytego.com/guides/delivery-semantics) — At-Most-Once、At-Least-Once 與 Exactly-Once（冪等 Producer + 兩階段事務日誌）
-4. [S3 大檔案分段上傳（Multipart Upload）與斷點續傳](https://bytebytego.com/guides/how-to-upload-a-large-file-to-s3) — ETag 驗證、平行上傳管線、分片合併與網絡抖動錯誤復原
-5. [主從資料庫複製延遲（Replication Lag）應對策略](https://bytebytego.com/guides/read-replica-pattern) — 讀寫分離陷阱、主庫強制讀、快取暫存（Cache-aside）與 GTID 一致性路由
-6. [區塊儲存 vs. 檔案儲存 vs. 物件儲存全景解析](https://bytebytego.com/guides/storage-sy) — POSIX 介面、IOPS 與延遲對比、分散式物件元資料管理（Metadata Engine）
-
----
-
 ## ⏳ 排隊中（第 8 批：即時通訊、網路協定與授權體系）
 
 1. [即時通訊協定全景對決：WebSocket vs. SSE vs. Long Polling](https://bytebytego.com/guides/shortlong-polling-sse-websocket) — 連線生命週期開銷、伺服器資源消耗、心跳機制與重連風暴防禦

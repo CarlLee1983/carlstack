@@ -19,7 +19,7 @@
 | **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）              | 3 篇     | 3 篇       | ✅ **已全數發布** |
 | **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）                | 1 篇     | 1 篇       | ✅ **已發布**     |
 | **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta）     | 6 篇     | 6 篇       | ✅ **已全數發布** |
-| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）             | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）             | 6 篇     | 6 篇       | ✅ **已全數發布** |
 | **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / GraphQL）              | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 | **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 分頁）            | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 | **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll / Raft）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
@@ -142,19 +142,30 @@
    - **一手來源**：[Facebook Engineering: Finding and fixing bugs automatically with SapFix and Infer](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-bugs-automatically-with-sapfix-and-infer/) / [ByteByteGo Guide](https://bytebytego.com/guides/fixing-bugs-automatically-at-meta-scale)
    - **核心要點**：Infer 基於分離邏輯與雙向演繹的差量靜態掃描、SapFix 範本與 AST 變異自動補丁生成、沙盒編譯與差量迴歸測試（零功能回歸）、Human-in-the-loop 審查路由與 75%+ 生產採納率。
 
+### 第 7 批：分散式高階儲存與資料一致性
+
+1. [**Erasure Coding（糾刪碼）架構原理：告別 3 副本儲存膨脹、RS 矩陣編解碼與修復頻寬優化**](../../src/content/blog/erasure-coding-storage-architecture.mdx)
+   - **一手來源**：[USENIX Fast / Ceph & HDFS Erasure Coding Guide](https://ceph.io/en/news/blog/2014/erasure-coding/)
+   - **核心要點**：3 副本 200% 成本膨脹困境、Reed-Solomon RS(k,m) 數學原理、Vandermonde 矩陣編碼、GF(2^8) 運算、存活子矩陣求逆重構、修復頻寬風暴與 LRC 局部修復碼優化。
+2. [**Event Sourcing（事件溯源）與 CQRS 架構：不可篡改 Event Store、異步投影與讀寫分離實戰**](../../src/content/blog/event-sourcing-cqrs-architecture.mdx)
+   - **一手來源**：[Martin Fowler: Event Sourcing & CQRS](https://martinfowler.com/eaaDev/EventSourcing.html)
+   - **核心要點**：CRUD 破壞性更新缺陷、Command vs Event 語義分離、Append-only Event Store 不可篡改日誌、Projection Engine 異步投影多維讀模型、Snapshotting 快照加速與 Schema Upcasting。
+3. [**分散式消息交付語義深析：At-Most-Once、At-Least-Once 與 Exactly-Once 的底層架構實踐**](../../src/content/blog/distributed-message-delivery-semantics.mdx)
+   - **一手來源**：[Confluent: Exactly-Once Semantics in Apache Kafka](https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/)
+   - **核心要點**：兩軍問題與物理不可靠性、At-Most-Once vs At-Least-Once、Producer PID+Sequence ID 滑動窗口去重、Consumer 狀態機/去重表冪等、Kafka Transaction Coordinator 2PC 事務日誌與 Read Committed 隔離。
+4. [**S3 大檔案分段上傳（Multipart Upload）與斷點續傳架構：平行傳輸、ETag 驗證與分散式合併**](../../src/content/blog/s3-multipart-upload-resumable-pipeline.mdx)
+   - **一手來源**：[AWS S3 Developer Guide: Multipart Upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
+   - **核心要點**：大檔案單次傳輸崩潰瓶頸、三階段協議（Initiate / UploadPart / Complete）、平行分塊 Worker 佇列、ListParts 斷點續傳探測、S3 複合 ETag 校驗與零拷貝元數據組裝、Lifecycle 過期清理。
+5. [**主從資料庫複製延遲（Replication Lag）應對策略：讀寫分離陷阱、GTID 路由與一致性快取**](../../src/content/blog/database-replication-lag-mitigation-strategies.mdx)
+   - **一手來源**：[MySQL Reference Manual: Replication Implementation Details](https://dev.mysql.com/doc/refman/8.0/en/replication-solutions.html)
+   - **核心要點**：Binlog / Relay Log / SQL Thread 單執行緒重放延遲成因、寫後立即讀（Read-Your-Own-Writes）異常、5 大生產級緩解策略（主庫強制讀、Cache-aside 寫入標記、Session 單調讀、WAIT_FOR_EXECUTED_GTID_SET、Proxy 動態降權）。
+6. [**區塊儲存 vs. 檔案儲存 vs. 物件儲存全景解析：架構維度、POSIX 語義與分散式選型矩陣**](../../src/content/blog/block-vs-file-vs-object-storage-architecture.mdx)
+   - **一手來源**：[AWS Storage Overview](https://aws.amazon.com/types-of-cloud-storage/) / [Ceph Architecture](https://docs.ceph.com/)
+   - **核心要點**：Block Storage（裸磁區/NVMe-oF/亞毫秒延遲/RWO）、File Storage（POSIX 目錄樹/NFS/RWX 共享）、Object Storage（扁平 KV/REST S3/不可變 WORM/EB 級擴展）、雲原生選型決策樹與計算儲存分離趨勢。
+
 ---
 
 ## ⏳ 後續待辦批次清單與一手資料庫儲備
-
-### 第 7 批：分散式高階儲存與資料一致性
-
-| 專題題目                                            | 涉及核心技術與模組                                                            | 建議一手來源                                                                                                                                           |
-| :-------------------------------------------------- | :---------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Erasure Coding（糾刪碼 / RS Code）架構原理**      | 告別 3 副本 200% 儲存成本膨脹、范德蒙矩陣編解碼與節點修復頻寬優化             | [USENIX Fast / Ceph & HDFS Erasure Coding Guide](https://ceph.io/en/news/blog/2014/erasure-coding/)                                                    |
-| **Event Sourcing（事件溯源）與 CQRS 讀寫分離架構**  | 不可篡改 Event Store、投影（Projections）構建、事件重放與最終一致性補償       | [Martin Fowler: Event Sourcing & CQRS](https://martinfowler.com/eaaDev/EventSourcing.html)                                                             |
-| **分散式消息交付語義（Delivery Semantics）深析**    | At-Most-Once、At-Least-Once 與 Exactly-Once（冪等 Producer + 兩階段事務日誌） | [Confluent: Exactly-Once Semantics in Apache Kafka](https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/) |
-| **S3 大檔案分段上傳（Multipart Upload）與斷點續傳** | ETag 驗證、平行上傳管線、分片合併與網絡抖動錯誤復原                           | [AWS S3 Developer Guide: Multipart Upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)                                     |
-| **主從資料庫複製延遲（Replication Lag）應對策略**   | 讀寫分離陷阱、主庫強制讀、快取暫存（Cache-aside）與 GTID 一致性路由           | [MySQL Reference Manual: Replication Implementation Details](https://dev.mysql.com/doc/refman/8.0/en/replication-solutions.html)                       |
 
 ### 第 8 批：即時通訊、網路協定與授權體系
 

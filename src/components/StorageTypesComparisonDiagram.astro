@@ -1,0 +1,678 @@
+---
+// Storage Types Comparison Architecture Diagram (Block vs File vs Object)
+---
+
+<figure class="stc-diagram" aria-labelledby="stc-caption">
+  <svg
+    class="stc-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="stc-title stc-desc"
+  >
+    <title id="stc-title">區塊儲存 vs. 檔案儲存 vs. 物件儲存架構全景對比</title>
+    <desc id="stc-desc">
+      展示 Block Storage（底層磁區/低延遲）、File Storage（POSIX 目錄樹/共享）與
+      Object Storage（扁平 Key-Value/REST API/中繼資料引擎）的架構對比。
+    </desc>
+
+    <defs>
+      <marker
+        id="stc-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="stc-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Block Storage -->
+    <g class="stc-diagram__card" transform="translate(20, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="stc-diagram__badge" x="14" y="26">1. BLOCK STORAGE</text>
+      <text class="stc-diagram__title" x="14" y="54">區塊儲存 (EBS / SAN)</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--blue"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--blue"
+          x="10"
+          y="20">資料模型：Raw Blocks</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• 512B / 4KB 扇區與 LUN</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• 無任何中繼資料/無檔名</text
+        >
+        <text class="stc-diagram__desc" x="10" y="74"
+          >• 由 OS 格式化檔案系統</text
+        >
+      </g>
+
+      <g transform="translate(14, 165)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--teal"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--teal"
+          x="10"
+          y="20">協議與效能</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• NVMe-oF / iSCSI / FC</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• 亞毫秒級極致延遲 (&lt;1ms)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76">• 高達 100k+ IOPS</text>
+        <text class="stc-diagram__desc" x="10" y="92"
+          >• 單主機獨占掛載 (RWO)</text
+        >
+      </g>
+
+      <g transform="translate(14, 275)">
+        <rect
+          width="182"
+          height="145"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--gold"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--gold"
+          x="10"
+          y="20">典型適用場景</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• 關聯式資料庫 (MySQL/PG)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• 虛擬機系統碟 (EC2/OS)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76">• 高效能事務型 OLTP</text>
+        <text class="stc-diagram__desc" x="10" y="94"
+          >• ❌ 缺點：無法多機跨區共享</text
+        >
+        <text class="stc-diagram__desc" x="10" y="112">• ❌ 成本最高昂</text>
+        <text class="stc-diagram__desc" x="10" y="130"
+          >• AWS EBS / Ceph RBD</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 230 235 L 260 235"
+      class="stc-diagram__line"
+      marker-end="url(#stc-arrow)"></path>
+
+    <!-- Column 2: File Storage -->
+    <g class="stc-diagram__card" transform="translate(265, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="stc-diagram__badge" x="14" y="26">2. FILE STORAGE</text>
+      <text class="stc-diagram__title" x="14" y="54">檔案儲存 (NFS / EFS)</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--purple"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--purple"
+          x="10"
+          y="20">資料模型：目錄樹</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• 階層式目錄 (/dir/file.txt)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• Inode + 目錄項目 (dentry)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="74"
+          >• POSIX 檔案權限 (chmod)</text
+        >
+      </g>
+
+      <g transform="translate(14, 165)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--teal"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--teal"
+          x="10"
+          y="20">協議與共享能力</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• NFS v4 / SMB / CephFS</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• 多主機並行讀寫 (RWX)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76"
+          >• 檔案鎖 (File Locking)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="92"
+          >• 延遲約數毫秒 (1~5ms)</text
+        >
+      </g>
+
+      <g transform="translate(14, 275)">
+        <rect
+          width="182"
+          height="145"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--gold"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--gold"
+          x="10"
+          y="20">典型適用場景</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• Web 伺服器共享媒體目錄</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• CI/CD 集中式構建快取</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76"
+          >• 傳統企業 ERP / 檔案伺服器</text
+        >
+        <text class="stc-diagram__desc" x="10" y="94"
+          >• ❌ 缺點：千萬級目錄遍歷慢</text
+        >
+        <text class="stc-diagram__desc" x="10" y="112"
+          >• ❌ 擴展性受限於中繼資料鎖</text
+        >
+        <text class="stc-diagram__desc" x="10" y="130"
+          >• AWS EFS / Azure Files</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 475 235 L 505 235"
+      class="stc-diagram__line"
+      marker-end="url(#stc-arrow)"></path>
+
+    <!-- Column 3: Object Storage -->
+    <g class="stc-diagram__card" transform="translate(510, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="stc-diagram__badge" x="14" y="26">3. OBJECT STORAGE</text>
+      <text class="stc-diagram__title" x="14" y="54">物件儲存 (S3 / MinIO)</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--teal"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--teal"
+          x="10"
+          y="20">資料模型：扁平 KV</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• Bucket + Key 唯一尋址</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58">• 不可變物件 (WORM)</text>
+        <text class="stc-diagram__desc" x="10" y="74"
+          >• 無目錄概念（符號模擬）</text
+        >
+      </g>
+
+      <g transform="translate(14, 165)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--blue"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--blue"
+          x="10"
+          y="20">協議與擴展性</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• HTTP/HTTPS REST API</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• EB 級無限橫向水平擴展</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76"
+          >• 豐富自訂 Metadata 標籤</text
+        >
+        <text class="stc-diagram__desc" x="10" y="92"
+          >• 延遲約 10~50ms (高吞吐)</text
+        >
+      </g>
+
+      <g transform="translate(14, 275)">
+        <rect
+          width="182"
+          height="145"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--gold"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--gold"
+          x="10"
+          y="20">典型適用場景</text
+        >
+        <text class="stc-diagram__desc" x="10" y="40"
+          >• 影音/圖片/備份海量資產</text
+        >
+        <text class="stc-diagram__desc" x="10" y="58"
+          >• 大數據湖倉 (Parquet/Iceberg)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="76"
+          >• AI 大模型訓練資料集</text
+        >
+        <text class="stc-diagram__desc" x="10" y="94"
+          >• ✅ 極致低廉成本 (EC 編碼)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="112"
+          >• ❌ 缺點：無法隨機原地修改</text
+        >
+        <text class="stc-diagram__desc" x="10" y="130"
+          >• AWS S3 / Cloudflare R2</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 720 235 L 750 235"
+      class="stc-diagram__line"
+      marker-end="url(#stc-arrow)"></path>
+
+    <!-- Column 4: Selection Matrix & Trade-offs -->
+    <g class="stc-diagram__card" transform="translate(755, 35)">
+      <rect width="185" height="400" rx="12"></rect>
+      <text class="stc-diagram__badge" x="14" y="26">4. 選型決策全景</text>
+      <text class="stc-diagram__title" x="14" y="54">Decision Matrix</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="157"
+          height="100"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--purple"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--purple"
+          x="10"
+          y="20">延遲與吞吐維度</text
+        >
+        <text class="stc-diagram__desc" x="10" y="38"
+          >• Block: 極致微秒延遲</text
+        >
+        <text class="stc-diagram__desc" x="10" y="56"
+          >• File: 平衡型毫秒延遲</text
+        >
+        <text class="stc-diagram__desc" x="10" y="74"
+          >• Object: 極大並行吞吐</text
+        >
+        <text class="stc-diagram__desc" x="10" y="92"
+          >• 依據 I/O 模式精準選型</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="157"
+          height="100"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--teal"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--teal"
+          x="10"
+          y="20">成本效益曲線</text
+        >
+        <text class="stc-diagram__desc" x="10" y="38"
+          >• Block: $$$ (高效能 SSD)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="56"
+          >• File: $$ (託管 NAS)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="74"
+          >• Object: $ (高密度低成本)</text
+        >
+        <text class="stc-diagram__desc" x="10" y="92"
+          >• 巨量冷熱分層階梯儲存</text
+        >
+      </g>
+
+      <g transform="translate(14, 295)">
+        <rect
+          width="157"
+          height="125"
+          rx="6"
+          class="stc-diagram__subcard stc-diagram__subcard--blue"></rect>
+        <text
+          class="stc-diagram__header stc-diagram__header--blue"
+          x="10"
+          y="20">現代雲原生融合</text
+        >
+        <text class="stc-diagram__desc" x="10" y="38"
+          >• CSI Driver 動態掛載</text
+        >
+        <text class="stc-diagram__desc" x="10" y="56">• S3-FUSE 虛擬掛載</text>
+        <text class="stc-diagram__desc" x="10" y="74">• JuiceFS 混和架構</text>
+        <text class="stc-diagram__desc" x="10" y="92">• 儲存與計算完全分離</text
+        >
+        <text class="stc-diagram__desc" x="10" y="110"
+          >• 軟體定義儲存 (SDS)</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="stc-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="stc-mobile-title stc-mobile-desc"
+  >
+    <title id="stc-mobile-title">儲存類型全景簡圖</title>
+    <desc id="stc-mobile-desc">
+      區塊儲存 (Raw Block/低延遲) vs. 檔案儲存 (POSIX 目錄樹/多機共享) vs.
+      物件儲存 (扁平 KV/REST API/EB 級擴展)。
+    </desc>
+
+    <g class="stc-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="stc-diagram__badge" x="12" y="22"
+        >1. 區塊儲存 (Block Storage)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="45"
+        >• 資料模型：底層 512B/4KB 裸磁區 (Raw Blocks)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="65"
+        >• 存取協議：NVMe-oF / iSCSI / FC</text
+      >
+      <text class="stc-diagram__desc" x="12" y="85"
+        >• 特性：亞毫秒極致延遲、100k+ IOPS、單機掛載</text
+      >
+      <text class="stc-diagram__desc" x="12" y="105"
+        >• 適用：關聯式資料庫 (MySQL/PostgreSQL)、VM 系統碟</text
+      >
+    </g>
+
+    <g class="stc-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="stc-diagram__badge" x="12" y="22"
+        >2. 檔案儲存 (File Storage)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="45"
+        >• 資料模型：階層式目錄樹與 Inode 結構</text
+      >
+      <text class="stc-diagram__desc" x="12" y="65"
+        >• 存取協議：NFS / SMB / POSIX 相容</text
+      >
+      <text class="stc-diagram__desc" x="12" y="85"
+        >• 特性：多主機並行讀寫 (RWX)、檔案鎖機制</text
+      >
+      <text class="stc-diagram__desc" x="12" y="105"
+        >• 適用：共享媒體目錄、CI/CD 構建快取、傳統 ERP</text
+      >
+      <text class="stc-diagram__desc" x="12" y="125"
+        >• 限制：千萬級目錄下遍歷與擴展受限</text
+      >
+    </g>
+
+    <g class="stc-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="stc-diagram__badge" x="12" y="22"
+        >3. 物件儲存 (Object Storage)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="45"
+        >• 資料模型：扁平 Bucket/Key 鍵值空間</text
+      >
+      <text class="stc-diagram__desc" x="12" y="65"
+        >• 存取協議：HTTP/HTTPS RESTful API (S3 API)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="85"
+        >• 特性：不可變物件 (WORM)、EB 級無限水平擴展</text
+      >
+      <text class="stc-diagram__desc" x="12" y="105"
+        >• 適用：海量影音圖片、大數據湖倉、AI 訓練資料集</text
+      >
+      <text class="stc-diagram__desc" x="12" y="125"
+        >• 優勢：成本最低、糾刪碼高可靠</text
+      >
+    </g>
+
+    <g class="stc-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="stc-diagram__badge" x="12" y="22"
+        >4. 雲原生儲存架構選型決策</text
+      >
+      <text class="stc-diagram__desc" x="12" y="45"
+        >• OLTP 核心事務 ➔ 區塊儲存 (EBS io2)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="65"
+        >• 容器多節點日誌/靜態共享 ➔ 檔案儲存 (EFS)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="85"
+        >• 湖倉/AI/冷備份 ➔ 物件儲存 (S3 Standard/Glacier)</text
+      >
+      <text class="stc-diagram__desc" x="12" y="105"
+        >• 透過 JuiceFS/S3-FUSE 實現混合架構</text
+      >
+      <text class="stc-diagram__desc" x="12" y="125"
+        >• 達成極致效能與成本平衡</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="stc-caption" class="stc-diagram__caption">
+    圖 1：區塊儲存 vs. 檔案儲存 vs. 物件儲存架構維度與選型決策矩陣
+  </figcaption>
+</figure>
+
+<style>
+  .stc-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stc-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .stc-diagram__desktop {
+    display: block;
+  }
+
+  .stc-diagram__mobile {
+    display: none;
+  }
+
+  .stc-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .stc-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .stc-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .stc-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .stc-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .stc-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .stc-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .stc-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .stc-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .stc-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .stc-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .stc-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .stc-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .stc-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .stc-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .stc-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .stc-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+
+  :global(.dark) .stc-diagram__subcard--red {
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: rgba(239, 68, 68, 0.35);
+  }
+
+  .stc-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .stc-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .stc-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .stc-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .stc-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .stc-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .stc-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .stc-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .stc-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .stc-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(.dark) .stc-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .stc-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .stc-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .stc-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .stc-diagram__line {
+    stroke: #475569;
+  }
+
+  .stc-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .stc-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .stc-diagram__desktop {
+      display: none;
+    }
+    .stc-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

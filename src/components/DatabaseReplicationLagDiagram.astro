@@ -1,0 +1,661 @@
+---
+// Database Replication Lag Architecture Diagram
+---
+
+<figure class="repl-diagram" aria-labelledby="repl-caption">
+  <svg
+    class="repl-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="repl-title repl-desc"
+  >
+    <title id="repl-title">主從資料庫複製延遲與一致性緩解架構</title>
+    <desc id="repl-desc">
+      展示主庫寫入 Binlog、從庫 I/O 與 SQL
+      單線程重放延遲、寫後立即讀不一致異常，以及強制主庫讀、快取防護、GTID
+      路由等緩解機制。
+    </desc>
+
+    <defs>
+      <marker
+        id="repl-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="repl-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Primary DB & Write Ingestion -->
+    <g class="repl-diagram__card" transform="translate(20, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="repl-diagram__badge" x="14" y="26">1. 主庫寫入與 BINLOG</text
+      >
+      <text class="repl-diagram__title" x="14" y="54">Primary (Master) DB</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--teal"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--teal"
+          x="10"
+          y="20">寫入請求 (UPDATE/INSERT)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• ACID 事務提交 (Commit)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 產生全域 GTID: 10045</text
+        >
+        <text class="repl-diagram__desc" x="10" y="74"
+          >• 寫入本地 Binary Log</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="182"
+          height="115"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--blue"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--blue"
+          x="10"
+          y="20">Binlog Dump Thread</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 監聽並串流發送 Event</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 異步 (Async Replication)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 半同步 (Semi-Sync)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="94"
+          >• 跨機房網路傳輸延遲</text
+        >
+        <text class="repl-diagram__desc" x="10" y="110"
+          >• 延遲 Δt: 50ms ~ 2000ms</text
+        >
+      </g>
+
+      <g transform="translate(14, 300)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--gold"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--gold"
+          x="10"
+          y="20">主庫負載保護</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 專注承擔 100% 寫入</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 僅接關鍵強一致讀取</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 連線池與 CPU 警戒線</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92">• 避免主庫連線打滿</text>
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 230 235 L 260 235"
+      class="repl-diagram__line"
+      marker-end="url(#repl-arrow)"></path>
+
+    <!-- Column 2: Replication Lag & Slave Pipeline -->
+    <g class="repl-diagram__card" transform="translate(265, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="repl-diagram__badge" x="14" y="26"
+        >2. 從庫重放與延遲成因</text
+      >
+      <text class="repl-diagram__title" x="14" y="54"
+        >Secondary (Replica) DB</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="75"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--blue"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--blue"
+          x="10"
+          y="20">I/O Thread 寫 Relay Log</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40">• 接收主庫串流事件</text>
+        <text class="repl-diagram__desc" x="10" y="56"
+          >• 寫入本地 Relay Log 磁區</text
+        >
+        <text class="repl-diagram__desc" x="10" y="70">• 通常速度極快</text>
+      </g>
+
+      <g transform="translate(14, 165)">
+        <rect
+          width="182"
+          height="125"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--red"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--red"
+          x="10"
+          y="20">SQL Thread 重放瓶頸 ⚠️</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40">• 傳統單執行緒重放</text>
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 大事務阻塞（DDL/大更新）</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 從庫慢查詢引發鎖等待</text
+        >
+        <text class="repl-diagram__desc" x="10" y="94"
+          >• MTS 多執行緒並行複製改善</text
+        >
+        <text class="repl-diagram__desc" x="10" y="112"
+          >• 仍存在 Seconds_Behind_Master</text
+        >
+      </g>
+
+      <g transform="translate(14, 305)">
+        <rect
+          width="182"
+          height="90"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--purple"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--purple"
+          x="10"
+          y="20">讀寫分離異常現象</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 寫後立即讀到舊資料</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 註冊後登入提示無此帳號</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 支付成功訂單仍顯示待付款</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 475 235 L 505 235"
+      class="repl-diagram__line"
+      marker-end="url(#repl-arrow)"></path>
+
+    <!-- Column 3: Intelligent Middleware Routing -->
+    <g class="repl-diagram__card" transform="translate(510, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="repl-diagram__badge" x="14" y="26">3. 一致性路由中介層</text>
+      <text class="repl-diagram__title" x="14" y="54">Smart Proxy / Router</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--teal"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--teal"
+          x="10"
+          y="20">策略 1: 主庫強制路由</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 寫操作後 Session 標記</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 核心關鍵讀取帶 Master Hint</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76">• 100% 保證最新數據</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92"
+          >• 避免全部湧向主庫崩潰</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--gold"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--gold"
+          x="10"
+          y="20">策略 2: 快取引導 (Cache-aside)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 寫庫時寫入 Redis Key</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 設置短期 TTL (如 2 秒)</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 命中 Key 則強制主庫讀</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92"
+          >• 過期後放行從庫讀取</text
+        >
+      </g>
+
+      <g transform="translate(14, 300)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--purple"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--purple"
+          x="10"
+          y="20">策略 3: GTID 等待確認</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 取得寫入 GTID: 10045</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 從庫執行 WAIT_FOR_GTID</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 追上目標點位才返回</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92"
+          >• 超時則降級或轉主庫</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 720 235 L 750 235"
+      class="repl-diagram__line"
+      marker-end="url(#repl-arrow)"></path>
+
+    <!-- Column 4: Client Experience & Balance -->
+    <g class="repl-diagram__card" transform="translate(755, 35)">
+      <rect width="185" height="400" rx="12"></rect>
+      <text class="repl-diagram__badge" x="14" y="26">4. 終端體驗與權衡</text>
+      <text class="repl-diagram__title" x="14" y="54">Consistency Matrix</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="157"
+          height="95"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--teal"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--teal"
+          x="10"
+          y="20">Monotonic Read 保證</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40">• 單調讀一致性</text>
+        <text class="repl-diagram__desc" x="10" y="58">• 絕不看到時光倒流</text>
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 綁定 Replica Session ID</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92">• 用戶體驗流暢平穩</text>
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="157"
+          height="100"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--blue"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--blue"
+          x="10"
+          y="20">延遲感知動態降權</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40">• 探測 Lag > 1 秒</text>
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 自動剔除嚴重落後節點</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 流量無損重導向健康機</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92">• 待追平後恢復權重</text>
+      </g>
+
+      <g transform="translate(14, 300)">
+        <rect
+          width="157"
+          height="95"
+          rx="6"
+          class="repl-diagram__subcard repl-diagram__subcard--purple"></rect>
+        <text
+          class="repl-diagram__header repl-diagram__header--purple"
+          x="10"
+          y="20">架構收益極大化</text
+        >
+        <text class="repl-diagram__desc" x="10" y="40"
+          >• 兼顧 99% 讀流量分流</text
+        >
+        <text class="repl-diagram__desc" x="10" y="58"
+          >• 守護 1% 核心寫後讀</text
+        >
+        <text class="repl-diagram__desc" x="10" y="76"
+          >• 兼顧高可用與吞吐量</text
+        >
+        <text class="repl-diagram__desc" x="10" y="92">• 生產級標準實踐</text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="repl-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="repl-mobile-title repl-mobile-desc"
+  >
+    <title id="repl-mobile-title">複製延遲緩解簡圖</title>
+    <desc id="repl-mobile-desc">
+      主庫寫入 Binlog ➔ 從庫 SQL 重放瓶頸造成延遲 ➔ 寫後立即讀不一致 ➔ 快取引導
+      + GTID 路由解決。
+    </desc>
+
+    <g class="repl-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="repl-diagram__badge" x="12" y="22"
+        >1. 主庫寫入與 Binlog 串流</text
+      >
+      <text class="repl-diagram__desc" x="12" y="45"
+        >• 主庫處理寫入事務並生成 GTID</text
+      >
+      <text class="repl-diagram__desc" x="12" y="65"
+        >• 異步或半同步向從庫傳輸 Binlog</text
+      >
+      <text class="repl-diagram__desc" x="12" y="85"
+        >• 跨機房網路或大事務導致傳輸延遲</text
+      >
+      <text class="repl-diagram__desc" x="12" y="105"
+        >• 主庫需嚴格防禦讀流量過載</text
+      >
+    </g>
+
+    <g class="repl-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="repl-diagram__badge" x="12" y="22"
+        >2. 從庫重放瓶頸與讀寫異常</text
+      >
+      <text class="repl-diagram__desc" x="12" y="45"
+        >• SQL Thread 重放單執行緒瓶頸</text
+      >
+      <text class="repl-diagram__desc" x="12" y="65"
+        >• 長事務與 DDL 引發 Seconds_Behind_Master</text
+      >
+      <text class="repl-diagram__desc" x="12" y="85"
+        >• 寫後立即讀（Read-Your-Own-Writes）失效</text
+      >
+      <text class="repl-diagram__desc" x="12" y="105"
+        >• 用戶剛發文刷新卻看不到最新內容</text
+      >
+      <text class="repl-diagram__desc" x="12" y="125"
+        >• 必須在架構層進行一致性干預</text
+      >
+    </g>
+
+    <g class="repl-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="repl-diagram__badge" x="12" y="22"
+        >3. 核心緩解策略與智慧路由</text
+      >
+      <text class="repl-diagram__desc" x="12" y="45"
+        >• 策略 1：寫操作後短期強制主庫讀</text
+      >
+      <text class="repl-diagram__desc" x="12" y="65"
+        >• 策略 2：Redis 暫存寫入標記與 TTL 引導</text
+      >
+      <text class="repl-diagram__desc" x="12" y="85"
+        >• 策略 3：WAIT_FOR_EXECUTED_GTID_SET 等待</text
+      >
+      <text class="repl-diagram__desc" x="12" y="105"
+        >• 策略 4：中介軟體即時監控動態降權落後從庫</text
+      >
+      <text class="repl-diagram__desc" x="12" y="125"
+        >• 策略 5：Session 綁定防範時光倒流</text
+      >
+    </g>
+
+    <g class="repl-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="repl-diagram__badge" x="12" y="22"
+        >4. 系統吞吐與體驗完美平衡</text
+      >
+      <text class="repl-diagram__desc" x="12" y="45"
+        >• 99% 普通讀流量安全分散至多台從庫</text
+      >
+      <text class="repl-diagram__desc" x="12" y="65"
+        >• 1% 寫入用戶獲得零延遲精準資料反饋</text
+      >
+      <text class="repl-diagram__desc" x="12" y="85"
+        >• 從庫故障自動摘除，流量無感平滑切換</text
+      >
+      <text class="repl-diagram__desc" x="12" y="105"
+        >• 兼具極致擴展性與業務正確性</text
+      >
+      <text class="repl-diagram__desc" x="12" y="125"
+        >• 大型網際網路資料庫標準範式</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="repl-caption" class="repl-diagram__caption">
+    圖 1：主從資料庫複製延遲成因與一致性緩解策略全景拓撲
+  </figcaption>
+</figure>
+
+<style>
+  .repl-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .repl-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .repl-diagram__desktop {
+    display: block;
+  }
+
+  .repl-diagram__mobile {
+    display: none;
+  }
+
+  .repl-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .repl-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .repl-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .repl-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .repl-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .repl-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .repl-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .repl-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .repl-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .repl-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .repl-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .repl-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .repl-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .repl-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .repl-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .repl-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .repl-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+
+  :global(.dark) .repl-diagram__subcard--red {
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: rgba(239, 68, 68, 0.35);
+  }
+
+  .repl-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .repl-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .repl-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .repl-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .repl-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .repl-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .repl-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .repl-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .repl-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .repl-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(.dark) .repl-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .repl-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .repl-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .repl-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .repl-diagram__line {
+    stroke: #475569;
+  }
+
+  .repl-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .repl-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .repl-diagram__desktop {
+      display: none;
+    }
+    .repl-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

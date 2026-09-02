@@ -1,0 +1,641 @@
+---
+// Erasure Coding Architecture Diagram
+---
+
+<figure class="ec-diagram" aria-labelledby="ec-caption">
+  <svg
+    class="ec-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="ec-title ec-desc"
+  >
+    <title id="ec-title">Erasure Coding (RS Code) 分散式儲存架構原理</title>
+    <desc id="ec-desc">
+      展示原始資料分塊 (k=4)、范德蒙矩陣編碼、同位校驗塊
+      (m=2)、分散式節點分發以及任選 k 塊解碼重構的完整流程。
+    </desc>
+
+    <defs>
+      <marker
+        id="ec-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ec-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Original Object & Chunking -->
+    <g class="ec-diagram__card" transform="translate(20, 35)">
+      <rect width="200" height="400" rx="12"></rect>
+      <text class="ec-diagram__badge" x="14" y="26">1. 原始物件與分塊</text>
+      <text class="ec-diagram__title" x="14" y="54">Data Chunking</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="172"
+          height="55"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--teal"></rect>
+        <text class="ec-diagram__header ec-diagram__header--teal" x="10" y="20"
+          >原始檔案 (Object)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40">例如：100 MB 檔案</text>
+      </g>
+
+      <!-- Data chunks D1 to D4 -->
+      <g transform="translate(14, 145)">
+        <rect
+          width="172"
+          height="55"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="20"
+          >D1: Data Chunk 1</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40">25 MB (Offset: 0~25M)</text
+        >
+      </g>
+
+      <g transform="translate(14, 210)">
+        <rect
+          width="172"
+          height="55"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="20"
+          >D2: Data Chunk 2</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40"
+          >25 MB (Offset: 25~50M)</text
+        >
+      </g>
+
+      <g transform="translate(14, 275)">
+        <rect
+          width="172"
+          height="55"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="20"
+          >D3: Data Chunk 3</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40"
+          >25 MB (Offset: 50~75M)</text
+        >
+      </g>
+
+      <g transform="translate(14, 340)">
+        <rect
+          width="172"
+          height="55"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="20"
+          >D4: Data Chunk 4</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40"
+          >25 MB (Offset: 75~100M)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 220 235 L 250 235"
+      class="ec-diagram__line"
+      marker-end="url(#ec-arrow)"></path>
+
+    <!-- Column 2: Reed-Solomon Matrix Encoding -->
+    <g class="ec-diagram__card" transform="translate(255, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="ec-diagram__badge" x="14" y="26">2. RS 矩陣編碼器</text>
+      <text class="ec-diagram__title" x="14" y="54">RS(k=4, m=2) Encoding</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="145"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--purple"></rect>
+        <text
+          class="ec-diagram__header ec-diagram__header--purple"
+          x="10"
+          y="20">Vandermonde Generator</text
+        >
+        <text class="ec-diagram__desc" x="10" y="42"
+          >[ 1 0 0 0 ] (Identity D1)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="62"
+          >[ 0 1 0 0 ] (Identity D2)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="82"
+          >[ 0 0 1 0 ] (Identity D3)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="102"
+          >[ 0 0 0 1 ] (Identity D4)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="124"
+          >[ a b c d ] (Parity P1 in GF)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="142"
+          >[ e f g h ] (Parity P2 in GF)</text
+        >
+      </g>
+
+      <g transform="translate(14, 235)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--gold"></rect>
+        <text class="ec-diagram__header ec-diagram__header--gold" x="10" y="20"
+          >同位校驗生成 (Parity)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="42"
+          >P1 = a·D1 + b·D2 + c·D3 + d·D4</text
+        >
+        <text class="ec-diagram__desc" x="10" y="64"
+          >P2 = e·D1 + f·D2 + g·D3 + h·D4</text
+        >
+      </g>
+
+      <g transform="translate(14, 330)">
+        <rect
+          width="182"
+          height="65"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--teal"></rect>
+        <text class="ec-diagram__header ec-diagram__header--teal" x="10" y="20"
+          >儲存膨脹率對比</text
+        >
+        <text class="ec-diagram__desc" x="10" y="38"
+          >• 3 副本: 300% (200% 膨脹)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="54"
+          >• RS(4,2): 150% (僅 50% 膨脹)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 465 235 L 495 235"
+      class="ec-diagram__line"
+      marker-end="url(#ec-arrow)"></path>
+
+    <!-- Column 3: Distributed Storage Nodes -->
+    <g class="ec-diagram__card" transform="translate(500, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="ec-diagram__badge" x="14" y="26">3. 分散式節點儲存</text>
+      <text class="ec-diagram__title" x="14" y="54">Fault Domain Sharding</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="18"
+          >Node 1: Data Chunk D1</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34"
+          >Rack 1 / Zone A (25 MB)</text
+        >
+      </g>
+
+      <g transform="translate(14, 130)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="18"
+          >Node 2: Data Chunk D2</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34"
+          >Rack 2 / Zone A (25 MB)</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--red"></rect>
+        <text class="ec-diagram__header ec-diagram__header--red" x="10" y="18"
+          >Node 3: ❌ 故障離線 (D3)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34">磁區毀損 / 網路斷線</text>
+      </g>
+
+      <g transform="translate(14, 240)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="18"
+          >Node 4: Data Chunk D4</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34"
+          >Rack 4 / Zone B (25 MB)</text
+        >
+      </g>
+
+      <g transform="translate(14, 295)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--gold"></rect>
+        <text class="ec-diagram__header ec-diagram__header--gold" x="10" y="18"
+          >Node 5: Parity P1</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34"
+          >Rack 5 / Zone C (25 MB)</text
+        >
+      </g>
+
+      <g transform="translate(14, 350)">
+        <rect
+          width="182"
+          height="45"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--gold"></rect>
+        <text class="ec-diagram__header ec-diagram__header--gold" x="10" y="18"
+          >Node 6: Parity P2</text
+        >
+        <text class="ec-diagram__desc" x="10" y="34"
+          >Rack 6 / Zone C (25 MB)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 710 235 L 740 235"
+      class="ec-diagram__line"
+      marker-end="url(#ec-arrow)"></path>
+
+    <!-- Column 4: Reconstruction & Inversion -->
+    <g class="ec-diagram__card" transform="translate(745, 35)">
+      <rect width="195" height="400" rx="12"></rect>
+      <text class="ec-diagram__badge" x="14" y="26">4. 逆矩陣重構與解碼</text>
+      <text class="ec-diagram__title" x="14" y="54">Data Reconstruction</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="167"
+          height="125"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--teal"></rect>
+        <text class="ec-diagram__header ec-diagram__header--teal" x="10" y="20"
+          >採集存活 k=4 塊</text
+        >
+        <text class="ec-diagram__desc" x="10" y="42"
+          >• 讀取: D1, D2, D4, P1</text
+        >
+        <text class="ec-diagram__desc" x="10" y="62">• 忽略毀損 Node 3</text>
+        <text class="ec-diagram__desc" x="10" y="82">• 構建 4x4 子矩陣 M'</text>
+        <text class="ec-diagram__desc" x="10" y="102">• 計算逆矩陣 (M')^-1</text
+        >
+        <text class="ec-diagram__desc" x="10" y="120">• 求解還原 D3 數據</text>
+      </g>
+
+      <g transform="translate(14, 215)">
+        <rect
+          width="167"
+          height="95"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--blue"></rect>
+        <text class="ec-diagram__header ec-diagram__header--blue" x="10" y="20"
+          >降級讀取 (Degraded)</text
+        >
+        <text class="ec-diagram__desc" x="10" y="40">• 即時在線即解即傳</text>
+        <text class="ec-diagram__desc" x="10" y="58">• 客戶端無感透明讀取</text>
+        <text class="ec-diagram__desc" x="10" y="76"
+          >• 後台異步修復寫入新節點</text
+        >
+      </g>
+
+      <g transform="translate(14, 325)">
+        <rect
+          width="167"
+          height="70"
+          rx="6"
+          class="ec-diagram__subcard ec-diagram__subcard--purple"></rect>
+        <text
+          class="ec-diagram__header ec-diagram__header--purple"
+          x="10"
+          y="20">容錯能力上限</text
+        >
+        <text class="ec-diagram__desc" x="10" y="38"
+          >• 最多允許任意 m 塊故障</text
+        >
+        <text class="ec-diagram__desc" x="10" y="56"
+          >• RS(4,2) 允許 2 台同時壞</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="ec-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="ec-mobile-title ec-mobile-desc"
+  >
+    <title id="ec-mobile-title">Erasure Coding (RS Code) 流程簡圖</title>
+    <desc id="ec-mobile-desc">
+      分塊 D1~D4 ➔ RS(4,2) 編碼生成 P1,P2 ➔ 6 個節點分散儲存 ➔ 任意 4
+      塊逆矩陣重構。
+    </desc>
+
+    <g class="ec-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="ec-diagram__badge" x="12" y="22"
+        >1. 資料分塊與 RS(4,2) 編碼</text
+      >
+      <text class="ec-diagram__desc" x="12" y="45"
+        >• 原始物件切分為 D1, D2, D3, D4 (k=4)</text
+      >
+      <text class="ec-diagram__desc" x="12" y="65"
+        >• Vandermonde 矩陣計算同位塊 P1, P2 (m=2)</text
+      >
+      <text class="ec-diagram__desc" x="12" y="85"
+        >• 總儲存開銷僅 150%（傳統 3 副本為 300%）</text
+      >
+      <text class="ec-diagram__desc" x="12" y="105">• 節省 50% 儲存成本</text>
+    </g>
+
+    <g class="ec-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="ec-diagram__badge" x="12" y="22">2. 分散式故障域分發</text>
+      <text class="ec-diagram__desc" x="12" y="45"
+        >• 6 個區塊分佈於不同機架 / 可用區</text
+      >
+      <text class="ec-diagram__desc" x="12" y="65"
+        >• Node 1 (D1), Node 2 (D2), Node 4 (D4)</text
+      >
+      <text class="ec-diagram__desc" x="12" y="85"
+        >• Node 5 (P1), Node 6 (P2)</text
+      >
+      <text class="ec-diagram__desc" x="12" y="105"
+        >• Node 3 (D3) ❌ 節點硬碟損壞離線</text
+      >
+      <text class="ec-diagram__desc" x="12" y="125"
+        >• 系統進入降級讀取（Degraded Read）模式</text
+      >
+    </g>
+
+    <g class="ec-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="ec-diagram__badge" x="12" y="22">3. 逆矩陣求逆解碼重構</text>
+      <text class="ec-diagram__desc" x="12" y="45"
+        >• 從存活節點並行讀取任意 k=4 塊</text
+      >
+      <text class="ec-diagram__desc" x="12" y="65"
+        >• 讀取 D1, D2, D4, P1 (共 100 MB 網路頻寬)</text
+      >
+      <text class="ec-diagram__desc" x="12" y="85">• 構造 4x4 子矩陣並求逆</text
+      >
+      <text class="ec-diagram__desc" x="12" y="105"
+        >• 完美還原丟失的 D3 資料塊</text
+      >
+      <text class="ec-diagram__desc" x="12" y="125"
+        >• 異步寫入新替換節點 Node 3'</text
+      >
+    </g>
+
+    <g class="ec-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="ec-diagram__badge" x="12" y="22"
+        >4. 修復頻寬與 LRC 局部優化</text
+      >
+      <text class="ec-diagram__desc" x="12" y="45"
+        >• 缺點：修復 1 塊需讀取 k 塊（頻寬放大）</text
+      >
+      <text class="ec-diagram__desc" x="12" y="65"
+        >• LRC (Local Reconstruction Codes) 引入局部校驗</text
+      >
+      <text class="ec-diagram__desc" x="12" y="85"
+        >• 單節點故障僅需讀取 2~3 塊即可重構</text
+      >
+      <text class="ec-diagram__desc" x="12" y="105"
+        >• 大幅降低跨交換機與跨 AZ 重建流量</text
+      >
+      <text class="ec-diagram__desc" x="12" y="125"
+        >• AWS S3 / Azure 核心儲存標準演算法</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ec-caption" class="ec-diagram__caption">
+    圖 1：Erasure Coding (RS Code) 分散式儲存架構 —
+    范德蒙矩陣編碼、節點容錯與逆矩陣重構流程
+  </figcaption>
+</figure>
+
+<style>
+  .ec-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ec-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .ec-diagram__desktop {
+    display: block;
+  }
+
+  .ec-diagram__mobile {
+    display: none;
+  }
+
+  .ec-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .ec-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .ec-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .ec-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .ec-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .ec-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .ec-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .ec-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .ec-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .ec-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .ec-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .ec-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .ec-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .ec-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .ec-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .ec-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .ec-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+
+  :global(.dark) .ec-diagram__subcard--red {
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: rgba(239, 68, 68, 0.35);
+  }
+
+  .ec-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ec-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .ec-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .ec-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .ec-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .ec-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .ec-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .ec-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .ec-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .ec-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(.dark) .ec-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .ec-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .ec-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .ec-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .ec-diagram__line {
+    stroke: #475569;
+  }
+
+  .ec-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ec-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .ec-diagram__desktop {
+      display: none;
+    }
+    .ec-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

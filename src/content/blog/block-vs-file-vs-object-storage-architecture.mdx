@@ -1,0 +1,177 @@
+---
+title: "區塊儲存 vs. 檔案儲存 vs. 物件儲存全景解析：架構維度、POSIX 語義與分散式選型矩陣"
+description: "全面拆解現代三大儲存範式（Block vs. File vs. Object Storage）：底層資料組織（Raw Blocks、Hierarchical Tree、Flat Key-Value）、存取協議（iSCSI/NVMe-oF、NFS/SMB、REST S3）、延遲與 IOPS 效能邊界、分散式中繼資料管理與雲端應用選型。"
+publishDate: 2026-09-02T11:45:06+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/block-vs-file-vs-object-storage-architecture.png
+coverAlt: "區塊、檔案與物件儲存以三種不同資料組織方式並列比較"
+tags:
+  - "系統設計"
+  - "分散式儲存"
+  - "AWS S3"
+  - "雲原生"
+  - "技術選型"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+import StorageTypesComparisonDiagram from "../../components/StorageTypesComparisonDiagram.astro";
+
+在現代軟體系統與雲原生基礎架構中，資料的持久化儲存是所有計算負載的基石。然而，當我們談論「儲存」時，不同應用場景對延遲、吞吐量、擴展性、一致性模型以及 API 介面的需求存在著天壤之別。
+
+一個高頻交易的關聯式資料庫（如 MySQL）需要微秒級的極致隨機讀寫延遲；一個跨數百台容器的 Web 服務需要同時掛載同一個目錄共享使用者上傳的靜態資產；而一個 PB 級的大數據資料湖或 AI 訓練集則需要極致低廉的成本與無限的水平吞吐能力。
+
+這三大截然不同的需求，催生了現代儲存領域的三大核心範式：
+
+1. **區塊儲存（Block Storage）**：底層裸磁區、極致低延遲、作業系統與資料庫基石。
+2. **檔案儲存（File Storage）**：階層式目錄樹、POSIX 相容、多主機共享協作。
+3. **物件儲存（Object Storage）**：扁平命名空間、RESTful S3 API、EB 級無限擴展與極低成本。
+
+本文將從資料模型、通訊協議、效能維度到雲原生架構選型，深度橫向對比三大儲存範式。
+
+---
+
+## 儲存類型架構全景對比圖
+
+下圖直觀展示了三種儲存架構在底層組織、協議層、效能特性與雲原生選型中的核心差異：
+
+<StorageTypesComparisonDiagram />
+
+---
+
+## 1. 區塊儲存（Block Storage）：效能之王
+
+### 1.1 資料模型與工作原理
+
+區塊儲存是儲存世界中最接近物理硬體的抽象。它將物理儲存空間劃分為固定大小的連續數據塊（Blocks，如 512 Bytes 或 4 KB），每個區塊僅由一個**邏輯區塊位址（LBA，Logical Block Address）**唯一識別。
+
+區塊儲存**完全沒有檔名、目錄、權限或時間戳等中繼資料（Metadata）概念**。作業系統將區塊設備（如 `/dev/nvme0n1` 或 AWS EBS 卷）格式化為特定的檔案系統（如 ext4、XFS、NTFS）後，才能在上方建立檔案結構。
+
+```text
+[ Application (MySQL / PostgreSQL) ]
+              │ (Direct I/O / Page Cache)
+              ▼
+[ OS File System (ext4 / XFS) ]
+              │ (Block I/O Requests: LBA 0x004A1F)
+              ▼
+[ Block Device (AWS EBS / SAN / NVMe-oF) ]
+```
+
+### 1.2 通訊協議與效能特性
+
+-- **存取協議**：NVMe over Fabrics (NVMe-oF)、iSCSI、Fibre Channel (FC)。
+
+- **延遲表現**：微秒到亞毫秒級（`< 1 ms`）。
+- **IOPS**：極高（可達 50,000 ~ 256,000+ IOPS）。
+- **共享限制**：通常為**單主機獨占掛載（ReadWriteOnce / RWO）**。多主機同時掛載需要特殊叢集檔案系統（如 OCFS2）支援，否則會引發資料損毀。
+
+### 1.3 典型場景
+
+- 關聯式與 NoSQL 資料庫主存儲（MySQL、PostgreSQL、MongoDB）。
+- 虛擬機與容器的作業系統根磁碟（Root OS Volume）。
+
+---
+
+## 2. 檔案儲存（File Storage）：共享與 POSIX 相容
+
+### 2.1 資料模型與目錄樹結構
+
+檔案儲存將資料組織為人類與傳統軟體最熟悉的**階層式目錄樹結構（Hierarchical Tree）**（如 `/shared/media/video.mp4`）。
+
+檔案儲存嚴格遵循 **POSIX（Portable Operating System Interface）** 標準語義，提供豐富的檔案屬性（Inode、UID/GID 權限、建立/修改時間戳、硬連結與符號連結），並內建**分散式檔案鎖（File Locking，如 `fcntl` / `flock`）**機制。
+
+### 2.2 通訊協議與效能特性
+
+- **存取協議**：NFS（Network File System，Linux 生態）、SMB/CIFS（Windows 生態）、CephFS。
+- **延遲表現**：毫秒級（`1 ms ~ 5 ms`）。
+- **共享能力**：天然支援**多主機並行讀寫掛載（ReadWriteMany / RWX）**。數百台伺服器可同時掛載同一儲存卷並即時讀寫。
+- **擴展性瓶頸**：當單一目錄下的檔案數量達到數千萬時，階層樹的中繼資料遍歷與鎖競爭會成為嚴重的效能瓶頸。
+
+### 2.3 典型場景
+
+- Kubernetes 跨 Pod 共享靜態資源目錄（如用戶上傳的大頭貼、PDF 附件）。
+- CI/CD 構建伺服器共享原始碼與依賴編譯快取。
+- 企業內部共享 NAS、跨部門辦公協作檔案庫。
+
+---
+
+## 3. 物件儲存（Object Storage）：無限擴展與資料湖基石
+
+### 3.1 扁平空間與不可變性（Immutable WORM）
+
+物件儲存完全摒棄了階層式目錄樹，採用全域**扁平命名空間（Flat Key-Value Namespace）**。每個資料單元被稱為一個**物件（Object）**，由三部分組成：
+
+1. **Key（唯一鍵）**：如 `photos/2026/beach.jpg`（路徑中的斜線 `/` 只是 Key 的一部分，並非真正的物理目錄）。
+2. **Data（數據載體）**：二進位位元流（從數 KB 到 5 TB 不等）。
+3. **Metadata（自訂中繼資料）**：鍵值對標籤（如 `author=carl`、`content-type=image/jpeg`）。
+
+物件儲存遵循 **WORM（Write Once, Read Many）** 原則。**物件一旦寫入，即為不可變（Immutable）**；不支援原地隨機修改（In-place Random Mutation），任何修改等價於覆蓋產生全新版本。
+
+### 3.2 通訊協議與效能特性
+
+- **存取協議**：HTTP/HTTPS RESTful API（標準 **AWS S3 API**）。
+- **延遲表現**：`10 ms ~ 50 ms`（著重於大並行吞吐量而非極致低延遲）。
+- **擴展性**：**EB 級無限水平擴展**。底層依賴糾刪碼（Erasure Coding）與分散式雜湊路由，無單點中繼資料鎖瓶頸。
+- **成本**：極其低廉（通常只有區塊儲存的 1/5 ~ 1/10）。
+
+### 3.3 典型場景
+
+- 海量非結構化資料庫（4K 影音串流素材、圖片、備份歸檔）。
+- 現代資料湖倉（Data Lakehouse，如 Apache Iceberg、Delta Lake、Parquet）。
+- AI 大模型預訓練資料集與權重分發。
+
+---
+
+## 4. 三大儲存範式關鍵指標全景橫向對比
+
+```text
++----------------------+--------------------+--------------------+--------------------+
+| 評估維度             | 區塊儲存 (Block)   | 檔案儲存 (File)    | 物件儲存 (Object)  |
++----------------------+--------------------+--------------------+--------------------+
+| 代表技術/產品        | AWS EBS, NVMe-oF   | AWS EFS, NFS, SMB  | AWS S3, MinIO, R2  |
+| 資料抽象模型         | 裸磁區 (Raw Block) | 階層式目錄樹       | 扁平 Key-Value     |
+| 存取協議介面         | iSCSI / NVMe-oF    | NFS / SMB / POSIX  | HTTP RESTful API   |
+| 讀寫延遲 (Latency)   | < 1 ms (極低)      | 1 ~ 5 ms (低)      | 10 ~ 50 ms (中等)  |
+| 隨機讀寫支援         | 完美支援 (In-place)| 完美支援           | 不支援 (僅能全覆蓋)|
+| 多機並行共享 (RWX)   | 否 (通常限單機 RWO)| 是 (多節點並行讀寫)| 是 (全球 HTTP 存取)|
+| 最大擴展容量         | TB ~ 數十 TB       | PB 級              | EB 級 (無上限)     |
+| 單位儲存成本         | $$$ (最高)         | $$ (中等)          | $ (最低)           |
+| 雲原生 K8s PV 模式   | ReadWriteOnce      | ReadWriteMany      | S3 CSI / S3-FUSE   |
++----------------------+--------------------+--------------------+--------------------+
+```
+
+---
+
+## 5. 雲原生架構儲存選型指南
+
+在微服務與雲原生架構規劃時，可依循以下決策鏈進行技術選型：
+
+```text
+1. 是否需要資料庫等級的亞毫秒事務隨機讀寫？
+   ├── 是 ──► 【區塊儲存】 (AWS EBS io2 / gp3, NVMe SSD)
+   └── 否 ──► 進入第 2 步
+
+2. 是否需要現有程式碼以 POSIX 檔案路徑與多節點並行掛載共享？
+   ├── 是 ──► 【檔案儲存】 (AWS EFS, GCP Filestore, NFS)
+   └── 否 ──► 進入第 3 步
+
+3. 是否為巨量非結構化靜態資料、備份或大數據湖倉？
+   └── 是 ──► 【物件儲存】 (AWS S3, Cloudflare R2, MinIO)
+```
+
+### 現代融合趨勢：儲存與計算分離
+
+在過去，大數據與 AI 訓練高度依賴將檔案儲存在本機 HDFS 或高效能 NAS。
+而在現代雲原生架構中，越來越多系統透過 **JuiceFS** 或 **S3-FUSE** 將物件儲存封裝為 POSIX 檔案系統，同時在本地利用 NVMe 區塊儲存進行多層智慧快取（Tiered Caching），達成了「物件儲存的低成本 + 區塊儲存的極速讀取」的完美融合。
+
+---
+
+## 總結
+
+沒有任何一種儲存架構是全能的銀彈。
+
+- **區塊儲存** 以犧牲共享性與成本為代價，換取了微秒級的極致效能；
+- **檔案儲存** 以中繼資料管理為代價，提供了極佳的 POSIX 相容性與共享協同能力；
+- **物件儲存** 則打破了目錄結構的束縛，以簡潔的 HTTP 介面與糾刪碼技術實現了 EB 級的無限吞吐與成本極限。
+
+深刻理解三大儲存範式的邊界與物理權衡，是構建現代高可用、彈性擴展雲原生系統的核心基石。

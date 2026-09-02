@@ -1,0 +1,593 @@
+---
+// Event Sourcing & CQRS Architecture Diagram
+---
+
+<figure class="es-diagram" aria-labelledby="es-caption">
+  <svg
+    class="es-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="es-title es-desc"
+  >
+    <title id="es-title">Event Sourcing 與 CQRS 讀寫分離架構拓撲</title>
+    <desc id="es-desc">
+      展示 Command 寫入側、Aggregate 狀態校驗、Append-only Event
+      Store、異步事件匯流排、Projection Engine 讀取側多維檢索模型的完整閉環。
+    </desc>
+
+    <defs>
+      <marker
+        id="es-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="es-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Command / Write Side -->
+    <g class="es-diagram__card" transform="translate(20, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="es-diagram__badge" x="14" y="26"
+        >1. COMMAND / WRITE SIDE</text
+      >
+      <text class="es-diagram__title" x="14" y="54">意圖指令與領域聚合</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--teal"></rect>
+        <text class="es-diagram__header es-diagram__header--teal" x="10" y="20"
+          >Command Handler</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• 接收 CreateOrderCommand</text
+        >
+        <text class="es-diagram__desc" x="10" y="58">• 業務權限與參數校驗</text>
+        <text class="es-diagram__desc" x="10" y="74">• 加載聚合根實體</text>
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="182"
+          height="110"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--blue"></rect>
+        <text class="es-diagram__header es-diagram__header--blue" x="10" y="20"
+          >Domain Aggregate (聚合根)</text
+        >
+        <text class="es-diagram__desc" x="10" y="40">• 業務規則決策不變量</text>
+        <text class="es-diagram__desc" x="10" y="58"
+          >• 樂觀並發版本控制 (v=4)</text
+        >
+        <text class="es-diagram__desc" x="10" y="76"
+          >• 產出不可變 Domain Event</text
+        >
+        <text class="es-diagram__desc" x="10" y="94">• OrderCreatedEvent</text>
+      </g>
+
+      <g transform="translate(14, 295)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--gold"></rect>
+        <text class="es-diagram__header es-diagram__header--gold" x="10" y="20"
+          >Snapshotting (快照)</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• 每 100 筆事件產生快照</text
+        >
+        <text class="es-diagram__desc" x="10" y="58"
+          >• 聚合加載只需從最近快照</text
+        >
+        <text class="es-diagram__desc" x="10" y="76">• 避免重放數萬事件</text>
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 230 235 L 260 235"
+      class="es-diagram__line"
+      marker-end="url(#es-arrow)"></path>
+
+    <!-- Column 2: Event Store (Immutable Log) -->
+    <g class="es-diagram__card" transform="translate(265, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="es-diagram__badge" x="14" y="26">2. APPEND-ONLY STORE</text>
+      <text class="es-diagram__title" x="14" y="54">不可篡改事件庫</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="200"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--purple"></rect>
+        <text
+          class="es-diagram__header es-diagram__header--purple"
+          x="10"
+          y="20">Event Stream (單調遞增)</text
+        >
+        <text class="es-diagram__desc" x="10" y="42"
+          >E1: OrderCreated (Seq: 1)</text
+        >
+        <text class="es-diagram__desc" x="10" y="62"
+          >E2: ItemAdded (Seq: 2)</text
+        >
+        <text class="es-diagram__desc" x="10" y="82"
+          >E3: CouponApplied (Seq: 3)</text
+        >
+        <text class="es-diagram__desc" x="10" y="102"
+          >E4: OrderPaid (Seq: 4)</text
+        >
+        <text class="es-diagram__desc" x="10" y="124"
+          >E5: OrderShipped (Seq: 5)</text
+        >
+        <text class="es-diagram__desc" x="10" y="146"
+          >• 永遠只有 INSERT (無 UPDATE)</text
+        >
+        <text class="es-diagram__desc" x="10" y="166"
+          >• 完整審計稽核日誌 (Audit)</text
+        >
+        <text class="es-diagram__desc" x="10" y="186"
+          >• 支持時間旅行與狀態回溯</text
+        >
+      </g>
+
+      <g transform="translate(14, 290)">
+        <rect
+          width="182"
+          height="105"
+          rx="6"
+          class="es-diagram__subcard ec-diagram__subcard--teal"></rect>
+        <text class="es-diagram__header es-diagram__header--teal" x="10" y="20"
+          >Event Store 儲存選型</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• EventStoreDB / Kafka</text
+        >
+        <text class="es-diagram__desc" x="10" y="58"
+          >• PostgreSQL (Append Table)</text
+        >
+        <text class="es-diagram__desc" x="10" y="76">• DynamoDB + Streams</text>
+        <text class="es-diagram__desc" x="10" y="94"
+          >• 唯一鍵 (AggregateId, Version)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 475 235 L 505 235"
+      class="es-diagram__line"
+      marker-end="url(#es-arrow)"></path>
+
+    <!-- Column 3: Event Bus & Projections -->
+    <g class="es-diagram__card" transform="translate(510, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="es-diagram__badge" x="14" y="26">3. PROJECTION ENGINE</text>
+      <text class="es-diagram__title" x="14" y="54">異步事件廣播與投影</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--blue"></rect>
+        <text class="es-diagram__header es-diagram__header--blue" x="10" y="20"
+          >Event Bus / CDC</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• Kafka / RabbitMQ / NATS</text
+        >
+        <text class="es-diagram__desc" x="10" y="58">• 保證分區內順序性</text>
+        <text class="es-diagram__desc" x="10" y="74">• 異步解耦讀寫兩端</text>
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="182"
+          height="125"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--gold"></rect>
+        <text class="es-diagram__header es-diagram__header--gold" x="10" y="20"
+          >Projector Handlers</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• 訂閱 OrderCreated 等事件</text
+        >
+        <text class="es-diagram__desc" x="10" y="58">• 轉換為多種視圖格式</text>
+        <text class="es-diagram__desc" x="10" y="76"
+          >• 冪等更新 Target Views</text
+        >
+        <text class="es-diagram__desc" x="10" y="94">• 容忍最終一致性延遲</text>
+        <text class="es-diagram__desc" x="10" y="112"
+          >• 支持隨時打掉重建投影</text
+        >
+      </g>
+
+      <g transform="translate(14, 310)">
+        <rect
+          width="182"
+          height="85"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--purple"></rect>
+        <text
+          class="es-diagram__header es-diagram__header--purple"
+          x="10"
+          y="20">Schema Upcasting</text
+        >
+        <text class="es-diagram__desc" x="10" y="40"
+          >• 歷史事件格式演進適配</text
+        >
+        <text class="es-diagram__desc" x="10" y="58"
+          >• 動態轉型 v1 ➔ v2 結構</text
+        >
+        <text class="es-diagram__desc" x="10" y="74"
+          >• 免去歷史資料批次遷移</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 720 235 L 750 235"
+      class="es-diagram__line"
+      marker-end="url(#es-arrow)"></path>
+
+    <!-- Column 4: Query Side / Read Models -->
+    <g class="es-diagram__card" transform="translate(755, 35)">
+      <rect width="185" height="400" rx="12"></rect>
+      <text class="es-diagram__badge" x="14" y="26">4. QUERY / READ MODELS</text
+      >
+      <text class="es-diagram__title" x="14" y="54">多維特化讀模型</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="157"
+          height="65"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--teal"></rect>
+        <text class="es-diagram__header es-diagram__header--teal" x="10" y="20"
+          >Elasticsearch 索引</text
+        >
+        <text class="es-diagram__desc" x="10" y="38">• 全文檢索商品與留言</text>
+        <text class="es-diagram__desc" x="10" y="54">• 複雜過濾、分面聚合</text>
+      </g>
+
+      <g transform="translate(14, 150)">
+        <rect
+          width="157"
+          height="65"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--blue"></rect>
+        <text class="es-diagram__header es-diagram__header--blue" x="10" y="20"
+          >Redis KV / SortedSet</text
+        >
+        <text class="es-diagram__desc" x="10" y="38">• 使用者儀表板快取</text>
+        <text class="es-diagram__desc" x="10" y="54">• 毫秒級極速資料回傳</text>
+      </g>
+
+      <g transform="translate(14, 225)">
+        <rect
+          width="157"
+          height="65"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--gold"></rect>
+        <text class="es-diagram__header es-diagram__header--gold" x="10" y="20"
+          >PostgreSQL 報表庫</text
+        >
+        <text class="es-diagram__desc" x="10" y="38">• 財務反正規化報表</text>
+        <text class="es-diagram__desc" x="10" y="54">• OLAP 統計與商業分析</text
+        >
+      </g>
+
+      <g transform="translate(14, 300)">
+        <rect
+          width="157"
+          height="95"
+          rx="6"
+          class="es-diagram__subcard es-diagram__subcard--purple"></rect>
+        <text
+          class="es-diagram__header es-diagram__header--purple"
+          x="10"
+          y="20">Client Queries</text
+        >
+        <text class="es-diagram__desc" x="10" y="38">• REST / GraphQL API</text>
+        <text class="es-diagram__desc" x="10" y="56">• 零 JOIN 扁平化查詢</text>
+        <text class="es-diagram__desc" x="10" y="74">• 極致高併發讀取效能</text>
+        <text class="es-diagram__desc" x="10" y="90">• 讀寫兩端完全隔離</text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="es-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="es-mobile-title es-mobile-desc"
+  >
+    <title id="es-mobile-title">Event Sourcing 與 CQRS 架構流程</title>
+    <desc id="es-mobile-desc">
+      Command 意圖 ➔ Aggregate 產出 Event ➔ EventStore 不可篡改追加 ➔ Projection
+      Engine 異步廣播 ➔ 特化 Read Models。
+    </desc>
+
+    <g class="es-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="es-diagram__badge" x="12" y="22"
+        >1. 寫入側 (Command &amp; Aggregate)</text
+      >
+      <text class="es-diagram__desc" x="12" y="45"
+        >• 接收業務意圖指令（如 CreateOrder）</text
+      >
+      <text class="es-diagram__desc" x="12" y="65"
+        >• 聚合根依據不變量進行業務決策校驗</text
+      >
+      <text class="es-diagram__desc" x="12" y="85"
+        >• 產出不可篡改的領域事件（Domain Event）</text
+      >
+      <text class="es-diagram__desc" x="12" y="105"
+        >• 樂觀鎖版本號（Version Check）防併發衝突</text
+      >
+    </g>
+
+    <g class="es-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="es-diagram__badge" x="12" y="22"
+        >2. 事件存儲 (Append-Only Event Store)</text
+      >
+      <text class="es-diagram__desc" x="12" y="45"
+        >• 永遠只有追加寫入（無 UPDATE/DELETE）</text
+      >
+      <text class="es-diagram__desc" x="12" y="65"
+        >• 事件流：OrderCreated ➔ ItemAdded ➔ Paid</text
+      >
+      <text class="es-diagram__desc" x="12" y="85"
+        >• 保證完整的天然歷史審計軌跡（Audit Log）</text
+      >
+      <text class="es-diagram__desc" x="12" y="105"
+        >• 定期產生 Snapshot 快照加速狀態加載</text
+      >
+      <text class="es-diagram__desc" x="12" y="125"
+        >• 支援時間旅行回放與歷史 Debug</text
+      >
+    </g>
+
+    <g class="es-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="es-diagram__badge" x="12" y="22"
+        >3. 投影引擎 (Projection Engine)</text
+      >
+      <text class="es-diagram__desc" x="12" y="45"
+        >• 透過 Kafka / CDC 異步消費領域事件</text
+      >
+      <text class="es-diagram__desc" x="12" y="65"
+        >• 冪等更新各領域特化的資料庫與視圖</text
+      >
+      <text class="es-diagram__desc" x="12" y="85"
+        >• Upcasting 機制動態適配事件版本升級</text
+      >
+      <text class="es-diagram__desc" x="12" y="105"
+        >• 隨時可新增全新投影並從第 0 筆重放資料</text
+      >
+      <text class="es-diagram__desc" x="12" y="125"
+        >• 容忍最終一致性（Eventual Consistency）</text
+      >
+    </g>
+
+    <g class="es-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="es-diagram__badge" x="12" y="22"
+        >4. 查詢側 (Polyglot Read Models)</text
+      >
+      <text class="es-diagram__desc" x="12" y="45"
+        >• Elasticsearch：全文檢索與多維條件過濾</text
+      >
+      <text class="es-diagram__desc" x="12" y="65"
+        >• Redis：高併發毫秒級個人儀表板資料</text
+      >
+      <text class="es-diagram__desc" x="12" y="85"
+        >• PostgreSQL：財務彙總與 OLAP 報表</text
+      >
+      <text class="es-diagram__desc" x="12" y="105"
+        >• 前端享受扁平化零 JOIN 極速查詢體驗</text
+      >
+      <text class="es-diagram__desc" x="12" y="125"
+        >• 讀寫負載物理隔離，互不干擾</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="es-caption" class="es-diagram__caption">
+    圖 1：Event Sourcing 與 CQRS 架構閉環 —
+    指令寫入、不可篡改事件庫、投影引擎與多維讀模型
+  </figcaption>
+</figure>
+
+<style>
+  .es-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .es-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .es-diagram__desktop {
+    display: block;
+  }
+
+  .es-diagram__mobile {
+    display: none;
+  }
+
+  .es-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .es-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .es-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .es-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .es-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .es-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .es-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .es-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .es-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .es-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .es-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .es-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .es-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .es-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .es-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .es-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .es-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .es-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .es-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .es-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .es-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .es-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .es-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .es-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .es-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .es-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .es-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .es-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .es-diagram__line {
+    stroke: #475569;
+  }
+
+  .es-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .es-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .es-diagram__desktop {
+      display: none;
+    }
+    .es-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

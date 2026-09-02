@@ -1,0 +1,676 @@
+---
+// S3 Multipart Upload Architecture Diagram
+---
+
+<figure class="mpu-diagram" aria-labelledby="mpu-caption">
+  <svg
+    class="mpu-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="mpu-title mpu-desc"
+  >
+    <title id="mpu-title">
+      S3 大檔案分段上傳 (Multipart Upload) 與斷點續傳架構
+    </title>
+    <desc id="mpu-desc">
+      展示大檔案動態切片、Initiate 初始化取得 UploadId、平行上傳分片與 ETag
+      校驗、網路抖動斷點續傳以及 S3 Complete 分散式中繼資料合併全流程。
+    </desc>
+
+    <defs>
+      <marker
+        id="mpu-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="mpu-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Client Slicing & Initiate -->
+    <g class="mpu-diagram__card" transform="translate(20, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mpu-diagram__badge" x="14" y="26">1. 切片與初始化</text>
+      <text class="mpu-diagram__title" x="14" y="54">Initiate Upload</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="80"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--teal"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--teal"
+          x="10"
+          y="20">巨型檔案 (50 GB)</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >• 單次 PUT 失敗率極高</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58"
+          >• 記憶體壓力與網路抖動</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="74"
+          >• 切割為 500 個 100MB 分片</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="182"
+          height="115"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--blue"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--blue"
+          x="10"
+          y="20">CreateMultipartUpload</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >• POST /bucket/large.bin</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58">• S3 分配 UploadId</text>
+        <text class="mpu-diagram__desc" x="10" y="76">• `VXBsb2FkSW...`</text>
+        <text class="mpu-diagram__desc" x="10" y="94"
+          >• 本機持久化 Upload 狀態</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="110"
+          >• IndexedDB / SQLite 保存</text
+        >
+      </g>
+
+      <g transform="translate(14, 300)">
+        <rect
+          width="182"
+          height="95"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--gold"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--gold"
+          x="10"
+          y="20">分片規格限制 (S3)</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40">• 最小分片: 5 MB</text>
+        <text class="mpu-diagram__desc" x="10" y="58">• 最大分片: 5 GB</text>
+        <text class="mpu-diagram__desc" x="10" y="76"
+          >• 最多允許 10,000 個分片</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="92"
+          >• 單檔案最大支援 5 TB</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 230 235 L 260 235"
+      class="mpu-diagram__line"
+      marker-end="url(#mpu-arrow)"></path>
+
+    <!-- Column 2: Parallel Upload Pipeline -->
+    <g class="mpu-diagram__card" transform="translate(265, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mpu-diagram__badge" x="14" y="26">2. 平行傳輸管線</text>
+      <text class="mpu-diagram__title" x="14" y="54">Parallel UploadPart</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="55"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--teal"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--teal"
+          x="10"
+          y="18">Worker 1 ➔ Part #1</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="36"
+          >100MB ➔ ETag: "a1b2c3d4..."</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="50"
+          >✅ 傳輸成功 (HTTP 200)</text
+        >
+      </g>
+
+      <g transform="translate(14, 140)">
+        <rect
+          width="182"
+          height="55"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--teal"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--teal"
+          x="10"
+          y="18">Worker 2 ➔ Part #2</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="36"
+          >100MB ➔ ETag: "e5f6g7h8..."</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="50"
+          >✅ 傳輸成功 (HTTP 200)</text
+        >
+      </g>
+
+      <g transform="translate(14, 205)">
+        <rect
+          width="182"
+          height="65"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--red"></rect>
+        <text class="mpu-diagram__header mpu-diagram__header--red" x="10" y="18"
+          >Worker 3 ➔ Part #3</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="36"
+          >⚡ 網路抖動 / 連線中斷</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="52"
+          >🔄 自動指數退避重試該 Part</text
+        >
+      </g>
+
+      <g transform="translate(14, 280)">
+        <rect
+          width="182"
+          height="55"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--teal"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--teal"
+          x="10"
+          y="18">Worker 4 ➔ Part #4</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="36"
+          >100MB ➔ ETag: "i9j0k1l2..."</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="50"
+          >✅ 傳輸成功 (HTTP 200)</text
+        >
+      </g>
+
+      <g transform="translate(14, 345)">
+        <rect
+          width="182"
+          height="50"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--blue"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--blue"
+          x="10"
+          y="18">頻寬極大化利用</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="34"
+          >多線程並行，榨乾網路鏈路</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 475 235 L 505 235"
+      class="mpu-diagram__line"
+      marker-end="url(#mpu-arrow)"></path>
+
+    <!-- Column 3: Resumable State & Verification -->
+    <g class="mpu-diagram__card" transform="translate(510, 35)">
+      <rect width="210" height="400" rx="12"></rect>
+      <text class="mpu-diagram__badge" x="14" y="26">3. 斷點續傳與校驗</text>
+      <text class="mpu-diagram__title" x="14" y="54"
+        >ListParts &amp; Verification</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="182"
+          height="125"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--purple"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--purple"
+          x="10"
+          y="20">ListParts 斷點探測</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >• 瀏覽器重新整理/斷網重連</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58"
+          >• 呼叫 ListParts(UploadId)</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="76"
+          >• 取得 S3 已收訖分片清單</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="94">• 跳過 Part 1, 2, 4</text>
+        <text class="mpu-diagram__desc" x="10" y="112"
+          >• 僅需補傳 Part 3 (極速續傳)</text
+        >
+      </g>
+
+      <g transform="translate(14, 210)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--blue"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--blue"
+          x="10"
+          y="20">分片 MD5 / CRC32 校驗</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >• 客戶端計算 Content-MD5</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58">• S3 比對位元一致性</text>
+        <text class="mpu-diagram__desc" x="10" y="76">• 發現不一致立即拒絕</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="92"
+          >• 杜絕傳輸位元翻轉錯誤</text
+        >
+      </g>
+
+      <g transform="translate(14, 320)">
+        <rect
+          width="182"
+          height="75"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--gold"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--gold"
+          x="10"
+          y="20">生命週期過期清理</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >• AbortIncompleteMultipart</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58"
+          >• 超過 7 天未完成自動刪除</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="72"
+          >• 防範孤兒分片偷吃費用</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 720 235 L 750 235"
+      class="mpu-diagram__line"
+      marker-end="url(#mpu-arrow)"></path>
+
+    <!-- Column 4: S3 Distributed Assembly -->
+    <g class="mpu-diagram__card" transform="translate(755, 35)">
+      <rect width="185" height="400" rx="12"></rect>
+      <text class="mpu-diagram__badge" x="14" y="26">4. 完成合併與發布</text>
+      <text class="mpu-diagram__title" x="14" y="54">CompleteMultipart</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="157"
+          height="125"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--teal"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--teal"
+          x="10"
+          y="20">Complete Request</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40"
+          >傳送有序 Parts 結構：</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="58"
+          >[1: "a1...", 2: "e5...",</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="76">
+          3: "c3...", 4: "i9..."]</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="96">• 驗證所有分片已到位</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="114"
+          >• 觸發物件中繼資料組裝</text
+        >
+      </g>
+
+      <g transform="translate(14, 210)">
+        <rect
+          width="157"
+          height="105"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--purple"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--purple"
+          x="10"
+          y="20">零拷貝中繼資料合併</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="40">• 不做物理檔案拷貝</text>
+        <text class="mpu-diagram__desc" x="10" y="58"
+          >• S3 指針樹指向各分塊</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="76">• 毫秒級快速完成裝配</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="94"
+          >• 產生複合 ETag (xxx-4)</text
+        >
+      </g>
+
+      <g transform="translate(14, 325)">
+        <rect
+          width="157"
+          height="70"
+          rx="6"
+          class="mpu-diagram__subcard mpu-diagram__subcard--blue"></rect>
+        <text
+          class="mpu-diagram__header mpu-diagram__header--blue"
+          x="10"
+          y="20">最終可讀取物件</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="38"
+          >• 完整 50GB Object 上線</text
+        >
+        <text class="mpu-diagram__desc" x="10" y="54"
+          >• 觸發 S3 Event (Lambda)</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="mpu-diagram__mobile"
+    viewBox="0 0 320 590"
+    role="img"
+    aria-labelledby="mpu-mobile-title mpu-mobile-desc"
+  >
+    <title id="mpu-mobile-title">S3 分段上傳流程簡圖</title>
+    <desc id="mpu-mobile-desc">
+      切片與 Initiate 初始化 ➔ 平行傳輸 Part #1~#N ➔ 斷點續傳 ListParts 校驗 ➔
+      Complete 零拷貝中繼資料合併。
+    </desc>
+
+    <g class="mpu-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="mpu-diagram__badge" x="12" y="22"
+        >1. 切片與 Initiate 初始化</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="45"
+        >• 巨型檔案按 5MB~5GB 切割為多個分片</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="65"
+        >• 呼叫 CreateMultipartUpload 獲取 UploadId</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="85"
+        >• 本地 IndexedDB/SQLite 記錄傳輸狀態機</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="105"
+        >• 為多線程並行傳輸做好數據分發</text
+      >
+    </g>
+
+    <g class="mpu-diagram__card" transform="translate(10, 145)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mpu-diagram__badge" x="12" y="22">2. 平行傳輸與失敗重試</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="45"
+        >• 多個 Worker 同時發起 UploadPart 請求</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="65"
+        >• 每個分片上傳成功後 S3 回傳專屬 ETag</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="85"
+        >• 某個分片遭遇網路中斷只重試該分片</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="105"
+        >• 徹底避免大檔案從 0% 全部重傳的代價</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="125"
+        >• 充分榨乾客戶端上行頻寬</text
+      >
+    </g>
+
+    <g class="mpu-diagram__card" transform="translate(10, 295)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mpu-diagram__badge" x="12" y="22"
+        >3. 斷點續傳與 ListParts</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="45"
+        >• 用戶重整頁面或斷線後再次連線</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="65"
+        >• 查詢 ListParts 獲取 S3 端已存分片清單</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="85"
+        >• 比對本地檔案塊，僅補傳缺失的 Part</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="105"
+        >• Content-MD5 / SHA256 校驗防止位元翻轉</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="125"
+        >• S3 生命週期策略自動清理過期殘留分片</text
+      >
+    </g>
+
+    <g class="mpu-diagram__card" transform="translate(10, 445)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mpu-diagram__badge" x="12" y="22">4. 零拷貝中繼資料合併</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="45"
+        >• 提交 CompleteMultipartUpload 包含完整清單</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="65"
+        >• S3 底層僅更新 Object Metadata 指針樹</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="85"
+        >• 毫秒級完成邏輯拼接，無需物理拷貝</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="105"
+        >• 生成複合 ETag: hash(md5_1+md5_2...)-N</text
+      >
+      <text class="mpu-diagram__desc" x="12" y="125"
+        >• 完整物件立即可供全球讀取</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="mpu-caption" class="mpu-diagram__caption">
+    圖 1：S3 大檔案分段上傳全鏈路架構 —
+    分塊並行傳輸、斷點續傳狀態機與分散式零拷貝合併
+  </figcaption>
+</figure>
+
+<style>
+  .mpu-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mpu-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .mpu-diagram__desktop {
+    display: block;
+  }
+
+  .mpu-diagram__mobile {
+    display: none;
+  }
+
+  .mpu-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  .mpu-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .mpu-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .mpu-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .mpu-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .mpu-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .mpu-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .mpu-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .mpu-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .mpu-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .mpu-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .mpu-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .mpu-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .mpu-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .mpu-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(.dark) .mpu-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .mpu-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+
+  :global(.dark) .mpu-diagram__subcard--red {
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: rgba(239, 68, 68, 0.35);
+  }
+
+  .mpu-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mpu-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .mpu-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .mpu-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .mpu-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .mpu-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .mpu-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .mpu-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .mpu-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .mpu-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(.dark) .mpu-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .mpu-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .mpu-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .mpu-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .mpu-diagram__line {
+    stroke: #475569;
+  }
+
+  .mpu-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .mpu-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .mpu-diagram__desktop {
+      display: none;
+    }
+    .mpu-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

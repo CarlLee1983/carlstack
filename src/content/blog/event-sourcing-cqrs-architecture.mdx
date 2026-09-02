@@ -1,0 +1,205 @@
+---
+title: "Event Sourcing（事件溯源）與 CQRS 架構：不可篡改 Event Store、異步投影與讀寫分離實戰"
+description: "深入解析 Event Sourcing 與 CQRS 架構體系：傳統 CRUD 狀態突變的局限、Append-only 事件儲存庫、Command 與 Query 職責解耦、異步投影（Projections）、快照加速回放與最終一致性補償。"
+publishDate: 2026-09-02T11:45:02+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/event-sourcing-cqrs-architecture.png
+coverAlt: "不可變事件沿時間軸追加，分支生成非同步讀模型與快照"
+tags:
+  - "系統設計"
+  - "Event Sourcing"
+  - "CQRS"
+  - "領域驅動設計"
+  - "分散式架構"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+import EventSourcingCqrsDiagram from "../../components/EventSourcingCqrsDiagram.astro";
+
+在絕大多數傳統企業應用中，我們習慣採用經典的 **CRUD（Create, Read, Update, Delete）** 模式。每當業務發生變更，系統便直接執行 SQL `UPDATE` 或 `DELETE` 語句，覆蓋資料庫中的既有記錄。
+
+這種「就地突變（In-place Mutation）」的架構模式在業務複雜度上升時，會暴露出嚴重的痛點：
+
+1. **歷史上下文丟失**：當用戶把購物車的商品數量從 5 改為 2，資料庫只知道當前值是 2，完全丟失了「用戶曾經想買 5 件、後來刪除了 3 件」的關鍵商業決策行為。
+2. **審計與回溯極端困難**：財務對帳、交易爭議或安全審計時，只能依賴額外的 Log 表，而業務日誌與資料庫狀態往往難以保持嚴格原子性。
+3. **讀寫模型強耦合**：同一個關聯式資料庫結構既要承擔高併發的事務寫入，又要支援前端多維度、多條件的複雜 JOIN 聚合查詢，導致索引與鎖爭用崩潰。
+
+**事件溯源（Event Sourcing）** 與 **CQRS（Command Query Responsibility Segregation，命令查詢職責分離）** 的組合，正是為了解決上述困境而生的核心架構典範。
+
+---
+
+## Event Sourcing 與 CQRS 閉環全景圖
+
+下圖展示了從 Command 意圖發起、Aggregate 領域決策、Append-only Event Store 持久化，到異步 Projection 投影與多維特化讀模型的完整運作機制：
+
+<EventSourcingCqrsDiagram />
+
+---
+
+## 1. 核心概念剖析：狀態是事件的累積
+
+在 Event Sourcing 的世界觀中，**「事件（Event）」是一等公民，當前狀態（Current State）只是歷史事件流從第 0 筆開始重放計算後的左折疊（Left Fold / Reduce）結果**。
+
+```text
+Current State = LeftFold(Initial State, [Event_1, Event_2, ..., Event_N])
+```
+
+### 1.1 Command vs. Event
+
+在領域模型中，必須嚴格區分「命令」與「事件」：
+
+- **Command（命令）**：代表用戶或外部系統的**操作意圖**（例如 `CreateOrderCommand`、`ApplyCouponCommand`）。Command 可能會因為業務規則校驗失敗而被**拒絕（Reject）**。
+- **Domain Event（領域事件）**：代表系統中**已經發生的客觀事實**，使用過去式命名（例如 `OrderCreatedEvent`、`CouponAppliedEvent`）。Event 是**不可篡改、不可撤銷**的歷史事實。
+
+### 1.2 Append-Only Event Store
+
+Event Store 是事件溯源架構的唯一「真實來源（Single Source of Truth）」。它的核心特徵包括：
+
+- **僅允許追加寫入（Append-only）**：禁止任何 `UPDATE` 或 `DELETE` 操作。
+- **單調遞增版本號**：每個聚合根（Aggregate ID）擁有專屬的事件流（Event Stream），流內的事件具備連續遞增的 `SequenceNumber`。
+- **樂觀並發控制（OCC）**：在追加事件時，必須校驗 `(AggregateId, ExpectedVersion)`，若版本不符合則拋出併發衝突異常。
+
+```typescript
+// Event Store 事件結構範例
+interface DomainEvent<T = unknown> {
+  eventId: string; // UUIDv7 唯一識別
+  aggregateId: string; // 聚合根 ID (例如 order-88921)
+  aggregateType: string; // 聚合類型 (Order)
+  eventType: string; // OrderPaidEvent
+  version: number; // 單調遞增版本號 (1, 2, 3...)
+  timestamp: string; // ISO 8601 時間戳
+  payload: T; // 事件業務主體
+  metadata: {
+    userId: string;
+    correlationId: string; // 全鏈路追蹤 ID
+    causationId: string; // 引發此事件的 Command ID
+  };
+}
+```
+
+---
+
+## 2. CQRS 讀寫分離架構
+
+Event Sourcing 解決了狀態與歷史事實的記錄問題，但如果所有的查詢都要重放整個事件流，系統的讀取效能將徹底崩潰。這時必須引入 **CQRS（命令查詢職責分離）**。
+
+### 2.1 寫入側（Write Model / Command Side）
+
+- **職責**：專注於業務規則校驗與保證領域不變量（Invariants）。
+- **流程**：
+  1. 接收 `Command`。
+  2. 從 Event Store 讀取該聚合根的歷史事件（或最新快照）。
+  3. 重放事件還原記憶體中的 Aggregate 實體。
+  4. 執行業務方法（例如 `order.pay(paymentInfo)`）。
+  5. 若業務校驗通過，產生新的 `DomainEvent`。
+  6. 原子追加寫入 Event Store。
+
+### 2.2 讀取側（Read Model / Query Side）
+
+- **職責**：專注於極致的高併發查詢、多維過濾與前端視圖展現。
+- **特徵**：
+  - **多特化資料庫（Polyglot Persistence）**：讀模型不需要是關聯式資料庫。全文檢索可投遞至 Elasticsearch，即時計數可投遞至 Redis，報表可投遞至 ClickHouse 或 PostgreSQL 扁平表。
+  - **反正規化（Denormalization）**：讀模型完全針對前端 UI 介面量身打造，查詢時**零 JOIN**，大幅降低資料庫 CPU 負載。
+
+---
+
+## 3. 異步投影引擎（Projection Engine）
+
+讀模型是如何從寫入端的事件流中生成的？這依賴於**投影處理器（Projector）**。
+
+```text
+[ Event Store ]
+       │
+       ▼ (CDC / Kafka / Event Bus)
+[ Projector Worker ] ─── (訂閱 OrderPaidEvent)
+       │
+       ├───► [ Elasticsearch ] : 更新訂單搜尋狀態為 "PAID"
+       ├───► [ Redis Cache ]    : 刷新用戶訂單清單快取
+       └───► [ PG Read DB ]     : INSERT INTO user_order_views ...
+```
+
+### 3.1 投影的核心要求：冪等性（Idempotency）
+
+因為分散式訊息隊列通常保證 **At-Least-Once** 交付，同一個事件可能會被投遞多次。投影處理器必須保證冪等：
+
+- 記錄已處理的最新 `LastHandledEventVersion`。
+- 若接收到小於或等於已處理版本的事件，直接跳過。
+
+### 3.2 支援「隨時打掉重建」（Re-projection）
+
+Event Sourcing 最強大的架構優勢之一在於：**未來的業務需求不需要預先設計表結構**。
+當產品經理在一年後提出全新的多維度統計視圖時，我們只需：
+
+1. 編寫一個全新的 Projector 邏輯。
+2. 將該 Projector 的 Offset 重置為第 0 筆。
+3. 重放過去一整年的所有歷史事件，即可完美構建出全新的讀資料庫！
+
+---
+
+## 4. 生產級實戰挑戰與因應策略
+
+### 4.1 事件重放耗時與快照機制（Snapshotting）
+
+如果某個聚合根（例如一個活躍了 5 年的銀行帳戶）累積了 10 萬筆事件，每次執行 Command 都要重放 10 萬筆事件，延遲將達到數秒以上。
+
+**解決方案：快照（Snapshot）**
+
+- 每隔固定事件數量（例如每 100 筆）或定期（每日凌晨）將聚合根的當前記憶體狀態序列化保存為快照。
+- 加載聚合時，先讀取最新快照（版本 `V_snap = 500`），接著僅需拉取 `V > 500` 的後續增量事件進行回放，將加載時間從秒級壓縮至 2 毫秒內。
+
+### 4.2 事件結構版本演進（Schema Evolution / Upcasting）
+
+隨著業務迭代，舊事件的格式可能與新系統不相容（例如 v1 事件包含 `name: string`，v2 拆分為 `firstName: string, lastName: string`）。
+
+**解決方案：Upcasting（升級器）**
+
+- **永不修改 Event Store 中的歷史事件**（保持不可篡改性）。
+- 在讀取歷史事件時，透過記憶體中的 `Upcaster` 中介管線，將 v1 事件動態轉型為 v2 結構後再交給領域聚合或投影器。
+
+```typescript
+// Upcaster 記憶體動態轉型範例
+function upcastOrderCreated(v1Event: OrderCreatedV1): OrderCreatedV2 {
+  return {
+    ...v1Event,
+    version: 2,
+    customer: {
+      firstName: v1Event.customerName.split(" ")[0] || "",
+      lastName: v1Event.customerName.split(" ")[1] || "",
+    },
+  };
+}
+```
+
+### 4.3 最終一致性（Eventual Consistency）與「寫後讀」延遲
+
+由於投影是異步進行的，用戶發起 Command 成功後立即刷新頁面，讀模型可能尚未收到最新的 Event，導致用戶看到舊資料。
+
+**解決方案**：
+
+1. **樂觀 UI 渲染**：前端在 Command 成功返回後，直接將本地狀態更新至視圖。
+2. **帶版本號輪詢 / WebSocket 推播**：Command 回傳新生成的 `EventVersion`，前端向讀 API 發起查詢時附帶 `min_version=v5`，若讀模型尚未追平則短暫等待或由 WebSocket 通知更新完成。
+
+---
+
+## 5. 何時該用？何時是過度設計？
+
+```text
++------------------------------------+------------------------------------+
+| 適合採用 Event Sourcing + CQRS     | 建議維持傳統 CRUD                  |
++------------------------------------+------------------------------------+
+| • 銀行、證券、支付等金融帳務系統   | • 單純的管理後台 (Admin Portal)    |
+| • 供應鏈庫存調撥與物流軌跡追蹤     | • 簡單的部落格、內容管理系統 (CMS) |
+| • 需要嚴格合法性審計與監管的系統   | • 業務邏輯單純的 CRUD 工具應用     |
+| • 讀寫比極端懸殊 (如 100:1 以上)   | • 團隊缺乏 DDD 與非同步架構經驗    |
+| • 複雜的領域協作與狀態機流轉       | • 開發週期極短的早期 MVP 驗證專案  |
++------------------------------------+------------------------------------+
+```
+
+---
+
+## 總結
+
+Event Sourcing 與 CQRS 打破了「資料庫中只有當前狀態」的思維枷鎖。它將每一次商業決策與狀態變更具象化為不可篡改的歷史事件流，賦予了系統強大的**歷史審計**、**時間旅行回溯**與**讀寫模型極致解耦**的能力。
+
+然而，這套架構也伴隨著快照維護、事件版本升級與最終一致性等複雜度。在架構選型時，必須審慎評估業務場景是否真正需要事件溯源的強大威力，避免落入為技術而技術的過度工程陷阱。

@@ -1,0 +1,202 @@
+---
+title: "分散式消息交付語義深析：At-Most-Once、At-Least-Once 與 Exactly-Once 的底層架構實踐"
+description: "深入拆解分散式系統三大消息交付語義：網路不可靠下的兩軍問題、Producer 端 PID/Sequence ID 冪等發送、Consumer 端狀態機與分散式去重、Kafka 跨分區兩階段事務日誌與端到端 Exactly-Once 落地。"
+publishDate: 2026-09-02T11:45:03+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/distributed-message-delivery-semantics.png
+coverAlt: "三條消息傳遞路徑分別呈現單次投遞、重試迴圈與封裝完成的可靠流程"
+tags:
+  - "系統設計"
+  - "消息隊列"
+  - "Kafka"
+  - "分散式一致性"
+  - "高可用"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+import MessageDeliverySemanticsDiagram from "../../components/MessageDeliverySemanticsDiagram.astro";
+
+在分散式系統與事件驅動架構中，消息隊列（Message Queue，如 Kafka、RabbitMQ、RocketMQ、Pulsar）扮演著微服務之間非同步通訊與流量削峰的中樞神經。
+
+然而，當訊息在生產者（Producer）、Broker 儲存節點與消費者（Consumer）之間穿梭時，物理網路的不可靠性（封包遺失、連線逾時、網路分區）、節點重啟與 GC 停頓，會讓訊息傳遞變得異常複雜。
+
+工程師在設計系統時，經常會面臨三個經典的**消息交付語義（Message Delivery Semantics）**：
+
+1. **At-Most-Once（至多一次）**：訊息可能丟失，但絕不會重複處理。
+2. **At-Least-Once（至少一次）**：訊息保證不丟失，但可能會重複處理。
+3. **Exactly-Once（精確一次）**：訊息既不丟失，也不重複，端到端有且僅有一次等價執行。
+
+在分散式領域的數學理論中，「物理層面的精確一次傳遞」受限於**兩軍問題（Two Generals' Problem）**與 **FLP 不可能性**，是無法在不可靠網路上達成的；但在**應用語義層面**，透過巧妙的狀態協調與冪等機制，我們可以達成嚴格的 **Exactly-Once Processing（精確一次處理）**。
+
+本文將深度拆解三大交付語義的底層架構與落地機制。
+
+---
+
+## 消息交付語義架構全景圖
+
+以下全景圖對比了三種語義在生產者發送、Broker 儲存、消費者確認以及 Kafka 事務協調器（Transaction Coordinator）中的關鍵差異：
+
+<MessageDeliverySemanticsDiagram />
+
+---
+
+## 1. 三大交付語義深度剖析
+
+```text
++----------------------+--------------------+--------------------+--------------------+
+| 維度                 | At-Most-Once       | At-Least-Once      | Exactly-Once (EOS) |
++----------------------+--------------------+--------------------+--------------------+
+| 核心理念             | 發送即忘 (Fire)    | 失敗必重試 (Retry) | 冪等 + 事務協調    |
+| 是否會丟失訊息       | 是 (可能丟失)      | 否 (保證不丟失)    | 否 (零丟失)        |
+| 是否會重複訊息       | 否 (絕不重複)      | 是 (可能重複)      | 否 (去重後等價一次)|
+| 生產端 ACK 機制      | acks=0             | acks=all (或 1)    | acks=all + PID+Seq |
+| 消費端 Offset 提交   | 處理業務前自動提交 | 處理業務後手動提交 | 事務內原子提交     |
+| 系統吞吐量           | 極高 (最高)        | 高 (標準)          | 中等 (具協調開銷)  |
+| 典型場景             | 遙測、日誌打點     | 訂單通知、通用業務 | 金融轉帳、庫存扣減 |
++----------------------+--------------------+--------------------+--------------------+
+```
+
+### 1.1 At-Most-Once（至多一次）
+
+- **生產端行為**：Producer 設置 `acks=0`，發出訊息後立即認為成功，不等待 Broker 的寫入確認，失敗也不重試。
+- **消費端行為**：Consumer 採用「自動提交（Auto-commit）」或在剛拉取到訊息後、尚未執行業務處理前就先提交 Offset。若消費伺服器在執行業務邏輯時崩潰，重啟後會從下一個 Offset 開始拉取，該筆訊息永久丟失。
+- **優缺點**：延遲最低、開銷最小，適用於丟失少數幾筆不會影響全局的場景（如即時感測器數值、日誌收集）。
+
+### 1.2 At-Least-Once（至少一次）
+
+- **生產端行為**：Producer 設置 `acks=all`（等待所有 ISR 副本寫入），若在指定時間內未收到 Broker 的 ACK，或者收到網路逾時錯誤，Producer 會發起自動重試（Exponential Backoff）。
+- **重複根因**：若 Broker 其實已經成功寫入磁碟，但發送給 Producer 的 ACK 封包在網路上丟失，Producer 逾時重試會導致 Broker 寫入兩筆完全相同的訊息！
+- **消費端行為**：Consumer 在業務邏輯完全執行成功後，才手動提交（Manual Commit）Offset。若業務執行中途崩潰，重啟後會再次拉取同筆訊息重新執行。
+- **架構要求**：**消費端必須具備冪等處理能力**，否則會引發重複扣款、重複發貨等嚴重業務災難。
+
+---
+
+## 2. 生產端冪等性架構：PID 與 Sequence ID
+
+為了解決 At-Least-Once 模式下 Producer 重試導致 Broker 端訊息重複的問題，Apache Kafka 在 0.11 版本引入了 **Idempotent Producer（冪等生產者）**。
+
+```text
+[ Producer ] ─── (PID: 101, Seq: 0, Msg: "OrderCreated") ───► [ Broker Partition ]
+     │                                                                │
+     │ (ACK 網路遺失，Producer 觸發重試)                              │
+     │                                                                │
+     ▼                                                                ▼
+[ Producer ] ─── (PID: 101, Seq: 0, Msg: "OrderCreated") ───► [ Broker Partition ]
+                                                                      │
+                                                       (檢測到 Seq=0 已存在)
+                                                                      │
+                                                       (自動丟棄重複寫入，回傳 ACK)
+```
+
+### 2.1 底層工作流程
+
+1. **分配 Producer ID (PID)**：Producer 啟動時向 Broker 請求分配一個全域唯一的 64 位元 PID。
+2. **序列號 Sequence Number**：針對每個 `<PID, Topic, Partition>`，Producer 維護一個從 0 開始單調遞增的序列號。
+3. **Broker 端滑動視窗驗證**：Broker 記憶體中記錄每個 Partition 最近收到的最新 Sequence Number：
+   - 若收到 `Seq_new == Seq_last + 1`：正常寫入，更新 `Seq_last`。
+   - 若收到 `Seq_new <= Seq_last`：判定為重傳的重複訊息，**直接丟棄寫入，但向 Producer 正常返回 ACK**（保證 Producer 解除重試阻塞）。
+   - 若收到 `Seq_new > Seq_last + 1`：判定中間有訊息丟失（亂序），拋出 `OutOfOrderSequenceException`。
+
+---
+
+## 3. 消費端業務級冪等設計
+
+在實際架構中，單靠 Broker 端冪等還無法保證端到端的精確一次，因為 Consumer 依然可能在業務執行完成後、提交 Offset 前發生當機。因此，**消費端的冪等設計是架構設計中最關鍵的一環**。
+
+### 3.1 方案 1：基於分散式唯一流水號 + 去重表
+
+```typescript
+// 消費者冪等去重實踐範例
+async function handleMessageWithIdempotency(msg: OrderMessage) {
+  const { eventId, orderId, amount } = msg;
+
+  // 使用資料庫事務包裹去重表與業務更新
+  await db.transaction(async (trx) => {
+    // 1. 嘗試插入去重記錄（eventId 設為 PRIMARY KEY / UNIQUE INDEX）
+    const inserted = await trx("processed_events")
+      .insert({ event_id: eventId, processed_at: new Date() })
+      .onConflict("event_id")
+      .ignore();
+
+    if (inserted.length === 0) {
+      console.log(`[Idempotent] 訊息 ${eventId} 已經處理過，直接略過`);
+      return;
+    }
+
+    // 2. 執行核心業務邏輯
+    await trx("account_balances")
+      .where({ order_id: orderId })
+      .increment("balance", amount);
+  });
+}
+```
+
+### 3.2 方案 2：有限狀態機（FSM）單向流轉
+
+利用狀態機的合法轉換限制天然防禦重複消費：
+
+```sql
+-- 只有狀態為 'PENDING' 時才允許更新為 'PAID'
+UPDATE orders
+SET status = 'PAID', updated_at = NOW()
+WHERE order_id = 'ORD_9981' AND status = 'PENDING';
+```
+
+若重複消費相同的 `PaySuccessEvent`，`UPDATE` 影響的行數將為 0，業務天然維持一致，絕不會發生重複處理。
+
+---
+
+## 4. 端到端 Exactly-Once 語義：Kafka 事務日誌架構
+
+當系統面臨 **Consume-Transform-Produce（消費-處理-生產）** 的串流處理模式（例如 Kafka Streams 或 Flink：從 Topic A 消費，計算後寫入 Topic B，並提交 Topic A 的 Offset）時，如何保證「寫入 Topic B」與「提交 Topic A 的 Offset」同時成功或同時失敗？
+
+### 4.1 Transaction Coordinator 與 2PC 提交
+
+Kafka 透過 **Transaction Coordinator（事務協調器）** 與內部日誌主題 `__transaction_state` 實現分散式兩階段提交：
+
+```text
+[ Transactional Producer ]
+       │
+       ├── 1. AddPartitionsToTxnRequest ──► [ Transaction Coordinator ]
+       │                                            │ (記錄於 __transaction_state)
+       ├── 2. Produce Message ────────────► [ Topic B (Data Partition) ]
+       │                                            │ (帶有未提交標記)
+       ├── 3. SendOffsetsToTxnRequest ────► [ __consumer_offsets ]
+       │
+       └── 4. EndTxnRequest (COMMIT) ─────► [ Transaction Coordinator ]
+                                                    │
+                                                    ▼ (廣播 2PC Commit Marker)
+                                      [ Topic B & __consumer_offsets ]
+```
+
+### 4.2 讀取已提交（Read Committed）隔離層級
+
+下游消費者在讀取 Topic B 時，設置 `isolation.level = read_committed`：
+
+- Broker 內部維護 **LSO（Last Stable Offset）**，所有處於進行中（Uncommitted）事務的訊息對下游 Consumer 不可見。
+- 只有當 Coordinator 寫入 `CommitMarker` 控制標記後，下游 Consumer 才能讀取到該批訊息，從而在全鏈路達成嚴格的端到端 Exactly-Once Processing。
+
+---
+
+## 5. 架構權衡與選型指南
+
+```text
++-----------------------+-----------------------------------------------------------+
+| 業務情境              | 推薦交付語義與架構方案                                    |
++-----------------------+-----------------------------------------------------------+
+| 監控指標 / 系統日誌   | At-Most-Once (acks=0, 零重試, 極致吞吐)                   |
+| 用戶註冊通知 / 行銷信 | At-Least-Once (手動 Commit + 郵件系統自帶 Deduplication)  |
+| 跨服務訂單 / 物流履約 | At-Least-Once + 消費端狀態機防重                          |
+| 銀行帳務 / 錢包扣款   | Exactly-Once (事務協調器 + 樂觀鎖版本號 + 去重表)         |
+| 實時串流計算 (Flink)  | Exactly-Once (Chandy-Lamport 分散式快照 Checkpointing)    |
++-----------------------+-----------------------------------------------------------+
+```
+
+---
+
+## 總結
+
+在分散式系統的真實世界中，網路分區與硬體故障是無可避免的客觀規律。理解「物理傳輸無法精確一次」與「應用邏輯達成精確一次處理」的架構分界，是掌握分散式消息系統的核心關鍵。
+
+透過**生產端 PID 序列號去重**、**消費端狀態機與去重表**，以及**跨分區兩階段事務協調**，我們能夠在吞吐量、延遲與一致性之間做出最精準的架構權衡。
