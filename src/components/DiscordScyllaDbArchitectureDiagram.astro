@@ -1,0 +1,639 @@
+---
+// Discord Trillion Messages ScyllaDB & Rust Data Service Architecture Diagram
+---
+
+<figure class="discord-diag" aria-labelledby="discord-diag-caption">
+  <svg
+    class="discord-diag__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="discord-diag-title discord-diag-desc"
+  >
+    <title id="discord-diag-title">
+      Discord 數兆級訊息儲存與 Request Coalescing 架構
+    </title>
+    <desc id="discord-diag-desc">
+      展示 Discord 如何透過一致性雜湊將頻道請求導流至 Rust 資料服務層，利用
+      Request Coalescing 單飛請求合併機制消解熱點，並以 C++ ScyllaDB 零 GC
+      引擎取代 Cassandra 實現超低延遲儲存。
+    </desc>
+
+    <defs>
+      <marker
+        id="dsc-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="discord-diag__arrow-head"></path>
+      </marker>
+      <marker
+        id="dsc-arrow-accent"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="discord-diag__arrow-head--accent"
+        ></path>
+      </marker>
+      <marker
+        id="dsc-arrow-emerald"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="discord-diag__arrow-head--emerald"></path>
+      </marker>
+    </defs>
+
+    <!-- Block 1: Clients & API Tier -->
+    <g
+      class="discord-diag__card discord-diag__card--client"
+      transform="translate(30, 40)"
+    >
+      <rect width="210" height="370" rx="12"></rect>
+      <text class="discord-diag__badge" x="18" y="28">TRAFFIC SPIKES</text>
+      <text class="discord-diag__title" x="18" y="58">客戶端與 API 叢集</text>
+      <text class="discord-diag__desc" x="18" y="86">• 數千萬在線活躍用戶</text>
+      <text class="discord-diag__desc" x="18" y="108"
+        >• @everyone 熱點廣播湧入</text
+      >
+      <text class="discord-diag__desc" x="18" y="130"
+        >• Python API 服務實例</text
+      >
+
+      <!-- Sub Card: Consistent Hashing -->
+      <g transform="translate(14, 160)">
+        <rect width="182" height="180" rx="8" class="discord-diag__subcard"
+        ></rect>
+        <text class="discord-diag__subhead" x="12" y="24">一致性雜湊路由</text>
+        <text class="discord-diag__code" x="12" y="48">Hash(channel_id)</text>
+        <text class="discord-diag__subdesc" x="12" y="76"
+          >相同頻道的併發查詢</text
+        >
+        <text class="discord-diag__subdesc" x="12" y="96">必然導向同一台</text>
+        <text class="discord-diag__subdesc" x="12" y="116"
+          >Rust Data Service 節點</text
+        >
+        <text class="discord-diag__tag" x="12" y="150">消除跨節點重複讀取</text>
+      </g>
+    </g>
+
+    <!-- Multi-arrow from API to Rust Data Service -->
+    <path
+      class="discord-diag__arrow discord-diag__arrow--purple"
+      d="M 240 180 H 320"
+      marker-end="url(#dsc-arrow-accent)"></path>
+    <path
+      class="discord-diag__arrow discord-diag__arrow--purple"
+      d="M 240 240 H 320"
+      marker-end="url(#dsc-arrow-accent)"></path>
+    <path
+      class="discord-diag__arrow discord-diag__arrow--purple"
+      d="M 240 300 H 320"
+      marker-end="url(#dsc-arrow-accent)"></path>
+    <text class="discord-diag__wire-label" x="280" y="165" text-anchor="middle"
+      >100k 併發請求</text
+    >
+
+    <!-- Block 2: Rust Intermediate Data Service (The Shield) -->
+    <g
+      class="discord-diag__card discord-diag__card--rust"
+      transform="translate(325, 40)"
+    >
+      <rect width="290" height="370" rx="12"></rect>
+      <text
+        class="discord-diag__badge discord-diag__badge--accent"
+        x="18"
+        y="28">INTERMEDIATE SHIELD</text
+      >
+      <text
+        class="discord-diag__title discord-diag__title--accent"
+        x="18"
+        y="58">Rust Data Service</text
+      >
+      <text class="discord-diag__desc" x="18" y="86"
+        >• Tokio 非同步執行期 (Async I/O)</text
+      >
+      <text class="discord-diag__desc" x="18" y="108"
+        >• 記憶體安全、零 GC 停頓</text
+      >
+
+      <!-- Coalescing Engine Detail -->
+      <g transform="translate(14, 130)">
+        <rect
+          width="262"
+          height="215"
+          rx="8"
+          class="discord-diag__subcard--focus"></rect>
+        <text
+          class="discord-diag__subhead discord-diag__subhead--focus"
+          x="14"
+          y="26">Request Coalescing (單飛合併)</text
+        >
+        <text class="discord-diag__subdesc" x="14" y="52"
+          >1. 檢查目標資料是否已有 In-flight 任務</text
+        >
+        <text class="discord-diag__subdesc" x="14" y="74"
+          >2. 新請求直接「訂閱」該工作頻道</text
+        >
+        <text class="discord-diag__subdesc" x="14" y="96"
+          >3. 資料庫回傳時，單一結果廣播給所有人</text
+        >
+
+        <path class="discord-diag__divider" d="M 14 115 H 248"></path>
+
+        <text class="discord-diag__subhead" x="14" y="140"
+          >LRU 快取與 Bucket 窗口</text
+        >
+        <text class="discord-diag__subdesc" x="14" y="164"
+          >• 本地微快取 (Micro-cache)</text
+        >
+        <text class="discord-diag__subdesc" x="14" y="186"
+          >• 時間窗口分桶 (Bucket ID: 10 天/1k則)</text
+        >
+      </g>
+    </g>
+
+    <!-- Single coalesced arrow to ScyllaDB -->
+    <path
+      class="discord-diag__arrow discord-diag__arrow--emerald"
+      d="M 615 225 H 695"
+      marker-end="url(#dsc-arrow-emerald)"></path>
+    <text
+      class="discord-diag__wire-label discord-diag__wire-label--emerald"
+      x="655"
+      y="210"
+      text-anchor="middle">僅發送 1 次查詢</text
+    >
+
+    <!-- Block 3: Storage Engine: Cassandra -> ScyllaDB -->
+    <g
+      class="discord-diag__card discord-diag__card--scylla"
+      transform="translate(700, 40)"
+    >
+      <rect width="230" height="370" rx="12"></rect>
+      <text
+        class="discord-diag__badge discord-diag__badge--emerald"
+        x="18"
+        y="28">DISTRIBUTED STORAGE</text
+      >
+      <text
+        class="discord-diag__title discord-diag__title--emerald"
+        x="18"
+        y="58">ScyllaDB 儲存叢集</text
+      >
+      <text class="discord-diag__desc" x="18" y="86"
+        >• C++ Seastar 異步框架</text
+      >
+      <text class="discord-diag__desc" x="18" y="108"
+        >• Thread-per-Core 無共享架構</text
+      >
+      <text class="discord-diag__desc" x="18" y="130"
+        >• 徹底告別 JVM GC Pauses</text
+      >
+
+      <!-- Data Layout Subcard -->
+      <g transform="translate(14, 155)">
+        <rect width="202" height="190" rx="8" class="discord-diag__subcard"
+        ></rect>
+        <text class="discord-diag__subhead" x="12" y="24">資料模型拓撲</text>
+        <text class="discord-diag__code" x="12" y="48"
+          >PK: (channel_id, bucket)</text
+        >
+        <text class="discord-diag__code" x="12" y="68"
+          >CK: message_id (Snowflake)</text
+        >
+        <text class="discord-diag__subdesc" x="12" y="96"
+          >• 時間倒序排序 (DESC)</text
+        >
+        <text class="discord-diag__subdesc" x="12" y="116"
+          >• NVMe Super-Disk + RAID</text
+        >
+        <text
+          class="discord-diag__tag discord-diag__tag--emerald"
+          x="12"
+          y="155">P99 延遲: 數十秒 ➔ &lt;15ms</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version for 320px screens -->
+  <div class="discord-diag__mobile">
+    <div class="discord-mobile-card">
+      <span class="discord-mobile-badge">01. 流量湧入</span>
+      <h4>API 層與一致性雜湊</h4>
+      <p>
+        百萬用戶與 @everyone 訊息併發，依照 channel_id 雜湊精準路由至同一 Rust
+        節點。
+      </p>
+    </div>
+
+    <div class="discord-mobile-arrow">↓ 集中路由</div>
+
+    <div class="discord-mobile-card discord-mobile-card--rust">
+      <span class="discord-mobile-badge discord-mobile-badge--accent"
+        >02. 關鍵護城河</span
+      >
+      <h4>Rust Data Service (單飛合併)</h4>
+      <p>
+        執行 Request Coalescing，將同頻道的數萬筆併發請求收斂為 1
+        筆資料庫查詢，消除熱點衝擊。
+      </p>
+    </div>
+
+    <div class="discord-mobile-arrow">↓ 單一收斂查詢</div>
+
+    <div class="discord-mobile-card discord-mobile-card--scylla">
+      <span class="discord-mobile-badge discord-mobile-badge--emerald"
+        >03. 零 GC 儲存引擎</span
+      >
+      <h4>ScyllaDB (C++ Seastar 叢集)</h4>
+      <p>
+        以 (channel_id, bucket) 分區鍵切片，徹底解決 Cassandra JVM GC
+        停頓與墓碑掃描延遲，P99 降至 15ms 內。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="discord-diag-caption">
+    圖 1：Discord 數兆級訊息架構：透過 Rust 服務層的 Request Coalescing
+    請求收斂與 ScyllaDB 零 GC 引擎保護底層儲存。
+  </figcaption>
+</figure>
+
+<style>
+  .discord-diag {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .discord-diag {
+    background: #0b0f19;
+    border-color: #1e293b;
+  }
+
+  .discord-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .discord-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .discord-diag__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .discord-diag__card rect {
+    fill: #111827;
+    stroke: #1f2937;
+  }
+
+  .discord-diag__card--rust rect {
+    fill: #f5f3ff;
+    stroke: #8b5cf6;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .discord-diag__card--rust rect {
+    fill: #1e1b4b;
+    stroke: #a78bfa;
+  }
+
+  .discord-diag__card--scylla rect {
+    stroke: #10b981;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .discord-diag__card--scylla rect {
+    stroke: #34d399;
+  }
+
+  .discord-diag__subcard {
+    fill: #f8fafc !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .discord-diag__subcard {
+    fill: #1f2937 !important;
+    stroke: #374151 !important;
+  }
+
+  .discord-diag__subcard--focus {
+    fill: #ffffff !important;
+    stroke: #7c3aed !important;
+    stroke-width: 1.5 !important;
+  }
+
+  :global(.dark) .discord-diag__subcard--focus {
+    fill: #2e1065 !important;
+    stroke: #c4b5fd !important;
+  }
+
+  .discord-diag__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .discord-diag__badge {
+    fill: #9ca3af;
+  }
+
+  .discord-diag__badge--accent {
+    fill: #7c3aed;
+  }
+
+  :global(.dark) .discord-diag__badge--accent {
+    fill: #c4b5fd;
+  }
+
+  .discord-diag__badge--emerald {
+    fill: #059669;
+  }
+
+  :global(.dark) .discord-diag__badge--emerald {
+    fill: #6ee7b7;
+  }
+
+  .discord-diag__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .discord-diag__title {
+    fill: #f9fafb;
+  }
+
+  .discord-diag__title--accent {
+    fill: #6d28d9;
+  }
+
+  :global(.dark) .discord-diag__title--accent {
+    fill: #ddd6fe;
+  }
+
+  .discord-diag__title--emerald {
+    fill: #047857;
+  }
+
+  :global(.dark) .discord-diag__title--emerald {
+    fill: #a7f3d0;
+  }
+
+  .discord-diag__desc {
+    font-size: 12px;
+    fill: #475569;
+  }
+
+  :global(.dark) .discord-diag__desc {
+    fill: #9ca3af;
+  }
+
+  .discord-diag__subhead {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1e293b;
+  }
+
+  :global(.dark) .discord-diag__subhead {
+    fill: #e5e7eb;
+  }
+
+  .discord-diag__subhead--focus {
+    fill: #6d28d9;
+  }
+
+  :global(.dark) .discord-diag__subhead--focus {
+    fill: #e9d5ff;
+  }
+
+  .discord-diag__subdesc {
+    font-size: 11px;
+    fill: #4b5563;
+  }
+
+  :global(.dark) .discord-diag__subdesc {
+    fill: #d1d5db;
+  }
+
+  .discord-diag__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    fill: #4338ca;
+  }
+
+  :global(.dark) .discord-diag__code {
+    fill: #a5b4fc;
+  }
+
+  .discord-diag__tag {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #6b7280;
+  }
+
+  :global(.dark) .discord-diag__tag {
+    fill: #9ca3af;
+  }
+
+  .discord-diag__tag--emerald {
+    fill: #059669;
+  }
+
+  :global(.dark) .discord-diag__tag--emerald {
+    fill: #34d399;
+  }
+
+  .discord-diag__divider {
+    stroke: #e5e7eb;
+    stroke-width: 1;
+  }
+
+  :global(.dark) .discord-diag__divider {
+    stroke: #4c1d95;
+  }
+
+  .discord-diag__arrow {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .discord-diag__arrow--purple {
+    stroke: #8b5cf6;
+  }
+
+  :global(.dark) .discord-diag__arrow--purple {
+    stroke: #a78bfa;
+  }
+
+  .discord-diag__arrow--emerald {
+    stroke: #10b981;
+    stroke-width: 3;
+  }
+
+  :global(.dark) .discord-diag__arrow--emerald {
+    stroke: #34d399;
+  }
+
+  .discord-diag__arrow-head--accent {
+    fill: #8b5cf6;
+  }
+
+  :global(.dark) .discord-diag__arrow-head--accent {
+    fill: #a78bfa;
+  }
+
+  .discord-diag__arrow-head--emerald {
+    fill: #10b981;
+  }
+
+  :global(.dark) .discord-diag__arrow-head--emerald {
+    fill: #34d399;
+  }
+
+  .discord-diag__wire-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #6d28d9;
+  }
+
+  :global(.dark) .discord-diag__wire-label {
+    fill: #c4b5fd;
+  }
+
+  .discord-diag__wire-label--emerald {
+    fill: #047857;
+  }
+
+  :global(.dark) .discord-diag__wire-label--emerald {
+    fill: #34d399;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .discord-diag__desktop {
+      display: none;
+    }
+
+    .discord-diag__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .discord-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .discord-mobile-card {
+      background: #111827;
+      border-color: #1f2937;
+    }
+
+    .discord-mobile-card--rust {
+      background: #f5f3ff;
+      border-color: #8b5cf6;
+      border-left: 4px solid #7c3aed;
+    }
+
+    :global(.dark) .discord-mobile-card--rust {
+      background: #1e1b4b;
+      border-color: #a78bfa;
+    }
+
+    .discord-mobile-card--scylla {
+      border-left: 4px solid #10b981;
+    }
+
+    .discord-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .discord-mobile-badge--accent {
+      color: #7c3aed;
+    }
+
+    :global(.dark) .discord-mobile-badge--accent {
+      color: #c4b5fd;
+    }
+
+    .discord-mobile-badge--emerald {
+      color: #059669;
+    }
+
+    :global(.dark) .discord-mobile-badge--emerald {
+      color: #34d399;
+    }
+
+    .discord-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .discord-mobile-card h4 {
+      color: #f9fafb;
+    }
+
+    .discord-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .discord-mobile-card p {
+      color: #9ca3af;
+    }
+
+    .discord-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

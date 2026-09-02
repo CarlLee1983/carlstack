@@ -1,0 +1,177 @@
+---
+title: "從 Cassandra 到 ScyllaDB：Discord 如何以 Rust 與 Request Coalescing 儲存數兆級訊息"
+description: "深入剖析 Discord 儲存數兆級訊息的架構演進：從 Cassandra 遭遇的 JVM GC 停頓、墓碑掃描風暴，到利用 Rust 資料服務層的 Request Coalescing 消除百萬併發熱點，並遷移至 C++ ScyllaDB 將 P99 延遲降至 15ms 內的工程實踐。"
+publishDate: 2026-09-02T09:51:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 分散式系統
+  - ScyllaDB
+  - Rust
+  - 資料庫
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/discord-scylladb-scaling.png
+coverAlt: "數萬筆高併發紫青色訊息流在中間 Rust 服務層被聚合為單一集中管線，並寫入右側超低延遲的綠色 ScyllaDB 儲存陣列。"
+---
+
+import DiscordScyllaDbArchitectureDiagram from "../../components/DiscordScyllaDbArchitectureDiagram.astro";
+
+即時通訊系統（IM）是分散式系統設計中極端嚴苛的考驗場：它不僅要求**極高的每秒寫入吞吐量（Write-heavy）**，同時要求**嚴格的時間倒序查詢、毫秒級的讀取延遲**，且隨時可能面臨百萬人同時在線的「超大群廣播（@everyone）」流量海嘯。
+
+Discord 自 2015 年創立以來，其核心訊息系統歷經了三次關鍵架構躍遷：
+
+1. **2015（單體 MongoDB）**：單一資料庫快速耗盡記憶體與磁碟 I/O；
+2. **2017（Apache Cassandra 叢集）**：承載了從數十億到數千億訊息的成長，但隨後在 177 個節點的龐大規模下遭遇嚴重的 JVM 垃圾回收（GC）停頓、墓碑（Tombstone）查詢崩潰與高昂維運代價；
+3. **2023（ScyllaDB + Rust 中介服務層）**：透過用 C++ 編寫的無 GC 儲存引擎 ScyllaDB，搭配以 Rust 實作的 **Request Coalescing（單飛請求合併）** 護城河，成功將跨越數兆級訊息的讀取 P99 延遲從數十秒穩定壓制在 **15 毫秒以內**。
+
+本文結合 [Discord 官方技術部落格](https://discord.com/blog/how-discord-stores-trillions-of-messages) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的一手工程資料，深入解析這場現代分散式儲存架構的重構實踐。
+
+<DiscordScyllaDbArchitectureDiagram />
+
+---
+
+## 一、Cassandra 為何在「數兆級訊息」規模下撞牆？
+
+在 2017 年，Discord 選擇 Apache Cassandra 作為訊息儲存庫，看重的是其基於 LSM-Tree 的無主（Masterless）分散式架構與超強寫入效能。資料模型設計為：
+
+```sql
+CREATE TABLE messages (
+    channel_id bigint,
+    bucket int,
+    message_id bigint, -- Snowflake ID (內嵌毫秒時間戳)
+    author_id bigint,
+    content text,
+    PRIMARY KEY ((channel_id, bucket), message_id)
+) WITH CLUSTERING ORDER BY (message_id DESC);
+```
+
+- **分區鍵（Partition Key）**：`((channel_id, bucket))`。將同一個頻道內的訊息依時間或數量切分為靜態分桶（Bucket，約 10 天或 1,000 則訊息），防止單一熱門頻道的 Partition 無限膨脹。
+- **叢集鍵（Clustering Key）**：`message_id DESC`。Discord 的 Snowflake ID 保證全域時間遞增，使客戶端獲取「最新歷史訊息」時只需掃描連續磁碟區塊。
+
+### 規模膨脹後的四大致命瓶頸
+
+當節點數擴展到 177 台、訊息總量達到數兆筆時，Cassandra 叢集開始出現結構性退化：
+
+1. **JVM Stop-the-World GC 停頓**：
+   Cassandra 跑在 Java 虛擬機器上。在高吞吐讀寫與複雜快取交織下，JVM 垃圾回收頻繁觸發數秒甚至數十秒的 Stop-the-World 停頓。一旦某個節點陷入 GC，協調節點（Coordinator）便會誤判超時並將請求轉發至其他副本節點，連鎖引發**雪崩式連線堆積**。
+2. **墓碑（Tombstones）與範圍掃描風暴**：
+   在 LSM-Tree 中，刪除操作只會寫入一個「墓碑（Tombstone）」。當使用者批量刪除訊息，或系統掃描已被清空的頻道歷史時，Cassandra 必須讀取大量無效的墓碑標記，引發嚴重的記憶體暴漲與 GC 暫停。
+3. **壓實風暴（Compaction Storms）**：
+   隨著寫入負載居高不下，背景 SSTable 壓實耗盡了伺服器的 CPU 與 NVMe 磁碟頻寬，導致正常查詢的佇列等待時間直線上升。
+4. **極高維運摩擦（High Toil）**：
+   定期節點維護、修復（`nodetool repair`）與節點擴容需要數天甚至數週，資料庫團隊淪為全職「救火隊」。
+
+---
+
+## 二、儲存引擎選型：為什麼選擇 ScyllaDB？
+
+Discord 團隊在評估重構方案時，首要目標是**「在不顛覆既有資料模型與查詢語意的前提下，徹底根除 JVM GC 與資源爭用」**。
+
+ScyllaDB 成為了最佳解答：
+
+- **相容 CQL 協定**：ScyllaDB 完整相容 Cassandra 的資料模型與 CQL 驅動，應用層幾乎不需要改寫查詢邏輯。
+- **C++ 與 Seastar 非同步框架**：ScyllaDB 使用 C++ 重寫了 Cassandra 的核心邏輯，採用 **Thread-per-Core（單核心獨立處理程序）** 的 Shared-Nothing 無共享架構。
+- **直接記憶體管理（Zero GC）**：沒有 JVM GC 負擔，記憶體分配精準控制在每個 CPU 核心的本地排程器中，確保極為陡峭且可預測的低延遲分佈（Low-tail Latency）。
+- **硬體效能極致壓榨**：在同樣負載下，Discord 僅使用 **72 台 ScyllaDB 節點**（後續優化至不到一半）便完全取代了原先 177 台 Cassandra 節點的運算力。
+
+---
+
+## 三、關鍵護城河：用 Rust 打造中間資料服務層
+
+然而，光是更換底層儲存引擎還不夠。在即時通訊場景中，存在著極端的**「突發熱點（Hot Partition）」**問題：
+
+> **場景**：在擁有數十萬成員的超大伺服器（如 Midjourney 或熱門遊戲官方頻道）中，管理者發布了一則 `@everyone` 公告。數十萬名在線用戶的手機與桌面客戶端在同一秒被推播喚醒，同時向後端發送 HTTP/WebSocket 請求：`GET /channels/{channel_id}/messages?limit=50`。
+
+如果任由這數十萬筆查詢直接打進 ScyllaDB，即便是 C++ 編寫的儲存引擎也會因瞬間的並行連線暴增與磁碟排隊而陷入延遲飆升。
+
+為了解決這個問題，Discord 在 Python API 與 ScyllaDB 之間插入了一層**以 Rust 實作的中間資料服務（Data Service）**。
+
+### 1. 一致性雜湊路由（Consistent Hashing）
+
+API 伺服器在轉發訊息查詢時，不會隨機選擇資料服務節點，而是依照 `Hash(channel_id)` 進行一致性雜湊路由。這保證了**同一時間內針對同一個頻道的所有查詢，必然會匯聚至同一台特定的 Rust 資料服務實例**。
+
+### 2. Request Coalescing（單飛請求合併 / Singleflight）
+
+當數萬筆針對相同頻道的查詢湧入同一台 Rust 服務時，資料服務層的 Tokio 非同步工作緒會觸發 **Request Coalescing**：
+
+```rust
+// 概念實作：單飛請求合併邏輯 (Singleflight Pattern)
+async fn get_messages(&self, channel_id: ChannelId, bucket: BucketId) -> Result<Vec<Message>, Error> {
+    let key = (channel_id, bucket);
+
+    // 1. 先查本地 LRU 快取
+    if let Some(cached) = self.lru_cache.get(&key) {
+        return Ok(cached);
+    }
+
+    // 2. 檢查是否已有相同查詢正在進行中 (In-flight Task)
+    let (task, is_leader) = self.in_flight.entry(key.clone()).or_insert_with(|| {
+        let (tx, rx) = tokio::sync::watch::channel(None);
+        (tx, true)
+    });
+
+    if is_leader {
+        // 第一個發起者負責去 ScyllaDB 撈取資料
+        let result = self.scylla_client.query_messages(channel_id, bucket).await?;
+        self.lru_cache.insert(key.clone(), result.clone());
+        task.send(Some(result.clone())); // 廣播給所有訂閱者
+        self.in_flight.remove(&key);
+        Ok(result)
+    } else {
+        // 後續到達的 99,999 個請求直接等待 Leader 廣播結果，不發送 DB 查詢
+        let mut rx = task.subscribe();
+        rx.wait_for(|res| res.is_some()).await;
+        Ok(rx.borrow().as_ref().unwrap().clone())
+    }
+}
+```
+
+- **第一筆請求**：在 `in_flight` 雜湊表中註冊任務，並成為 Leader 向 ScyllaDB 發出一次查詢。
+- **後續 99,999 筆請求**：發現已有相同 Key 的任務在執行，直接掛起並訂閱該任務的結果。
+- **查詢完成時**：Leader 獲取資料並同時廣播給所有等待中的協程，隨後更新本地短效快取。
+
+> [!TIP]
+> **削峰成果**：Request Coalescing 成功將極端熱點場景下的資料庫負載從 $O(N)$ 降至 $O(1)$，消除了 99% 以上的重複查詢與 I/O 爭用。
+
+---
+
+## 四、零停機平滑遷移：數兆筆資料搬遷實務
+
+遷移數兆筆資料且不能中斷全球數億用戶的即時通訊，Discord 採取了嚴密的漸進式遷移管道：
+
+1. **雙寫機制（Dual-Writing）**：
+   API 層在寫入新訊息時，同時寫入 Cassandra 與 ScyllaDB（ScyllaDB 失敗不阻斷主流程）。
+2. **高效能 Rust Migrator**：
+   團隊自研了專門的遷移工具，掃描 Cassandra 的 Token Range，將歷史數兆筆資料持續流式複製（Firehose）至 ScyllaDB。
+3. **資料校驗與影子讀（Shadow Reads & Validation）**：
+   Rust 服務層在讀取時，非同步向 ScyllaDB 發送影子查詢，比對回傳資料筆數、內容雜湊與延遲，驗證無誤後再逐步提升讀取流量百分比。
+4. **平滑切換（Final Cutover）**：
+   在指標完全吻合且 ScyllaDB 叢集 P99 穩定在 15ms 以內後，將主讀寫流量完全切換至 ScyllaDB，並優雅下線 Cassandra 節點。
+
+---
+
+## 五、架構演進的對比與總結
+
+| 評估維度            | 2017 Apache Cassandra 架構            | 2023 ScyllaDB + Rust Data Service              |
+| :------------------ | :------------------------------------ | :--------------------------------------------- |
+| **節點數量**        | 177 台大規模節點                      | 72 台（後續縮減至更少）                        |
+| **運行環境**        | Java JVM（受 Stop-the-world GC 影響） | C++ Seastar（零 GC、Thread-per-core）          |
+| **P99 讀取延遲**    | 偶發飆升至數秒至數十秒                | 穩定低於 **15ms**                              |
+| **熱點防護能力**    | 無，極端流量直接衝擊底層磁碟          | **Request Coalescing** 將重複查詢壓制至 $O(1)$ |
+| **維運成本 (Toil)** | 極高（修復慢、節點重平衡耗時長）      | 低（硬體利用率高、無 JVM 調優負擔）            |
+
+### 給高併發分散式架構師的 3 個核心法則
+
+1. **儲存引擎的語言 runtime 邊界至關重要**：在追求極致 P99/P999 低延遲的超大規模系統中，具備垃圾回收機制的 Runtime（如 JVM）最終必然會在大記憶體堆積下遭遇 GC 物理天花板；選擇無 GC 的底層系統（如 C++/Rust）能帶來確定的延遲上限。
+2. **在資料庫前方設置智慧護城河**：不要指望資料庫自行解決所有的熱點問題。透過一致性雜湊與 Request Coalescing（單飛合併），在應用與資料庫之間收斂請求，是性價比最高的高可用防護。
+3. **時間分桶是防禦 Partition 膨脹的良藥**：無論使用何種分散式資料庫，將無限增長的時序/訊息資料透過 `(entity_id, bucket)` 進行物理窗口切片，永遠是防止大 Key（Wide Partition）拖垮叢集的核心設計範式。
+
+---
+
+### 參考資料與一手文獻
+
+- Discord Engineering: [_How Discord Stores Trillions of Messages_](https://discord.com/blog/how-discord-stores-trillions-of-messages)
+- Discord Engineering: [_How Discord Stores Billions of Messages_](https://discord.com/blog/how-discord-stores-billions-of-messages)
+- ByteByteGo: [_System Design 101: How Discord Stores Trillions of Messages_](https://github.com/ByteByteGoHq/system-design-101)
