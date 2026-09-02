@@ -4,30 +4,35 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 ~ 5 批與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 15 批共 44 篇，全系列共 65 篇）已全面結構化整理入佇列待後續撰寫。
+> 狀態：已完成第 1 ~ 5 批與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 20 批共 64 篇，全系列共 85 篇）已全面結構化整理入佇列待後續撰寫。
 
 ---
 
 ## 📊 發布進度與狀態
 
-| 批次         | 主題範疇                                                                        | 規劃篇數 | 已發布篇數 | 狀態              |
-| :----------- | :------------------------------------------------------------------------------ | :------- | :--------- | :---------------- |
-| **第 1 批**  | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）           | 5 篇     | 5 篇       | ✅ **已全數發布** |
-| **第 2 批**  | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）                 | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 3 批**  | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）              | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）          | 3 篇     | 3 篇       | ✅ **已全數發布** |
-| **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）            | 1 篇     | 1 篇       | ✅ **已發布**     |
-| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta） | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）         | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / GraphQL）          | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 分頁）        | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll / Raft）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 11 批** | 分散式事務與跨庫協同模式（SAGA / 2PC-3PC-TCC / 分庫分表 / 索引底層）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 12 批** | 快取架構與記憶體儲存技術（快取五大模式 / LRU-W-TinyLFU / Redis 核心）           | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 13 批** | 現代消息隊列與事件驅動架構（Kafka vs RabbitMQ / 延時隊列 / Avro / 推播）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 14 批** | 微服務治理、服務網格與彈性架構（註冊中心 / Service Mesh / CI-CD / 艙壁）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 15 批** | 經典系統設計實戰面試（Stack Overflow / TinyURL / Dropbox / 網頁爬蟲）           | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| 批次         | 主題範疇                                                                            | 規劃篇數 | 已發布篇數 | 狀態              |
+| :----------- | :---------------------------------------------------------------------------------- | :------- | :--------- | :---------------- |
+| **第 1 批**  | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）               | 5 篇     | 5 篇       | ✅ **已全數發布** |
+| **第 2 批**  | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）                     | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 3 批**  | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全）             | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）                  | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）              | 3 篇     | 3 篇       | ✅ **已全數發布** |
+| **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）                | 1 篇     | 1 篇       | ✅ **已發布**     |
+| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta）     | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）             | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / GraphQL）              | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 分頁）            | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll / Raft）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 11 批** | 分散式事務與跨庫協同模式（SAGA / 2PC-3PC-TCC / 分庫分表 / 索引底層）                | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 12 批** | 快取架構與記憶體儲存技術（快取五大模式 / LRU-W-TinyLFU / Redis 核心）               | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 13 批** | 現代消息隊列與事件驅動架構（Kafka vs RabbitMQ / 延時隊列 / Avro / 推播）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 14 批** | 微服務治理、服務網格與彈性架構（註冊中心 / Service Mesh / CI-CD / 艙壁）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 15 批** | 經典系統設計實戰面試（Stack Overflow / TinyURL / Dropbox / 網頁爬蟲）               | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 16 批** | 支付系統與金融級帳務架構（Stripe 智慧路由 / 雙式記帳 / 即時風控 / 清算對帳）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 17 批** | 資訊安全與現代密碼學架構（TLS 1.3 0-RTT / 端到端加密 / 零信任 / OWASP Top 10）      | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 18 批** | 計算機底層與網路傳輸原理（URL 請求全流程 / TCP-UDP-QUIC / CPU 偽共享 / 虛擬記憶體） | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 19 批** | 大規模資料管道與現代資料湖（ETL-ELT / Iceberg Lakehouse / Flink 串流 / Polars）     | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 20 批** | 系統設計面試方法論與容量估算（PEDALS 4 步法 / 億級容量預估 / P99 延遲 / 技術債）    | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 
 ---
 
@@ -211,6 +216,51 @@
 | **經典系統設計：如何設計分散式網址縮短服務 (TinyURL)？**          | Base62 編碼、哈希衝突解決、KV 儲存選型、高併發讀快取與自增發號器                        | [System Design Interview by Alex Xu](https://bytebytego.com/)                                                      |
 | **經典系統設計：如何設計全球分散式檔案存取系統 (Dropbox / S3)？** | 區塊級差異同步（Chunking & Delta Sync）、中繼資料分離、同步衝突解決與離線佇列           | [Dropbox Tech Blog: Rewriting the Sync Engine](https://dropbox.tech/infrastructure/rewriting-the-heart-of-dropbox) |
 | **經典系統設計：如何設計分散式網頁爬蟲 (Web Crawler)？**          | URL 邊界佇列（URL Frontier）、布隆過濾器去重、禮貌策略（Politeness Policy）與分散式調度 | [Stanford Web Crawler Architecture Paper](http://infolab.stanford.edu/~olston/publications/crawling_survey.pdf)    |
+
+### 第 16 批：支付系統與金融級帳務架構
+
+| 專題題目                                                       | 涉及核心技術與模組                                                    | 建議一手來源                                                                                                     |
+| :------------------------------------------------------------- | :-------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| **Stripe 全球支付網關與跨國智慧路由架構**                      | 交易有限狀態機、多收單機構（Acquirers）智慧路由、卡組織協議與超時補償 | [Stripe Engineering: How Stripe handles millions of requests per second](https://stripe.com/blog/infrastructure) |
+| **雙式記帳（Double-Entry Bookkeeping）與分散式帳本架構**       | 會計借貸平衡不變量、不可篡改流水、分散式鎖與防超賣對帳                | [Modern Treasury: Ledgers Architecture](https://www.moderntreasury.com/learn/ledger-database)                    |
+| **即時風控與反詐欺檢測系統（Fraud Detection Architecture）**   | 特徵工程、即時規則引擎（Drools）、圖神經網絡（GNN）與毫秒級風控阻斷   | [Uber Engineering: Real-Time Fraud Prevention Engine](https://www.uber.com/blog/fraud-prevention/)               |
+| **銀行間清算與對帳系統（Reconciliation & Settlement Engine）** | 差錯帳處理、T+1/T+0 清算管線、三方對帳矩陣與自動沖正補償              | [Shopify Engineering: Financial Reconciliation System](https://shopify.engineering/)                             |
+
+### 第 17 批：資訊安全與現代密碼學架構
+
+| 專題題目                                                         | 涉及核心技術與模組                                                                  | 建議一手來源                                                                                                  |
+| :--------------------------------------------------------------- | :---------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ |
+| **TLS 1.3 握手協議與 0-RTT 早期數據安全**                        | Diffie-Hellman 密鑰交換、前向保密（PFS）、0-RTT 重放攻擊防禦與證書鏈驗證            | [Cloudflare Blog: The TLS 1.3 Protocol Explained](https://blog.cloudflare.com/rfc-8446-aka-tls-1-3/)          |
+| **端到端加密（E2EE）架構：Signal Protocol vs. Telegram MTProto** | 雙棘輪演算法（Double Ratchet）、X3DH 密鑰協商、前向保密與後向安全                   | [Signal: Double Ratchet Algorithm Spec](https://signal.org/docs/specifications/doubleratchet/)                |
+| **零信任架構（Zero Trust Architecture）與 BeyondCorp 實踐**      | 永不信任始終驗證、動態存取控制（RBAC/ABAC）、微隔離（Micro-segmentation）與設備信任 | [Google Research: BeyondCorp - A New Approach to Enterprise Security](https://research.google/pubs/pub43231/) |
+| **API 安全防禦實戰：OWASP API Security Top 10 與防刷防爆**       | BOLA（失效物件級授權）、Mass Assignment、JWT 簽名混淆防禦與 WAF 邊界防禦            | [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)                                      |
+
+### 第 18 批：計算機底層與網路傳輸原理
+
+| 專題題目                                                         | 涉及核心技術與模組                                                          | 建議一手來源                                                                                                         |
+| :--------------------------------------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| **從輸入 URL 到頁面呈現全景：DNS、TCP 三向交握與 TLS 全流程**    | 遞迴/迭代 DNS、SYN/ACK 連線建立、TLS 協商、HTTP 請求到 DOM 繪製             | [What happens when you type google.com into your browser and press enter](https://github.com/alex/what-happens-when) |
+| **TCP vs. UDP vs. QUIC 傳輸層協定對決與擁塞控制**                | 滑動視窗、BBR / CUBIC 擁塞控制、隊頭阻塞（HOL Blocking）與 Multiplexing     | [RFC 9000: QUIC A UDP-Based Multiplexed and Secure Transport](https://datatracker.ietf.org/doc/html/rfc9000)         |
+| **CPU 多核心快取架構（L1/L2/L3）與 False Sharing（偽共享）優化** | MESI 快取一致性協議、Cache Line（64-byte）對齊、記憶體屏障與 CAS 效能       | [Intel 64 and IA-32 Architectures Software Developer's Manual](https://www.intel.com/)                               |
+| **記憶體管理與虛擬位址轉換：TLB、Page Fault 與 HugePages**       | MMU 頁表分級映射、TLB 快取命中率、缺頁中斷開銷與 Linux HugePages 大頁記憶體 | [Linux Kernel Documentation: Virtual Memory Management](https://www.kernel.org/doc/gorman/)                          |
+
+### 第 19 批：大規模資料管道與現代資料湖
+
+| 專題題目                                                          | 涉及核心技術與模組                                                                 | 建議一手來源                                                                                                |
+| :---------------------------------------------------------------- | :--------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
+| **現代資料管道架構演進：ETL vs. ELT 與 Lambda vs. Kappa 架構**    | 批流一體、即時資料湖入庫、資料品質檢驗（Great Expectations）與 Schema 漂移         | [O'Reilly: Designing Data-Intensive Applications](https://dataintensive.net/)                               |
+| **資料湖倉一體（Lakehouse）核心技術：Iceberg vs. Delta vs. Hudi** | ACID 事務、Time Travel 時間旅行、快照隔離（Snapshot Isolation）與 Parquet 列式儲存 | [Apache Iceberg Documentation](https://iceberg.apache.org/) / [Delta Lake Architecture](https://delta.io/)  |
+| **即時串流運算引擎對決：Apache Flink vs. Spark Streaming**        | 真正事件驅動 vs. 微批次、Stateful 狀態計算、Watermark 與 Exactly-Once Checkpoint   | [Apache Flink Documentation](https://flink.apache.org/)                                                     |
+| **高效能資料處理演進：從 Pandas 到 Polars、Dask 與 Ray**          | Apache Arrow 記憶體格式、Rust 向量化執行、延遲計算（Lazy Eval）與分散式 Actor 模型 | [Polars User Guide](https://pola-rs.github.io/polars-book/) / [Ray Core Architecture](https://docs.ray.io/) |
+
+### 第 20 批：系統設計面試方法論與容量估算
+
+| 專題題目                                                           | 涉及核心技術與模組                                                                  | 建議一手來源                                                                                                       |
+| :----------------------------------------------------------------- | :---------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| **系統設計面試黃金 4 步架構法 (PEDALS / 4-Step Framework)**        | Scope 定義、High-Level 設計、Deep-Dive 瓶頸突破與 Wrap-Up 權衡總結                  | [System Design Interview – An Insider's Guide (Alex Xu)](https://bytebytego.com/)                                  |
+| **億級系統容量預估（Capacity Estimation）與 SLA/SLO/SLI 數學建模** | 存儲量（Storage）、頻寬（Bandwidth）、QPS 峰值計算與 99.99% 可用性架構設計          | [Google SRE Book: Service Level Objectives](https://sre.google/sre-book/service-level-objectives/)                 |
+| **高併發分散式系統指標評估：QPS、TPS、P99 延遲與成本精算**         | 長尾延遲（Tail Latency）成因、GC/網路抖動、小定律（Little's Law）與叢集成本模型     | [The Tail at Scale (Dean & Barroso - CACM)](https://research.google/pubs/pub40801/)                                |
+| **系統設計反模式與技術債治理（Technical Debt & Anti-Patterns）**   | 分散式單體（Distributed Monolith）、過早優化、神之服務（God Service）與平滑重構演進 | [Martin Fowler: Technical Debt & Microservices AntiPatterns](https://martinfowler.com/articles/microservices.html) |
 
 ---
 
