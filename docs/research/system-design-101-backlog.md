@@ -4,25 +4,30 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 ~ 5 批（20 篇）與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 10 批共 22 篇）已全面結構化整理入佇列待後續撰寫。
+> 狀態：已完成第 1 ~ 5 批與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 15 批共 44 篇，全系列共 65 篇）已全面結構化整理入佇列待後續撰寫。
 
 ---
 
 ## 📊 發布進度與狀態
 
-| 批次         | 主題範疇                                                                 | 規劃篇數 | 已發布篇數 | 狀態              |
-| :----------- | :----------------------------------------------------------------------- | :------- | :--------- | :---------------- |
-| **第 1 批**  | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）    | 5 篇     | 5 篇       | ✅ **已全數發布** |
-| **第 2 批**  | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）          | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 3 批**  | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全）  | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）       | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）   | 3 篇     | 3 篇       | ✅ **已全數發布** |
-| **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）     | 1 篇     | 1 篇       | ✅ **已發布**     |
-| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit） | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）  | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / 負載平衡）  | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 快取） | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll）        | 3 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| 批次         | 主題範疇                                                                        | 規劃篇數 | 已發布篇數 | 狀態              |
+| :----------- | :------------------------------------------------------------------------------ | :------- | :--------- | :---------------- |
+| **第 1 批**  | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）           | 5 篇     | 5 篇       | ✅ **已全數發布** |
+| **第 2 批**  | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）                 | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 3 批**  | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）              | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）          | 3 篇     | 3 篇       | ✅ **已全數發布** |
+| **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）            | 1 篇     | 1 篇       | ✅ **已發布**     |
+| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta） | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）         | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / GraphQL）          | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 分頁）        | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll / Raft）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 11 批** | 分散式事務與跨庫協同模式（SAGA / 2PC-3PC-TCC / 分庫分表 / 索引底層）            | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 12 批** | 快取架構與記憶體儲存技術（快取五大模式 / LRU-W-TinyLFU / Redis 核心）           | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 13 批** | 現代消息隊列與事件驅動架構（Kafka vs RabbitMQ / 延時隊列 / Avro / 推播）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 14 批** | 微服務治理、服務網格與彈性架構（註冊中心 / Service Mesh / CI-CD / 艙壁）        | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 15 批** | 經典系統設計實戰面試（Stack Overflow / TinyURL / Dropbox / 網頁爬蟲）           | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 
 ---
 
@@ -160,6 +165,52 @@
 | **Git 內部核心架構：Blob、Tree、Commit 與 Packfile**                    | 內容尋址物件資料庫、SHA-1/SHA-256 哈希、Delta 壓縮與 Garbage Collection         | [Pro Git Book: Git Internals](https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain) |
 | **瀏覽器渲染引擎底層原理：從 HTML/CSS 解析到 DOM、Layout 與 Composite** | 關鍵渲染路徑（CRP）、重排（Reflow）與重繪（Repaint）效能優化                    | [web.dev: How Browsers Work / Critical Rendering Path](https://web.dev/critical-rendering-path/)   |
 | **Linux I/O 多路復用架構演進：select vs. poll vs. epoll**               | 邊緣觸發（ET）與水平觸發（LT）、紅黑樹/就緒鏈表、Reactor 模式與高效能網路伺服器 | [Linux Kernel man-pages: epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)             |
+| **分散式系統共識演算法：CAP 定理、PACELC 與 Raft 協定精析**             | Leader Election、Log Replication、安全性保證與分區容忍性                        | [In Search of an Understandable Consensus Algorithm (Raft Paper)](https://raft.github.io/raft.pdf) |
+
+### 第 11 批：分散式事務與跨庫協同模式
+
+| 專題題目                                                             | 涉及核心技術與模組                                                           | 建議一手來源                                                                          |
+| :------------------------------------------------------------------- | :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| **Saga 模式實踐：Orchestration（編排）vs. Choreography（協同）**     | 補償事務（Compensating Transactions）、前向恢復 vs. 後向恢復、狀態機持久化   | [Microservices.io: Saga Pattern](https://microservices.io/patterns/data/saga.html)    |
+| **兩階段提交（2PC）與三階段提交（3PC）的極限與阻塞問題**             | Coordinator 單點故障、同步阻塞、網路分區腦裂與 TCC（Try-Confirm-Cancel）模式 | [Designing Data-Intensive Applications (Kleppmann)](https://dataintensive.net/)       |
+| **資料庫分庫分表（Sharding）與分散式主鍵路由**                       | 範圍分片、雜湊分片、一致性雜湊、跨分片 JOIN 與分散式聚合查詢解法             | [Apache ShardingSphere Documentation](https://shardingsphere.apache.org/)             |
+| **資料庫索引底層深度拆解：B+ Tree vs. LSM-Tree vs. Hash vs. Bitmap** | 磁碟 I/O 特性、隨機寫 vs. 順序寫、寫入放大與覆蓋索引（Covering Index）       | [PostgreSQL Indexing Internals](https://www.postgresql.org/docs/current/indexes.html) |
+
+### 第 12 批：快取架構與記憶體儲存技術
+
+| 專題題目                                                            | 涉及核心技術與模組                                                                  | 建議一手來源                                                                                                                      |
+| :------------------------------------------------------------------ | :---------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| **五大分散式快取讀寫模式：Cache-Aside 到 Refresh-Ahead**            | 併發更新一致性、延遲雙刪與 Binlog 異步更新                                          | [Microsoft Cloud Design Patterns: Cache-Aside Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside) |
+| **記憶體快取淘汰演算法深度對決：LRU vs. LFU vs. ARC vs. W-TinyLFU** | 突發流量污染（Scan Resistance）、雙向鏈表哈希表實作、Caffeine 快取核心機制          | [Caffeine: A High Performance Caching Library for Java](https://github.com/ben-manes/caffeine)                                    |
+| **Redis 核心架構與單執行緒反應器模式 (Reactor Event Loop)**         | 非阻塞 I/O、記憶體資料結構（Sds, Dict, Ziplist, SkipList）、Redis 6.0+ 多執行緒 I/O | [Redis Source Code & Architecture](https://redis.io/docs/management/optimization/latency/)                                        |
+| **分散式快取叢集架構：Redis Cluster vs. Twemproxy vs. Codis**       | 16384 虛擬槽（Slot）、Gossip 協議節點通訊、主從自動切換與故障轉移                   | [Redis Cluster Specification](https://redis.io/docs/reference/cluster-spec/)                                                      |
+
+### 第 13 批：現代消息隊列與事件驅動架構
+
+| 專題題目                                                           | 涉及核心技術與模組                                                                  | 建議一手來源                                                                                                      |
+| :----------------------------------------------------------------- | :---------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **主流消息隊列技術選型：Kafka vs. RabbitMQ vs. RocketMQ vs. SQS**  | AMQP vs. Log-centric、吞吐量、延遲（Sub-millisecond vs. High-throughput）、死信隊列 | [RabbitMQ Documentation](https://www.rabbitmq.com/docs) / [Apache Kafka Documentation](https://kafka.apache.org/) |
+| **分散式消息隊列四大核心隊列模式：FIFO、優先級、延時與死信隊列**   | 時間輪（TimingWheel）架構、指數重試隊列與訊息中毒（Poison Pill）防禦                | [Enterprise Integration Patterns: Dead Letter Channel](https://www.enterpriseintegrationpatterns.com/)            |
+| **Apache Avro 與 Schema Registry 實戰：平滑資料遷移與相容性**      | 二進位序列化壓縮、Backward / Forward / Full 相容性規則與資料湖演進                  | [Confluent Schema Registry Guide](https://docs.confluent.io/platform/current/schema-registry/index.html)          |
+| **現代即時推播通知系統架構：APNs、FCM、WebSocket 與 SMS 統一調度** | 頻率限制（Rate Limiting）、優先級佇列、防重複去重與多管道降級                       | [Apple Developer: APNs Overview](https://developer.apple.com/documentation/usernotifications/)                    |
+
+### 第 14 批：微服務治理、服務網格與彈性架構
+
+| 專題題目                                                              | 涉及核心技術與模組                                                          | 建議一手來源                                                                                                                |
+| :-------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| **服務發現與註冊中心架構：Eureka vs. Consul vs. Nacos vs. ZooKeeper** | AP vs. CP 模式、心跳探活機制、長輪詢推送與一致性協定                        | [HashiCorp Consul Architecture](https://developer.hashicorp.com/consul/docs/architecture)                                   |
+| **Service Mesh 服務網格底層架構：Envoy Sidecar 與 Istio 控制面**      | 流量攔截（iptables / eBPF）、動態服務發現（xDS 協議）、熔斷限流與無侵入觀測 | [Envoy Proxy Architecture](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/arch_overview)                   |
+| **現代 CI/CD 自動化管線與發布策略：Blue-Green、Canary 與 Rolling**    | 自動金絲雀分析（Kayenta）、流量權重切換、快速回滾與資料庫遷移相容           | [Netflix TechBlog: Automated Canary Analysis at Netflix with Kayenta](https://netflixtechblog.com/)                         |
+| **微服務架構隔離模式：Bulkhead（艙壁隔離）與租戶資源配額**            | 故障蔓延防禦、執行緒池飢餓與服務雪崩阻斷                                    | [Microsoft Cloud Design Patterns: Bulkhead Pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/bulkhead) |
+
+### 第 15 批：經典系統設計實戰面試
+
+| 專題題目                                                          | 涉及核心技術與模組                                                                      | 建議一手來源                                                                                                       |
+| :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| **經典系統設計：如何設計 Stack Overflow 高併發問答平台？**        | 讀多寫少極致快取、全文搜尋、Tag 倒排索引與單體服務極限榨取                              | [Nick Craver: Stack Overflow Architecture & Performance](https://nickcraver.com/blog/)                             |
+| **經典系統設計：如何設計分散式網址縮短服務 (TinyURL)？**          | Base62 編碼、哈希衝突解決、KV 儲存選型、高併發讀快取與自增發號器                        | [System Design Interview by Alex Xu](https://bytebytego.com/)                                                      |
+| **經典系統設計：如何設計全球分散式檔案存取系統 (Dropbox / S3)？** | 區塊級差異同步（Chunking & Delta Sync）、中繼資料分離、同步衝突解決與離線佇列           | [Dropbox Tech Blog: Rewriting the Sync Engine](https://dropbox.tech/infrastructure/rewriting-the-heart-of-dropbox) |
+| **經典系統設計：如何設計分散式網頁爬蟲 (Web Crawler)？**          | URL 邊界佇列（URL Frontier）、布隆過濾器去重、禮貌策略（Politeness Policy）與分散式調度 | [Stanford Web Crawler Architecture Paper](http://infolab.stanford.edu/~olston/publications/crawling_survey.pdf)    |
 
 ---
 
