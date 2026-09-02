@@ -31,17 +31,33 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 測試金字塔演進：為什麼需要合約測試（Contract Testing）？
 
-```text
-[ 傳統微服務測試痛點 ]                    [ 引入合約測試後的現代體系 ]
-       /\                                        /\
-      /  \  <── E2E 整合測試 (極慢、極易抖動)     /  \  <── 少量關鍵業務 E2E 驗收
-     /    \                                     /────\
-    /      \                                   / 合約 \ <── Consumer-Driven Contract (秒級獨立驗收)
-   /────────\                                 /  測試  \
-  / 單元測試 \                               /──────────\
- /____________\                             /  單元測試  \
-                                           /______________\
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="test-pyr-title test-pyr-desc">
+    <title id="test-pyr-title">傳統測試金字塔 vs 現代微服務合約測試體系對比圖</title>
+    <desc id="test-pyr-desc">展示傳統脆弱耗時的巨大 E2E 測試，如何演進為以消費者合約測試為主、關鍵少量 E2E 驗收為輔的現代金字塔。</desc>
+    
+    
+    <rect x="20" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="200" y="42" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">傳統微服務測試痛點</text>
+    <rect x="50" y="58" width="300" height="42" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
+    <text x="200" y="83" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">▲ 巨大 E2E 整合測試 (極慢、極易隨機報錯)</text>
+    <rect x="50" y="110" width="300" height="42" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="200" y="135" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">集成測試 (環境污染、定位困難)</text>
+    <rect x="50" y="162" width="300" height="42" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="200" y="187" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">單元測試</text>
+
+    <rect x="420" y="15" width="360" height="210" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="42" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">現代合約測試體系</text>
+    <rect x="450" y="58" width="300" height="34" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="600" y="80" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">▲ 少量關鍵業務 E2E 驗收 (輕量化)</text>
+    <rect x="450" y="98" width="300" height="48" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="600" y="122" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">消費者導向合約測試 (Pact 秒級獨立驗收)</text>
+    <text x="600" y="138" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">阻斷破壞性變更・獨立 CI 運行</text>
+    <rect x="450" y="154" width="300" height="50" rx="6" fill="#1f242c" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="600" y="183" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">底層完整單元測試 (高覆蓋率)</text>
+
+  </svg>
+</div>
 
 ### 核心定義
 
@@ -52,19 +68,43 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 2. Pact 消費者導向合約測試工作流
 
-```text
-[ 步驟 1: 消費者端單元測試 ]
-前端/消費者測試 ──> 呼叫 Pact Mock Provider ──> 生成合約文件 (order_user_pact.json)
-                                                         │
-                                                         ▼ (發布合約)
-                                                [ Pact Broker (中心化合約庫) ]
-                                                         │
-[ 步驟 2: 提供者端 CI 驗證 ]                             │
-後端提供者 CI ─── (拉取最新合約) <────────────────────────┘
-     │
-     ▼ (自動回放合約中的每個請求，驗證真實後端返回是否完全符合合約約定!)
-   驗證通過! 允許後端發布至生產環境!
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 280" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pact-flow-title pact-flow-desc">
+    <title id="pact-flow-title">Pact 消費者導向合約測試工作流程圖</title>
+    <desc id="pact-flow-desc">展示消費者單元測試生成合約發布至 Pact Broker，後端提供者 CI 自動拉取合約回放驗證並阻斷破壞性變更。</desc>
+    
+    <defs>
+      <marker id="pact-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="320" height="90" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="190" y="46" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">步驟 1: 消費者端單元測試</text>
+    <text x="190" y="68" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">調用 Pact Mock Server 模擬請求</text>
+    <text x="190" y="88" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">產出合約檔: order_user_pact.json</text>
+
+
+    <path d="M 350 65 L 430 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#pact-arrow)"/>
+    <text x="390" y="55" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">發布合約</text>
+
+
+    <rect x="440" y="20" width="320" height="90" rx="10" fill="#1f242c" stroke="#bc8cff" stroke-width="2"/>
+    <text x="600" y="55" fill="#d2a8ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Pact Broker (中心化合約庫)</text>
+    <text x="600" y="78" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">版本矩陣治理・Can I Deploy 自動化檢查</text>
+
+
+    <path d="M 600 110 L 600 160" stroke="#3fb950" stroke-width="2" marker-end="url(#pact-arrow)"/>
+    <text x="610" y="140" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">拉取最新合約</text>
+
+
+    <rect x="150" y="170" width="610" height="90" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="455" y="198" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">步驟 2: 提供者端 CI 驗證 (Provider Verification)</text>
+    <text x="455" y="222" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">自動回放合約中所有約定請求 ➔ 驗證真實後端響應 Schema 是否完全符合契約</text>
+    <text x="455" y="242" fill="#56d364" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">✅ 驗證通過：允許後端發布至生產環境！</text>
+
+  </svg>
+</div>
 
 ### Pact 核心優勢
 
@@ -80,17 +120,42 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 - 超長字串（緩衝區溢出）；
 - 特殊 UTF-8 字元、SQL 注入語法、負數金額、型別混淆。
 
-```text
-[ OpenAPI 3.1 規範文檔 ] ──> [ Fuzzing 引擎 (Schemathesis / RESTler) ]
-                                            │
-                                            ▼ (自動生成數萬個突變畸形請求)
-                               ├── 邊界 1: amount = -99999999999999
-                               ├── 邊界 2: email = "alice@\x00\xff.com"
-                               └── 邊界 3: id = "'; DROP TABLE users;--"
-                                            │
-                                            ▼ (發送給目標 API 伺服器)
-                             [ 監控伺服器是否拋出未捕獲的 500 內部崩潰錯誤! ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fuzz-pipe-title fuzz-pipe-desc">
+    <title id="fuzz-pipe-title">API 模糊測試（Fuzz Testing）自動化挖掘邊界漏洞架構圖</title>
+    <desc id="fuzz-pipe-desc">展示將 OpenAPI 規範輸入 Fuzzing 引擎生成海量邊界畸形請求，發送給目標伺服器並監控未捕獲的 500 內部崩潰。</desc>
+    
+    <defs>
+      <marker id="fuzz-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="70" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="130" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">OpenAPI 3.1 規範文檔</text>
+    <text x="130" y="70" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">端點、欄位型別、格式約束</text>
+
+
+    <path d="M 240 55 L 295 55" stroke="#58a6ff" stroke-width="2" marker-end="url(#fuzz-arrow)"/>
+
+
+    <rect x="305" y="20" width="475" height="110" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="542" y="46" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Fuzzing 引擎 (Schemathesis / RESTler)</text>
+    <rect x="320" y="58" width="445" height="24" rx="4" fill="#2a2015" stroke="#d29922" stroke-width="1"/>
+    <text x="542" y="75" fill="#e3b341" font-size="11" font-family="monospace" text-anchor="middle">邊界 1: amount = -99999999999999 (極限負數)</text>
+    <rect x="320" y="86" width="445" height="24" rx="4" fill="#2a2015" stroke="#d29922" stroke-width="1"/>
+    <text x="542" y="103" fill="#e3b341" font-size="11" font-family="monospace" text-anchor="middle">邊界 2: email = "alice@\x00\xff.com" (特殊二進位字元)</text>
+
+
+    <path d="M 542 130 L 542 165" stroke="#f85149" stroke-width="2" marker-end="url(#fuzz-arrow)"/>
+
+
+    <rect x="250" y="175" width="530" height="50" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="515" y="198" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">目標 API 伺服器：監控是否拋出未捕獲的 500 內部崩潰錯誤！</text>
+    <text x="515" y="216" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">確保所有畸形輸入均被業務層優雅攔截返回 400 Bad Request</text>
+
+  </svg>
+</div>
 
 ---
 

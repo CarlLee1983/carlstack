@@ -29,25 +29,61 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 企業級 Webhook 發送架構全景拓撲
 
-```text
-[ 核心業務事件 (如: 訂單支付成功) ]
-                │
-                ▼ (Transactional Outbox 模式)
-[ Kafka / 消息隊列: webhook.events ]
-                │
-                ▼
-[ Webhook 調度引擎 (Dispatcher Workers) ]
-    ├── 1. 查詢租戶註冊的 Webhook 端點與 Secret Key
-    ├── 2. 計算 HMAC-SHA256 簽名與時間戳標頭
-    └── 3. 投遞至發送 Worker 池 (帶租戶級 Rate Limiter 限流)
-                │
-                ▼ (發送 HTTP POST 請求)
-    ┌───────────┴───────────┐
-    ▼ (對端回傳 200 OK)      ▼ (對端超時 / 500 Error / 網路中斷)
-[ 標記投遞成功 (Success) ]   [ 投遞至延遲重試隊列 (Delayed Retry Queue) ]
-                             ├── 1. 指數退避: 10s ➔ 1m ➔ 10m ➔ 1h ➔ 24h
-                             └── 2. 連續失敗 10 次 ➔ 進入死信隊列 (DLQ) ➔ 發送警報郵件
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 460" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="webhook-arch-title webhook-arch-desc">
+    <title id="webhook-arch-title">企業級 Webhook 發送與重試架構圖</title>
+    <desc id="webhook-arch-desc">展示核心業務事件經 Transactional Outbox 寫入 Kafka，由 Webhook Dispatcher 注入 HMAC 簽名與租戶限流後發送，成功標記完成，失敗進入指數退避延遲隊列與死信隊列。</desc>
+    
+    <defs>
+      <marker id="wh-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="wh-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+      <marker id="wh-arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#f85149"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">核心業務事件 (如: 訂單支付成功)</text>
+
+
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#wh-arrow)"/>
+    <text x="408" y="75" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">Transactional Outbox 模式</text>
+
+
+    <rect x="220" y="90" width="360" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="118" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Kafka 消息隊列 (webhook.events)</text>
+
+
+    <path d="M 400 136 L 400 165" stroke="#58a6ff" stroke-width="2" marker-end="url(#wh-arrow)"/>
+
+
+    <rect x="120" y="170" width="560" height="100" rx="12" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="196" fill="#d2a8ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Webhook 調度引擎 (Dispatcher Workers)</text>
+    <text x="400" y="220" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">1. 查詢租戶註冊端點與 Secret ｜ 2. 計算 HMAC-SHA256 簽名與時間戳</text>
+    <text x="400" y="242" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">3. 投遞至發送 Worker 池 (內建租戶級令牌桶 Rate Limiting 流量隔離)</text>
+
+
+    <path d="M 280 270 L 200 315" stroke="#3fb950" stroke-width="2" marker-end="url(#wh-arrow-green)"/>
+    <path d="M 520 270 L 600 315" stroke="#f85149" stroke-width="2" marker-end="url(#wh-arrow-red)"/>
+
+
+    <rect x="50" y="325" width="300" height="105" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="355" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ 投遞成功 (200 OK)</text>
+    <text x="200" y="380" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">更新資料庫狀態為 DELIVERED</text>
+    <text x="200" y="402" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">記錄耗時與 HTTP 回應供開發者審計</text>
+
+
+    <rect x="450" y="325" width="300" height="105" rx="10" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="600" y="355" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 投遞失敗 (超時 / 5xx 錯誤)</text>
+    <text x="600" y="380" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">1. 指數退避重試 (10s ➔ 1m ➔ 10m ➔ 24h)</text>
+    <text x="600" y="402" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">2. 連續失敗 10 次 ➔ 進入死信隊列 (DLQ) 告警</text>
+
+  </svg>
+</div>
 
 ---
 

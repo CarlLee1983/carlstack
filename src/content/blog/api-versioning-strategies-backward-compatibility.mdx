@@ -27,12 +27,36 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 四大 API 版本控制策略全景對比
 
-```text
-[ 1. URI Path 版本控制 ] ──> GET /v1/users/42  vs.  GET /v2/users/42
-[ 2. Header 版本控制 ]   ──> GET /users/42  +  Header: X-API-Version: 2026-09-01
-[ 3. Accept 內容協商 ]   ──> GET /users/42  +  Header: Accept: application/vnd.company.v2+json
-[ 4. Query Parameter ]   ──> GET /users/42?version=2
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="api-ver-title api-ver-desc">
+    <title id="api-ver-title">四大 API 版本控制策略示意圖</title>
+    <desc id="api-ver-desc">展示 URI Path、Custom Header、Accept 內容協商與 Query Parameter 四種版本標註格式。</desc>
+    
+    
+    <rect x="20" y="15" width="370" height="95" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="42" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">1. URI Path 版本控制 (最常見)</text>
+    <rect x="35" y="55" width="340" height="36" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="205" y="77" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">GET /api/v1/users/42 ➔ /api/v2/users/42</text>
+
+    <rect x="410" y="15" width="370" height="95" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.2"/>
+    <text x="430" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">2. Custom Header 版本控制 (Stripe)</text>
+    <rect x="425" y="55" width="340" height="36" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="595" y="77" fill="#56d364" font-size="11" font-family="monospace" text-anchor="middle">Header: X-API-Version: 2026-09-01</text>
+
+
+    <rect x="20" y="125" width="370" height="95" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="40" y="152" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">3. Accept 內容協商 (REST 純粹)</text>
+    <rect x="35" y="165" width="340" height="36" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1"/>
+    <text x="205" y="187" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">Accept: application/vnd.app.v2+json</text>
+
+
+    <rect x="410" y="125" width="370" height="95" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
+    <text x="430" y="152" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700">4. Query Parameter (簡單直觀)</text>
+    <rect x="425" y="165" width="340" height="36" rx="6" fill="#2a2015" stroke="#d29922" stroke-width="1"/>
+    <text x="595" y="187" fill="#e3b341" font-size="11" font-family="monospace" text-anchor="middle">GET /api/users/42?version=2</text>
+
+  </svg>
+</div>
 
 | 版本控制方式               | 具體實現範例                          | 優點                                                     | 缺點                                                           | 適用場景                                     |
 | :------------------------- | :------------------------------------ | :------------------------------------------------------- | :------------------------------------------------------------- | :------------------------------------------- |
@@ -64,21 +88,53 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 Stripe 最著名的工程奇蹟在於：**用戶在 2017 年註冊時鎖定的 API 版本，在 2026 年依然能完美執行，而後端核心代碼只有一套最新的版本！**
 
-```text
-[ 舊版客戶端 (請求: 2017-05-10 版本) ]
-                   │
-                   ▼
-     [ API 閘道器 / 版本轉換層 ]
-                   │ (1. 依序向上套用 Request 變更: 2017 ➔ 2019 ➔ 2023 ➔ 2026)
-                   ▼
-     [ 核心業務微服務 (永遠只運行最新 2026 商業邏輯) ]
-                   │
-                   ▼ (2. 回傳最新 2026 格式 Response)
-     [ API 閘道器 / 版本轉換層 ]
-                   │ (3. 依序向下套用 Response 補丁: 2026 ➔ 2023 ➔ 2019 ➔ 2017)
-                   ▼
-[ 舊版客戶端收到完全相容的 2017 格式資料! ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 360" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stripe-ver-title stripe-ver-desc">
+    <title id="stripe-ver-title">Stripe 雙向版本轉換閘道器架構圖</title>
+    <desc id="stripe-ver-desc">展示 2017 舊版請求經 API 轉換層向上相容轉換至最新 2026 商業邏輯，回應再向下修補還原為 2017 格式。</desc>
+    
+    <defs>
+      <marker id="str-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="str-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="230" y="15" width="340" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">歷史客戶端 (發起 2017-05-10 版本請求)</text>
+
+
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#str-arrow)"/>
+
+
+    <rect x="150" y="90" width="500" height="52" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="112" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">API 閘道轉換層 (Request Translators: 2017 ➔ 2019 ➔ 2026)</text>
+    <text x="400" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">按版本更新鏈依序向上補充預設值與欄位映射</text>
+
+
+    <path d="M 400 142 L 400 170" stroke="#58a6ff" stroke-width="2" marker-end="url(#str-arrow)"/>
+
+
+    <rect x="180" y="175" width="440" height="56" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="400" y="200" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">核心業務微服務 (永遠只運行最新 2026 商業邏輯)</text>
+    <text x="400" y="219" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">單一主幹代碼庫・零歷史相容包袱</text>
+
+
+    <path d="M 400 231 L 400 258" stroke="#3fb950" stroke-width="2" marker-end="url(#str-arrow-green)"/>
+
+
+    <rect x="150" y="260" width="500" height="52" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="400" y="282" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">API 閘道轉換層 (Response Translators: 2026 ➔ 2019 ➔ 2017)</text>
+    <text x="400" y="300" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">依序向下修補舊欄位格式・剃除新版專屬不可識別欄位</text>
+
+
+    <rect x="230" y="320" width="340" height="32" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="400" y="341" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">✅ 舊版客戶端收到 100% 相容的 2017 格式資料！</text>
+
+  </svg>
+</div>
 
 - **優勢**：開發團隊只需要維護最新版本的主幹代碼；每個歷史版本的微小差異被封裝為單獨的轉換函式（Translators），極大降低了多版本共存時的維護地獄。
 

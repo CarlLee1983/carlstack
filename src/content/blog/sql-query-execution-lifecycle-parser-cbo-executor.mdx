@@ -27,25 +27,54 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 ## 1. SQL 執行全流程生命週期鳥瞰圖
 
-```text
-[ 客戶端發送 SQL 字串: "SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id WHERE u.age > 30;" ]
-                                      │
-                                      ▼
-             [ 1. 詞法與語法解析器 (Lexer & Parser) ]
-                                      │ ➔ 輸出: 抽象語法樹 (Abstract Syntax Tree, AST)
-                                      ▼
-             [ 2. 語意分析與重寫器 (Analyzer & Rewriter) ]
-                                      │ ➔ 綁定元數據 (檢查 table/column 是否存在、視圖展開)
-                                      ▼
-             [ 3. 查詢優化器 (Query Optimizer: CBO) ]
-                                      │ ├── 邏輯計畫 (Logical Plan: 謂詞下推、列裁剪)
-                                      │ └── 物理計畫 (Physical Plan: 選擇 Index Scan, Hash Join)
-                                      ▼
-             [ 4. 執行引擎 (Executor: 火山模型 / 向量化) ]
-                                      │
-                                      ▼ (調用儲存引擎 Buffer Pool / 磁碟 I/O)
-             [ 回傳查詢結果集 (Result Set) 給客戶端 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 370" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sql-life-title sql-life-desc">
+    <title id="sql-life-title">SQL 查詢執行全生命週期架構圖</title>
+    <desc id="sql-life-desc">展示 SQL 文字經過詞法語法解析生成 AST、語意分析重寫、CBO 查詢優化器生成物理計畫、執行引擎調用儲存層回傳結果集。</desc>
+    
+    <defs>
+      <marker id="sql-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="15" width="740" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">SELECT u.name, o.amount FROM users u JOIN orders o ON u.id = o.user_id WHERE u.age &gt; 30;</text>
+
+
+    <path d="M 400 57 L 400 80" stroke="#58a6ff" stroke-width="2" marker-end="url(#sql-arrow)"/>
+
+
+    <rect x="80" y="80" width="640" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="400" y="102" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 詞法與語法解析器 (Lexer &amp; Parser)</text>
+    <text x="400" y="118" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Token 拆解 ➔ 產出抽象語法樹 (Abstract Syntax Tree, AST)</text>
+
+
+    <path d="M 400 126 L 400 148" stroke="#58a6ff" stroke-width="2" marker-end="url(#sql-arrow)"/>
+
+
+    <rect x="80" y="148" width="640" height="46" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="400" y="170" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 語意分析與重寫器 (Analyzer &amp; Rewriter)</text>
+    <text x="400" y="186" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">綁定 Catalog 元數據 (表名/欄位校驗、型別推導、視圖展平與子查詢等價變換)</text>
+
+
+    <path d="M 400 194 L 400 216" stroke="#58a6ff" stroke-width="2" marker-end="url(#sql-arrow)"/>
+
+
+    <rect x="80" y="216" width="640" height="50" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="238" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">3. 查詢優化器 (Query Optimizer: RBO &amp; CBO 核心大腦)</text>
+    <text x="400" y="256" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">邏輯優化 (謂詞下推、列裁剪) ➔ 基於代價模型 (CBO) 選擇最優物理計畫 (Hash Join, Index Scan)</text>
+
+
+    <path d="M 400 266 L 400 288" stroke="#3fb950" stroke-width="2" marker-end="url(#sql-arrow)"/>
+
+
+    <rect x="80" y="288" width="640" height="48" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="310" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4. 執行引擎 (Executor: 火山模型 / 向量化執行)</text>
+    <text x="400" y="327" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">調用儲存引擎 (Buffer Pool / 磁碟 I/O) ➔ 生成結果集 (Result Set) 回傳客戶端</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -82,15 +111,38 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 物理計畫生成後，交由執行器驅動運算。經典資料庫採用 **火山模型（迭代器模型）**：
 
-```text
-[ Top 根節點: Limit / Output ]
-            │ Next() (拉取一列)
-            ▼
-[ Hash Join 算子 ]
-            │ Next() (拉取一列)
-            ▼
-[ Index Scan 算子 (B+ Tree 索引掃描) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="volcano-title volcano-desc">
+    <title id="volcano-title">資料庫執行器火山迭代器模型架構圖</title>
+    <desc id="volcano-desc">展示頂層根節點向 Hash Join 算子發起 Next() 拉取請求，Hash Join 再向下層 Index Scan 算子逐行拉取資料。</desc>
+    
+    <defs>
+      <marker id="volc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="43" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Top 根節點: Limit / Output 算子</text>
+
+
+    <path d="M 400 61 L 400 95" stroke="#58a6ff" stroke-width="2" marker-end="url(#volc-arrow)"/>
+    <text x="410" y="82" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">Next() 迭代拉取一列 (Tuple)</text>
+
+
+    <rect x="230" y="98" width="340" height="46" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="126" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Hash Join 算子 (哈希連接計算)</text>
+
+
+    <path d="M 400 144 L 400 178" stroke="#3fb950" stroke-width="2" marker-end="url(#volc-arrow)"/>
+    <text x="410" y="165" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">Next() 迭代拉取一列</text>
+
+
+    <rect x="210" y="180" width="380" height="46" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="208" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Index Scan 算子 (B+ Tree 葉節點磁碟/記憶體掃描)</text>
+
+  </svg>
+</div>
 
 - 每個算子實作三個標準介面：`open()`、`next()`、`close()`。
 - **一列一拉取（Tuple-at-a-time）**：記憶體佔用極小，但虛擬函數調用與 CPU 分支預測失敗開銷較大。

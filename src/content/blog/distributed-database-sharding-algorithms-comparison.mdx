@@ -31,11 +31,43 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 四大分片演算法核心架構矩陣
 
-```text
-[ 1. 範圍分片 (Range) ]       [ 2. 雜湊分片 (Hash) ]       [ 3. 一致性雜湊 (Consistent Hash) ]   [ 4. 目錄查表 (Directory) ]
-Key: [1..1000] ➔ Shard 1      hash(key) % N ➔ Shard ID    Hash 環 0 ~ 2^32-1, 虛擬節點對齊      Central Lookup Table 靈活映射
-Key: [1001..2000] ➔ Shard 2
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="shard-matrix-title shard-matrix-desc">
+    <title id="shard-matrix-title">四大資料庫分片演算法機制示意圖</title>
+    <desc id="shard-matrix-desc">展示範圍分片、雜湊模分片、一致性雜湊環與目錄查表分片的路由原理與特點。</desc>
+    
+    
+    <rect x="20" y="20" width="175" height="140" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="107" y="46" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 範圍分片 (Range)</text>
+    <rect x="30" y="58" width="155" height="46" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="107" y="78" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">[1..1000] ➔ Shard 1</text>
+    <text x="107" y="94" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">[1001..2000] ➔ Shard 2</text>
+    <text x="107" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">支援連續範圍・易生熱點</text>
+
+    <rect x="210" y="20" width="175" height="140" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="297" y="46" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 雜湊模分片 (Hash % N)</text>
+    <rect x="220" y="58" width="155" height="46" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
+    <text x="297" y="86" fill="#f85149" font-size="11" font-family="monospace" text-anchor="middle">hash(key) % N</text>
+    <text x="297" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">極致均勻・擴容需全搬遷</text>
+
+
+    <rect x="400" y="20" width="185" height="140" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.2"/>
+    <text x="492" y="46" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">3. 一致性雜湊環</text>
+    <rect x="410" y="58" width="165" height="46" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="492" y="78" fill="#3fb950" font-size="10" font-family="monospace" text-anchor="middle">Hash 環 0 ~ 2^32-1</text>
+    <text x="492" y="94" fill="#56d364" font-size="10" font-family="monospace" text-anchor="middle">+ 100~200 虛擬節點</text>
+    <text x="492" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">擴容僅遷移 1/N 數據</text>
+
+
+    <rect x="600" y="20" width="180" height="140" rx="10" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="690" y="46" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4. 目錄查表 (Directory)</text>
+    <rect x="610" y="58" width="160" height="46" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1"/>
+    <text x="690" y="78" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">lookup_table[key]</text>
+    <text x="690" y="94" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">➔ 指定 Shard ID</text>
+    <text x="690" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">自定義調度・靈活性最高</text>
+
+  </svg>
+</div>
 
 | 分片演算法                       | 核心路由公式                 | 範圍查詢支援 (Range Queries)    | 資料均勻度 (Data Distribution)             | 節點擴容再平衡成本 (Resharding)            |
 | :------------------------------- | :--------------------------- | :------------------------------ | :----------------------------------------- | :----------------------------------------- |
@@ -77,21 +109,59 @@ Key: [1001..2000] ➔ Shard 2
 
 當查詢條件未攜帶 Sharding Key 時（例如 `SELECT * FROM orders WHERE status = 'PAID'`）：
 
-```text
-[ 應用發起無 Sharding Key 查詢 ]
-               │
-               ▼
-[ 分散式中間件 (DBProxy / Vitess / ShardingSphere) ]
-               │ (向所有 16 個分片平行發起查詢: Scatter)
-    ┌──────────┼──────────┬──────────┐
-    ▼          ▼          ▼          ▼
-[ Shard 1 ] [ Shard 2 ] [ Shard 3 ] [ Shard 4 ]
-    │          │          │          │
-    └──────────┼──────────┴──────────┘
-               │ (在記憶體中進行排序與聚合: Gather)
-               ▼
-[ 彙整結果返回給客戶端 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 320" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scatter-gather-title scatter-gather-desc">
+    <title id="scatter-gather-title">分散式資料庫跨分片 Scatter-Gather 查詢架構圖</title>
+    <desc id="scatter-gather-title">展示無分片鍵查詢時，分散式中介軟體向所有底層分片平行發起 Scatter 查詢，並在記憶體中執行 Gather 聚合後返回。</desc>
+    
+    <defs>
+      <marker id="scat-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="scat-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="200" y="15" width="400" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">SELECT * FROM orders WHERE status = 'PAID'; (無 Sharding Key)</text>
+
+
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#scat-arrow)"/>
+
+
+    <rect x="150" y="90" width="500" height="50" rx="8" fill="#1f242c" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="114" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">分散式中介軟體 (Vitess / DBProxy / ShardingSphere)</text>
+    <text x="400" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">向所有分片並行散發查詢 (Scatter)</text>
+
+
+    <path d="M 230 140 L 100 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
+    <path d="M 340 140 L 300 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
+    <path d="M 460 140 L 500 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
+    <path d="M 570 140 L 700 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
+
+
+    <rect x="20" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="100" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 1</text>
+    <rect x="220" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="300" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 2</text>
+    <rect x="420" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="500" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 3</text>
+    <rect x="620" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="700" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 4</text>
+
+
+    <path d="M 100 227 L 300 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
+    <path d="M 300 227 L 360 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
+    <path d="M 500 227 L 440 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
+    <path d="M 700 227 L 500 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
+
+
+    <rect x="200" y="270" width="400" height="40" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="295" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">記憶體聚合與排序 (Gather) ➔ 彙整結果回傳客戶端</text>
+
+  </svg>
+</div>
 
 ### 治理原則
 

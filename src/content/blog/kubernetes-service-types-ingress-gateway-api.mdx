@@ -27,22 +27,57 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. Kubernetes 四大原生 Service 類型對比
 
-```text
-                               [ 外部公網流量 (Internet) ]
-                                             │
-                                             ▼
-                               [ 雲端負載平衡器 (LoadBalancer) ]
-                                             │
-                                             ▼ (流量轉發至節點指定 Port)
-                                 [ 節點實體 IP: 30080 (NodePort) ]
-                                             │
-                                             ▼ (叢集內部虛擬 IP 路由)
-                                   [ ClusterIP (10.96.0.1) ]
-                                             │
-                             ┌───────────────┴───────────────┐
-                             ▼                               ▼
-                      [ Pod 1 (10.244.1.5) ]          [ Pod 2 (10.244.2.8) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 380" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8s-svc-title k8s-svc-desc">
+    <title id="k8s-svc-title">Kubernetes 四大 Service 流量路由層次拓撲圖</title>
+    <desc id="k8s-svc-desc">展示外部流量如何經由雲端 LoadBalancer 進入節點 NodePort，再經由虛擬 ClusterIP 負載平衡至後端 Pod 容器。</desc>
+    
+    <defs>
+      <marker id="k8s-svc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="280" y="15" width="240" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">外部公網流量 (Internet Client)</text>
+
+
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#k8s-svc-arrow)"/>
+
+
+    <rect x="240" y="90" width="320" height="48" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="119" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">雲端負載平衡器 (LoadBalancer - L4 NLB)</text>
+
+
+    <path d="M 400 138 L 400 165" stroke="#58a6ff" stroke-width="2" marker-end="url(#k8s-svc-arrow)"/>
+    <text x="408" y="155" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">轉發至實體節點 Port</text>
+
+
+    <rect x="220" y="170" width="360" height="48" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="199" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">節點實體連接埠 (NodePort: 30080)</text>
+
+
+    <path d="M 400 218 L 400 245" stroke="#58a6ff" stroke-width="2" marker-end="url(#k8s-svc-arrow)"/>
+    <text x="408" y="235" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">kube-proxy 虛擬 IP 負載平衡</text>
+
+
+    <rect x="250" y="250" width="300" height="48" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="400" y="279" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">ClusterIP 虛擬 IP (10.96.0.1)</text>
+
+
+    <path d="M 320 298 L 220 325" stroke="#3fb950" stroke-width="2" marker-end="url(#k8s-svc-arrow)"/>
+    <path d="M 480 298 L 580 325" stroke="#3fb950" stroke-width="2" marker-end="url(#k8s-svc-arrow)"/>
+
+
+    <rect x="100" y="325" width="240" height="40" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="220" y="350" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod 1 (10.244.1.5:8080)</text>
+
+
+    <rect x="460" y="325" width="240" height="40" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="580" y="350" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod 2 (10.244.2.8:8080)</text>
+
+  </svg>
+</div>
 
 | Service 類型         | 核心定位與工作機制                                                                                                                 | 適用場景                                         |
 | :------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
@@ -100,13 +135,39 @@ spec:
 
 Kubernetes 官方正式推出了 **Gateway API**，其最大的創新在於**角色職責解耦（Role-Oriented Architecture）**：
 
-```text
-[ 基礎設施供應商 (Cloud Provider / Envoy) ] ──> 定義 [ GatewayClass ]
-                                                           │
-[ 叢集維運/平台工程師 (Platform Admin) ]   ──> 定義 [ Gateway ] (管理監聽埠與 TLS 憑證)
-                                                           │
-[ 業務開發團隊 (Application Developer) ]   ──> 定義 [ HTTPRoute / GRPCRoute ] (專注業務路由規則)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gw-roles-title gw-roles-desc">
+    <title id="gw-roles-title">Kubernetes Gateway API 角色導向解耦架構圖</title>
+    <desc id="gw-roles-desc">展示基礎設施供應商定義 GatewayClass，平台工程師管理 Gateway 監聽埠與憑證，業務開發者定義 HTTPRoute 業務路由規則的分層體系。</desc>
+    
+    <defs>
+      <marker id="gw-role-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="320" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="190" y="48" fill="#8b949e" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">基礎設施供應商 (Cloud / Envoy)</text>
+    <path d="M 350 43 L 420 43" stroke="#58a6ff" stroke-width="2" marker-end="url(#gw-role-arrow)"/>
+    <rect x="430" y="20" width="340" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="600" y="48" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">定義 [ GatewayClass ] 規格</text>
+
+
+    <rect x="30" y="90" width="320" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="190" y="118" fill="#8b949e" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">叢集維運/平台工程師 (Platform Admin)</text>
+    <path d="M 350 113 L 420 113" stroke="#bc8cff" stroke-width="2" marker-end="url(#gw-role-arrow)"/>
+    <rect x="430" y="90" width="340" height="46" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="600" y="118" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">定義 [ Gateway ] (監聽埠與 TLS 憑證)</text>
+
+
+    <rect x="30" y="160" width="320" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="190" y="188" fill="#8b949e" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">業務開發團隊 (Application Developer)</text>
+    <path d="M 350 183 L 420 183" stroke="#3fb950" stroke-width="2" marker-end="url(#gw-role-arrow)"/>
+    <rect x="430" y="160" width="340" height="46" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="600" y="188" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">定義 [ HTTPRoute / GRPCRoute ] (業務路由)</text>
+
+  </svg>
+</div>
 
 ### Gateway API 核心優勢
 

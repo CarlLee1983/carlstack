@@ -29,39 +29,86 @@ Kubernetes 的設計哲學本質上是一個**基於宣告式 API（Declarative 
 
 Kubernetes 叢集嚴格劃分為兩大層級：**控制平面（Control Plane）** 與 **工作節點（Worker Nodes）**。
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                   控制平面 (Control Plane)                  │
-│                                                             │
-│  [ kube-controller-manager ]    [ kube-scheduler ]          │
-│              ▲                         ▲                    │
-│              │ (Watch / List)          │ (Watch Pods)       │
-│              ▼                         ▼                    │
-│      ┌─────────────────────────────────────────┐            │
-│      │        kube-apiserver (核心大腦)        │            │
-│      └────────────────────┬────────────────────┘            │
-│                           │ (唯一直接存取 etcd 的組件)      │
-│                           ▼                                 │
-│                 [ etcd 分散式 KV 叢集 ]                     │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ (gRPC / TLS 雙向通訊)
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    工作節點 (Worker Node)                   │
-│                                                             │
-│       ┌───────────────┐               ┌───────────────┐     │
-│       │    kubelet    │               │  kube-proxy   │     │
-│       └───────┬───────┘               └───────┬───────┘     │
-│               │ (CRI 介面)                    │ (iptables/  │
-│               ▼                               ▼  IPVS 轉發) │
-│     [ 容器運行時 (containerd) ]        [ 叢集網路資料面 ]    │
-│               │                                             │
-│               ▼                                             │
-│     ┌───────────────────┐                                   │
-│     │   Pod (Containers)│                                   │
-│     └───────────────────┘                                   │
-└─────────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 480" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8s-arch-title k8s-arch-desc">
+    <title id="k8s-arch-title">Kubernetes 控制平面與工作節點總體架構拓撲圖</title>
+    <desc id="k8s-arch-desc">展示控制平面包含 API Server、etcd、Scheduler 與 Controller Manager，以及工作節點上的 kubelet、kube-proxy、containerd 與 Pod 協同運作機制。</desc>
+    
+    <defs>
+      <linearGradient id="k8s-cp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#161f30"/>
+        <stop offset="100%" stop-color="#0f141f"/>
+      </linearGradient>
+      <linearGradient id="k8s-node-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#13241c"/>
+        <stop offset="100%" stop-color="#0d1813"/>
+      </linearGradient>
+      <marker id="k8s-arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="k8s-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+      <marker id="k8s-arrow-orange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#d29922"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="760" height="220" rx="14" fill="url(#k8s-cp-grad)" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="40" y="48" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700">控制平面 (Control Plane - 叢集核心大腦)</text>
+
+
+    <rect x="50" y="70" width="210" height="48" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="155" y="99" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">kube-controller-manager</text>
+
+
+    <rect x="540" y="70" width="210" height="48" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="645" y="99" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">kube-scheduler</text>
+
+
+    <path d="M 155 118 L 300 150" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#k8s-arrow-blue)"/>
+    <path d="M 645 118 L 500 150" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#k8s-arrow-blue)"/>
+
+
+    <rect x="270" y="135" width="260" height="50" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="400" y="165" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">kube-apiserver (唯一核心入口)</text>
+
+
+    <path d="M 400 185 L 400 200" stroke="#d29922" stroke-width="2" marker-end="url(#k8s-arrow-orange)"/>
+
+
+    <rect x="290" y="200" width="220" height="32" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="221" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">etcd 分散式 KV 儲存 (Raft 共識)</text>
+
+
+    <path d="M 400 240 L 400 270" stroke="#388bfd" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#k8s-arrow-blue)"/>
+    <text x="408" y="258" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">gRPC / TLS 雙向通訊</text>
+
+
+    <rect x="20" y="270" width="760" height="190" rx="14" fill="url(#k8s-node-grad)" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="298" fill="#3fb950" font-size="15" font-family="system-ui, sans-serif" font-weight="700">工作節點 (Worker Node - 負載執行單元)</text>
+
+
+    <rect x="50" y="315" width="210" height="46" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="155" y="343" fill="#56d364" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">kubelet (節點 Agent)</text>
+
+
+    <rect x="540" y="315" width="210" height="46" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="645" y="343" fill="#56d364" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">kube-proxy (iptables/IPVS 轉發)</text>
+
+
+    <path d="M 155 361 L 155 385" stroke="#3fb950" stroke-width="1.5" marker-end="url(#k8s-arrow-green)"/>
+    <rect x="50" y="385" width="210" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="155" y="413" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">CRI 容器運行時 (containerd)</text>
+
+
+    <path d="M 260 408 L 360 408" stroke="#3fb950" stroke-width="1.5" marker-end="url(#k8s-arrow-green)"/>
+    <rect x="360" y="380" width="390" height="56" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="555" y="405" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Pod 容器組 (業務工作負載與獨立 Pod IP)</text>
+    <text x="555" y="424" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">受 kube-proxy 虛擬網路路由保護・共用 Network Namespace</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -111,13 +158,53 @@ Kubernetes 叢集嚴格劃分為兩大層級：**控制平面（Control Plane）
 
 ## 4. 從 `kubectl run` 到容器啟動全生命週期
 
-```text
-1. 使用者執行 kubectl apply -f nginx.yaml ──> 經 AuthN/AuthZ 驗證寫入 etcd (狀態: Pending)
-2. kube-scheduler 透過 API Server Watch 到新 Pod ──> 執行預選與優選 ──> 將 Pod 綁定至 Node-1 (更新 spec.nodeName)
-3. Node-1 上的 kubelet Watch 到分配給自己的 Pod ──> 調用 containerd 下載 Image 並啟動容器
-4. kubelet 調用 CNI 外掛分配 Pod IP ──> 回報狀態為 Running
-5. kube-proxy 更新節點 IPVS 規則，將 Pod IP 納入 Service 負載平衡池
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 370" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8s-pod-lifecycle-title k8s-pod-lifecycle-desc">
+    <title id="k8s-pod-lifecycle-title">Kubernetes Pod 建立與啟動全生命週期流程圖</title>
+    <desc id="k8s-pod-lifecycle-desc">步驟一使用者提交 YAML 經驗證存入 etcd，步驟二 Scheduler 調度綁定節點，步驟三 kubelet 下載鏡像啟動容器，步驟四 CNI 分配 IP，步驟五 kube-proxy 刷新負載平衡規則。</desc>
+    
+    <defs>
+      <marker id="k8s-seq-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="740" height="52" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <circle cx="60" cy="46" r="16" fill="#1f6feb"/>
+    <text x="60" y="52" fill="#ffffff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1</text>
+    <text x="95" y="44" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700">kubectl apply 宣告建立</text>
+    <text x="95" y="60" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">經 API Server 認證 (AuthN) / 鑑權 (AuthZ) / 准入檢查 ➔ 寫入 etcd (狀態標記為 Pending)</text>
+
+
+    <rect x="30" y="90" width="740" height="52" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <circle cx="60" cy="116" r="16" fill="#1f6feb"/>
+    <text x="60" y="122" fill="#ffffff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2</text>
+    <text x="95" y="114" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700">kube-scheduler 智慧調度</text>
+    <text x="95" y="130" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">透過 API Server 監聽到未分配節點的 Pod ➔ 執行預選與優選演算法 ➔ 綁定至最優 Worker Node</text>
+
+
+    <rect x="30" y="160" width="740" height="52" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <circle cx="60" cy="186" r="16" fill="#238636"/>
+    <text x="60" y="192" fill="#ffffff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">3</text>
+    <text x="95" y="184" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700">Worker kubelet 下發指令</text>
+    <text x="95" y="200" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">目標節點的 kubelet 監聽到分配任務 ➔ 透過 CRI (containerd) 下載映像檔並啟動容器</text>
+
+
+    <rect x="30" y="230" width="740" height="52" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <circle cx="60" cy="256" r="16" fill="#238636"/>
+    <text x="60" y="262" fill="#ffffff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4</text>
+    <text x="95" y="254" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700">CNI 網路配置與健康就緒</text>
+    <text x="95" y="270" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">調用 CNI (Calico/Cilium) 分配 Pod IP ➔ 通過 ReadinessProbe 檢查 ➔ 回報狀態為 Running</text>
+
+
+    <rect x="30" y="300" width="740" height="52" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <circle cx="60" cy="326" r="16" fill="#8957e5"/>
+    <text x="60" y="332" fill="#ffffff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">5</text>
+    <text x="95" y="324" fill="#bc8cff" font-size="14" font-family="system-ui, sans-serif" font-weight="700">kube-proxy 路由與服務發現就緒</text>
+    <text x="95" y="340" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif">更新所有節點的 IPVS/iptables 規則 ➔ 將新 Pod IP 納入 Service Endpoints，正式承接線上流量</text>
+
+  </svg>
+</div>
 
 ---
 

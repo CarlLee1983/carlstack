@@ -38,13 +38,56 @@ Kubernetes 提供了多種部署策略（Deployment Strategies）。本文將帶
 
 Kubernetes Deployment 預設採用 **RollingUpdate** 策略：逐步建立新版本 Pod，待其健康檢查通過後，再逐步銷毀舊版本 Pod。
 
-```text
-[ 階段 1: 原始狀態 ]      [ 階段 2: 滾動中 (Surge) ]       [ 階段 3: 完成發布 ]
-Pod v1 (Running)         Pod v1 (Running)                Pod v2 (Running)
-Pod v1 (Running)   ───>  Pod v1 (Terminating)     ───>   Pod v2 (Running)
-Pod v1 (Running)         Pod v2 (Running)                Pod v2 (Running)
-                         Pod v2 (ContainerCreating)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="k8s-rolling-title k8s-rolling-desc">
+    <title id="k8s-rolling-title">Kubernetes RollingUpdate 滾動更新三階段示意圖</title>
+    <desc id="k8s-rolling-desc">展示原始階段全量 v1 Pod，滾動階段新增 v2 Pod 並逐步銷毀舊 v1 Pod，完成階段全量切換為 v2 Pod。</desc>
+    
+    <defs>
+      <marker id="k8s-roll-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="220" height="190" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="130" y="42" fill="#8b949e" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段 1: 原始狀態</text>
+    <rect x="40" y="58" width="180" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="130" y="81" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v1 (Running)</text>
+    <rect x="40" y="104" width="180" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="130" y="127" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v1 (Running)</text>
+    <rect x="40" y="150" width="180" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="130" y="173" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v1 (Running)</text>
+
+
+    <path d="M 245 110 L 275 110" stroke="#58a6ff" stroke-width="2" marker-end="url(#k8s-roll-arrow)"/>
+
+
+    <rect x="285" y="15" width="230" height="190" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="42" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段 2: 滾動中 (Surge)</text>
+    <rect x="300" y="58" width="200" height="30" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1"/>
+    <text x="400" y="78" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pod v1 (Running)</text>
+    <rect x="300" y="93" width="200" height="30" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
+    <text x="400" y="113" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pod v1 (Terminating)</text>
+    <rect x="300" y="128" width="200" height="30" rx="6" fill="#1b2e23" stroke="#3fb950" stroke-width="1"/>
+    <text x="400" y="148" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pod v2 (Running)</text>
+    <rect x="300" y="163" width="200" height="30" rx="6" fill="#2a2015" stroke="#d29922" stroke-width="1"/>
+    <text x="400" y="183" fill="#e3b341" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Pod v2 (Creating)</text>
+
+
+    <path d="M 520 110 L 550 110" stroke="#58a6ff" stroke-width="2" marker-end="url(#k8s-roll-arrow)"/>
+
+
+    <rect x="560" y="15" width="220" height="190" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="42" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段 3: 完成發布</text>
+    <rect x="580" y="58" width="180" height="36" rx="6" fill="#1b2e23" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="670" y="81" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v2 (Running)</text>
+    <rect x="580" y="104" width="180" height="36" rx="6" fill="#1b2e23" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="670" y="127" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v2 (Running)</text>
+    <rect x="580" y="150" width="180" height="36" rx="6" fill="#1b2e23" stroke="#3fb950" stroke-width="1.2"/>
+    <text x="670" y="173" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Pod v2 (Running)</text>
+
+  </svg>
+</div>
 
 ### 關鍵參數調優：`maxSurge` 與 `maxUnavailable`
 
@@ -67,19 +110,50 @@ spec:
 
 藍綠部署維護兩組完全獨立但對等的環境：
 
-```text
-                               [ Service (線上流量) ]
-                                         │
-                   ┌─────────────────────┴─────────────────────┐
-                   ▼ (當前線上流量: selector: version=blue)      │
-         [ Blue 環境 (舊版 v1.0) ]                     [ Green 環境 (新版 v2.0) ]
-         ├── Pod 1 (v1.0)                              ├── Pod 1 (v2.0)
-         ├── Pod 2 (v1.0)                              ├── Pod 2 (v2.0)
-         └── Pod 3 (v1.0)                              └── Pod 3 (v2.0)
-                                                               ▲
-                                                               │ (內部 QA 測試通過後)
-                                              [ 修改 Service selector ➔ version=green ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 300" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bg-arch-title bg-arch-desc">
+    <title id="bg-arch-title">Kubernetes 藍綠部署（Blue-Green）架構圖</title>
+    <desc id="bg-arch-desc">展示 Service 透過 Selector 標籤在 Blue 舊版與 Green 新版環境之間秒級原子切換流量。</desc>
+    
+    <defs>
+      <marker id="bg-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="15" width="300" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="400" y="43" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Kubernetes Service (線上生產流量)</text>
+
+
+    <path d="M 330 61 L 200 105" stroke="#58a6ff" stroke-width="2.5" marker-end="url(#bg-arrow)"/>
+    <text x="210" y="82" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600">當前流量: selector version=blue</text>
+
+
+    <path d="M 470 61 L 600 105" stroke="#3fb950" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#bg-arrow)"/>
+    <text x="590" y="82" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600">驗收後切換: version=green ➔</text>
+
+
+    <rect x="40" y="115" width="330" height="165" rx="12" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="205" y="142" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Blue 環境 (線上舊版 v1.0)</text>
+    <rect x="60" y="155" width="290" height="32" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="205" y="176" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 1 (v1.0 - Running)</text>
+    <rect x="60" y="195" width="290" height="32" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="205" y="216" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 2 (v1.0 - Running)</text>
+    <rect x="60" y="235" width="290" height="32" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
+    <text x="205" y="256" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 3 (v1.0 - Running)</text>
+
+
+    <rect x="430" y="115" width="330" height="165" rx="12" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="595" y="142" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Green 環境 (預發新版 v2.0)</text>
+    <rect x="450" y="155" width="290" height="32" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="595" y="176" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 1 (v2.0 - 獨立內部測試通過)</text>
+    <rect x="450" y="195" width="290" height="32" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="595" y="216" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 2 (v2.0 - 預熱完成)</text>
+    <rect x="450" y="235" width="290" height="32" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="595" y="256" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Pod 3 (v2.0 - 隨時待命接管)</text>
+
+  </svg>
+</div>
 
 - **優勢**：流量切換只在一瞬間（修改 Service Selector 的單一 API 操作）；若發現問題，可在一秒內將 Selector 改回 Blue 完成閃電回滾。
 - **缺點**：在發布期間需要消耗雙倍的伺服器算力資源。
@@ -90,16 +164,43 @@ spec:
 
 在大規模架構中，人工盯著日誌確認金絲雀發布過於低效。現代雲原生標準採用 **Argo Rollouts** 配合 **Prometheus 指標自動分析**：
 
-```text
-[ 1. 發布金絲雀 (SetWeight: 5%) ] ──> 導入 5% 真實線上流量
-               │
-               ▼ (運行 10 分鐘)
-[ 2. 自動執行 AnalysisTemplate ] ──> 查詢 Prometheus: HTTP 5xx 錯誤率是否 < 0.1%? P99 是否 < 200ms?
-               │
-        ┌──────┴──────┐
-        ▼ (指標正常)   ▼ (指標異常: 5xx 突破 1%)
-[ 3. 推進至 20% ➔ 100% ] [ 立即全自動中止並回滾至 v1.0! ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="canary-pipe-title canary-pipe-desc">
+    <title id="canary-pipe-title">Argo Rollouts 自動化金絲雀分析與自適應回滾流程圖</title>
+    <desc id="canary-pipe-desc">展示金絲雀發布導入 5% 流量，自動透過 Prometheus 分析成功率與 P99 延遲，指標正常則推進至 100%，異常則自動中止回滾。</desc>
+    
+    <defs>
+      <marker id="can-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="760" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="50" y="50" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700">1. 發布金絲雀 (SetWeight: 5%)</text>
+    <text x="320" y="50" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif">導入 5% 真實線上流量 ➔ 進入 10 分鐘指標觀察期</text>
+
+
+    <path d="M 400 70 L 400 95" stroke="#58a6ff" stroke-width="2" marker-end="url(#can-arrow)"/>
+
+
+    <rect x="100" y="100" width="600" height="50" rx="8" fill="#1f242c" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="125" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 自動執行 AnalysisTemplate 指標分析</text>
+    <text x="400" y="142" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">查詢 Prometheus: HTTP 5xx 錯誤率是否 &lt; 0.1%？P99 延遲是否 &lt; 200ms？</text>
+
+
+    <path d="M 280 150 L 220 180" stroke="#3fb950" stroke-width="2" marker-end="url(#can-arrow)"/>
+    <path d="M 520 150 L 580 180" stroke="#f85149" stroke-width="2" marker-end="url(#can-arrow)"/>
+
+
+    <rect x="40" y="185" width="340" height="42" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="210" y="211" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ 指標正常：推進 20% ➔ 50% ➔ 100% 全量發布</text>
+
+
+    <rect x="420" y="185" width="340" height="42" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="590" y="211" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 指標異常 (5xx 超標)：秒級自動中止並全量回滾！</text>
+
+  </svg>
+</div>
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
