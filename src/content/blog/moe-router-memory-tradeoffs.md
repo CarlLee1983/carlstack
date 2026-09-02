@@ -23,17 +23,61 @@ Dense Transformer 會讓每個 token 通過同一組參數。Sparse MoE 則通�
 
 以 [Mixtral 8x7B 技術報告](https://arxiv.org/abs/2401.04088)為例，每一層有 8 個 FFN Expert；Router 會為每個 token 選出 2 個，再依權重合併輸出。路由發生在**每個 token、每一層**，不是先判斷整段提示詞屬於數學或歷史，再固定交給某一位專家。
 
-```mermaid
-flowchart LR
-  A[Token hidden state] --> B[Shared Attention]
-  B --> C[Router scores]
-  C -->|Top-K| D1[Expert 1]
-  C -->|Top-K| D2[Expert 2]
-  C -.未選取.-> D3[Other Experts]
-  D1 --> E[Weighted sum]
-  D2 --> E
-  E --> F[Next layer]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="moe-diag-title moe-diag-desc">
+    <title id="moe-diag-title">Sparse MoE Router 稀疏路由運作流程圖</title>
+    <desc id="moe-diag-desc">展示 Token 隱藏狀態經 Shared Attention 進入 Router，Top-K 稀疏啟動 Expert 1 與 Expert 2，其餘未選取，再經加權求和進入下一層。</desc>
+
+    <defs>
+      <marker id="moe-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="15" y="60" width="130" height="38" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="80" y="84" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Token Hidden State</text>
+
+    <path d="M 145 79 L 175 79" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#moe-arr)"/>
+
+    <rect x="175" y="60" width="130" height="38" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="240" y="84" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Shared Attention</text>
+
+    <path d="M 305 79 L 335 79" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#moe-arr)"/>
+
+    <rect x="335" y="55" width="120" height="48" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="395" y="76" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">Router Gating</text>
+    <text x="395" y="93" fill="#8b949e" font-size="9" text-anchor="middle">計算各 Expert 分數</text>
+
+
+    <path d="M 455 68 L 485 35" stroke="#3fb950" stroke-width="1.5" marker-end="url(#moe-arr)"/>
+    <text x="465" y="45" fill="#3fb950" font-size="8">Top-1</text>
+
+    <path d="M 455 79 L 500 79" stroke="#3fb950" stroke-width="1.5" marker-end="url(#moe-arr)"/>
+    <text x="475" y="74" fill="#3fb950" font-size="8">Top-2</text>
+
+    <path d="M 455 90 L 485 125" stroke="#8b949e" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#moe-arr)"/>
+    <text x="465" y="118" fill="#8b949e" font-size="8">未選取</text>
+
+
+    <rect x="500" y="15" width="110" height="36" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="555" y="38" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Expert 1 (啟動)</text>
+
+    <rect x="500" y="62" width="110" height="36" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="555" y="85" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Expert 2 (啟動)</text>
+
+    <rect x="500" y="110" width="110" height="34" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="555" y="132" fill="#8b949e" font-size="10" text-anchor="middle">Experts 3 ~ 8 (略過)</text>
+
+
+    <path d="M 610 33 L 640 65" stroke="#3fb950" stroke-width="1.5"/>
+    <path d="M 610 80 L 640 80" stroke="#3fb950" stroke-width="1.5"/>
+
+    <rect x="640" y="60" width="140" height="38" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="710" y="77" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">Weighted Sum</text>
+    <text x="710" y="91" fill="#8b949e" font-size="9" text-anchor="middle">➔ Next Layer</text>
+
+  </svg>
+</div>
 
 用簡化公式表示，Router 先把 token 的 hidden state `h` 轉成各 Expert 的分數：
 

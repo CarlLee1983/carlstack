@@ -31,29 +31,32 @@ import OpenSourceAiStackBlueprintDiagram from "../../components/OpenSourceAiStac
 
 ## 一、企業級開源 AI 技術棧全景分層
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ 4. 可觀測性與評測層 (Observability, Eval & Guardrails)     │
-│    • Langfuse / Arize Phoenix (OTel 鏈路追蹤與 Token 成本)   │
-│    • Ragas / DeepEval (RAG 幻覺與語義評測)                │
-│    • NeMo Guardrails (輸入輸出安全過濾與注入防禦)           │
-├─────────────────────────────────────────────────────────┤
-│ 3. 應用編排與 Agent 框架層 (Orchestration & Governance)   │
-│    • LangGraph (狀態圖 FSM 控制與人機協同)                │
-│    • LlamaIndex (進階階層 RAG 與 Auto-Routing)          │
-│    • MCP (Model Context Protocol 標準化工具協定)         │
-├─────────────────────────────────────────────────────────┤
-│ 2. 向量檢索與語義記憶層 (Vector Storage & Memory)        │
-│    • Qdrant / Milvus (億級 HNSW 分散式向量索引與 BM25 混合) │
-│    • pgvector (基於 PostgreSQL 的輕量向量與事務結合)       │
-│    • BGE-M3 / Nomic Embed (多語言高品質嵌入模型)           │
-├─────────────────────────────────────────────────────────┤
-│ 1. 模型推理與服務層 (Model Serving & Compute Infrastructure)│
-│    • vLLM / TGI (多 GPU 張量平行 TP、PagedAttention)     │
-│    • Ollama / llama.cpp (邊緣與本機開發輕量服務)          │
-│    • Ray Serve / Kubernetes (動態彈性擴縮容)             │
-└─────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 300" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ai-stack-title ai-stack-desc">
+    <title id="ai-stack-title">企業級開源 AI 技術棧全景四層架構圖</title>
+    <desc id="ai-stack-desc">展示可觀測性與評測層、應用編排與 Agent 框架層、向量檢索與記憶層，以及底層模型推理與服務層。</desc>
+    
+    
+    <rect x="20" y="10" width="760" height="60" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="32" fill="#f85149" font-size="12" font-weight="700">4. 可觀測性與評測層 (Observability, Eval &amp; Guardrails)</text>
+    <text x="55" y="52" fill="#c9d1d9" font-size="10">• Langfuse / Arize Phoenix (OTel 鏈路追蹤與 Token 成本)  • Ragas / DeepEval (語義評測)  • NeMo Guardrails (安全防禦)</text>
+
+    <rect x="20" y="80" width="760" height="60" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="40" y="102" fill="#d2a8ff" font-size="12" font-weight="700">3. 應用編排與 Agent 框架層 (Orchestration &amp; Governance)</text>
+    <text x="55" y="122" fill="#c9d1d9" font-size="10">• LangGraph (狀態圖 FSM 控制與人機協同)  • LlamaIndex (進階階層 RAG)  • MCP (Model Context Protocol 工具協議)</text>
+
+
+    <rect x="20" y="150" width="760" height="60" rx="8" fill="#1f242c" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="172" fill="#58a6ff" font-size="12" font-weight="700">2. 向量檢索與語義記憶層 (Vector Storage &amp; Memory)</text>
+    <text x="55" y="192" fill="#c9d1d9" font-size="10">• Qdrant / Milvus (億級 HNSW 分散式索引與 BM25 混合)  • pgvector (PostgreSQL 結合)  • BGE-M3 (多語言嵌入)</text>
+
+
+    <rect x="20" y="220" width="760" height="65" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="242" fill="#3fb950" font-size="12" font-weight="700">1. 模型推理與服務層 (Model Serving &amp; Compute Infrastructure)</text>
+    <text x="55" y="262" fill="#c9d1d9" font-size="10">• vLLM / TGI (多 GPU 張量平行 TP、PagedAttention)  • Ollama / llama.cpp (邊緣輕量服務)  • Ray Serve / K8s</text>
+
+  </svg>
+</div>
 
 ---
 

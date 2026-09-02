@@ -97,11 +97,33 @@ JWT（JSON Web Token）是無狀態分散式鑑權的核心，但也最容易因
 
 **零信任架構（Zero Trust Architecture）** 的核心原則是：**「持續驗證，永不信任」**。
 
-```
-[微服務 A (Pod)] ─── (雙向 TLS 握手 / mTLS) ───► [微服務 B (Pod)]
-  • 驗證 Service B 憑證                              • 驗證 Service A 憑證
-  • 傳輸全鏈路 AES-GCM 加密                          • 依 SPIFFE ID 強制執行 RBAC 授權
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mtls-sec-title mtls-sec-desc">
+    <title id="mtls-sec-title">微服務間 mTLS 雙向認證零信任通訊架構圖</title>
+    <desc id="mtls-sec-desc">展示微服務 A 與微服務 B 互相驗證 X.509 憑證，全鏈路 AES-GCM 加密並依 SPIFFE ID 強制 RBAC 授權。</desc>
+    
+    <defs>
+      <marker id="mtls-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="260" height="95" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="150" y="42" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">微服務 A (Pod / Sidecar)</text>
+    <text x="35" y="70" fill="#c9d1d9" font-size="11">• 驗證 Service B 憑證</text>
+    <text x="35" y="92" fill="#c9d1d9" font-size="11">• 傳輸全鏈路 AES-GCM 加密</text>
+
+    <path d="M 280 62 L 500 62" stroke="#3fb950" stroke-width="2" marker-end="url(#mtls-arr)"/>
+    <text x="390" y="52" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">雙向 TLS 握手 (mTLS)</text>
+    <text x="390" y="80" fill="#8b949e" font-size="9" text-anchor="middle">X.509 互信身份認證</text>
+
+    <rect x="500" y="15" width="280" height="95" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="640" y="42" fill="#3fb950" font-size="13" font-weight="700" text-anchor="middle">微服務 B (Pod / Sidecar)</text>
+    <text x="515" y="70" fill="#c9d1d9" font-size="11">• 驗證 Service A 憑證</text>
+    <text x="515" y="92" fill="#d2a8ff" font-size="11">• 依 SPIFFE ID 強制 RBAC 授權</text>
+
+  </svg>
+</div>
 
 ### mTLS 雙向認證的實踐
 

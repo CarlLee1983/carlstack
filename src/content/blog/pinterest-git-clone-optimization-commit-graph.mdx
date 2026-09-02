@@ -238,10 +238,22 @@ git checkout <target_branch_or_commit>
 
 在 Pinterest 的大規模驗證中，啟用 Commit-Graph 與物件優化策略帶來了顯著的效益提升：
 
-```
-[ 優化前 ]  40 分鐘 ────────────────────────────────────────► (CI 隊列癱瘓)
-[ 優化後 ]  30 秒  ■ (提速 80 倍，節省 99% 時間)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pin-perf-title pin-perf-desc">
+    <title id="pin-perf-title">Pinterest Git Clone 耗時優化前後對比圖</title>
+    <desc id="pin-perf-desc">展示優化前耗時 40 分鐘導致 CI 隊列癱瘓，優化後僅需 30 秒，提速 80 倍並節省 99% 時間。</desc>
+    
+    
+    <text x="30" y="42" fill="#f85149" font-size="12" font-weight="700">優化前 (無 Commit-Graph)</text>
+    <rect x="220" y="25" width="460" height="28" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="450" y="44" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">40 分鐘 ── CI 隊列嚴重癱瘓</text>
+
+    <text x="30" y="92" fill="#3fb950" font-size="12" font-weight="700">優化後 (Commit-Graph)</text>
+    <rect x="220" y="75" width="25" height="28" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="260" y="94" fill="#3fb950" font-size="12" font-weight="700">30 秒 ⚡ 提速 80 倍，節省 99% CI 時間！</text>
+
+  </svg>
+</div>
 
 1. **拉取耗時**：從 40+ 分鐘驟降至 30 秒以內，加速超過 80 倍。
 2. **伺服器負載**：Git 伺服器的 CPU 使用率降低了 **85%**，不再頻繁因併發協商遍歷觸發 OOM。

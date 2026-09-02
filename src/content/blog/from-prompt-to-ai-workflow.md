@@ -37,14 +37,48 @@ Anthropic 互動式教程第九章與附錄把前面的技巧組合成複雜 Pro
 
 Prompt chaining 適合有固定步驟，而且每一步都值得檢查的任務。Anthropic 的現行 [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) 仍以「產生草稿、依標準審查、根據審查修訂」作為常見模式。
 
-```mermaid
-flowchart LR
-  A[輸入與任務契約] --> B[產生草稿]
-  B --> C[依 rubric 審查]
-  C -->|需要修改| D[根據具體問題修訂]
-  C -->|符合標準| E[交付]
-  D --> C
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pc-flow-title pc-flow-desc">
+    <title id="pc-flow-title">Prompt Chaining 審查與修訂閉環流程圖</title>
+    <desc id="pc-flow-desc">展示輸入與任務契約生成草稿，依 rubric 審查，符合標準交付，需修改則依問題修訂再審查。</desc>
+
+    <defs>
+      <marker id="pc-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="140" height="38" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="90" y="44" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">輸入與任務契約</text>
+
+    <path d="M 160 39 L 200 39" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pc-arr)"/>
+
+    <rect x="200" y="20" width="110" height="38" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="255" y="44" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">產生草稿</text>
+
+    <path d="M 310 39 L 350 39" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pc-arr)"/>
+
+    <polygon points="410,15 470,39 410,63 350,39" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="410" y="43" fill="#d2a8ff" font-size="10" font-weight="700" text-anchor="middle">依 rubric 審查</text>
+
+
+    <path d="M 470 39 L 630 39" stroke="#3fb950" stroke-width="2" marker-end="url(#pc-arr)"/>
+    <text x="540" y="31" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">符合標準 ➔</text>
+
+    <rect x="630" y="20" width="140" height="38" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="700" y="44" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">✅ 交付 (Deliver)</text>
+
+
+    <path d="M 410 63 L 410 90" stroke="#f85149" stroke-width="1.5" marker-end="url(#pc-arr)"/>
+    <text x="420" y="80" fill="#f85149" font-size="9">需修改</text>
+
+    <rect x="330" y="90" width="160" height="32" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="410" y="111" fill="#f85149" font-size="10" font-weight="700" text-anchor="middle">根據具體問題修訂</text>
+
+    <path d="M 330 106 L 255 106 L 255 58" fill="none" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#pc-arr)"/>
+
+  </svg>
+</div>
 
 這個拆法的價值不只是「讓模型再想一次」，而是每輪有不同責任與可觀察輸出。Reviewer 應回傳具體缺口，修訂步驟只處理那些缺口，workflow 也要限制最大循環次數。
 
@@ -60,21 +94,66 @@ flowchart LR
 4. 應用程式以 `tool_result` 把結果送回；
 5. Claude 根據真實結果繼續回答。
 
-```mermaid
-sequenceDiagram
-  participant U as 使用者
-  participant A as 應用程式
-  participant C as Claude
-  participant T as 工具
-  U->>A: 提出任務
-  A->>C: 任務與工具定義
-  C-->>A: tool_use
-  A->>A: 驗證參數與權限
-  A->>T: 執行工具
-  T-->>A: 結果或錯誤
-  A->>C: tool_result
-  C-->>A: 最終回答
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tu-seq-title tu-seq-desc">
+    <title id="tu-seq-title">Tool Use Client-Server 互動時序圖</title>
+    <desc id="tu-seq-desc">展示使用者提出任務，應用程式傳遞工具定義給 Claude，Claude 回傳 tool_use，應用程式驗證並執行工具後將 tool_result 回傳給 Claude 完成回答。</desc>
+
+    <defs>
+      <marker id="tu-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+
+    <rect x="30" y="10" width="130" height="32" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="95" y="31" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">使用者 (User)</text>
+
+    <rect x="230" y="10" width="140" height="32" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="300" y="31" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">應用程式 (App)</text>
+
+    <rect x="440" y="10" width="130" height="32" rx="6" fill="#241b35" stroke="#bc8cff"/>
+    <text x="505" y="31" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Claude (LLM)</text>
+
+    <rect x="640" y="10" width="130" height="32" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="705" y="31" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">外部工具 (Tool)</text>
+
+
+    <line x1="95" y1="42" x2="95" y2="215" stroke="#30363d" stroke-dasharray="3 3"/>
+    <line x1="300" y1="42" x2="300" y2="215" stroke="#30363d" stroke-dasharray="3 3"/>
+    <line x1="505" y1="42" x2="505" y2="215" stroke="#30363d" stroke-dasharray="3 3"/>
+    <line x1="705" y1="42" x2="705" y2="215" stroke="#30363d" stroke-dasharray="3 3"/>
+
+
+    <path d="M 95 65 L 300 65" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="195" y="58" fill="#c9d1d9" font-size="9" text-anchor="middle">1. 提出任務</text>
+
+
+    <path d="M 300 90 L 505 90" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="400" y="83" fill="#c9d1d9" font-size="9" text-anchor="middle">2. 任務 ＋ 工具定義 Schema</text>
+
+
+    <path d="M 505 115 L 300 115" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="400" y="108" fill="#d2a8ff" font-size="9" text-anchor="middle">3. tool_use (名稱與參數)</text>
+
+
+    <path d="M 300 140 L 705 140" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="500" y="133" fill="#3fb950" font-size="9" text-anchor="middle">4. 驗證權限並執行工具</text>
+
+
+    <path d="M 705 165 L 300 165" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="500" y="158" fill="#3fb950" font-size="9" text-anchor="middle">5. 工具執行結果或錯誤</text>
+
+
+    <path d="M 300 185 L 505 185" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tu-arr)"/>
+    <text x="400" y="178" fill="#58a6ff" font-size="9" text-anchor="middle">6. tool_result</text>
+
+
+    <path d="M 505 205 L 95 205" stroke="#3fb950" stroke-width="2" marker-end="url(#tu-arr)"/>
+    <text x="300" y="200" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">7. 最終結構化回答交付用戶</text>
+
+  </svg>
+</div>
 
 模型可以建議呼叫哪個工具，不能替應用程式決定是否有權刪除資料、發送訊息或花費資金。不可逆操作的核准與 idempotency 必須留在模型之外。
 

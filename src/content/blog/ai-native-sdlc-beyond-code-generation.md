@@ -55,17 +55,62 @@ LangChain 的 [Agent Development Lifecycle](https://www.langchain.com/blog/the-a
 
 接下來的 spec 與 plan 不是為了增加文件，而是要在大量程式碼產生前，先暴露依賴、架構衝突、安全邊界與驗證方式。此時修正方向通常比 review 一個巨大 diff 便宜。
 
-```mermaid
-flowchart LR
-  A[Intent] --> B[Spec]
-  B --> C[Plan]
-  C --> D[Build]
-  D --> E[Verify]
-  E --> F[Review]
-  F --> G[Deploy]
-  G --> H[Observe]
-  H -->|事故、回饋、指標| A
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sdlc-chain-title sdlc-chain-desc">
+    <title id="sdlc-chain-title">AI-Native SDLC 全流程制品鏈與回饋閉環圖</title>
+    <desc id="sdlc-chain-desc">展示 Intent 到 Spec、Plan、Build、Verify、Review、Deploy 與 Observe 循序推進，並將觀測回饋循環注入回 Intent 的閉環流程。</desc>
+
+    <defs>
+      <marker id="sdlc-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+
+    <rect x="10" y="25" width="75" height="36" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="47" y="48" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Intent</text>
+
+    <path d="M 85 43 L 105 43" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="105" y="25" width="75" height="36" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="142" y="48" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Spec</text>
+
+    <path d="M 180 43 L 200 43" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="200" y="25" width="75" height="36" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="237" y="48" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">Plan</text>
+
+    <path d="M 275 43 L 295 43" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="295" y="25" width="75" height="36" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="332" y="48" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Build</text>
+
+    <path d="M 370 43 L 390 43" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="390" y="25" width="75" height="36" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="427" y="48" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Verify</text>
+
+    <path d="M 465 43 L 485 43" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="485" y="25" width="75" height="36" rx="4" fill="#161b22" stroke="#d29922"/>
+    <text x="522" y="48" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">Review</text>
+
+    <path d="M 560 43 L 580 43" stroke="#d29922" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="580" y="25" width="80" height="36" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="620" y="48" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Deploy</text>
+
+    <path d="M 660 43 L 685 43" stroke="#da3633" stroke-width="1.5" marker-end="url(#sdlc-arr)"/>
+
+    <rect x="685" y="25" width="95" height="36" rx="4" fill="#161b22" stroke="#8b949e"/>
+    <text x="732" y="48" fill="#c9d1d9" font-size="11" font-weight="700" text-anchor="middle">Observe</text>
+
+
+    <path d="M 732 61 L 732 95 L 47 95 L 47 61" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#sdlc-arr)"/>
+    <text x="390" y="90" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">事故、回饋、指標 ➔ 持續注入下一輪 Intent 閉環</text>
+
+  </svg>
+</div>
 
 這條鏈也改變 code review 的問題。Reviewer 不只檢查語法與局部實作，而是比較「原始意圖、接受的計畫、實際 diff 與驗證證據」是否一致。若實作偏離計畫，偏離本身就應被說明，而不是讓 reviewer 從程式碼反推原因。
 

@@ -96,27 +96,62 @@ class AgentExecutionController:
 
 Agent 的記憶體系必須劃分為三種生命週期不同的層級：
 
-```mermaid
-flowchart TD
-    subgraph Working["1. 短期工作記憶 (Working Memory)"]
-        Ctx["當前 Context Window"]
-        Scratch["Scratchpad (暫存推理鏈)"]
-        Summary["滑動窗口動態遞迴摘要"]
-    end
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mem-arch-title mem-arch-desc">
+    <title id="mem-arch-title">AI Agent 三層記憶工程架構圖</title>
+    <desc id="mem-arch-desc">展示短期工作記憶（Context Window/滑動摘要）與長期情境記憶（向量資料庫）以及語義圖譜記憶（知識圖譜/規則庫）之間的雙向交互。</desc>
+    
+    <defs>
+      <marker id="mem-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-    subgraph Episodic["2. 情境情景記憶 (Episodic Memory)"]
-        VecDB["向量資料庫 (Qdrant / Milvus)"]
-        Score["加權評分: 相關性 + 時間衰減 + 重要性"]
-    end
+    <rect x="20" y="15" width="240" height="200" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="140" y="42" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">1. 短期工作記憶 (Working)</text>
 
-    subgraph Semantic["3. 語義圖譜記憶 (Semantic Memory)"]
-        Graph["實體關係知識圖譜 (Entity Knowledge Graph)"]
-        Pref["用戶長期偏好與規則庫"]
-    end
+    <rect x="35" y="55" width="210" height="40" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="140" y="80" fill="#c9d1d9" font-size="10" text-anchor="middle">當前 Context Window</text>
 
-    Working <--> Episodic
-    Working <--> Semantic
-```
+    <rect x="35" y="105" width="210" height="40" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="140" y="130" fill="#c9d1d9" font-size="10" text-anchor="middle">Scratchpad (暫存推理鏈)</text>
+
+    <rect x="35" y="155" width="210" height="45" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="140" y="182" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">滑動窗口動態遞迴摘要</text>
+
+
+    <path d="M 260 80 L 290 80" stroke="#bc8cff" stroke-width="2"/>
+    <path d="M 290 80 L 290 155" stroke="#bc8cff" stroke-width="2"/>
+    <path d="M 290 80 L 310 80" stroke="#bc8cff" stroke-width="2" marker-end="url(#mem-arr)"/>
+    <path d="M 290 155 L 310 155" stroke="#bc8cff" stroke-width="2" marker-end="url(#mem-arr)"/>
+
+
+    <rect x="310" y="15" width="230" height="200" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="425" y="42" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">2. 情境情景記憶 (Episodic)</text>
+
+    <rect x="325" y="55" width="200" height="60" rx="4" fill="#161b22" stroke="#bc8cff"/>
+    <text x="425" y="80" fill="#c9d1d9" font-size="10" text-anchor="middle">向量資料庫</text>
+    <text x="425" y="100" fill="#8b949e" font-size="9" text-anchor="middle">(Qdrant / Milvus / pgvector)</text>
+
+    <rect x="325" y="125" width="200" height="75" rx="4" fill="#161b22" stroke="#bc8cff"/>
+    <text x="425" y="150" fill="#d2a8ff" font-size="10" font-weight="700" text-anchor="middle">加權評分機制</text>
+    <text x="425" y="170" fill="#c9d1d9" font-size="9" text-anchor="middle">相關性 ＋ 時間衰減 ＋ 重要度</text>
+    <text x="425" y="188" fill="#8b949e" font-size="8" text-anchor="middle">精準喚醒歷史成功/失敗經驗</text>
+
+
+    <rect x="550" y="15" width="230" height="200" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="665" y="42" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">3. 語義圖譜記憶 (Semantic)</text>
+
+    <rect x="565" y="55" width="200" height="65" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="665" y="80" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">實體關係知識圖譜</text>
+    <text x="665" y="100" fill="#8b949e" font-size="9" text-anchor="middle">確定性事實與領域本體 (Ontology)</text>
+
+    <rect x="565" y="130" width="200" height="70" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="665" y="155" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">使用者長期偏好與規則庫</text>
+    <text x="665" y="175" fill="#8b949e" font-size="9" text-anchor="middle">跨 Session 不可破壞的約束</text>
+
+  </svg>
+</div>
 
 1. **短期工作記憶**：存放於 LLM 當前 Context Window 中。透過**滑動窗口（Sliding Window）**與**階層遞迴摘要（Hierarchical Summarization）**，將 100 輪對話動態壓縮為精華摘要，防止超出 Token 上限。
 2. **情境記憶（Episodic Memory）**：記錄過去任務的成功與失敗案例。採用 Stanford 提出的人格 Agent 加權公式檢索：

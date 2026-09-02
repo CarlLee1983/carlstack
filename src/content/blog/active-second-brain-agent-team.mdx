@@ -144,16 +144,56 @@ brain/
 
 較小的橋接方式是建立明確匯出區：
 
-```text
-local vault                 shared cloud computer
------------                 ---------------------
-raw/         (不離開本機)
-core/        (不離開本機)
-export/      -------------> brain/       (匯出工作副本；非權限邊界)
-                             signals/     (約定寫入區；非隔離)
-                             outcomes/    (約定寫入區；非隔離)
-reviewed/    <------------- review queue  (人工合併)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="obs-sync-title obs-sync-desc">
+    <title id="obs-sync-title">Obsidian 本機知識庫與雲端 Agent 最小同步架構圖</title>
+    <desc id="obs-sync-desc">展示 local vault 核心資料不離開本機，僅透過 export 匯出工作副本至雲端，雲端產出結果經 review queue 人工審查後回流本機。</desc>
+    
+    <defs>
+      <marker id="os-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="os-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="340" height="190" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="190" y="38" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Local Vault (本機受信區)</text>
+
+    <rect x="35" y="52" width="310" height="30" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="50" y="72" fill="#c9d1d9" font-size="10" font-family="monospace">raw/ ＋ core/ (🔒 核心資產・永不離開本機)</text>
+
+    <rect x="35" y="90" width="310" height="30" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="50" y="110" fill="#58a6ff" font-size="10" font-family="monospace">export/ (白名單允許匯出的最小副本)</text>
+
+    <rect x="35" y="130" width="310" height="60" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="50" y="152" fill="#3fb950" font-size="10" font-family="monospace">reviewed/ ➔ 長期知識庫</text>
+    <text x="50" y="174" fill="#8b949e" font-size="9">人工核準後方可合併進長期記憶</text>
+
+
+    <path d="M 345 105 L 440 105" stroke="#58a6ff" stroke-width="2" marker-end="url(#os-arr)"/>
+    <text x="392" y="95" fill="#58a6ff" font-size="9" text-anchor="middle">單向匯出</text>
+
+    <path d="M 440 160 L 345 160" stroke="#3fb950" stroke-width="2" marker-end="url(#os-green)"/>
+    <text x="392" y="150" fill="#3fb950" font-size="9" text-anchor="middle">審查回流</text>
+
+
+    <rect x="440" y="15" width="340" height="190" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="610" y="38" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Shared Cloud Computer (雲端非隔離區)</text>
+
+    <rect x="455" y="52" width="310" height="30" rx="4" fill="#161b22" stroke="#bc8cff"/>
+    <text x="470" y="72" fill="#d2a8ff" font-size="10" font-family="monospace">brain/ (僅供 Agent 讀取工作副本)</text>
+
+    <rect x="455" y="90" width="310" height="30" rx="4" fill="#161b22" stroke="#bc8cff"/>
+    <text x="470" y="110" fill="#c9d1d9" font-size="10" font-family="monospace">signals/ ＋ outcomes/ (暫存寫入區)</text>
+
+    <rect x="455" y="130" width="310" height="60" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="470" y="152" fill="#f85149" font-size="10" font-family="monospace">review queue (待審核佇列)</text>
+    <text x="470" y="174" fill="#8b949e" font-size="9">不具備直接覆寫本機長期知識的權限</text>
+
+  </svg>
+</div>
 
 本機整理程序是 `wiki/` 的唯一受信任寫入者；雲端只接收 allowlist 匯出的工作副本，工作流約定不修改 `brain/`，並把訊號與結果寫進指定目錄。但 Grok Bot 同帳號的所有 Bot 共用雲端電腦，因此「唯讀」與「獨立目錄」若只靠 Prompt 或路徑約定，並不是可強制的安全控制。需要強制唯讀時，應由來源服務提供唯讀 scope 或專用服務帳號，且不要把敏感 Vault 放進共享電腦。
 

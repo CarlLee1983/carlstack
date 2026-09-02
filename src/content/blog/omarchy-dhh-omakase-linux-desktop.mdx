@@ -177,19 +177,32 @@ Agent 能夠解析並直接呼叫 `omarchy` CLI 與底層 IPC 介面，安全地
 
 許多極簡平鋪發行版傾向「極端純 TUI」，排斥所有圖形介面軟體；Omarchy 則採取務實態度，將現代 GUI 與極致 TUI 進行無縫結合：
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Omarchy Software Stack                   │
-├──────────────────────────────┬──────────────────────────────┤
-│       TUI / Terminal         │             GUI              │
-├──────────────────────────────┼──────────────────────────────┤
-│ - Neovim (LazyVim)           │ - Chromium / Brave           │
-│ - Tmux / Zellij              │ - Obsidian (知識庫)          │
-│ - Lazygit, Lazydocker        │ - Kdenlive, OBS Studio       │
-│ - Yazi / Ranger (檔案管理)   │ - LibreOffice / PDF Editor   │
-│ - Spotify TUI / Cmus         │ - Windows VM (QEMU/KVM 整合) │
-└──────────────────────────────┴──────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="om-stack-title om-stack-desc">
+    <title id="om-stack-title">Omarchy 軟體生態：TUI 與 GUI 雙軌支援對照圖</title>
+    <desc id="om-stack-desc">展示 TUI 終端工具與 GUI 圖形介面軟體的無縫整合。</desc>
+    
+    
+    <rect x="20" y="15" width="370" height="200" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="205" y="42" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">💻 TUI / Terminal (極致效能)</text>
+    
+    <text x="40" y="75" fill="#c9d1d9" font-size="11">• Neovim (LazyVim 開發環境)</text>
+    <text x="40" y="100" fill="#c9d1d9" font-size="11">• Tmux / Zellij 多工作區多工分頁</text>
+    <text x="40" y="125" fill="#c9d1d9" font-size="11">• Lazygit / Lazydocker 鍵盤管控</text>
+    <text x="40" y="150" fill="#c9d1d9" font-size="11">• Yazi / Ranger 異步高效檔案管理</text>
+    <text x="40" y="175" fill="#c9d1d9" font-size="11">• Spotify TUI / Cmus 輕量背景音樂</text>
+
+    <rect x="410" y="15" width="370" height="200" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="595" y="42" fill="#d2a8ff" font-size="13" font-weight="700" text-anchor="middle">🖥️ GUI (現代圖形介面)</text>
+
+    <text x="430" y="75" fill="#c9d1d9" font-size="11">• Chromium / Brave 網頁瀏覽與除錯</text>
+    <text x="430" y="100" fill="#c9d1d9" font-size="11">• Obsidian 外部第二大腦與知識庫</text>
+    <text x="430" y="125" fill="#c9d1d9" font-size="11">• Kdenlive / OBS Studio 錄影剪輯</text>
+    <text x="430" y="150" fill="#c9d1d9" font-size="11">• LibreOffice / PDF Editor 文件辦公</text>
+    <text x="430" y="175" fill="#c9d1d9" font-size="11">• Windows VM (QEMU/KVM GPU 直通)</text>
+
+  </svg>
+</div>
 
 甚至為了增添黑客樂趣，Omarchy 還內建了一款致敬經典 **Winamp 風格** 的復古音樂播放器與 ASCII 藝術螢幕保護程式，展現了 DHH 對工作環境「樂趣（Joy of Computing）」的堅持。
 

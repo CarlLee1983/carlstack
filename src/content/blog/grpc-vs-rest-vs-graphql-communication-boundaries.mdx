@@ -148,10 +148,43 @@ const userLoader = new DataLoader(async (userIds) => {
 
 在成熟的企業級系統中，最佳實踐絕非「三選一」，而是**「分層混用、各司其職」**：
 
-```
-[前端 SPA / 移動 App] ───► [ GraphQL / REST BFF 閘道 ] ───► [ 內部微服務叢集 ]
-(按需宣告欄位 / 零瀑布)       (集中安全鑑權、協定轉換)        (gRPC 萬級 QPS 高速互聯)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="comm-bound-title comm-bound-desc">
+    <title id="comm-bound-title">現代分散式通訊邊界混用最佳實踐拓撲圖</title>
+    <desc id="comm-bound-desc">展示前端透過 GraphQL/REST 連接 BFF 閘道，BFF 轉為 gRPC 與內部微服務高速互聯。</desc>
+    
+    <defs>
+      <marker id="cb-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="cb-grpc" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="90" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="130" y="45" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">前端 SPA / 行動 App</text>
+    <text x="35" y="70" fill="#c9d1d9" font-size="10">• 按需宣告精準欄位</text>
+    <text x="35" y="90" fill="#c9d1d9" font-size="10">• 消除網路請求瀑布</text>
+
+    <path d="M 240 65 L 290 65" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#cb-arr)"/>
+    <text x="265" y="55" fill="#8b949e" font-size="9" text-anchor="middle">HTTP/JSON</text>
+
+    <rect x="290" y="20" width="230" height="90" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="405" y="45" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">GraphQL / REST BFF 閘道</text>
+    <text x="305" y="70" fill="#c9d1d9" font-size="10">• 集中身份鑑權與速率限制</text>
+    <text x="305" y="90" fill="#d2a8ff" font-size="10">• 協定轉換 ➔ JSON 轉 Proto</text>
+
+    <path d="M 520 65 L 570 65" stroke="#3fb950" stroke-width="2" marker-end="url(#cb-grpc)"/>
+    <text x="545" y="55" fill="#3fb950" font-size="9" font-weight="700" text-anchor="middle">gRPC</text>
+
+    <rect x="570" y="20" width="210" height="90" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="675" y="45" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">內部微服務叢集</text>
+    <text x="585" y="70" fill="#c9d1d9" font-size="10">• 萬級 QPS 高速二進位互聯</text>
+    <text x="585" y="90" fill="#56d364" font-size="10">• HTTP/2 多路復用強型別</text>
+
+  </svg>
+</div>
 
 1. **內部微服務之間（Service-to-Service）**：全面採用 **gRPC**。享受強型別編譯保護、低延遲與最小化伺服器資源消耗。
 2. **對外公開與開放平台（Public APIs）**：一律採用 **REST / OpenAPI**。提供全球開發者最熟悉的體驗與最大化 CDN 快取效率。

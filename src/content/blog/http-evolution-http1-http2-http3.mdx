@@ -35,10 +35,37 @@ HTTP/1.1 是純文字（ASCII-based）協定，雖然引入了 `Keep-Alive` 機�
 
 在單一 TCP 連線上，客戶端發送請求 $A$ 後，必須等待伺服器完整回傳回應 $A$，才能發送請求 $B$。如果請求 $A$ 是一個耗時 2 秒的複雜資料庫查詢，後續所有只需 5 毫秒的靜態 CSS/JS 請求都會被硬生生卡在隊伍後方。
 
-```
-[客戶端] ─── (請求 A: 耗時查詢) ─────────────────────────► [伺服器]
-[客戶端] ─── (請求 B: 5ms 靜態檔) [卡死在佇列中等待 A 完成]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="h1-hol-title h1-hol-desc">
+    <title id="h1-hol-title">HTTP/1.1 應用層隊頭阻塞示意圖</title>
+    <desc id="h1-hol-desc">展示請求 A 耗時查詢阻塞整個單一 TCP 連線，導致後續請求 B 即使只需 5ms 也被迫在佇列中等待。</desc>
+    
+    <defs>
+      <marker id="h-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="h-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#f85149"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="120" height="90" rx="8" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="80" y="70" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">客戶端</text>
+
+
+    <path d="M 140 45 L 640 45" stroke="#58a6ff" stroke-width="2" marker-end="url(#h-arr)"/>
+    <text x="390" y="38" fill="#58a6ff" font-size="11" text-anchor="middle">請求 A: 耗時資料庫查詢 (2000ms 佔用中)</text>
+
+
+    <path d="M 140 85 L 260 85" stroke="#da3633" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#h-red)"/>
+    <rect x="260" y="70" width="370" height="30" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="445" y="90" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">請求 B: 5ms 靜態檔案 ➔ [ 阻塞在佇列中等待 A 完成！]</text>
+
+    <rect x="660" y="20" width="120" height="90" rx="8" fill="#161b22" stroke="#30363d"/>
+    <text x="720" y="70" fill="#c9d1d9" font-size="13" font-weight="700" text-anchor="middle">伺服器</text>
+
+  </svg>
+</div>
 
 ### 前端工程師的歷史妥協（Hacks）
 
@@ -57,17 +84,25 @@ HTTP/1.1 是純文字（ASCII-based）協定，雖然引入了 `Keep-Alive` 機�
 
 2015 年推出的 HTTP/2（RFC 7540）是協定架構的一次重大飛躍，核心引入了**二進位分幀層（Binary Framing Layer）**：
 
-```
-+------------------------------------+
-|          HTTP/2 應用層             |
-+------------------------------------+
-|  二進位分幀層 (Headers / Data 幀)  |  <--- 核心創新
-+------------------------------------+
-|         TLS 1.2 / 1.3              |
-+------------------------------------+
-|             TCP 傳輸層             |
-+------------------------------------+
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="h2-stack-title h2-stack-desc">
+    <title id="h2-stack-title">HTTP/2 協定棧與二進位分幀層結構圖</title>
+    <desc id="h2-stack-desc">展示 HTTP/2 應用層、二進位分幀層、TLS 1.2/1.3 與底層 TCP 傳輸層的分層關係。</desc>
+    
+    <rect x="40" y="10" width="720" height="32" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="31" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">HTTP/2 應用層</text>
+
+    <rect x="40" y="48" width="720" height="38" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="72" fill="#3fb950" font-size="13" font-weight="700" text-anchor="middle">二進位分幀層 (Binary Framing: Headers / Data Frames) ── 核心創新！</text>
+
+    <rect x="40" y="92" width="720" height="32" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="400" y="113" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">TLS 1.2 / 1.3 安全傳輸層</text>
+
+    <rect x="40" y="130" width="720" height="32" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="400" y="151" fill="#8b949e" font-size="12" font-weight="700" text-anchor="middle">TCP 傳輸層 (單一連線多路復用)</text>
+
+  </svg>
+</div>
 
 ### 1. 二進位多路復用（Multiplexing）
 
@@ -104,17 +139,25 @@ TCP 是一個保證「可靠、按序傳送（Ordered Byte-Stream）」的協定
 
 HTTP/3 最激進的決定在於：**徹底放棄 TCP，改在 UDP 之上自研傳輸層協定（QUIC）**。
 
-```
-+------------------------------------+
-|           HTTP/3 應用層            |
-+------------------------------------+
-|     QPACK 標頭壓縮 (解耦依賴)      |
-+------------------------------------+
-|      QUIC (可靠傳輸 + TLS 1.3)     |  <--- 運行於使用者空間 (User Space)
-+------------------------------------+
-|             UDP 傳輸層             |
-+------------------------------------+
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="h3-stack-title h3-stack-desc">
+    <title id="h3-stack-title">HTTP/3 協定棧與 QUIC/UDP 結構圖</title>
+    <desc id="h3-stack-desc">展示 HTTP/3 應用層、QPACK 標頭壓縮、QUIC 傳輸層（運行於使用者空間）與底層 UDP 傳輸層。</desc>
+    
+    <rect x="40" y="10" width="720" height="32" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="31" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">HTTP/3 應用層</text>
+
+    <rect x="40" y="48" width="720" height="32" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="400" y="69" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">QPACK 標頭壓縮 (完全解耦串流依賴)</text>
+
+    <rect x="40" y="86" width="720" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="111" fill="#3fb950" font-size="13" font-weight="700" text-anchor="middle">QUIC (可靠傳輸 ＋ TLS 1.3 ＋ 擁塞控制 ── 使用者空間 User Space)</text>
+
+    <rect x="40" y="134" width="720" height="30" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="400" y="154" fill="#8b949e" font-size="12" font-weight="700" text-anchor="middle">UDP 傳輸層 (無連接限制，徹底消除 HoL 阻塞)</text>
+
+  </svg>
+</div>
 
 ### 1. 真·獨立 Stream（徹底消除傳輸層隊頭阻塞）
 
@@ -127,19 +170,42 @@ HTTP/3 最激進的決定在於：**徹底放棄 TCP，改在 UDP 之上自研�
   - **首次連線**：僅需 1-RTT 即可同時完成金鑰交換與傳輸協商。
   - **重複連線（Session Resumption）**：支援 **0-RTT**，客戶端在發送第一個 UDP 封包時就能夾帶加密的 HTTP GET 請求 Payload，實現真正的「零延遲」啟動。
 
-```
-[HTTP/1.1 over TCP + TLS 1.2]
-Client ─── SYN ────────► Server (1 RTT - TCP)
-Client ◄── SYN-ACK ──── Server
-Client ─── ClientHello ► Server (2 RTT - TLS)
-Client ◄── ServerHello ─ Server
-Client ─── HTTP GET ───► Server (3 RTT - Data!)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rtt-comp-title rtt-comp-desc">
+    <title id="rtt-comp-title">HTTP/1.1 TCP+TLS 與 HTTP/3 QUIC 連線建立時序對比圖</title>
+    <desc id="rtt-comp-desc">展示傳統 TCP+TLS 1.2 需耗費 3-RTT 才能開始傳輸資料，而 HTTP/3 QUIC 首連僅需 1-RTT，重連更達到 0-RTT 極速傳輸。</desc>
+    
+    
+    <rect x="20" y="10" width="370" height="210" rx="8" fill="#161b22" stroke="#388bfd"/>
+    <text x="205" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">HTTP/1.1 over TCP + TLS 1.2 (3 RTT)</text>
 
-[HTTP/3 over QUIC]
-Client ─── QUIC Initial + TLS 1.3 ──► Server (1 RTT 初次建立)
-Client ◄── QUIC Handshake Done ───── Server
-Client ─── HTTP GET (0-RTT 重連時第一包直接發送) ──► Server
-```
+    <text x="35" y="60" fill="#8b949e" font-size="10">1. Client ── SYN ────────► Server</text>
+    <text x="35" y="78" fill="#8b949e" font-size="10">   Client ◄── SYN-ACK ──── Server (1 RTT TCP)</text>
+
+    <text x="35" y="104" fill="#d2a8ff" font-size="10">2. Client ── ClientHello ► Server</text>
+    <text x="35" y="122" fill="#d2a8ff" font-size="10">   Client ◄── ServerHello ─ Server (2 RTT TLS)</text>
+
+    <text x="35" y="148" fill="#3fb950" font-size="10">3. Client ── HTTP GET ───► Server (3 RTT Data!)</text>
+
+    <rect x="35" y="170" width="340" height="35" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="205" y="192" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 耗時高達 3 RTT (約 150ms ~ 300ms 延遲)</text>
+
+
+    <rect x="410" y="10" width="370" height="210" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="595" y="32" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">HTTP/3 over QUIC (1 RTT / 0 RTT)</text>
+
+    <text x="425" y="65" fill="#56d364" font-size="11">1. 初次建立 (1 RTT)：</text>
+    <text x="440" y="88" fill="#c9d1d9" font-size="10">Client ── QUIC Initial + TLS 1.3 ──► Server</text>
+    <text x="440" y="108" fill="#c9d1d9" font-size="10">Client ◄── Handshake Done ───────── Server</text>
+
+    <text x="425" y="138" fill="#3fb950" font-size="11" font-weight="700">2. 階段重連 (0 RTT 零延遲)：</text>
+    <text x="440" y="158" fill="#3fb950" font-size="10">Client ── HTTP GET (第一包直接夾帶) ──► Server</text>
+
+    <rect x="425" y="170" width="340" height="35" rx="4" fill="#1f242c" stroke="#3fb950"/>
+    <text x="595" y="192" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">⚡ 0-RTT 即時傳輸，首包資料直接落地！</text>
+
+  </svg>
+</div>
 
 ### 3. 連線遷移（Connection Migration）
 

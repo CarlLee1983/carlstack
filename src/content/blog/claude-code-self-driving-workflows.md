@@ -122,16 +122,64 @@ Agent 在執行時最早遇到缺少的文件、失效命令與工具錯誤。�
 
 但回饋只是觀測訊號，不是可以直接寫回規則的真相。PostHog 會先聚類 Wizard 的執行回饋，再派出 subagents 重現有意義的問題，確認後才嘗試修改 context。少量團隊不需要自動聚類；定期檢查重複出現的失敗，為可重現問題補上 eval，就已經形成最小閉環。[PostHog：Your AGENTS.md is holding you back](https://x.com/posthog/status/2094485724171223409)
 
-```mermaid
-flowchart LR
-  A[執行任務] --> B[結構化回饋]
-  B --> C{能否重現}
-  C -->|否| D[保留觀測]
-  C -->|是| E[加入失敗案例]
-  E --> F[修改或刪除規則]
-  F --> G[重跑代表性 evals]
-  G --> A
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="wf-loop-title wf-loop-desc">
+    <title id="wf-loop-title">Agent 規則維護與失敗評測閉環流程圖</title>
+    <desc id="wf-loop-desc">展示執行任務產出結構化回饋，若可重現則加入失敗案例、修改規則並重跑代表性 evals 回到下一輪執行。</desc>
+
+    <defs>
+      <marker id="wf-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+
+    <rect x="15" y="20" width="100" height="38" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="65" y="44" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">執行任務</text>
+
+    <path d="M 115 39 L 145 39" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+
+
+    <rect x="145" y="20" width="110" height="38" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="200" y="44" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">結構化回饋</text>
+
+    <path d="M 255 39 L 285 39" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+
+
+    <polygon points="340,15 395,39 340,63 285,39" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="340" y="43" fill="#d2a8ff" font-size="10" font-weight="700" text-anchor="middle">能否重現？</text>
+
+
+    <path d="M 340 63 L 340 90" stroke="#8b949e" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+    <text x="350" y="80" fill="#8b949e" font-size="9">否</text>
+    <rect x="290" y="90" width="100" height="30" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="340" y="109" fill="#8b949e" font-size="10" text-anchor="middle">保留觀測日誌</text>
+
+
+    <path d="M 395 39 L 430 39" stroke="#3fb950" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+    <text x="410" y="32" fill="#3fb950" font-size="9">是</text>
+
+
+    <rect x="430" y="20" width="110" height="38" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="485" y="44" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">加入失敗案例</text>
+
+    <path d="M 540 39 L 565 39" stroke="#3fb950" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+
+
+    <rect x="565" y="20" width="105" height="38" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="617" y="44" fill="#e3b341" font-size="10" font-weight="700" text-anchor="middle">修改/刪除規則</text>
+
+    <path d="M 670 39 L 695 39" stroke="#d29922" stroke-width="1.5" marker-end="url(#wf-arr)"/>
+
+
+    <rect x="695" y="20" width="95" height="38" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="742" y="44" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">重跑 evals</text>
+
+
+    <path d="M 742 58 L 742 105 L 65 105 L 65 58" fill="none" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#wf-arr)"/>
+
+  </svg>
+</div>
 
 ## 主動管理 session，而不是撐到 context 用完
 

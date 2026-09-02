@@ -179,18 +179,67 @@ SapFix 會產生 5 到 20 個潛在的修復 Patch，並根據以下維度計算
 
 生成補丁只是第一步，**絕對不能讓自動修復引入新的 Bug**。SapFix 建立了極其嚴苛的沙盒自動化驗證流程：
 
-```
-[ Candidate Patch ] ──► [ Sandbox Compile ] ──(失敗)──► [ 立即拋棄 ]
-                             │ (通過)
-                             ▼
-                    [ Unit & Integration Tests ] ──(失敗)──► [ 立即拋棄 ]
-                             │ (通過)
-                             ▼
-                    [ Infer Clean Verification ] ──(仍有警告)──► [ 立即拋棄 ]
-                             │ (100% 通過)
-                             ▼
-                    [ Validated Patch ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sapfix-ci-title sapfix-ci-desc">
+    <title id="sapfix-ci-title">Meta SapFix 沙盒自動化三階驗證流水線圖</title>
+    <desc id="sapfix-ci-desc">展示 Candidate Patch 依序通過 Sandbox Compile、Tests 與 Infer Clean 驗證，任一失敗立即拋棄，全過產出 Validated Patch。</desc>
+    
+    <defs>
+      <marker id="sf-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="sf-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#f85149"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="160" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="45" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Candidate Patch</text>
+
+    <path d="M 180 40 L 240 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#sf-arr)"/>
+
+    <rect x="240" y="15" width="230" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="355" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. Sandbox Compile (沙盒編譯)</text>
+    <text x="355" y="54" fill="#8b949e" font-size="9" text-anchor="middle">獨立容器語法與型別校驗</text>
+
+    <path d="M 470 40 L 630 40" stroke="#da3633" stroke-width="1.5" marker-end="url(#sf-red)"/>
+    <text x="545" y="32" fill="#f85149" font-size="9" text-anchor="middle">編譯失敗</text>
+
+    <rect x="630" y="20" width="140" height="40" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="700" y="45" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 立即拋棄</text>
+
+
+    <path d="M 355 65 L 355 90" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sf-arr)"/>
+    <text x="365" y="80" fill="#3fb950" font-size="9">通過</text>
+
+
+    <rect x="240" y="90" width="230" height="50" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="355" y="113" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">2. Unit &amp; Integration Tests</text>
+    <text x="355" y="129" fill="#8b949e" font-size="9" text-anchor="middle">差量迴歸測試 ➔ 零破壞既有功能</text>
+
+    <path d="M 470 115 L 630 115" stroke="#da3633" stroke-width="1.5" marker-end="url(#sf-red)"/>
+    <text x="545" y="107" fill="#f85149" font-size="9" text-anchor="middle">測試失敗</text>
+
+    <rect x="630" y="95" width="140" height="40" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="700" y="120" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 立即拋棄</text>
+
+
+    <path d="M 355 140 L 355 165" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sf-arr)"/>
+    <text x="365" y="155" fill="#3fb950" font-size="9">通過</text>
+
+
+    <rect x="240" y="165" width="230" height="50" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="355" y="188" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">3. Infer Clean Verification</text>
+    <text x="355" y="204" fill="#56d364" font-size="9" text-anchor="middle">靜態分析警告 100% 清零</text>
+
+    <path d="M 470 190 L 630 190" stroke="#3fb950" stroke-width="2" marker-end="url(#sf-arr)"/>
+    <text x="545" y="182" fill="#3fb950" font-size="9" font-weight="700">100% 通過</text>
+
+    <rect x="630" y="170" width="150" height="40" rx="6" fill="#1f242c" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="705" y="195" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ Validated Patch</text>
+
+  </svg>
+</div>
 
 1. **編譯校驗**：在獨立 Docker 容器中套用 Patch，確保語法無誤且代碼編譯通過。
 2. **差量測試執行（Differential Test Execution）**：
