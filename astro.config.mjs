@@ -23,7 +23,12 @@ export default defineConfig({
   site,
   output: "static",
   trailingSlash: "always",
-  integrations: [mdx(), sitemap({ filter: (page) => !page.endsWith("/404/") })],
+  integrations: [
+    mdx(),
+    sitemap({
+      filter: (page) => !page.endsWith("/404/") && !page.endsWith("/search/"),
+    }),
+  ],
   markdown: {
     processor: unified({
       remarkPlugins: [remarkMermaid, remarkCallout],

@@ -1,11 +1,18 @@
 ---
 import { siteConfig } from "../../config/site";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const profileJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  mainEntity: { "@id": new URL("/about/#person", Astro.site).href },
+};
 ---
 
 <BaseLayout
   title="關於李卡爾"
   description="CarlStack 作者李卡爾與這個技術內容網站的寫作原則。"
+  jsonLd={profileJsonLd}
 >
   <div class="page shell about-page">
     <!-- Profile Hero Card with Dedicated Avatar Space -->

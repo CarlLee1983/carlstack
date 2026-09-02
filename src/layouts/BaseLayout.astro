@@ -9,37 +9,50 @@ interface Props {
   title: string;
   description?: string;
   image?: string;
+  imageAlt?: string;
   canonicalUrl?: string;
   type?: "website" | "article";
   publishDate?: Date;
   updatedDate?: Date;
   tags?: string[];
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
 }
 
 const {
   title,
   description = siteConfig.description,
   image,
+  imageAlt,
   canonicalUrl,
   type,
   publishDate,
   updatedDate,
   tags,
   jsonLd,
+  noindex = false,
 } = Astro.props;
+const personId = new URL("/about/#person", Astro.site).href;
 const websiteJsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: siteConfig.name,
-  description: siteConfig.description,
-  inLanguage: siteConfig.language,
-  url: Astro.site?.href,
-  author: {
-    "@type": "Person",
-    name: siteConfig.author,
-    url: siteConfig.github,
-  },
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": new URL("/#website", Astro.site).href,
+      name: siteConfig.name,
+      description: siteConfig.description,
+      inLanguage: siteConfig.language,
+      url: Astro.site?.href,
+      author: { "@id": personId },
+    },
+    {
+      "@type": "Person",
+      "@id": personId,
+      name: siteConfig.author,
+      url: new URL("/about/", Astro.site).href,
+      sameAs: [siteConfig.github],
+    },
+  ],
 };
 const jsonLdItems = [
   websiteJsonLd,
@@ -69,11 +82,13 @@ const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
       description={description}
       path={Astro.url.pathname}
       image={image}
+      imageAlt={imageAlt}
       canonicalUrl={canonicalUrl}
       type={type}
       publishDate={publishDate}
       updatedDate={updatedDate}
       tags={tags}
+      noindex={noindex}
     />
     {
       jsonLdItems.map((item) => (
@@ -98,7 +113,7 @@ const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
   <body>
     <a class="skip-link" href="#main-content">跳至主要內容</a>
     <Header />
-    <main id="main-content" data-pagefind-body>
+    <main id="main-content" data-pagefind-body={noindex ? undefined : ""}>
       <slot />
     </main>
     <Footer />

@@ -27,6 +27,7 @@ const seriesPosts = post.data.series
   : [];
 const canonical = post.data.canonicalUrl;
 const pageUrl = new URL(postHref(post), Astro.site);
+const personId = new URL("/about/#person", Astro.site).href;
 const articleJsonLd = {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
@@ -36,12 +37,8 @@ const articleJsonLd = {
   dateModified: (post.data.updatedDate ?? post.data.publishDate).toISOString(),
   inLanguage: siteConfig.language,
   mainEntityOfPage: canonical ?? pageUrl.href,
-  author: {
-    "@type": "Person",
-    name: siteConfig.author,
-    url: siteConfig.github,
-  },
-  publisher: { "@type": "Person", name: siteConfig.author },
+  author: { "@id": personId },
+  publisher: { "@id": personId },
   image: post.data.cover
     ? new URL(post.data.cover.src, Astro.site).href
     : new URL(siteConfig.defaultSocialImage, Astro.site).href,
@@ -53,6 +50,7 @@ const articleJsonLd = {
   title={post.data.title}
   description={post.data.description}
   image={post.data.cover?.src}
+  imageAlt={post.data.coverAlt}
   canonicalUrl={canonical}
   type="article"
   publishDate={post.data.publishDate}

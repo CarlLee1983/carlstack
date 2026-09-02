@@ -11,6 +11,7 @@ test("SEO metadata 由 SITE_URL 產生 canonical 與預設分享圖", () => {
   });
   assert.equal(metadata.canonical, "https://carlstack.example/blog/hello/");
   assert.equal(metadata.image, "https://carlstack.example/social-card.png");
+  assert.equal(metadata.imageAlt, "文章");
   assert.equal(metadata.type, "website");
 });
 
@@ -22,9 +23,11 @@ test("文章可覆寫 canonical、分享圖與內容類型", () => {
     description: "摘要",
     canonicalUrl: "https://source.example/post",
     image: "/covers/post.png",
+    imageAlt: "系統架構示意圖",
     type: "article",
   });
   assert.equal(metadata.canonical, "https://source.example/post");
   assert.equal(metadata.image, "https://carlstack.example/covers/post.png");
+  assert.equal(metadata.imageAlt, "系統架構示意圖");
   assert.equal(metadata.type, "article");
 });

@@ -4,6 +4,7 @@ interface SeoInput {
   title: string;
   description: string;
   image?: string;
+  imageAlt?: string;
   canonicalUrl?: string;
   type?: "website" | "article";
 }
@@ -13,6 +14,7 @@ export interface SeoMetadata {
   description: string;
   canonical: string;
   image: string;
+  imageAlt: string;
   type: "website" | "article";
 }
 
@@ -23,6 +25,7 @@ export function buildSeoMetadata(input: SeoInput): SeoMetadata {
     description: input.description,
     canonical,
     image: new URL(input.image ?? "/social-card.png", input.site).href,
+    imageAlt: input.imageAlt ?? input.title,
     type: input.type ?? "website",
   };
 }
