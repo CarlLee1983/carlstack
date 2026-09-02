@@ -1,0 +1,556 @@
+---
+// McDonald's Event-Driven Architecture Diagram
+---
+
+<figure class="mc-diagram" aria-labelledby="mc-caption">
+  <svg
+    class="mc-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="mc-title mc-desc"
+  >
+    <title id="mc-title">McDonald's 全球百萬級即時訂單事件驅動架構</title>
+    <desc id="mc-desc">
+      展示從多端點餐（App/POS/Kiosk）、AWS Serverless 訂單接收、SQS
+      削峰緩衝、DynamoDB 全球表狀態機、EventBridge 事件分發到門市 KVS
+      廚房系統的全鏈路架構。
+    </desc>
+
+    <defs>
+      <marker
+        id="mc-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="mc-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Omnichannel Ingress -->
+    <g class="mc-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="mc-diagram__badge" x="14" y="26">OMNICHANNEL INGRESS</text>
+      <text class="mc-diagram__title" x="14" y="54">多端點餐與邊緣接入</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="70"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--gold"></rect>
+        <text class="mc-diagram__header mc-diagram__header--gold" x="10" y="20"
+          >Mobile App / Delivery</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 全球億級行動裝置點餐</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• UberEats / DoorDash 串接</text
+        >
+      </g>
+
+      <g transform="translate(14, 155)">
+        <rect
+          width="187"
+          height="70"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--teal"></rect>
+        <text class="mc-diagram__header mc-diagram__header--teal" x="10" y="20"
+          >Kiosk 自助點餐機</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 門市高頻觸控螢幕點餐</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58">• 本機商品型錄快取</text>
+      </g>
+
+      <g transform="translate(14, 235)">
+        <rect
+          width="187"
+          height="70"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--blue"></rect>
+        <text class="mc-diagram__header mc-diagram__header--blue" x="10" y="20"
+          >POS &amp; Drive-Thru</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 櫃台收銀與得來速車道</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58">• 本地離線收銀容災</text>
+      </g>
+
+      <g transform="translate(14, 315)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--gold"></rect>
+        <text class="mc-diagram__header mc-diagram__header--gold" x="10" y="20"
+          >CloudFront &amp; API Gateway</text
+        >
+        <text class="mc-diagram__desc" x="10" y="38"
+          >• 全球 PoP 節點 Anycast 路由</text
+        >
+        <text class="mc-diagram__desc" x="10" y="56"
+          >• WAF 邊界防禦與 JWT 鑑權</text
+        >
+        <text class="mc-diagram__desc" x="10" y="74">• 請求驗證與速率限制</text>
+      </g>
+    </g>
+
+    <!-- Column 2: Serverless Ingestion & Buffering -->
+    <g class="mc-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="mc-diagram__badge" x="14" y="26">SERVERLESS INGESTION</text>
+      <text class="mc-diagram__title" x="14" y="54">無伺服器接收與削峰</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--teal"></rect>
+        <text class="mc-diagram__header mc-diagram__header--teal" x="10" y="20"
+          >AWS Lambda Ingestion</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40">• 毫秒級自動彈性伸縮</text>
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 訂單 Schema 結構校驗</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76">• 冪等 ID 產生與去重</text>
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--gold"></rect>
+        <text class="mc-diagram__header mc-diagram__header--gold" x="10" y="20"
+          >Amazon SQS (FIFO / Std)</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 尖峰時刻流量削峰填谷</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 支援百萬級每秒訊息堆疊</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76"
+          >• 死信佇列 (DLQ) 隔離錯誤</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--blue"></rect>
+        <text class="mc-diagram__header mc-diagram__header--blue" x="10" y="20"
+          >Order Processor Lambda</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 批次拉取 SQS 訂單事件</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58">• 觸發支付與庫存驗證</text>
+      </g>
+    </g>
+
+    <!-- Column 3: State Machine & Event Streams -->
+    <g class="mc-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="mc-diagram__badge" x="14" y="26">STATE &amp; ROUTING</text>
+      <text class="mc-diagram__title" x="14" y="54">狀態機與事件串流</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--gold"></rect>
+        <text class="mc-diagram__header mc-diagram__header--gold" x="10" y="20"
+          >DynamoDB Global Tables</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40">• 訂單核心狀態儲存</text>
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 跨區域 Active-Active 複製</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76"
+          >• 樂觀鎖 (Version/Condition)</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--teal"></rect>
+        <text class="mc-diagram__header mc-diagram__header--teal" x="10" y="20"
+          >DynamoDB Streams</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 捕獲所有狀態變更 (CDC)</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 順序時間序列事件日誌</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76">• 零延遲觸發下游廣播</text>
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--blue"></rect>
+        <text class="mc-diagram__header mc-diagram__header--blue" x="10" y="20"
+          >EventBridge Event Bus</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 宣告式規則與內容路由</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 跨微服務領域事件分發</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Store Fulfillment & Real-time Sync -->
+    <g class="mc-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="mc-diagram__badge" x="14" y="26">STORE FULFILLMENT</text>
+      <text class="mc-diagram__title" x="14" y="54">門市履約與實時推播</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--teal"></rect>
+        <text class="mc-diagram__header mc-diagram__header--teal" x="10" y="20"
+          >Kitchen Video System (KVS)</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 廚房即時出單顯示螢幕</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 漢堡/薯條工作站動態拆單</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76"
+          >• WebSocket 雙向狀態反饋</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--gold"></rect>
+        <text class="mc-diagram__header mc-diagram__header--gold" x="10" y="20"
+          >Customer Status Display</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• 門市取餐螢幕「製作中/可取餐」</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• App Push (APNs/FCM) 即時通知</text
+        >
+        <text class="mc-diagram__desc" x="10" y="76"
+          >• 得來速語音與指示燈聯動</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="mc-diagram__subcard mc-diagram__subcard--blue"></rect>
+        <text class="mc-diagram__header mc-diagram__header--blue" x="10" y="20"
+          >Analytics &amp; Data Lake</text
+        >
+        <text class="mc-diagram__desc" x="10" y="40"
+          >• S3 / Athena 實時財務對帳</text
+        >
+        <text class="mc-diagram__desc" x="10" y="58"
+          >• 供應鏈物料即時消耗預警</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="mc-diagram__line"
+      marker-end="url(#mc-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="mc-diagram__line"
+      marker-end="url(#mc-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="mc-diagram__line"
+      marker-end="url(#mc-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="mc-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="mc-m-title"
+  >
+    <title id="mc-m-title">McDonald's 事件驅動架構（手機檢視）</title>
+
+    <g class="mc-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="mc-diagram__badge" x="12" y="22"
+        >1. 全通路點餐與邊緣接入</text
+      >
+      <text class="mc-diagram__desc" x="12" y="45"
+        >• App / Kiosk / POS / 得來速多端併發</text
+      >
+      <text class="mc-diagram__desc" x="12" y="65"
+        >• CloudFront PoP Anycast 邊界路由</text
+      >
+      <text class="mc-diagram__desc" x="12" y="85"
+        >• API Gateway WAF 防護與 JWT 鑑權</text
+      >
+      <text class="mc-diagram__desc" x="12" y="105"
+        >• 本地 POS 離線收銀容災保護</text
+      >
+    </g>
+
+    <g class="mc-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="mc-diagram__badge" x="12" y="22"
+        >2. Serverless 接收與削峰緩衝</text
+      >
+      <text class="mc-diagram__desc" x="12" y="45"
+        >• Lambda 毫秒級彈性伸縮處理點餐</text
+      >
+      <text class="mc-diagram__desc" x="12" y="65"
+        >• Amazon SQS 萬級訂單削峰填谷</text
+      >
+      <text class="mc-diagram__desc" x="12" y="85"
+        >• 冪等鍵校驗與死信隊列 (DLQ) 隔離</text
+      >
+      <text class="mc-diagram__desc" x="12" y="105"
+        >• 批次非同步觸發支付與庫存檢查</text
+      >
+    </g>
+
+    <g class="mc-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="mc-diagram__badge" x="12" y="22"
+        >3. 狀態機與事件串流分發</text
+      >
+      <text class="mc-diagram__desc" x="12" y="45"
+        >• DynamoDB 全球表持久化訂單狀態</text
+      >
+      <text class="mc-diagram__desc" x="12" y="65"
+        >• DynamoDB Streams 實時捕獲變更</text
+      >
+      <text class="mc-diagram__desc" x="12" y="85"
+        >• EventBridge 宣告式路由領域事件</text
+      >
+      <text class="mc-diagram__desc" x="12" y="105"
+        >• 跨區域 Active-Active 雙活無縫切換</text
+      >
+    </g>
+
+    <g class="mc-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="mc-diagram__badge" x="12" y="22"
+        >4. 門市廚房履約與即時推播</text
+      >
+      <text class="mc-diagram__desc" x="12" y="45"
+        >• KVS 廚房系統即時顯示與拆單製作</text
+      >
+      <text class="mc-diagram__desc" x="12" y="65"
+        >• 門市看板與行動 App 即時狀態通知</text
+      >
+      <text class="mc-diagram__desc" x="12" y="85"
+        >• 得來速車道語音/指示燈自動聯動</text
+      >
+      <text class="mc-diagram__desc" x="12" y="105"
+        >• S3 / Athena 實時財務對帳與供應鏈預警</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="mc-caption" class="mc-diagram__caption">
+    圖 1：McDonald's 全球訂單事件驅動架構 — 從 API Gateway、SQS 削峰、DynamoDB
+    狀態機到門市 KVS 履約
+  </figcaption>
+</figure>
+
+<style>
+  .mc-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mc-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .mc-diagram__desktop {
+    display: block;
+  }
+
+  .mc-diagram__mobile {
+    display: none;
+  }
+
+  .mc-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Theme variables */
+  .mc-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .mc-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .mc-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .mc-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .mc-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .mc-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .mc-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .mc-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .mc-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .mc-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .mc-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .mc-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .mc-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .mc-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mc-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .mc-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .mc-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .mc-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .mc-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .mc-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .mc-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .mc-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .mc-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .mc-diagram__line {
+    stroke: #475569;
+  }
+
+  .mc-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .mc-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .mc-diagram__desktop {
+      display: none;
+    }
+    .mc-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

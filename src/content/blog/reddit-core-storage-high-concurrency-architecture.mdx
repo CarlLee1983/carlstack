@@ -1,0 +1,211 @@
+---
+title: "Reddit 核心儲存與高併發架構演進：從 Thing2 EAV、Redis 快取到 Cassandra 留言樹與 Baseplate 微服務"
+description: "深入剖析 Reddit 承載百億級貼文、留言與即時投票的架構演進史：從 PostgreSQL 上的 Thing2 EAV 模型、Memcached/Redis 多層快取、Cassandra 留言樹渲染，到 Baseplate 微服務與 Hot Ranking 排行演算法。"
+publishDate: 2026-09-02T11:09:00+08:00
+draft: false
+featured: false
+tags:
+  - "系統設計"
+  - "資料庫"
+  - "快取架構"
+  - "高併發"
+  - "社群網路"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/reddit-core-storage-high-concurrency-architecture.png
+coverAlt: "分層快取與分散式儲存支撐高併發巢狀留言樹的熱點流量"
+---
+
+import RedditCoreStorageDiagram from "../../components/RedditCoreStorageDiagram.astro";
+
+作為全球最大的社群論壇與討論聚落之一，Reddit 每月擁有超過 8.5 億名活躍訪問者，沉澱了數億條熱門貼文、數十億條樹狀巢狀留言（Nested Comments）以及無時無刻不在變動的即時投票（Upvotes / Downvotes）。
+
+社群討論系統有著非常特殊的讀寫模式：**極端讀多寫少（讀寫比高達 100:1 以上）**，但在熱點事件爆發時，單一貼文下的評論與投票會在一秒內湧入數萬次寫入。
+
+更具挑戰性的是，Reddit 標誌性的**深層巢狀留言樹**需要在毫秒內完成排序與層次渲染。
+
+本文將完整拆解 Reddit 核心儲存架構的三代演進：從早期在 PostgreSQL 上極具爭議的「Thing2 EAV 模型」、多層快取設計、Cassandra 留言儲存，到基於 Go / Rust 的現代 Baseplate 微服務架構。
+
+---
+
+## 核心儲存與留言樹架構全景
+
+Reddit 的高併發儲存與渲染管線歷經多次重構，形成如下的多層解耦架構：
+
+<RedditCoreStorageDiagram />
+
+整個系統的運作包含四個關鍵核心：
+
+1. **早期 Thing2 EAV 模型**：在關聯式資料庫中以兩張表模擬 NoSQL，享受免 Schema 變更紅利。
+2. **多層快取與防護（Caching Layer）**：Memcached 吸收 99% 的實體讀取，Redis Sorted Sets 維護 Subreddit 貼文熱度排行。
+3. **留言樹與分散式儲存（Cassandra Storage）**：透過 Materialized Path 與寬表寫入特化，支撐百億級留言的高速擴展。
+4. **Baseplate 微服務與排行計算（Hot Ranking Pipeline）**：高效能微服務框架搭配時間衰減對數演算法，即時輸出熱門動態。
+
+---
+
+## 1. 傳奇的 Thing2 EAV 模型：在 PostgreSQL 上建構 NoSQL
+
+在 NoSQL 資料庫（如 MongoDB、Cassandra）尚未成熟的 2008 年，Reddit 工程師面臨著頻繁迭代功能但關聯式資料庫 `ALTER TABLE` 會鎖死整張表的巨大痛點。
+
+為此，Reddit 設計了名為 **Thing2** 的 **實體-屬性-值（Entity-Attribute-Value, EAV）** 儲存模型：
+
+### 1.1 核心資料表結構
+
+整套系統的核心僅由兩張 PostgreSQL 資料表構成：
+
+```sql
+-- 實體主表 (Things)
+CREATE TABLE things (
+    thing_id BIGINT PRIMARY KEY,
+    thing_type INT NOT NULL,       -- 1: Account, 2: Subreddit, 3: Link, 4: Comment
+    ups INT DEFAULT 0,
+    downs INT DEFAULT 0,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 屬性鍵值表 (Data)
+CREATE TABLE data (
+    thing_id BIGINT NOT NULL REFERENCES things(thing_id),
+    key VARCHAR(64) NOT NULL,
+    value TEXT NOT NULL,
+    PRIMARY KEY (thing_id, key)
+);
+```
+
+```
+[ things ] ──(1 : N)──► [ data ]
+ID: 1001                 ID: 1001 | key: "title"  | value: "System Design 101"
+Type: 3 (Link)           ID: 1001 | key: "author" | value: "Carl"
+Ups: 450                 ID: 1001 | key: "url"    | value: "https://carlstack.dev"
+```
+
+### 1.2 Thing2 的得與失
+
+| 維度              | 優勢                                             | 代價與瓶頸                                     |
+| :---------------- | :----------------------------------------------- | :--------------------------------------------- |
+| **Schema 敏捷性** | 新增功能只需寫入新的 key，完全無需 DDL Migration | 無法依賴資料庫的外鍵（FK）與約束檢查           |
+| **儲存彈性**      | 所有物件類型（用戶、貼文、投票）統一抽象         | 屬性都是字串，無法利用 DB 內建索引高效範圍查詢 |
+| **查詢效能**      | 讀取單一 Thing 時極為單純                        | 查詢複雜關聯必須在應用層手動執行多次 `SELECT`  |
+
+隨著資料量突破數十億筆，EAV 的 SQL 查詢爆炸問題日益嚴重，Reddit 必須將資料庫查詢嚴密防禦在多層快取之後。
+
+---
+
+## 2. 快取架構：Memcached 與 Redis 排行榜
+
+為了不讓龐大的讀取流量穿透至 PostgreSQL，Reddit 建立了極其激進的快取策略。
+
+### 2.1 Memcached 物件快取
+
+- **快取整個 Thing 物件**：當應用層讀取 `Thing ID: 1001` 時，首先在 Memcached 尋找。命中時直接取得反序列化後的 Python/Go 物件，讀取延遲小於 1ms。
+- **快取穿透防禦**：使用分散式 Mutex Lock。當快取失效時，只允許一個 Worker 執行 SQL 回源載入並回寫 Memcached，其餘請求等待，避免資料庫被瞬間打垮。
+
+### 2.2 Redis Sorted Sets (ZSet) 與即時排行榜
+
+Subreddit（看板）的熱門文章列表不走關聯查詢，而是由 **Redis Sorted Sets** 直接提供：
+
+```redis
+# 將貼文 ID 加入 Subreddit 的熱度排行榜 (Score 為 Hot 演算法計算出的數值)
+ZADD subreddit:tech:hot 1725278400.45 "link_1001"
+ZADD subreddit:tech:hot 1725278100.80 "link_1002"
+
+# 獲取前 25 筆熱門貼文 (時間複雜度 O(log N + M))
+ZREVRANGE subreddit:tech:hot 0 24
+```
+
+---
+
+## 3. 留言樹（Comment Tree）架構與 Cassandra 遷移
+
+Reddit 討論區最核心的靈魂是**多層級留言樹**。在一篇熱門貼文下，可能存在 50,000 條留言，巢狀深度可達數十層。
+
+### 3.1 樹狀資料的儲存模式比較
+
+| 模式                                   | 寫入複雜度                | 查詢單一子樹          | 跨層級排序難度               |
+| :------------------------------------- | :------------------------ | :-------------------- | :--------------------------- |
+| **Adjacency List (鄰接表: parent_id)** | **$O(1)$ 最快**           | 需要遞迴 CTE 查詢，慢 | 難以在資料庫內一次性排序     |
+| **Nested Sets (巢狀集合: lft/rgt)**    | $O(N)$ 插入節點需更新全樹 | $O(1)$ 單次範圍查詢   | 寫入併發極差，不適用高頻評論 |
+| **Materialized Path (物化路徑)**       | **$O(1)$ 高效**           | **前綴索引快速匹配**  | **應用層組裝最佳選擇**       |
+
+### 3.2 Materialized Path 與記憶體樹重構
+
+Reddit 採用了 **物化路徑（Materialized Path）** 搭配應用層記憶體重構：
+
+```
+Comment 1 (Path: "0001")
+  ├── Comment 1.1 (Path: "0001.0001")
+  │     └── Comment 1.1.1 (Path: "0001.0001.0001")
+  └── Comment 1.2 (Path: "0001.0002")
+```
+
+1. **儲存結構**：在 **Apache Cassandra** 中建立寬表，以 `post_id` 作為 Partition Key，以 `comment_id` 或 `path` 作為 Clustering Key。
+2. **批次加載**：打開貼文時，一次性拉取該 `post_id` 下的所有評論 ID、Parent ID 與 Vote Score。
+3. **應用層組裝**：在應用伺服器記憶體中，透過 Hash Map 在 $O(N)$ 時間內建立出樹狀指標結構，並在記憶體中遞迴執行子留言的熱度排序與分頁裁剪（Pagination Truncation）。
+
+---
+
+## 4. 演算法揭秘：Hot Ranking 與 Vote Fuzzing
+
+### 4.1 Reddit 經典熱門排行演算法 (Hot Ranking)
+
+Reddit 貼文的排名分數計算公式如下：
+
+```text
+Score = log10(max(|U - D|, 1)) + (sign(U - D) * (t_post - t_0)) / 45000
+```
+
+```python
+# Reddit 經典 Hot Ranking 演算法 Python 實作
+import math
+from datetime import datetime
+
+EPOCH = datetime(1970, 1, 1)
+
+def calculate_hot_score(ups: int, downs: int, post_time: datetime) -> float:
+    s = ups - downs
+    order = math.log10(max(abs(s), 1))
+    sign = 1 if s > 0 else (-1 if s < 0 else 0)
+
+    # 45000 秒 = 12.5 小時
+    seconds = (post_time - EPOCH).total_seconds() - 1134028003
+    return round(sign * order + seconds / 45000, 7)
+```
+
+- **對數效應**：前 10 個推票的權重等同於後續的 100 個推票、再等同於後續的 1000 個推票。
+- **時間衰減**：每過 12.5 小時，貼文的分數需要增加 10 倍的淨推票才能維持相同排名，確保首頁永遠有新鮮內容。
+
+### 4.2 投票模糊化機制 (Vote Fuzzing)
+
+為了防止垃圾郵件與惡意刷票機器人（Spambots）檢測出自己的帳號是否已被系統「影子封禁（Shadowbanned）」，Reddit 在 API 回傳與前端渲染貼文的投票數時，會加入一個**受控的隨機微幅波動（Noise +/- 3%）**。機器人無法透過單次回傳精確得知其投票是否生效。
+
+---
+
+## 5. 現代架構：Baseplate 微服務生態
+
+隨著 Python 單體的效能瓶頸顯現，Reddit 開發了開源微服務底座 **Baseplate**（支援 Go 與 Rust）：
+
+- **高效能 Thrift / gRPC 通訊**：全面取代舊有的 HTTP JSON 內部呼叫。
+- **統一可觀測性**：內建 OpenTelemetry 追蹤、Prometheus 指標與結構化日誌。
+- **非同步事件流**：基於 Apache Kafka 與 Apache Flink 實現即時反作弊風控與動態投票聚合。
+
+---
+
+## 6. 架構總結與設計啟示
+
+| 架構維度       | 早期方案 (Thing2)            | 現代架構 (Baseplate + Cassandra)              |
+| :------------- | :--------------------------- | :-------------------------------------------- |
+| **資料儲存**   | PostgreSQL 上的 EAV 兩表模型 | Cassandra (留言/投票) + Aurora PostgreSQL     |
+| **留言樹渲染** | SQL 多次查詢拼裝             | Cassandra 寬表 + Materialized Path 記憶體構建 |
+| **排行榜**     | 批次 Cron Job 計算           | Redis ZSets + Flink 即時流式 Hot Ranking 計算 |
+| **後端技術棧** | Python 2 單體                | Go / Rust (Baseplate 框架) + Kubernetes       |
+
+Reddit 的架構演進證明了：在極端讀多寫少的社群場景中，**資料庫並不是用來做複雜運算的，而是用來持久化狀態**。透過記憶體快取矩陣、物化路徑預排序與應用層高效構建，才能在百萬併發下維持極致的流暢體驗。
+
+---
+
+## 參考一手來源與延伸閱讀
+
+- [Reddit Engineering Blog: Evolution of Reddit Core Storage](https://www.reddit.com/r/RedditEng/)
+- [Reddit Open Source: Baseplate.py / Baseplate.go](https://github.com/reddit/baseplate.go)
+- [How Reddit Ranking Algorithms Work (Amir Salihefendic Analysis)](https://moz.com/blog/reddit-stumbleupon-delicious-and-hacker-news-algorithms-exposed)
+- [ByteByteGo: Reddit's Core Architecture Visual Guide](https://bytebytego.com/guides/reddit's-core-architecture)

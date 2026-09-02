@@ -1,0 +1,544 @@
+---
+// Pinterest Git Clone Optimization & Commit-Graph Diagram
+---
+
+<figure class="pt-diagram" aria-labelledby="pt-caption">
+  <svg
+    class="pt-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="pt-title pt-desc"
+  >
+    <title id="pt-title">
+      Pinterest Git Clone 99% 耗時優化與 Commit-Graph 機制
+    </title>
+    <desc id="pt-desc">
+      展示從龐大 Monorepo 物件拓撲遍歷瓶頸、Commit-Graph 二進位生成序號加速、Git
+      物件過濾策略到 CI/CD 耗時從 40 分鐘降至 30 秒的全景對比。
+    </desc>
+
+    <defs>
+      <marker
+        id="pt-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="pt-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Monorepo Bottleneck -->
+    <g class="pt-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="pt-diagram__badge" x="14" y="26">THE BOTTLENECK</text>
+      <text class="pt-diagram__title" x="14" y="54">大型 Monorepo 瓶頸</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--gold"></rect>
+        <text class="pt-diagram__header pt-diagram__header--gold" x="10" y="20"
+          >海量歷史物件規模</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• 500,000+ Commits 歷史</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 數萬 Branches 與 Tags</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76">• 數百 GB 儲存庫容量</text>
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--blue"></rect>
+        <text class="pt-diagram__header pt-diagram__header--blue" x="10" y="20"
+          >協商階段 CPU 100%</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• 物件協商 (Negotiation)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 解包遍歷 Commit 物件</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• 單次 Clone 耗時 40+ 分鐘</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--teal"></rect>
+        <text class="pt-diagram__header pt-diagram__header--teal" x="10" y="20"
+          >CI/CD 產能癱瘓</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• 數千 Runner 互相搶佔頻寬</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 開發者等待 PR 構建崩潰</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Commit-Graph Internals -->
+    <g class="pt-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="pt-diagram__badge" x="14" y="26">CORE MECHANISM</text>
+      <text class="pt-diagram__title" x="14" y="54">Commit-Graph 核心原理</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--teal"></rect>
+        <text class="pt-diagram__header pt-diagram__header--teal" x="10" y="20"
+          >Generation Numbers</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• 為 Commit 計算拓撲深度</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 可達性查詢 (Reachability)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• O(N) 遍歷降至 O(log N)</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--gold"></rect>
+        <text class="pt-diagram__header pt-diagram__header--gold" x="10" y="20"
+          >二進位結構表 (.git/objects)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40">• OID Fanout 快速索引</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• OID Lookups 平行二分查</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• 零解壓縮直接讀取 Parent</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--blue"></rect>
+        <text class="pt-diagram__header pt-diagram__header--blue" x="10" y="20"
+          >單行神奇指令</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• fetch.writeCommitGraph=true</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 每次 fetch 自動增量更新</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Advanced Clone Strategy -->
+    <g class="pt-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="pt-diagram__badge" x="14" y="26">CLONE STRATEGY</text>
+      <text class="pt-diagram__title" x="14" y="54">現代進階 Clone 矩陣</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--blue"></rect>
+        <text class="pt-diagram__header pt-diagram__header--blue" x="10" y="20"
+          >Blobless Clone (推薦)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40">• --filter=blob:none</text>
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 僅拉取 Commit 與 Tree 拓撲</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• 按需下載檔案 (支援 git log)</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--gold"></rect>
+        <text class="pt-diagram__header pt-diagram__header--gold" x="10" y="20"
+          >Treeless Clone (CI 特化)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40">• --filter=tree:0</text>
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 連歷史目錄樹都不下載</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• 極小傳輸量，最適合一次性 CI</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--teal"></rect>
+        <text class="pt-diagram__header pt-diagram__header--teal" x="10" y="20"
+          >Shallow Clone (淺層)</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40">• --depth=1</text>
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 僅取最新一個 Commit 狀態</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Production Results -->
+    <g class="pt-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="pt-diagram__badge" x="14" y="26">PRODUCTION IMPACT</text>
+      <text class="pt-diagram__title" x="14" y="54">生產實踐效益對比</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--teal"></rect>
+        <text class="pt-diagram__header pt-diagram__header--teal" x="10" y="20"
+          >耗時從 40m ➔ 30s</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• Clone / Fetch 速度提升 80x</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 節省 99% 的拉取等待時間</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76">• CI 構建整體提速 65%</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--gold"></rect>
+        <text class="pt-diagram__header pt-diagram__header--gold" x="10" y="20"
+          >伺服器資源解放</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• Git 伺服器 CPU 負載驟降 85%</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• 網路出站頻寬大幅削減</text
+        >
+        <text class="pt-diagram__desc" x="10" y="76"
+          >• 消除 Runner 併發排隊</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="pt-diagram__subcard pt-diagram__subcard--blue"></rect>
+        <text class="pt-diagram__header pt-diagram__header--blue" x="10" y="20"
+          >開發者體驗升級</text
+        >
+        <text class="pt-diagram__desc" x="10" y="40"
+          >• 本機切換分支毫秒級相應</text
+        >
+        <text class="pt-diagram__desc" x="10" y="58"
+          >• PR 自動化回饋極速到達</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="pt-diagram__line"
+      marker-end="url(#pt-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="pt-diagram__line"
+      marker-end="url(#pt-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="pt-diagram__line"
+      marker-end="url(#pt-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="pt-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="pt-m-title"
+  >
+    <title id="pt-m-title">Pinterest Git 優化（手機檢視）</title>
+
+    <g class="pt-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="pt-diagram__badge" x="12" y="22">1. 巨型 Monorepo 瓶頸</text>
+      <text class="pt-diagram__desc" x="12" y="45"
+        >• 500,000+ Commits 與數百 GB 體積</text
+      >
+      <text class="pt-diagram__desc" x="12" y="65"
+        >• Git 協商階段 CPU 100% 深度遍歷</text
+      >
+      <text class="pt-diagram__desc" x="12" y="85"
+        >• CI Runner 每次 Clone 耗時 40+ 分鐘</text
+      >
+      <text class="pt-diagram__desc" x="12" y="105"
+        >• 開發者 PR 驗證隊列嚴重塞車</text
+      >
+    </g>
+
+    <g class="pt-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="pt-diagram__badge" x="12" y="22"
+        >2. Commit-Graph 底層加速</text
+      >
+      <text class="pt-diagram__desc" x="12" y="45"
+        >• Generation Number 拓撲深度序號</text
+      >
+      <text class="pt-diagram__desc" x="12" y="65"
+        >• 可達性計算從 O(N) 驟降至 O(log N)</text
+      >
+      <text class="pt-diagram__desc" x="12" y="85"
+        >• 二進位結構表直讀，免解壓 Commit 物件</text
+      >
+      <text class="pt-diagram__desc" x="12" y="105"
+        >• 單行配置：fetch.writeCommitGraph=true</text
+      >
+    </g>
+
+    <g class="pt-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="pt-diagram__badge" x="12" y="22">3. 現代進階 Clone 策略</text
+      >
+      <text class="pt-diagram__desc" x="12" y="45"
+        >• Blobless (--filter=blob:none)：按需拉檔案</text
+      >
+      <text class="pt-diagram__desc" x="12" y="65"
+        >• Treeless (--filter=tree:0)：CI 專用極速</text
+      >
+      <text class="pt-diagram__desc" x="12" y="85"
+        >• Shallow (--depth=1)：僅拉最新層狀態</text
+      >
+      <text class="pt-diagram__desc" x="12" y="105"
+        >• 傳輸體積削減 90% 以上</text
+      >
+    </g>
+
+    <g class="pt-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="pt-diagram__badge" x="12" y="22"
+        >4. 效益：40 分鐘 ➔ 30 秒</text
+      >
+      <text class="pt-diagram__desc" x="12" y="45"
+        >• Git Clone 耗時縮短 99%</text
+      >
+      <text class="pt-diagram__desc" x="12" y="65"
+        >• Git 伺服器 CPU 負載驟降 85%</text
+      >
+      <text class="pt-diagram__desc" x="12" y="85">• CI 整體構建提速 65%</text>
+      <text class="pt-diagram__desc" x="12" y="105"
+        >• 全球數千名工程師協同效率大幅躍升</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="pt-caption" class="pt-diagram__caption">
+    圖 1：Pinterest Git Clone 耗時優化 — 從 Commit-Graph 拓撲加速、物件過濾到
+    CI/CD 效能躍升 99%
+  </figcaption>
+</figure>
+
+<style>
+  .pt-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pt-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .pt-diagram__desktop {
+    display: block;
+  }
+
+  .pt-diagram__mobile {
+    display: none;
+  }
+
+  .pt-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Theme variables */
+  .pt-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .pt-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .pt-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .pt-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .pt-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .pt-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .pt-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .pt-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .pt-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .pt-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .pt-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .pt-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .pt-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .pt-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .pt-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .pt-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .pt-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .pt-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .pt-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .pt-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .pt-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .pt-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .pt-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .pt-diagram__line {
+    stroke: #475569;
+  }
+
+  .pt-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .pt-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .pt-diagram__desktop {
+      display: none;
+    }
+    .pt-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

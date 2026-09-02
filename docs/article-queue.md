@@ -2,17 +2,6 @@
 
 只放還沒寫成正式草稿的題目，依處理順序由上往下排列。
 
-## ⏳ 排隊中（第 6 批：真實巨頭架構案例二期）
-
-1. [Slack 訊息投遞之旅 (Journey of a Slack Message)](https://bytebytego.com/guides/what-is-the-journey-of-a-slack-message) — 邊緣 Gateway、WebSocket 雙向長連線、Channel Server 廣播、Redis 緩存矩陣與 MySQL 訊息分片儲存
-2. [McDonald's 百萬級即時訂單事件驅動架構](https://bytebytego.com/guides/mcdonald's-event-driven-architecture) — AWS SQS、Lambda、DynamoDB 事件串流、跨區域 Active-Active 容災與訂單狀態機
-3. [Airbnb 微服務架構演進：0 到 15 億房客的擴展之路](https://bytebytego.com/guides/airbnb-artchitectural-evolution) — 單體 Monorail 拆分、Thrift RPC 服務網格、Spinnaker 持續交付與資料庫垂直解耦
-4. [Pinterest 單行代碼優化 99% Git Clone 耗時](https://bytebytego.com/guides/the-one-line-change-that-reduced-clone-times-by-a-whopping-99-says-pinterest) — commit-graph 底層原理、拓撲排序加速與大規模 CI/CD 構建效能調優
-5. [Reddit 核心儲存與高併發架構演進](https://bytebytego.com/guides/reddit's-core-architecture) — PostgreSQL 基礎架構、Cassandra / Redis 快取分層與百萬級貼文投票即時管線
-6. [Meta 規模化自動修復 Bug 架構：SapFix 與 Infer](https://bytebytego.com/guides/fixing-bugs-automatically-at-meta-scale) — 靜態分析、自動生成修復補丁、CI 測試驗證與生產灰度部署
-
----
-
 ## ⏳ 排隊中（第 7 批：分散式高階儲存與資料一致性）
 
 1. [Erasure Coding（糾刪碼 / RS Code）架構原理](https://bytebytego.com/guides/erasure-coding) — 告別 3 副本 200% 儲存成本膨脹、范德蒙矩陣編解碼與節點修復頻寬優化

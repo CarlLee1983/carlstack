@@ -4,7 +4,7 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 ~ 5 批與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 20 批共 64 篇，全系列共 85 篇）已全面結構化整理入佇列待後續撰寫。
+> 狀態：已完成第 1 ~ 6 批與 ELK 專題共 27 篇架構文章發布；後續主題（第 7 ~ 20 批共 58 篇，全系列共 85 篇）已全面結構化整理入佇列待後續撰寫。
 
 ---
 
@@ -18,7 +18,7 @@
 | **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）                  | 4 篇     | 4 篇       | ✅ **已全數發布** |
 | **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）              | 3 篇     | 3 篇       | ✅ **已全數發布** |
 | **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）                | 1 篇     | 1 篇       | ✅ **已發布**     |
-| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta）     | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit / Meta）     | 6 篇     | 6 篇       | ✅ **已全數發布** |
 | **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）             | 6 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 | **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / GraphQL）              | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 | **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 分頁）            | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
@@ -121,19 +121,30 @@
    - **一手來源**：[ByteByteGo ELK Stack Guide](https://bytebytego.com/guides/what-is-elk-stack-and-why-is-it-so-popular-for-log-management/)
    - **核心要點**：Filebeat 邊界採集與背壓控制、Kafka 削峰防禦寫入雪崩、Logstash Grok 結構化解析、Lucene 倒排索引 FST 詞典與 Doc Values 列式儲存、Grafana Loki 僅索引標籤與 S3 壓縮（成本降 80%）、OpenSearch 開源分支選型。
 
+### 第 6 批：真實巨頭架構案例二期
+
+1. [**Slack 訊息投遞之旅：從 WebSocket 邊緣長連線、通道廣播到分片 MySQL 的即時架構實踐**](../../src/content/blog/slack-message-pipeline-architecture.mdx)
+   - **一手來源**：[Slack Engineering: Real-time Messaging Architecture](https://slack.engineering/) / [ByteByteGo Guide](https://bytebytego.com/guides/what-is-the-journey-of-a-slack-message)
+   - **核心要點**：邊緣 Envoy TLS 終結、WebSocket 雙向通道、Channel Server 記憶體廣播扇出、Flannel 邊緣快取、Vitess MySQL 分片與 Delta Sync 斷線增量補償。
+2. [**McDonald's 百萬級即時訂單事件驅動架構：從 AWS Serverless、SQS 削峰到 DynamoDB 全球狀態機**](../../src/content/blog/mcdonalds-event-driven-architecture.mdx)
+   - **一手來源**：[AWS Architecture Blog: McDonald's Event-Driven Platform](https://aws.amazon.com/blogs/architecture/) / [ByteByteGo Guide](https://bytebytego.com/guides/mcdonald's-event-driven-architecture)
+   - **核心要點**：全通路點餐接入、AWS Lambda + SQS 削峰緩衝、DynamoDB Global Tables 狀態機、DynamoDB Streams + EventBridge 領域事件分發、KVS 門市廚房履約與離線收銀容災。
+3. [**Airbnb 微服務架構演進：從單體 Monorail、無序 SOA 蜘蛛網到 DAG 樹狀分層與 Viaduct 資料網格**](../../src/content/blog/airbnb-microservices-evolution-architecture.mdx)
+   - **一手來源**：[Airbnb Tech Blog: Microservices Evolution](https://medium.com/airbnb-engineering) / [ByteByteGo Guide](https://bytebytego.com/guides/airbnb-artchitectural-evolution)
+   - **核心要點**：Monorail Rails 單體極限、第一代 SOA 蜘蛛網崩潰與循環依賴復盤、第二代 DAG 樹狀服務分層（Presentation ➔ Mid-tier ➔ DAS）、Viaduct GraphQL 資料網格與 OneTouch/Spinnaker 金絲雀自動交付。
+4. [**Pinterest 單行代碼優化 99% Git Clone 耗時：Commit-Graph 底層原理與大型 Monorepo CI/CD 加速實踐**](../../src/content/blog/pinterest-git-clone-optimization-commit-graph.mdx)
+   - **一手來源**：[Pinterest Engineering: How a single git config line saved 99% clone time](https://medium.com/pinterest-engineering) / [ByteByteGo Guide](https://bytebytego.com/guides/the-one-line-change-that-reduced-clone-times-by-a-whopping-99-says-pinterest)
+   - **核心要點**：Git 物件協商 CPU 100% 瓶頸根因、Commit-Graph 二進位結構與 Generation Numbers 拓撲剪枝演算法、`fetch.writeCommitGraph=true` 配置、Blobless/Treeless/Shallow Clone 選型矩陣。
+5. [**Reddit 核心儲存與高併發架構演進：從 Thing2 EAV、Redis 快取到 Cassandra 留言樹與 Baseplate 微服務**](../../src/content/blog/reddit-core-storage-high-concurrency-architecture.mdx)
+   - **一手來源**：[Reddit Engineering: Evolution of Reddit Core Storage](https://www.reddit.com/r/RedditEng/) / [ByteByteGo Guide](https://bytebytego.com/guides/reddit's-core-architecture)
+   - **核心要點**：PostgreSQL 上的 Thing2 EAV 模型得失、Memcached 99% 物件防擊穿快取、Redis Sorted Sets 熱門排行、Cassandra 寬表寫入特化、Materialized Path 留言樹記憶體即時構建、Vote Fuzzing 投票防刷演算法與 Baseplate 微服務。
+6. [**Meta 規模化自動修復 Bug 架構：Infer 靜態分析與 SapFix 自動補丁生成的工業級實踐**](../../src/content/blog/meta-scale-automated-bug-fixing-sapfix-infer.mdx)
+   - **一手來源**：[Facebook Engineering: Finding and fixing bugs automatically with SapFix and Infer](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-bugs-automatically-with-sapfix-and-infer/) / [ByteByteGo Guide](https://bytebytego.com/guides/fixing-bugs-automatically-at-meta-scale)
+   - **核心要點**：Infer 基於分離邏輯與雙向演繹的差量靜態掃描、SapFix 範本與 AST 變異自動補丁生成、沙盒編譯與差量迴歸測試（零功能回歸）、Human-in-the-loop 審查路由與 75%+ 生產採納率。
+
 ---
 
 ## ⏳ 後續待辦批次清單與一手資料庫儲備
-
-### 第 6 批：真實巨頭架構案例二期
-
-| 專題題目                                            | 涉及核心技術與模組                                                                | 建議一手來源                                                                                                         |
-| :-------------------------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
-| **Slack 訊息投遞之旅 (Journey of a Slack Message)** | 邊緣 Gateway、WebSocket 雙向通道、Channel Server、Redis 緩存矩陣與 MySQL 分片儲存 | [Slack Engineering: Real-time Messaging Architecture](https://slack.engineering/)                                    |
-| **McDonald's 百萬級即時訂單事件驅動架構**           | AWS SQS、Lambda、DynamoDB 事件串流、跨區域 Active-Active 容災與訂單狀態機         | [AWS Architecture Blog: McDonald's Event-Driven Platform](https://aws.amazon.com/blogs/architecture/)                |
-| **Airbnb 微服務架構演進：0 到 15 億房客擴展之路**   | 單體 Monorail 拆分、Thrift RPC 服務網格、Spinnaker 持續交付與資料庫垂直解耦       | [Airbnb Tech Blog: Microservices Evolution](https://medium.com/airbnb-engineering)                                   |
-| **Pinterest 單行代碼優化 99% Git Clone 耗時**       | commit-graph 底層原理、拓撲排序加速與大規模 CI/CD 構建效能調優                    | [Pinterest Engineering: How a single git config line saved 99% clone time](https://medium.com/pinterest-engineering) |
-| **Reddit 核心儲存與高併發架構演進**                 | PostgreSQL 基礎架構、Cassandra / Redis 快取分層與百萬級貼文投票即時管線           | [Reddit Engineering: Evolution of Reddit Core Storage](https://www.reddit.com/r/RedditEng/)                          |
 
 ### 第 7 批：分散式高階儲存與資料一致性
 

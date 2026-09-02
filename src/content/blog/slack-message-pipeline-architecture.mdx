@@ -1,0 +1,234 @@
+---
+title: "Slack 訊息投遞之旅：從 WebSocket 邊緣長連線、通道廣播到分片 MySQL 的即時架構實踐"
+description: "深入拆解 Slack 訊息即時投遞的全生命週期：邊緣 Gateway TLS 終結、WebSocket 雙向通道、Channel Server 記憶體廣播扇出、Flannel 快取層與 Vitess MySQL 分片持久化。"
+publishDate: 2026-09-02T11:05:00+08:00
+draft: false
+featured: false
+tags:
+  - "系統設計"
+  - "即時通訊"
+  - "WebSocket"
+  - "高併發"
+  - "分散式架構"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/slack-message-pipeline-architecture.png
+coverAlt: "Slack 訊息即時投遞全鏈路架構：邊緣 Gateway、WebSocket 雙向通道、Channel Server 記憶體廣播與分片 MySQL"
+---
+
+import SlackMessagePipelineDiagram from "../../components/SlackMessagePipelineDiagram.astro";
+
+當你在 Slack 頻道中輸入一段文字並按下 Enter，這條訊息通常會在不到 100 毫秒內出現在全球各地同頻道的數十、數百甚至數千名同事螢幕上。在極端情況下（例如全公司發布公告的公用頻道），單一工作區可能包含數萬名同時在線的成員。
+
+如何保證在數千萬活躍用戶同時在線、數百萬個活躍頻道交錯通訊時，訊息能夠達到**低延遲交付**、**嚴格有序性**、**訊息不丟失**與**離線增量收斂**？
+
+本文將從連線邊緣、業務驗證、多路廣播扇出（Fanout）到分片持久化，完整拆解 Slack 即時訊息系統的核心架構演進。
+
+---
+
+## 訊息投遞全鏈路全景圖
+
+Slack 的核心訊息管線採用了「邊緣長連線閘道 + 集中業務 API + 記憶體頻道伺服器（Channel Server）+ 分片 MySQL」的分層解耦拓撲：
+
+<SlackMessagePipelineDiagram />
+
+整個訊息投遞流程可精確劃分為四個核心階段：
+
+1. **邊緣連線與發送（Edge & Ingestion）**：客戶端透過 WebSocket 雙向通道傳輸，邊緣 Envoy 代理做 TLS 終結與長連線保持。
+2. **業務鑑權與訊息編序（WebApp & Ordering）**：API 服務驗證發言權限，透過分散式序列器產生單調遞增的 Message ID。
+3. **頻道記憶體扇出（Channel Server Fanout）**：依據頻道的訂閱清單，將訊息並行推送到目標成員所在的 WebSocket 連線節點。
+4. **多層快取與分片持久化（Storage & Flannel Sync）**：寫入分片 MySQL（Vitess）與 Redis 暫存，透過 Delta Sync 提供斷線重連補償。
+
+---
+
+## 1. 連線層架構：WebSocket 與邊緣 Gateway
+
+在 Slack 早期架構中，客戶端依賴長時間輪詢（Long Polling）來拉取事件，這導致伺服器承載了海量的無效 HTTP 請求開銷。隨著用戶規模爆發，Slack 將通訊骨幹重構為基於 **WebSocket** 的全雙工長連線架構。
+
+### 1.1 邊緣 Envoy 代理與長連線解耦
+
+客戶端並非直接連線到底層業務伺服器，而是就近接入分佈在全球 PoP 節點的 Edge Gateway（基於 Envoy）：
+
+```
+[ Slack Client ]
+       │ (WebSocket over TLS / TCP)
+       ▼
+[ Edge Gateway (Envoy PoP) ]
+       │ (內部 gRPC / TCP Keep-Alive Multiplexing)
+       ▼
+[ Slack Gateway Ingress Tier ] ───► [ Channel Server Cluster ]
+```
+
+- **TLS 終結（TLS Termination）**：在邊緣完成 SSL/TLS 握手，顯著減少客戶端到伺服器的 RTT 延遲。
+- **連線聚集（Connection Pooling）**：Edge Envoy 與內部核心叢集建立長期的 TCP/gRPC 連線池，避免內部網路因數百萬連線頻繁建立造成 Socket 耗盡。
+- **心跳保活與 Ping/Pong 探測**：每 30 秒執行一次輕量 Application-level Ping/Pong 檢測 NAT 逾時與殭屍連線。
+
+### 1.2 驚群防禦與抖動重連（Jitter Reconnect）
+
+當某個資料中心或網路運營商發生抖動時，數百萬客戶端會同時發起斷線重連。如果沒有保護機制，瞬時連線風暴會直接打垮 Gateway 伺服器。
+
+Slack 在客戶端實作了**全抖動指數退避重連演算法（Full Jitter Exponential Backoff）**：
+
+```text
+T_sleep = min(T_max, random(0, 2^attempt * T_base))
+```
+
+```typescript
+// Slack Client 抖動重連邏輯範例
+function calculateReconnectDelay(
+  attempt: number,
+  baseMs = 500,
+  maxMs = 30000,
+): number {
+  const exponential = Math.min(maxMs, baseMs * Math.pow(2, attempt));
+  // 透過完全隨機化分散重連流量峰值
+  return Math.floor(Math.random() * exponential);
+}
+```
+
+---
+
+## 2. 訊息寫入、鑑權與全域時序保證
+
+當訊息封包透過 WebSocket 送達時，系統必須確認發送者的權限、格式化內容並賦予其嚴格的時序識別碼。
+
+### 2.1 樂觀 UI 渲染與客戶端暫存 ID
+
+為了提供極致的打字流暢度，Slack 客戶端採用 **樂觀更新（Optimistic UI）**：
+
+1. 客戶端產生一個本地臨時 UUID `client_msg_id`。
+2. 立即將訊息渲染到本機聊天視窗，標記為 `sending` 狀態。
+3. 發送 Payload 包含 `client_msg_id`。
+4. 伺服器處理成功後回傳正式的伺服器訊息戳記，客戶端將狀態更新為 `sent`；若逾時未回執則顯示重發提示。
+
+### 2.2 頻道時鐘與 Message Timestamp (`ts`)
+
+Slack 使用精確到微秒的時間戳作為訊息的唯一識別碼與排序依據（例如 `1725278400.000200`）：
+
+```sql
+-- 訊息資料表結構示意
+CREATE TABLE channel_messages (
+    workspace_id BIGINT UNSIGNED NOT NULL,
+    channel_id BIGINT UNSIGNED NOT NULL,
+    message_ts DECIMAL(16, 6) NOT NULL, -- 秒.微秒 (唯一主鍵之一)
+    user_id BIGINT UNSIGNED NOT NULL,
+    content TEXT NOT NULL,
+    client_msg_id VARCHAR(64) NOT NULL,
+    thread_ts DECIMAL(16, 6) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workspace_id, channel_id, message_ts),
+    UNIQUE KEY uk_client_msg (workspace_id, channel_id, client_msg_id)
+) ENGINE=InnoDB;
+```
+
+> [!IMPORTANT]
+> **訊息排序保證**：
+> Slack 在單一頻道內保證**因果一致性（Causal Consistency）**與**全域單調遞增時序**。若同一個微秒內有兩筆訊息抵達同一個 Channel，伺服器內的序列生成器會強制遞增微秒位數（例如 `.000201`），確保 `message_ts` 永遠嚴格遞增且無衝突。
+
+---
+
+## 3. 頻道記憶體扇出：Channel Server 與 Pub/Sub
+
+訊息寫入驗證通過後，最關鍵的步驟是將訊息分發給頻道內的所有在線成員。
+
+### 3.1 為什麼不用單純的 Redis Pub/Sub？
+
+傳統的 Redis Pub/Sub 在面對數十萬個頻道的動態訂閱與巨型頻道時存在瓶頸：
+
+- **連線綁定負擔**：如果每個使用者都向 Redis 訂閱其加入的數百個頻道，Redis 叢集的訂閱表將膨脹到數千萬級，記憶體開銷與廣播 CPU 暴增。
+- **大群廣播雪崩**：當一個 5 萬人的大頻道發送訊息時，單一節點需要執行 5 萬次封包複製，造成單點 NIC 頻寬打滿。
+
+### 3.2 Slack 的 Channel Server 拓撲
+
+Slack 採用了自研的 **Channel Server** 叢集架構：
+
+```
+[ WebApp API ]
+      │ (發布訊息至 Channel Router)
+      ▼
+[ Channel Router ]
+      │ 一致性雜湊 (Consistent Hash)
+      ▼
+[ Channel Server (持有特定 Channel 記憶體狀態) ]
+      │
+      ├── 1. 查詢在線訂閱者與所在的 Gateway 節點
+      │
+      ├── 2. 批量合併發送到 Gateway A (包含 User 1, 2, 3)
+      ├── 3. 批量合併發送到 Gateway B (包含 User 4, 5)
+      └── 4. 觸發 Push Notification 服務 (處理離線 User 6, 7)
+```
+
+1. **分片主管（Channel Sharding）**：每個 Channel 的在線成員狀態與訂閱清單由特定的 Channel Server 節點透過一致性雜湊負責。
+2. **網關批量聚合（Gateway Batching）**：Channel Server 不會為每個成員單獨建立 Socket 發送，而是將「同一台 Gateway 伺服器上的多個成員」合併為一筆發送指令，大幅節省內部 RPC 開銷。
+
+---
+
+## 4. 儲存架構：MySQL 分片與 Flannel 快取層
+
+Slack 儲存著全球企業海量的歷史對話與搜尋索引，資料層必須具備水平擴展與極低讀取延遲。
+
+### 4.1 Vitess 管理的 MySQL Sharding
+
+Slack 將所有核心資料庫建構在 MySQL 之上，並透過 **Vitess** 進行分庫分表治理：
+
+- **分片鍵（Keyspace ID）**：以 `workspace_id` 作為一級分片鍵，保證同一個團隊的所有頻道與訊息落在同一個資料庫分片中，使得頻道內的查詢不需要進行跨分片分散-聚合（Scatter-Gather）。
+- **冷熱資料分離**：近期 30 天的高頻存取訊息保留在 SSD 高效能節點；歷史封存訊息透過非同步批次搬移至壓縮歸檔庫存。
+
+### 4.2 Flannel 邊緣快取引擎
+
+為了避免每次使用者切換頻道或打開 App 都向 MySQL 發起繁重的查詢，Slack 開發了 **Flannel** 邊緣快取系統：
+
+| 維度           | 直查 MySQL      | Flannel 邊緣快取                     |
+| :------------- | :-------------- | :----------------------------------- |
+| **讀取延遲**   | 15ms ~ 50ms     | **< 2ms**                            |
+| **資料組織**   | 關聯式資料表    | 預先反正規化的 JSON/Protobuf 物件    |
+| **快取失效**   | 快取穿透風險高  | 訂閱 Channel Server 變更事件主動更新 |
+| **冷啟動同步** | 批次 SQL 查詢慢 | 傳輸 Delta 增量快照                  |
+
+Flannel 節點常駐在 Edge Gateway 旁，快取了使用者所屬 Workspace 的成員清單、頻道列表、自訂 Emoji 與常用元資料，使 95% 以上的客戶端初始載入請求在邊緣即被命中。
+
+---
+
+## 5. 斷線修復與 Delta Sync 增量同步
+
+在行動裝置網路切換（如 Wi-Fi 斷開轉為 4G/5G）或電腦休眠喚醒時，客戶端會經歷暫時的網路中斷。
+
+### 5.1 增量同步協定 (Delta Sync Protocol)
+
+客戶端重新建立 WebSocket 連線時，會帶上本機最後接收到的 `last_read_ts`：
+
+```
+Client ──[ Connect with last_read_ts: 1725278400.000100 ]──► Edge Gateway
+                                                                 │
+                                                                 ▼
+                                                        [ Flannel / Cache ]
+                                                                 │
+                                                  (計算差異 Delta Messages)
+                                                                 ▼
+Client ◄──[ Return Gap Messages (Batch) + Synced TS ]────────────┘
+```
+
+1. **Gap 檢測**：若遺失的訊息數小於門檻值（例如 500 筆），伺服器直接回傳 JSON 格式的 Delta 增量列表，客戶端無縫插入本地 SQLite。
+2. **全量快照降級（Full Snapshot Fallback）**：若使用者離線數週或遺失訊息過多，系統觸發背景全量重新同步，先展示最近最新畫面，再非同步補齊歷史。
+
+---
+
+## 6. 架構總結與設計復盤
+
+| 架構挑戰           | Slack 解決方案                                | 核心效益                                     |
+| :----------------- | :-------------------------------------------- | :------------------------------------------- |
+| **百萬長連線開銷** | 邊緣 Envoy TLS 終結 + WebSocket 連線池        | 節省內部網路連線開銷，低於 100ms 全球延遲    |
+| **大群廣播風暴**   | Channel Server 分片 + Gateway 批量合併廣播    | 避免單點網卡頻寬飽和與 Redis 訂閱膨脹        |
+| **時序與去重**     | 微秒級單調遞增 `message_ts` + `client_msg_id` | 保證因果順序一致，杜絕網路抖動造成的重複訊息 |
+| **儲存擴展性**     | Vitess MySQL 分片（按 Workspace 隔離）        | 支援數千億筆訊息儲存，本機事務高效執行       |
+| **離線狀態收斂**   | Flannel 快取 + Delta Sync 增量同步協定        | 弱網與重連場景下瞬間恢復閱讀位置             |
+
+Slack 的訊息管線證明了：**即時通訊系統的架構核心在於邊緣長連線的隔離、廣播扇出的批量聚合，以及依租戶/工作區切分的確定性分片。**
+
+---
+
+## 參考一手來源與延伸閱讀
+
+- [Slack Engineering: Real-time Messaging Architecture at Scale](https://slack.engineering/)
+- [Slack Engineering: Flannel - An Application-Level Edge Cache](https://slack.engineering/flannel-an-application-level-edge-cache-to-make-slack-scale/)
+- [Vitess at Slack: Scaling MySQL Horizontally](https://vitess.io/docs/overview/what-is-vitess/)
+- [ByteByteGo: Journey of a Slack Message Visual Guide](https://bytebytego.com/guides/what-is-the-journey-of-a-slack-message)

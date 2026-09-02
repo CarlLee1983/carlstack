@@ -1,0 +1,586 @@
+---
+// Slack Message Pipeline Architecture Diagram
+---
+
+<figure class="slack-diagram" aria-labelledby="slack-caption">
+  <svg
+    class="slack-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="slack-title slack-desc"
+  >
+    <title id="slack-title">Slack 訊息投遞即時管線架構</title>
+    <desc id="slack-desc">
+      展示從客戶端 WebSocket 長連線、Edge Gateway 路由、Channel Server
+      廣播、Redis 緩存與 MySQL 分片持久化的全鏈路架構。
+    </desc>
+
+    <defs>
+      <marker
+        id="slack-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="slack-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Client & Edge -->
+    <g class="slack-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="slack-diagram__badge" x="14" y="26"
+        >EDGE &amp; CONNECTION</text
+      >
+      <text class="slack-diagram__title" x="14" y="54">邊緣長連線與閘道</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--teal"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--teal"
+          x="10"
+          y="20">Slack Client (App/Web)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 本地 SQLite 快取狀態</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• WebSocket 雙向長連線</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 樂觀 UI 渲染 + SeqID 去重</text
+        >
+      </g>
+
+      <g transform="translate(14, 175)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--blue"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--blue"
+          x="10"
+          y="20">Edge Gateway (Envoy)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• TLS 終結與連線保持</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 負載均衡與地理路由</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 驚群防禦與抖動重連</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--gold"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--gold"
+          x="10"
+          y="20">Flannel Edge Cache</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 使用者權限與 Workspace</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 查詢快取降級主資料庫</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Ingestion & Routing -->
+    <g class="slack-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="slack-diagram__badge" x="14" y="26"
+        >INGESTION &amp; BUSINESS</text
+      >
+      <text class="slack-diagram__title" x="14" y="54">訊息寫入與業務驗證</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--teal"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--teal"
+          x="10"
+          y="20">WebApp API Cluster</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40">• 頻道發言權限檢查</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 富文本 / 檔案 Markdown 解析</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 生成全域單調遞增 Msg ID</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--gold"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--gold"
+          x="10"
+          y="20">Message Server / Kafka</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 寫入訊息持久化日誌</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 非同步觸發 Bot 與 Webhook</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 派發至搜尋檢索管線</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--blue"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--blue"
+          x="10"
+          y="20">Presence &amp; Typing</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• Ephemeral 短暫狀態</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• Redis In-Memory 廣播</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Realtime Fanout -->
+    <g class="slack-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="slack-diagram__badge" x="14" y="26"
+        >FANOUT &amp; BROADCAST</text
+      >
+      <text class="slack-diagram__title" x="14" y="54"
+        >頻道多路廣播 (Fanout)</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--blue"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--blue"
+          x="10"
+          y="20">Channel Server (Pub/Sub)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 維護 Channel 訂閱者清單</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 記憶體扇出 (In-Memory Fanout)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 萬人大頻道分片廣播</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--gold"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--gold"
+          x="10"
+          y="20">Push Notification (APNs/FCM)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 離線/未聚焦使用者過濾</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 靜音與 DND 免打擾策略</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 喚醒客戶端背景拉取</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--teal"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--teal"
+          x="10"
+          y="20">WebSocket Gateway Egress</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 下發至在線成員連線</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 壓縮二進位 / JSON Frame</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Storage & Recovery -->
+    <g class="slack-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="slack-diagram__badge" x="14" y="26">STORAGE &amp; SYNC</text>
+      <text class="slack-diagram__title" x="14" y="54">分片持久化與同步</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--gold"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--gold"
+          x="10"
+          y="20">MySQL Shards (Vitess)</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 依 Workspace/Channel 分片</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 嚴格事務保證持久化</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76">• 歷史訊息長青封存</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--teal"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--teal"
+          x="10"
+          y="20">Redis Message Cache</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 最近 N 筆頻道訊息緩存</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• Unread Count 未讀計數器</text
+        >
+        <text class="slack-diagram__desc" x="10" y="76"
+          >• 毫秒級快速頻道切換</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="slack-diagram__subcard slack-diagram__subcard--blue"></rect>
+        <text
+          class="slack-diagram__header slack-diagram__header--blue"
+          x="10"
+          y="20">Search &amp; Lucene Index</text
+        >
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 頻道/私訊倒排索引</text
+        >
+        <text class="slack-diagram__desc" x="10" y="58"
+          >• 實時增量建立全文檢索</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="slack-diagram__line"
+      marker-end="url(#slack-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="slack-diagram__line"
+      marker-end="url(#slack-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="slack-diagram__line"
+      marker-end="url(#slack-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="slack-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="slack-m-title"
+  >
+    <title id="slack-m-title">Slack 訊息投遞管線（手機檢視）</title>
+
+    <g class="slack-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="slack-diagram__badge" x="12" y="22">1. 邊緣連線與閘道</text>
+      <text class="slack-diagram__desc" x="12" y="45"
+        >• Client WebSocket 保持雙向通道</text
+      >
+      <text class="slack-diagram__desc" x="12" y="65"
+        >• Edge Gateway (Envoy) TLS 終結與路由</text
+      >
+      <text class="slack-diagram__desc" x="12" y="85"
+        >• Flannel 邊緣快取 Workspace 權限</text
+      >
+      <text class="slack-diagram__desc" x="12" y="105"
+        >• 樂觀 UI 渲染 + SeqID 去重防抖動</text
+      >
+    </g>
+
+    <g class="slack-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="slack-diagram__badge" x="12" y="22"
+        >2. 訊息寫入與業務驗證</text
+      >
+      <text class="slack-diagram__desc" x="12" y="45"
+        >• WebApp 驗證頻道發言權限與 Markdown</text
+      >
+      <text class="slack-diagram__desc" x="12" y="65"
+        >• 生成全域單調遞增 Message ID</text
+      >
+      <text class="slack-diagram__desc" x="12" y="85"
+        >• Message Server 寫入 Kafka 事件日誌</text
+      >
+      <text class="slack-diagram__desc" x="12" y="105"
+        >• 非同步觸發 Bot / Webhook / 搜尋索引</text
+      >
+    </g>
+
+    <g class="slack-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="slack-diagram__badge" x="12" y="22"
+        >3. 頻道多路廣播 (Fanout)</text
+      >
+      <text class="slack-diagram__desc" x="12" y="45"
+        >• Channel Server 記憶體維護訂閱清單</text
+      >
+      <text class="slack-diagram__desc" x="12" y="65"
+        >• 萬人大群分片並行廣播 (Fanout)</text
+      >
+      <text class="slack-diagram__desc" x="12" y="85"
+        >• WebSocket 閘道下發在線連線</text
+      >
+      <text class="slack-diagram__desc" x="12" y="105"
+        >• APNs / FCM 喚醒離線成員</text
+      >
+    </g>
+
+    <g class="slack-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="slack-diagram__badge" x="12" y="22"
+        >4. 分片持久化與狀態收斂</text
+      >
+      <text class="slack-diagram__desc" x="12" y="45"
+        >• MySQL Shards (Vitess) 分片儲存</text
+      >
+      <text class="slack-diagram__desc" x="12" y="65"
+        >• Redis 緩存近期訊息與未讀計數器</text
+      >
+      <text class="slack-diagram__desc" x="12" y="85"
+        >• Lucene / ES 即時全文倒排索引</text
+      >
+      <text class="slack-diagram__desc" x="12" y="105"
+        >• Delta Sync 離線斷線增量補償</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="slack-caption" class="slack-diagram__caption">
+    圖 1：Slack 訊息投遞全鏈路架構 — 從 WebSocket 長連線、Channel Server
+    記憶體廣播到分片 MySQL 持久化
+  </figcaption>
+</figure>
+
+<style>
+  .slack-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .slack-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .slack-diagram__desktop {
+    display: block;
+  }
+
+  .slack-diagram__mobile {
+    display: none;
+  }
+
+  .slack-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* SVG Theme Variables */
+  .slack-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .slack-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .slack-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .slack-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .slack-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .slack-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .slack-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .slack-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .slack-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .slack-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .slack-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .slack-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .slack-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .slack-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .slack-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .slack-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .slack-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .slack-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .slack-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .slack-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .slack-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .slack-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .slack-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .slack-diagram__line {
+    stroke: #475569;
+  }
+
+  .slack-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .slack-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .slack-diagram__desktop {
+      display: none;
+    }
+    .slack-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

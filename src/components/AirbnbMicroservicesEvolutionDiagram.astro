@@ -1,0 +1,559 @@
+---
+// Airbnb Microservices Evolution Architecture Diagram
+---
+
+<figure class="ab-diagram" aria-labelledby="ab-caption">
+  <svg
+    class="ab-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="ab-title ab-desc"
+  >
+    <title id="ab-title">Airbnb 微服務架構三代演進全景</title>
+    <desc id="ab-desc">
+      展示從單體 Monorail (Rails)、第一代無序 SOA 蜘蛛網，到第二代 DAG
+      樹狀分層治理 (Presentation, Mid-tier, DAS) 與 Viaduct GraphQL
+      資料網格的演進。
+    </desc>
+
+    <defs>
+      <marker
+        id="ab-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ab-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Era 1 Monorail -->
+    <g class="ab-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 1 (2008-2015)</text>
+      <text class="ab-diagram__title" x="14" y="54">Monorail 單體時代</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--gold"></rect>
+        <text class="ab-diagram__header ab-diagram__header--gold" x="10" y="20"
+          >Ruby on Rails Monolith</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 所有業務緊密耦合在一個 Repo</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 數百名工程師同時提交代碼</text
+        >
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 部署隊列嚴重阻塞 (Hours)</text
+        >
+      </g>
+
+      <g transform="translate(14, 185)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
+        <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
+          >Single Massive MySQL</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 房源、用戶、訂單混在同庫</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58">• 大量複雜跨表 JOIN</text>
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 連線池與 CPU 頻繁打滿</text
+        >
+      </g>
+
+      <g transform="translate(14, 295)">
+        <rect
+          width="187"
+          height="65"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--blue"></rect>
+        <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
+          >主要痛點</text
+        >
+        <text class="ab-diagram__desc" x="10" y="38">• 單點故障影響全站</text>
+        <text class="ab-diagram__desc" x="10" y="54">• 團隊協同摩擦力極大</text>
+      </g>
+    </g>
+
+    <!-- Column 2: Era 2 Ad-hoc SOA -->
+    <g class="ab-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 2 (2015-2018)</text>
+      <text class="ab-diagram__title" x="14" y="54">第一代無序 SOA 蜘蛛網</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--blue"></rect>
+        <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
+          >Service Sprawl (500+)</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 快速拆分出數百個微服務</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• Thrift RPC 點對點互相呼叫</text
+        >
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 服務網狀交織難以維護</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--gold"></rect>
+        <text class="ab-diagram__header ab-diagram__header--gold" x="10" y="20"
+          >Circular Dependencies</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 循環依賴造成級聯崩潰</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 缺乏嚴格架構邊界與標準</text
+        >
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 難以排查分散式呼叫鏈</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
+        <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
+          >SmartStack 服務發現</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• Nerve + Synapse + HAProxy</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 基礎網路路由能力成型</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Era 3 Structured SOA & DAG -->
+    <g class="ab-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 3 (2018-PRESENT)</text>
+      <text class="ab-diagram__title" x="14" y="54">第二代 DAG 樹狀分層</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="70"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
+        <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
+          >Presentation Layer</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40">• 前端 BFF 聚合層</text>
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• Web / Mobile 視圖專用適配</text
+        >
+      </g>
+
+      <g transform="translate(14, 155)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--gold"></rect>
+        <text class="ab-diagram__header ab-diagram__header--gold" x="10" y="20"
+          >Mid-tier Business Logic</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 房源搜尋、定價、預訂核心</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 嚴格單向呼叫禁止向上逆流</text
+        >
+      </g>
+
+      <g transform="translate(14, 240)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--blue"></rect>
+        <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
+          >Data Access Services (DAS)</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 唯一獲取實體資料的門戶</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 隔離底層 MySQL/HBase/Redis</text
+        >
+      </g>
+
+      <g transform="translate(14, 325)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
+        <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
+          >DAG 依賴檢查 (Arch CI)</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• CI 自動檢測禁止循環依賴</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 依賴關係可視化與可控</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Viaduct & OneTouch -->
+    <g class="ab-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="ab-diagram__badge" x="14" y="26"
+        >DATA MESH &amp; PLATFORM</text
+      >
+      <text class="ab-diagram__title" x="14" y="54">Viaduct 與平台工程</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--gold"></rect>
+        <text class="ab-diagram__header ab-diagram__header--gold" x="10" y="20"
+          >Viaduct GraphQL Mesh</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 統一領域實體 Schema 拼接</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 自動批次 DataLoader (防 N+1)</text
+        >
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 跨服務欄位層級權限控制</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
+        <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
+          >OneTouch Deployment</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• 宣告式服務配置 (YAML)</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• Spinnaker 自動化金絲雀發布</text
+        >
+        <text class="ab-diagram__desc" x="10" y="76"
+          >• 指標異常自動秒級回滾</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="ab-diagram__subcard ab-diagram__subcard--blue"></rect>
+        <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
+          >Observability &amp; Tracing</text
+        >
+        <text class="ab-diagram__desc" x="10" y="40"
+          >• OpenTelemetry 全鏈路追蹤</text
+        >
+        <text class="ab-diagram__desc" x="10" y="58"
+          >• 服務依賴拓撲即時分析</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="ab-diagram__line"
+      marker-end="url(#ab-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="ab-diagram__line"
+      marker-end="url(#ab-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="ab-diagram__line"
+      marker-end="url(#ab-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="ab-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="ab-m-title"
+  >
+    <title id="ab-m-title">Airbnb 架構演進（手機檢視）</title>
+
+    <g class="ab-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="ab-diagram__badge" x="12" y="22">1. 單體時代 (Monorail)</text
+      >
+      <text class="ab-diagram__desc" x="12" y="45"
+        >• Ruby on Rails 單體包含所有業務</text
+      >
+      <text class="ab-diagram__desc" x="12" y="65"
+        >• 數百名工程師同時提交，部署隊列阻塞</text
+      >
+      <text class="ab-diagram__desc" x="12" y="85"
+        >• 單一巨大 MySQL 負擔重，跨表 JOIN 混亂</text
+      >
+      <text class="ab-diagram__desc" x="12" y="105"
+        >• 單點故障直接威脅全站可用性</text
+      >
+    </g>
+
+    <g class="ab-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="ab-diagram__badge" x="12" y="22">2. 第一代 SOA 蜘蛛網</text>
+      <text class="ab-diagram__desc" x="12" y="45"
+        >• 快速拆分 500+ 微服務，缺乏架構邊界</text
+      >
+      <text class="ab-diagram__desc" x="12" y="65"
+        >• Thrift RPC 點對點網狀呼叫</text
+      >
+      <text class="ab-diagram__desc" x="12" y="85"
+        >• 循環依賴導致級聯雪崩與排障困難</text
+      >
+      <text class="ab-diagram__desc" x="12" y="105"
+        >• 演化為「分佈式單體 (Distributed Monolith)」</text
+      >
+    </g>
+
+    <g class="ab-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="ab-diagram__badge" x="12" y="22">3. 第二代 DAG 樹狀分層</text
+      >
+      <text class="ab-diagram__desc" x="12" y="45"
+        >• 嚴格三層：Presentation ➔ Mid-tier ➔ DAS</text
+      >
+      <text class="ab-diagram__desc" x="12" y="65"
+        >• Data Access Services 封裝底層資料庫</text
+      >
+      <text class="ab-diagram__desc" x="12" y="85"
+        >• 嚴格單向呼叫，CI 靜態檢查阻止循環依賴</text
+      >
+      <text class="ab-diagram__desc" x="12" y="105"
+        >• 架構邊界清晰，服務所有權明確</text
+      >
+    </g>
+
+    <g class="ab-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="ab-diagram__badge" x="12" y="22"
+        >4. Viaduct 與平台工程化</text
+      >
+      <text class="ab-diagram__desc" x="12" y="45"
+        >• Viaduct GraphQL 統一資料網格與 Schema 拼接</text
+      >
+      <text class="ab-diagram__desc" x="12" y="65"
+        >• DataLoader 自動批次查詢消除 N+1 效能陷阱</text
+      >
+      <text class="ab-diagram__desc" x="12" y="85"
+        >• OneTouch + Spinnaker 宣告式金絲雀自動部署</text
+      >
+      <text class="ab-diagram__desc" x="12" y="105"
+        >• 全鏈路 OpenTelemetry 可觀測性守護系統</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ab-caption" class="ab-diagram__caption">
+    圖 1：Airbnb 微服務演進史 — 從 Monorail 單體、無序 SOA 蜘蛛網到 DAG
+    樹狀分層與 Viaduct 資料網格
+  </figcaption>
+</figure>
+
+<style>
+  .ab-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ab-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .ab-diagram__desktop {
+    display: block;
+  }
+
+  .ab-diagram__mobile {
+    display: none;
+  }
+
+  .ab-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Theme variables */
+  .ab-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .ab-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .ab-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .ab-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .ab-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .ab-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .ab-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .ab-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .ab-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .ab-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .ab-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .ab-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .ab-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .ab-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ab-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .ab-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .ab-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .ab-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .ab-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .ab-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .ab-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .ab-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .ab-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .ab-diagram__line {
+    stroke: #475569;
+  }
+
+  .ab-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ab-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .ab-diagram__desktop {
+      display: none;
+    }
+    .ab-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

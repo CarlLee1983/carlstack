@@ -1,0 +1,549 @@
+---
+// Reddit Core Storage & High Concurrency Architecture Diagram
+---
+
+<figure class="rd-diagram" aria-labelledby="rd-caption">
+  <svg
+    class="rd-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="rd-title rd-desc"
+  >
+    <title id="rd-title">Reddit 核心儲存與高併發留言樹架構</title>
+    <desc id="rd-desc">
+      展示從 Thing2 EAV 架構、Redis/Memcached 多層快取、Cassandra
+      留言樹持久化、即時投票管線到 Baseplate 微服務的演進全景。
+    </desc>
+
+    <defs>
+      <marker
+        id="rd-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rd-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Thing2 & PostgreSQL -->
+    <g class="rd-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="rd-diagram__badge" x="14" y="26">EARLY ERA (THING2)</text>
+      <text class="rd-diagram__title" x="14" y="54">Thing2 EAV 架構</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
+        <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
+          >Thing2 EAV 模型</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 僅兩張表: Thing 與 Data</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• Key-Value 結構隨意加欄位</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 免除 Schema Migration 痛苦</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
+        <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
+          >PostgreSQL Shards</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 依 Type + ID 分庫分表</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58">• 應用層自己做 JOIN</text>
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 讀寫比 100:1 極端讀多</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
+        <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
+          >EAV 致命極限</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 關聯查詢依賴大量 SELECT</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 記憶體膨脹與維護困難</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Multi-tier Caching -->
+    <g class="rd-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="rd-diagram__badge" x="14" y="26">CACHING LAYER</text>
+      <text class="rd-diagram__title" x="14" y="54">多層快取與防護</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
+        <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
+          >Memcached 集群</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 快取 Thing 原生資料物件</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58">• 一致性雜湊分流節點</text>
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 99% 讀取請求在此命中</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
+        <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
+          >Redis Sorted Sets (ZSet)</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• Subreddit 貼文熱門排行</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 毫秒級 ZREVRANGEBYSCORE</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 限制儲存 Top N 貼文 ID</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
+        <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
+          >防擊穿 Mutex Lock</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 熱門貼文過期單飛回源</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58">• 避免資料庫雪崩崩潰</text>
+      </g>
+    </g>
+
+    <!-- Column 3: Modern Storage & Comments -->
+    <g class="rd-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="rd-diagram__badge" x="14" y="26">STORAGE EVOLUTION</text>
+      <text class="rd-diagram__title" x="14" y="54">留言樹與 Cassandra</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
+        <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
+          >Cassandra / ScyllaDB</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 遷移百億級留言與投票</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 按 Post ID 分區寫入特化</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 寬表高吞吐寫入無鎖競爭</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
+        <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
+          >留言樹階層渲染</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• Materialized Path 路徑編碼</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 應用層記憶體極速構建樹</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 支援萬層巢狀折疊與分頁</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
+        <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
+          >Vote Fuzzing (防刷票)</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 隨機微幅擾動顯示分數</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58">• 迷惑作弊機器人偵測</text>
+      </g>
+    </g>
+
+    <!-- Column 4: Baseplate Microservices -->
+    <g class="rd-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="rd-diagram__badge" x="14" y="26"
+        >MICROSERVICES &amp; STACK</text
+      >
+      <text class="rd-diagram__title" x="14" y="54">Baseplate 現代架構</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
+        <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
+          >Baseplate 微服務框架</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• Python ➔ Go / Rust 重構</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• Thrift &amp; gRPC 高效能通訊</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 統一日誌、追蹤與指標</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
+        <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
+          >Hot Ranking 即時管線</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40">• 時間衰減與對數權重</text>
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• Flink 串流處理即時投票</text
+        >
+        <text class="rd-diagram__desc" x="10" y="76"
+          >• 動態平衡熱點與新貼文</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
+        <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
+          >全面高可用保證</text
+        >
+        <text class="rd-diagram__desc" x="10" y="40"
+          >• 多區域 Kubernetes 部署</text
+        >
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 毫秒級跨 AZ 故障轉移</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="rd-diagram__line"
+      marker-end="url(#rd-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="rd-diagram__line"
+      marker-end="url(#rd-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="rd-diagram__line"
+      marker-end="url(#rd-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="rd-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="rd-m-title"
+  >
+    <title id="rd-m-title">Reddit 核心架構（手機檢視）</title>
+
+    <g class="rd-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="rd-diagram__badge" x="12" y="22"
+        >1. 早期 Thing2 EAV 架構</text
+      >
+      <text class="rd-diagram__desc" x="12" y="45"
+        >• 僅兩張表 (Thing/Data) 模擬 NoSQL</text
+      >
+      <text class="rd-diagram__desc" x="12" y="65"
+        >• 免除 Schema 變更成本，快速迭代</text
+      >
+      <text class="rd-diagram__desc" x="12" y="85"
+        >• 極端讀多寫少 (100:1)，應用層手動拼裝</text
+      >
+      <text class="rd-diagram__desc" x="12" y="105"
+        >• 規模化後遭遇 SQL 爆炸與記憶體瓶頸</text
+      >
+    </g>
+
+    <g class="rd-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="rd-diagram__badge" x="12" y="22"
+        >2. 多層快取與排行榜設計</text
+      >
+      <text class="rd-diagram__desc" x="12" y="45"
+        >• Memcached 承載 99% 物件讀取流量</text
+      >
+      <text class="rd-diagram__desc" x="12" y="65"
+        >• Redis Sorted Sets 維護 Subreddit 熱榜</text
+      >
+      <text class="rd-diagram__desc" x="12" y="85"
+        >• 互斥鎖 (Mutex) 防範熱點快取擊穿</text
+      >
+      <text class="rd-diagram__desc" x="12" y="105"
+        >• 投票防刷演算法 (Vote Fuzzing) 混淆數值</text
+      >
+    </g>
+
+    <g class="rd-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="rd-diagram__badge" x="12" y="22"
+        >3. 留言樹與 Cassandra 儲存</text
+      >
+      <text class="rd-diagram__desc" x="12" y="45"
+        >• 遷至 Cassandra/ScyllaDB 寬表寫入特化</text
+      >
+      <text class="rd-diagram__desc" x="12" y="65"
+        >• Materialized Path 實現巢狀留言即時排序</text
+      >
+      <text class="rd-diagram__desc" x="12" y="85"
+        >• 應用層記憶體遞迴構建階層樹狀結構</text
+      >
+      <text class="rd-diagram__desc" x="12" y="105"
+        >• 解決百萬併發留言讀寫衝突與鎖爭用</text
+      >
+    </g>
+
+    <g class="rd-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="rd-diagram__badge" x="12" y="22"
+        >4. Baseplate 微服務與即時管線</text
+      >
+      <text class="rd-diagram__desc" x="12" y="45"
+        >• Baseplate (Go/Rust) 高效能微服務底座</text
+      >
+      <text class="rd-diagram__desc" x="12" y="65"
+        >• Flink 串流計算 Hot Ranking 時間衰減權重</text
+      >
+      <text class="rd-diagram__desc" x="12" y="85"
+        >• Thrift / gRPC 內部高速通訊協議</text
+      >
+      <text class="rd-diagram__desc" x="12" y="105"
+        >• 支撐每日數億活躍用戶的即時互動</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="rd-caption" class="rd-diagram__caption">
+    圖 1：Reddit 核心儲存與高併發留言樹架構 — 從 Thing2 EAV、Redis
+    快取、Cassandra 到 Baseplate 微服務
+  </figcaption>
+</figure>
+
+<style>
+  .rd-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .rd-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .rd-diagram__desktop {
+    display: block;
+  }
+
+  .rd-diagram__mobile {
+    display: none;
+  }
+
+  .rd-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Theme variables */
+  .rd-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .rd-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .rd-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .rd-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .rd-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .rd-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .rd-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .rd-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .rd-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .rd-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .rd-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .rd-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .rd-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .rd-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .rd-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .rd-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .rd-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .rd-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .rd-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .rd-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .rd-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .rd-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .rd-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .rd-diagram__line {
+    stroke: #475569;
+  }
+
+  .rd-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .rd-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .rd-diagram__desktop {
+      display: none;
+    }
+    .rd-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

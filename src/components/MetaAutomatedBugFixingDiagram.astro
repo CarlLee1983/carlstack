@@ -1,0 +1,579 @@
+---
+// Meta Automated Bug Fixing (SapFix & Infer) Diagram
+---
+
+<figure class="meta-diagram" aria-labelledby="meta-caption">
+  <svg
+    class="meta-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="meta-title meta-desc"
+  >
+    <title id="meta-title">
+      Meta 規模化自動修復 Bug 架構：Infer 與 SapFix 全流程
+    </title>
+    <desc id="meta-desc">
+      展示從工程師提交 Diff、Infer 靜態分析偵測 Bug、SapFix 產生修復補丁、沙盒
+      CI 自動化驗證到 Human-in-the-loop 審查合入的全鏈路。
+    </desc>
+
+    <defs>
+      <marker
+        id="meta-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="meta-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Detection (Infer) -->
+    <g class="meta-diagram__card" transform="translate(20, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="meta-diagram__badge" x="14" y="26">BUG DETECTION</text>
+      <text class="meta-diagram__title" x="14" y="54">Infer 靜態分析檢測</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--teal"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--teal"
+          x="10"
+          y="20">Engineer Submits Diff</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 提交 Pull Request / Phabricator</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 觸發 CI 差量分析管線</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 數萬次提交持續掃描</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--gold"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--gold"
+          x="10"
+          y="20">Infer Static Analyzer</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 分離邏輯 (Separation Logic)</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 空指針 (NPE) &amp; 記憶體洩漏</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 執行緒競爭 (Data Race)</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--blue"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--blue"
+          x="10"
+          y="20">Bug Report 生成</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 定位確切檔案與行號</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 輸出 AST 語法樹上下文</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Patch Generation (SapFix) -->
+    <g class="meta-diagram__card" transform="translate(255, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="meta-diagram__badge" x="14" y="26">PATCH GENERATION</text>
+      <text class="meta-diagram__title" x="14" y="54">SapFix 自動補丁生成</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--gold"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--gold"
+          x="10"
+          y="20">Template-based Repair</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 預置高品質防禦範本</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 空值保護 (Null Check Guard)</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 資源關閉 (Try-with-resources)</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--blue"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--blue"
+          x="10"
+          y="20">Mutation &amp; History Fix</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• AST 語法樹節點變異</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 學習歷史人類修復 Diff</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 產生多個候選修復 Patch</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--teal"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--teal"
+          x="10"
+          y="20">Patch Candidate Ranking</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 代碼改動最小化優先</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58">• 相似度打分過濾</text>
+      </g>
+    </g>
+
+    <!-- Column 3: Sandboxed Verification -->
+    <g class="meta-diagram__card" transform="translate(490, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="meta-diagram__badge" x="14" y="26">CI VERIFICATION</text>
+      <text class="meta-diagram__title" x="14" y="54">沙盒隔離驗證測試</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--teal"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--teal"
+          x="10"
+          y="20">Build &amp; Compile Check</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 沙盒環境套用 Patch</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 驗證代碼編譯無錯誤</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 快速淘汰無法編譯的修復</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--blue"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--blue"
+          x="10"
+          y="20">Differential Testing</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 執行既有 Unit/E2E 測試</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 確保通過原本報錯的測試</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 零迴歸 (Zero Regressions)</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--gold"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--gold"
+          x="10"
+          y="20">Infer Clean Re-scan</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 再次執行 Infer 掃描</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58">• 確認警告完全清除</text>
+      </g>
+    </g>
+
+    <!-- Column 4: Human Approval & Landing -->
+    <g class="meta-diagram__card" transform="translate(725, 35)">
+      <rect width="215" height="380" rx="12"></rect>
+      <text class="meta-diagram__badge" x="14" y="26">HUMAN-IN-THE-LOOP</text>
+      <text class="meta-diagram__title" x="14" y="54">審核與生產部署</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--gold"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--gold"
+          x="10"
+          y="20">Auto-Generated PR</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 機器人自動發起 Pull Request</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 包含詳細原因與測試報告</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 自動標記代碼作者 Review</text
+        >
+      </g>
+
+      <g transform="translate(14, 180)">
+        <rect
+          width="187"
+          height="90"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--teal"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--teal"
+          x="10"
+          y="20">Engineer One-Click Accept</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 工程師一鍵核准 (Approve)</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 滿意度高達 75% 以上</text
+        >
+        <text class="meta-diagram__desc" x="10" y="76"
+          >• 避免人工繁瑣修復耗時</text
+        >
+      </g>
+
+      <g transform="translate(14, 285)">
+        <rect
+          width="187"
+          height="75"
+          rx="6"
+          class="meta-diagram__subcard meta-diagram__subcard--blue"></rect>
+        <text
+          class="meta-diagram__header meta-diagram__header--blue"
+          x="10"
+          y="20">Continuous Landing</text
+        >
+        <text class="meta-diagram__desc" x="10" y="40"
+          >• 自動合入 main 分支</text
+        >
+        <text class="meta-diagram__desc" x="10" y="58"
+          >• 灰度金絲雀持續上線</text
+        >
+      </g>
+    </g>
+
+    <!-- Connectors / Flow Lines -->
+    <path
+      d="M 235 155 L 255 155"
+      class="meta-diagram__line"
+      marker-end="url(#meta-arrow)"></path>
+    <path
+      d="M 470 155 L 490 155"
+      class="meta-diagram__line"
+      marker-end="url(#meta-arrow)"></path>
+    <path
+      d="M 705 155 L 725 155"
+      class="meta-diagram__line"
+      marker-end="url(#meta-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="meta-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="meta-m-title"
+  >
+    <title id="meta-m-title">Meta 自動修復架構（手機檢視）</title>
+
+    <g class="meta-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="130" rx="8"></rect>
+      <text class="meta-diagram__badge" x="12" y="22"
+        >1. 提交與 Infer 靜態掃描</text
+      >
+      <text class="meta-diagram__desc" x="12" y="45"
+        >• 開發者提交代碼 Diff 觸發 CI</text
+      >
+      <text class="meta-diagram__desc" x="12" y="65"
+        >• Infer 分離邏輯差量分析毫秒級完成</text
+      >
+      <text class="meta-diagram__desc" x="12" y="85"
+        >• 精確捕獲 NPE 空指針與資料競爭</text
+      >
+      <text class="meta-diagram__desc" x="12" y="105"
+        >• 產出結構化 Bug Report 與 AST 上下文</text
+      >
+    </g>
+
+    <g class="meta-diagram__card" transform="translate(10, 155)">
+      <rect width="300" height="135" rx="8"></rect>
+      <text class="meta-diagram__badge" x="12" y="22"
+        >2. SapFix 自動補丁產生</text
+      >
+      <text class="meta-diagram__desc" x="12" y="45"
+        >• Template 範本產生空值防禦保護</text
+      >
+      <text class="meta-diagram__desc" x="12" y="65"
+        >• AST 變異與歷史修復學習產生候選</text
+      >
+      <text class="meta-diagram__desc" x="12" y="85"
+        >• 代碼變更最小化演算法評分排序</text
+      >
+      <text class="meta-diagram__desc" x="12" y="105"
+        >• 輸出多個潛在修復 Patch</text
+      >
+    </g>
+
+    <g class="meta-diagram__card" transform="translate(10, 305)">
+      <rect width="300" height="140" rx="8"></rect>
+      <text class="meta-diagram__badge" x="12" y="22"
+        >3. 沙盒隔離與差量回歸</text
+      >
+      <text class="meta-diagram__desc" x="12" y="45"
+        >• 隔離沙盒驗證 Patch 是否通過編譯</text
+      >
+      <text class="meta-diagram__desc" x="12" y="65"
+        >• 差量回歸測試確認零回歸 (Zero Regressions)</text
+      >
+      <text class="meta-diagram__desc" x="12" y="85"
+        >• 重新執行 Infer 確保警告徹底消除</text
+      >
+      <text class="meta-diagram__desc" x="12" y="105"
+        >• 僅保留 100% 驗證通過的修復補丁</text
+      >
+    </g>
+
+    <g class="meta-diagram__card" transform="translate(10, 460)">
+      <rect width="300" height="145" rx="8"></rect>
+      <text class="meta-diagram__badge" x="12" y="22"
+        >4. 人機協同 (Human-in-the-Loop)</text
+      >
+      <text class="meta-diagram__desc" x="12" y="45"
+        >• 機器人自動建立 PR 並附帶測試證據</text
+      >
+      <text class="meta-diagram__desc" x="12" y="65"
+        >• 派發給最相關作者一鍵點擊 Approve</text
+      >
+      <text class="meta-diagram__desc" x="12" y="85"
+        >• 生產接受率高達 75% 以上</text
+      >
+      <text class="meta-diagram__desc" x="12" y="105"
+        >• 自動合入 main 分支持續灰度上線</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="meta-caption" class="meta-diagram__caption">
+    圖 1：Meta 自動 Bug 修復架構 — 從 Infer 靜態檢測、SapFix 補丁生成、沙盒 CI
+    驗證到人機協同審核
+  </figcaption>
+</figure>
+
+<style>
+  .meta-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .meta-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .meta-diagram__desktop {
+    display: block;
+  }
+
+  .meta-diagram__mobile {
+    display: none;
+  }
+
+  .meta-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Theme variables */
+  .meta-diagram__card rect {
+    fill: var(--color-bg-subtle, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .meta-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .meta-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .meta-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .meta-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .meta-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .meta-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .meta-diagram__subcard--teal {
+    fill: rgba(13, 148, 136, 0.08);
+    stroke: rgba(13, 148, 136, 0.3);
+  }
+
+  :global(.dark) .meta-diagram__subcard--teal {
+    fill: rgba(20, 184, 166, 0.12);
+    stroke: rgba(20, 184, 166, 0.35);
+  }
+
+  .meta-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(.dark) .meta-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .meta-diagram__subcard--gold {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  :global(.dark) .meta-diagram__subcard--gold {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  .meta-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .meta-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .meta-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .meta-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(.dark) .meta-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .meta-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .meta-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .meta-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .meta-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .meta-diagram__line {
+    stroke: #94a3b8;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  :global(.dark) .meta-diagram__line {
+    stroke: #475569;
+  }
+
+  .meta-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .meta-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  @media (max-width: 640px) {
+    .meta-diagram__desktop {
+      display: none;
+    }
+    .meta-diagram__mobile {
+      display: block;
+      max-width: 320px;
+    }
+  }
+</style>

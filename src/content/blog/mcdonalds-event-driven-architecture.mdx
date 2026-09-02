@@ -1,0 +1,249 @@
+---
+title: "McDonald's 百萬級即時訂單事件驅動架構：從 AWS Serverless、SQS 削峰到 DynamoDB 全球狀態機"
+description: "深度解析全球麥當勞 40,000+ 家門市與億級行動點餐背後的雲端事件驅動架構：API Gateway 邊界防禦、Lambda 彈性接入、SQS 削峰、DynamoDB 狀態機與 KVS 廚房即時履約。"
+publishDate: 2026-09-02T11:06:00+08:00
+draft: false
+featured: false
+tags:
+  - "系統設計"
+  - "事件驅動"
+  - "Serverless"
+  - "高併發"
+  - "雲端架構"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/mcdonalds-event-driven-architecture.png
+coverAlt: "即時訂單由入口閘道經佇列緩衝後流向全球門市的事件管線"
+---
+
+import McdonaldsEventDrivenDiagram from "../../components/McdonaldsEventDrivenDiagram.astro";
+
+全球麥當勞（McDonald's）在 100 多個國家擁有超過 40,000 家實體門市，每天服務超過 6,500 萬名顧客。隨著行動應用程式（Mobile App）、外送平台整合（UberEats / DoorDash）、門市自助點餐機（Kiosk）以及得來速（Drive-Thru）車道的全面數位化，訂單流量呈現極端波峰特徵（例如午餐與晚餐尖峰期流量暴增 10 倍以上）。
+
+傳統的單體集中式架構在面臨跨時區用餐高峰時，極易出現資料庫連線打滿、出單延遲甚至門市停擺等災難性問題。
+
+為了打造具備**極致彈性伸縮**、**跨區域 Active-Active 容災**與**零丟單（Zero Lost Orders）**保證的系統，麥當勞將全球數位訂單平台重構為基於 **AWS Serverless 與事件驅動架構（Event-Driven Architecture, EDA）**。
+
+---
+
+## 訂單全生命週期架構全景
+
+麥當勞的數位訂單架構採用解耦的事件驅動設計，將「點餐接收」、「支付處理」、「廚房製作」與「顧客取餐」透過事件匯流排緊密串聯：
+
+<McdonaldsEventDrivenDiagram />
+
+整個訂單流程可拆解為四個核心子系統：
+
+1. **多端邊緣接入（Omnichannel Ingress）**：整合 App、Kiosk、POS 與外送 Webhook，透過 CloudFront 與 API Gateway 進行邊界驗證與流量塑形。
+2. **無伺服器接收與削峰（Serverless Ingestion & Buffering）**：AWS Lambda 毫秒級彈性伸縮處理點餐，Amazon SQS 吸收瞬時並發洪峰。
+3. **分散式狀態機與事件串流（State Machine & EventBridge）**：DynamoDB Global Tables 儲存訂單狀態，DynamoDB Streams 觸發領域事件廣播。
+4. **門市廚房履約與實時推播（Store Fulfillment & KVS）**：Kitchen Video System (KVS) 接收分解後的餐點項目，並向顧客端推播取餐狀態。
+
+---
+
+## 1. 流量接入層：全通路整合與 API Gateway
+
+麥當勞的點餐來源涵蓋多元管道，不同管道的網路環境與業務特徵差異巨大：
+
+```
+[ Mobile App ]      [ Kiosk 自助機 ]      [ POS / 得來速 ]      [ 外送平台 Webhook ]
+       │                   │                     │                     │
+       └───────────────────┼─────────────────────┴─────────────────────┘
+                           ▼
+             [ CloudFront (全球 Anycast PoP) ]
+                           ▼
+             [ AWS API Gateway (WAF + OAuth) ]
+                           ▼
+             [ Ingestion Lambda Function ]
+```
+
+### 1.1 邊界安全性與流量治理
+
+- **WAF 與自適應限流**：在 API Gateway 前配置 AWS WAF，防禦惡意搶券 Bot 與憑證填充攻擊（Credential Stuffing）。
+- **JWT 輕量鑑權**：在 API Gateway 使用 Lambda Authorizer 進行非對稱金鑰簽名驗證，避免無效請求穿透至核心計費模組。
+- **門市離線收銀容災（Offline Fallback）**：實體門市的 POS 系統具備本地 SQLite 儲存能力。當門市對外廣域網路（WAN）中斷時，POS 可切換為離線模式繼續記帳出單，待網路恢復後再非同步補傳事件。
+
+---
+
+## 2. 接收與削峰：Serverless + SQS 緩衝設計
+
+用餐尖峰期間，全球每秒可能湧入數萬筆點餐請求。若直接同步呼叫下游計費、庫存與門市系統，任何一個下游節點延遲都會引發連鎖雪崩。
+
+### 2.1 異步解耦與 SQS 佇列拓撲
+
+麥當勞將訂單接收與訂單處理徹底非同步化：
+
+```json
+// 訂單事件 Payload 範例
+{
+  "orderId": "ord_99a8b7c6_20260902",
+  "storeId": "US_IL_CHICAGO_0042",
+  "customerId": "cust_123456",
+  "channel": "MOBILE_ORDER_PAY",
+  "items": [
+    { "sku": "BIG_MAC_MEAL", "qty": 1, "customization": { "noPickles": true } },
+    { "sku": "MCFLURRY_OREO", "qty": 2 }
+  ],
+  "totalAmount": 16.5,
+  "currency": "USD",
+  "timestamp": "2026-09-02T11:06:00.123Z",
+  "idempotencyKey": "idem_8f7e6d5c4b3a"
+}
+```
+
+1. **Ingestion Lambda** 接收請求後，僅執行基本的 Schema 格式校驗，並將 Payload 寫入 **Amazon SQS**，隨即向客戶端回傳 `202 Accepted` 與 `orderId`。整個 HTTP 耗時通常小於 30ms。
+2. **Order Processor Lambda** 作為 SQS Consumer，以受控的併發度（Concurrency Control）批次拉取訊息，保障下游系統不會被流量壓垮。
+
+### 2.2 冪等性與死信佇列（DLQ）
+
+在分散式環境中，網路超時重試必然會導致重複投遞。麥當勞採用 **冪等鍵（Idempotency Key）** 與 **DynamoDB 條件寫入（Conditional Writes）**：
+
+```typescript
+// Lambda 處理訂單的冪等寫入範例
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+
+const ddb = new DynamoDBClient({ region: "us-east-1" });
+
+async function processOrder(orderEvent: any) {
+  try {
+    await ddb.send(
+      new PutItemCommand({
+        TableName: "OrdersTable",
+        Item: {
+          orderId: { S: orderEvent.orderId },
+          idempotencyKey: { S: orderEvent.idempotencyKey },
+          status: { S: "CREATED" },
+          storeId: { S: orderEvent.storeId },
+          data: { S: JSON.stringify(orderEvent) },
+          version: { N: "1" },
+          createdAt: { S: new Date().toISOString() },
+        },
+        // 若已存在相同 orderId 或 idempotencyKey 則拒絕重入
+        ConditionExpression:
+          "attribute_not_exists(orderId) AND attribute_not_exists(idempotencyKey)",
+      }),
+    );
+  } catch (err: any) {
+    if (err.name === "ConditionalCheckFailedException") {
+      console.warn(`[Duplicate Order Skipped]: ${orderEvent.orderId}`);
+      return; // 冪等略過
+    }
+    throw err; // 其他錯誤拋出觸發 SQS 重試或轉入 DLQ
+  }
+}
+```
+
+---
+
+## 3. 狀態引擎與事件分發：DynamoDB Streams 與 EventBridge
+
+訂單狀態的演進本質上是一個嚴謹的**有限狀態機（Finite State Machine, FSM）**：
+
+```text
+CREATED ➔ PAID ➔ KITCHEN_IN_PREP ➔ READY_FOR_PICKUP ➔ COMPLETED
+```
+
+### 3.1 DynamoDB Streams 變更捕獲 (CDC)
+
+每次 DynamoDB 中的訂單狀態欄位被更新，**DynamoDB Streams** 都會即時產生一條 24 小時內順序可重放的變更日誌（Change Data Capture）：
+
+```
+[ DynamoDB Table ] ──(State Changed)──► [ DynamoDB Streams ]
+                                               │
+                                               ▼
+                                      [ Router Lambda ]
+                                               │
+                                               ▼
+                                 [ Amazon EventBridge Event Bus ]
+                                               │
+                     ┌─────────────────────────┼─────────────────────────┐
+                     ▼                         ▼                         ▼
+         [ Store KVS Dispatcher ]     [ Notification Lambda ]   [ Financial Audit S3 ]
+```
+
+### 3.2 Amazon EventBridge 領域事件廣播
+
+**Amazon EventBridge** 作為中央事件中樞，負責跨微服務的規則路由。各下游系統無需直接依賴訂單資料庫，只需宣告自己的事件匹配規則：
+
+```json
+// EventBridge Rule: 僅監聽狀態變更為 PAID 的事件
+{
+  "source": ["mcdonalds.orders"],
+  "detail-type": ["OrderStatusChanged"],
+  "detail": {
+    "status": ["PAID"]
+  }
+}
+```
+
+當此事件被觸發時，EventBridge 會同時派發給：
+
+- **門市廚房派單服務**：將餐點指令推播至該門市的 KVS。
+- **客戶通知服務**：向使用者的手機發送推播通知「訂單已確認，廚房正在為您備餐」。
+- **財務審計服務**：將交易日誌寫入 S3 資料湖進行合規歸檔。
+
+---
+
+## 4. 門市廚房履約：KVS 即時拆單與調度
+
+一家麥當勞門市通常包含多個專業製作站點：漢堡組裝站、油炸站（薯條/麥克鷄塊）、飲料站與甜點站。
+
+### 4.1 廚房顯示系統 (KVS) 拆單演算法
+
+當訂單到達門市時，門市邊緣伺服器將訂單項目進行**標籤化拆分（Workstation Decomposition）**：
+
+| 工作站 (Station)       | 承接品項範例           | 優先級調度規則                         |
+| :--------------------- | :--------------------- | :------------------------------------- |
+| **Grill / Assembly**   | 大麥克、雙層牛肉吉事堡 | 按麵包烘烤時間排隊，組裝後送至保溫槽   |
+| **Fry Station**        | 大薯、麥克鷄塊         | 監控炸爐批次容量，預估出鍋時間對齊組裝 |
+| **Beverage & McCafé**  | 冰美式、可樂、奶昔     | 機器自動注杯，防冰塊融化延後打出       |
+| **Expeditor (組單員)** | 全品項匯總打包         | 螢幕顯示全品項完成狀態，核對無誤後叫號 |
+
+門市內透過 Local WebSocket 保持與 KVS 螢幕的雙向連線。廚房人員每按一下「完成（Bump）」，狀態就會即時回傳給雲端 EventBridge，推動整體狀態機演進。
+
+---
+
+## 5. 跨區域 Active-Active 容災與高可用性
+
+餐飲零售業對可用性要求極高，單一雲端區域（Region）故障不得影響點餐。
+
+### 5.1 Route 53 與 DynamoDB Global Tables
+
+麥當勞在多個 AWS Region（例如 `us-east-1` 與 `us-west-2`）部署了完全對稱的 Serverless 堆疊：
+
+```
+                    [ Route 53 (Latency & Health Routing) ]
+                                 │
+                 ┌───────────────┴───────────────┐
+                 ▼                               ▼
+       [ US-East-1 Region ]            [ US-West-2 Region ]
+       • API Gateway                   • API Gateway
+       • Lambda + SQS                  • Lambda + SQS
+       • DynamoDB (us-east-1) ◄──────► • DynamoDB (us-west-2)
+                 └─── DynamoDB Global Tables Replication ───┘
+```
+
+- **雙向多主複製**：DynamoDB Global Tables 提供基於時間戳的「最後寫入者獲勝（Last-Writer-Wins）」衝突解決機制，跨區域複製延遲通常小於 1 秒。
+- **自動故障轉移**：當 Route 53 探測到某區域健康檢查失敗時，DNS 在 10 秒內將流量全量切換至對等區域，用戶端無感知。
+
+---
+
+## 6. 架構總結與設計復盤
+
+| 維度         | 傳統單體方案                      | McDonald's 事件驅動架構                     |
+| :----------- | :-------------------------------- | :------------------------------------------ |
+| **擴展性**   | 依賴單一 RDBMS 縱向擴容，易遇瓶頸 | Serverless + SQS + DynamoDB 毫秒級自動伸縮  |
+| **併發削峰** | 流量暴增時連線池耗盡、請求超時    | SQS 緩衝數百萬訊息，非同步平滑消費          |
+| **服務耦合** | 跨模組同步 RPC 呼叫，強依賴       | EventBridge 宣告式事件訂閱，完全解耦        |
+| **高可用性** | 主從切換需要分鐘級人工介入        | Multi-Region Active-Active 雙活，零停機容災 |
+| **門市邊界** | 依賴公網連線，網路抖動即停擺      | POS 具備本機離線模式，網絡恢復後非同步補償  |
+
+麥當勞的架構演進展示了大型跨國連鎖企業如何利用 **Serverless 的無狀態彈性** 與 **事件驅動的解耦特性**，將複雜的線上點餐、金流支付與線下門市廚房履約化繁為簡。
+
+---
+
+## 參考一手來源與延伸閱讀
+
+- [AWS Architecture Blog: How McDonald's Scales with Event-Driven Architecture](https://aws.amazon.com/blogs/architecture/)
+- [AWS Case Study: McDonald's Global Order Delivery Platform](https://aws.amazon.com/solutions/case-studies/mcdonalds/)
+- [Amazon EventBridge Design Patterns](https://docs.aws.amazon.com/eventbridge/)
+- [ByteByteGo: McDonald's Event-Driven Architecture Visual Guide](https://bytebytego.com/guides/mcdonald's-event-driven-architecture)
