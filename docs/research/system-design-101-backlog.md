@@ -4,19 +4,25 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 批（5 篇）、第 2 批（4 篇）、第 3 批（4 篇）、第 4 批（4 篇）與第 5 批（3 篇）共 20 篇架構專題全數發布上線。
+> 狀態：已完成第 1 ~ 5 批（20 篇）與 ELK 專題共 21 篇架構文章發布；後續主題（第 6 ~ 10 批共 22 篇）已全面結構化整理入佇列待後續撰寫。
 
 ---
 
 ## 📊 發布進度與狀態
 
-| 批次        | 主題範疇                                                                | 規劃篇數 | 已發布篇數 | 狀態              |
-| :---------- | :---------------------------------------------------------------------- | :------- | :--------- | :---------------- |
-| **第 1 批** | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）   | 5 篇     | 5 篇       | ✅ **已全數發布** |
-| **第 2 批** | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 3 批** | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全） | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）      | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 3 篇       | ✅ **已全數發布** |
+| 批次         | 主題範疇                                                                 | 規劃篇數 | 已發布篇數 | 狀態              |
+| :----------- | :----------------------------------------------------------------------- | :------- | :--------- | :---------------- |
+| **第 1 批**  | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）    | 5 篇     | 5 篇       | ✅ **已全數發布** |
+| **第 2 批**  | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）          | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 3 批**  | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全）  | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 4 批**  | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）       | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 5 批**  | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）   | 3 篇     | 3 篇       | ✅ **已全數發布** |
+| **獨立專題** | ELK Stack 分散式日誌架構與現代演進（Lucene 倒排索引 / Kafka / Loki）     | 1 篇     | 1 篇       | ✅ **已發布**     |
+| **第 6 批**  | 真實巨頭架構案例二期（Slack / McDonald's / Airbnb / Pinterest / Reddit） | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 7 批**  | 分散式高階儲存與資料一致性（Erasure Coding / Event Sourcing / S3 上傳）  | 5 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 8 批**  | 即時通訊、網路協定與授權體系（WebSocket/SSE / OAuth2 / NAT / 負載平衡）  | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 9 批**  | 高可用、分散式限流與流量治理（Token Bucket / Snowflake / 斷路器 / 快取） | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 10 批** | DevOps、Git 底層與計算機基礎（Git 內部原理 / 瀏覽器渲染 / epoll）        | 3 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 
 ---
 
@@ -98,6 +104,62 @@
 3. [**企業級開源 AI 技術棧藍圖：從 vLLM 推理、Qdrant 向量檢索到 LangGraph 編排與 Langfuse 評測**](../../src/content/blog/open-source-ai-stack-blueprint-architecture.mdx)
    - **一手來源**：[Hugging Face Guides](https://huggingface.co/docs) / [Langfuse Observability](https://langfuse.com/docs)
    - **核心要點**：企業開源 AI 四層架構（Serving / Vector & Storage / Orchestration / Observability & Eval）、vLLM 多 GPU 張量平行、Qdrant/Milvus 億級 HNSW 混合檢索（Dense + BM25）、LangGraph 狀態圖編排與 MCP 協議、Langfuse OpenTelemetry 全鏈路追蹤與 RAG Triad 自動評測。
+
+### 獨立專題：ELK Stack 分散式日誌架構
+
+1. [**ELK Stack 分散式日誌架構解析：倒排索引、Kafka 削峰管線與現代 Loki 成本演進**](../../src/content/blog/elk-stack-distributed-log-management-architecture.mdx)
+   - **一手來源**：[ByteByteGo ELK Stack Guide](https://bytebytego.com/guides/what-is-elk-stack-and-why-is-it-so-popular-for-log-management/)
+   - **核心要點**：Filebeat 邊界採集與背壓控制、Kafka 削峰防禦寫入雪崩、Logstash Grok 結構化解析、Lucene 倒排索引 FST 詞典與 Doc Values 列式儲存、Grafana Loki 僅索引標籤與 S3 壓縮（成本降 80%）、OpenSearch 開源分支選型。
+
+---
+
+## ⏳ 後續待辦批次清單與一手資料庫儲備
+
+### 第 6 批：真實巨頭架構案例二期
+
+| 專題題目                                            | 涉及核心技術與模組                                                                | 建議一手來源                                                                                                         |
+| :-------------------------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| **Slack 訊息投遞之旅 (Journey of a Slack Message)** | 邊緣 Gateway、WebSocket 雙向通道、Channel Server、Redis 緩存矩陣與 MySQL 分片儲存 | [Slack Engineering: Real-time Messaging Architecture](https://slack.engineering/)                                    |
+| **McDonald's 百萬級即時訂單事件驅動架構**           | AWS SQS、Lambda、DynamoDB 事件串流、跨區域 Active-Active 容災與訂單狀態機         | [AWS Architecture Blog: McDonald's Event-Driven Platform](https://aws.amazon.com/blogs/architecture/)                |
+| **Airbnb 微服務架構演進：0 到 15 億房客擴展之路**   | 單體 Monorail 拆分、Thrift RPC 服務網格、Spinnaker 持續交付與資料庫垂直解耦       | [Airbnb Tech Blog: Microservices Evolution](https://medium.com/airbnb-engineering)                                   |
+| **Pinterest 單行代碼優化 99% Git Clone 耗時**       | commit-graph 底層原理、拓撲排序加速與大規模 CI/CD 構建效能調優                    | [Pinterest Engineering: How a single git config line saved 99% clone time](https://medium.com/pinterest-engineering) |
+| **Reddit 核心儲存與高併發架構演進**                 | PostgreSQL 基礎架構、Cassandra / Redis 快取分層與百萬級貼文投票即時管線           | [Reddit Engineering: Evolution of Reddit Core Storage](https://www.reddit.com/r/RedditEng/)                          |
+
+### 第 7 批：分散式高階儲存與資料一致性
+
+| 專題題目                                            | 涉及核心技術與模組                                                            | 建議一手來源                                                                                                                                           |
+| :-------------------------------------------------- | :---------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Erasure Coding（糾刪碼 / RS Code）架構原理**      | 告別 3 副本 200% 儲存成本膨脹、范德蒙矩陣編解碼與節點修復頻寬優化             | [USENIX Fast / Ceph & HDFS Erasure Coding Guide](https://ceph.io/en/news/blog/2014/erasure-coding/)                                                    |
+| **Event Sourcing（事件溯源）與 CQRS 讀寫分離架構**  | 不可篡改 Event Store、投影（Projections）構建、事件重放與最終一致性補償       | [Martin Fowler: Event Sourcing & CQRS](https://martinfowler.com/eaaDev/EventSourcing.html)                                                             |
+| **分散式消息交付語義（Delivery Semantics）深析**    | At-Most-Once、At-Least-Once 與 Exactly-Once（冪等 Producer + 兩階段事務日誌） | [Confluent: Exactly-Once Semantics in Apache Kafka](https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/) |
+| **S3 大檔案分段上傳（Multipart Upload）與斷點續傳** | ETag 驗證、平行上傳管線、分片合併與網絡抖動錯誤復原                           | [AWS S3 Developer Guide: Multipart Upload](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)                                     |
+| **主從資料庫複製延遲（Replication Lag）應對策略**   | 讀寫分離陷阱、主庫強制讀、快取暫存（Cache-aside）與 GTID 一致性路由           | [MySQL Reference Manual: Replication Implementation Details](https://dev.mysql.com/doc/refman/8.0/en/replication-solutions.html)                       |
+
+### 第 8 批：即時通訊、網路協定與授權體系
+
+| 專題題目                                                     | 涉及核心技術與模組                                                                      | 建議一手來源                                                                               |
+| :----------------------------------------------------------- | :-------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
+| **即時通訊協定全景對決：WebSocket vs. SSE vs. Long Polling** | 連線生命週期開銷、伺服器資源消耗、心跳機制與重連風暴防禦                                | [MDN Web Docs: WebSockets / Server-Sent Events](https://developer.mozilla.org/)            |
+| **OAuth 2.0 與 OpenID Connect (OIDC) 授權拓撲全景**          | Authorization Code Flow、PKCE 防禦、JWT 簽名/驗證與 Token 輪換機制                      | [RFC 6749: OAuth 2.0 / RFC 7636: PKCE](https://datatracker.ietf.org/doc/html/rfc6749)      |
+| **NAT 穿透與 Anycast 邊界路由演進**                          | STUN / TURN / ICE 穿透機制、BGP Anycast 尋址與全球 CDN 邊緣流量加速                     | [Cloudflare Blog: What is Anycast & How BGP Routing Works](https://blog.cloudflare.com/)   |
+| **現代負載平衡演算法精析**                                   | 一致性雜湊（Consistent Hashing 虛擬節點）、加權輪詢（Weighted Round Robin）與最小連線數 | [HAProxy Documentation: Load Balancing Algorithms](https://www.haproxy.com/documentation/) |
+
+### 第 9 批：高可用、分散式限流與流量治理
+
+| 專題題目                                                             | 涉及核心技術與模組                                                    | 建議一手來源                                                                                                                  |
+| :------------------------------------------------------------------- | :-------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| **現代分散式限流演算法：Token Bucket vs. Leaky Bucket vs. 滑動視窗** | Redis Lua 原子腳本、叢集限流、動態配額與熔斷降級                      | [Stripe Engineering: Scaling your API with rate limiters](https://stripe.com/blog/rate-limiters)                              |
+| **分散式唯一 ID 生成器架構：Snowflake vs. Leaf vs. UUIDv7**          | 時鐘回撥（Clock Drift）防禦、趨勢遞增、B+ Tree 索引友善性與高併發效能 | [Twitter Snowflake / Meituan Leaf](https://tech.meituan.com/2017/04/21/mt-leaf.html)                                          |
+| **斷路器（Circuit Breaker）與指數退避重試**                          | 狀態機（Closed/Open/Half-Open）、重試風暴防禦與 Jitter 隨機抖動       | [AWS Architecture: Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) |
+| **分散式快取失效三大災難：快取穿透、快取擊穿與快取雪崩**             | 布隆過濾器（Bloom Filter）、互斥鎖（Mutex）與隨機過期時間加權         | [Redis Documentation: Caching Best Practices](https://redis.io/docs/)                                                         |
+
+### 第 10 批：DevOps、Git 底層與計算機基礎
+
+| 專題題目                                                                | 涉及核心技術與模組                                                              | 建議一手來源                                                                                       |
+| :---------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------- |
+| **Git 內部核心架構：Blob、Tree、Commit 與 Packfile**                    | 內容尋址物件資料庫、SHA-1/SHA-256 哈希、Delta 壓縮與 Garbage Collection         | [Pro Git Book: Git Internals](https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain) |
+| **瀏覽器渲染引擎底層原理：從 HTML/CSS 解析到 DOM、Layout 與 Composite** | 關鍵渲染路徑（CRP）、重排（Reflow）與重繪（Repaint）效能優化                    | [web.dev: How Browsers Work / Critical Rendering Path](https://web.dev/critical-rendering-path/)   |
+| **Linux I/O 多路復用架構演進：select vs. poll vs. epoll**               | 邊緣觸發（ET）與水平觸發（LT）、紅黑樹/就緒鏈表、Reactor 模式與高效能網路伺服器 | [Linux Kernel man-pages: epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)             |
 
 ---
 
