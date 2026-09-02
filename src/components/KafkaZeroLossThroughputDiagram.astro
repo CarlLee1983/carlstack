@@ -1,0 +1,522 @@
+---
+// Kafka High Throughput & Zero Message Loss Architecture Diagram Component
+---
+
+<figure class="kafka-diag" aria-labelledby="kafka-diag-caption">
+  <svg
+    class="kafka-diag__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="kafka-diag-title kafka-diag-desc"
+  >
+    <title id="kafka-diag-title">Apache Kafka 零丟失與超高吞吐底層架構</title>
+    <desc id="kafka-diag-desc">
+      展示 Kafka 如何透過 Producer 冪等重試與 acks=all、Broker 端 OS Page Cache
+      與 Zero-Copy（零拷貝）DMA 傳輸，以及 ISR 多副本同步與手動 Offset
+      提交，實現極致吞吐與零資料丟失。
+    </desc>
+
+    <defs>
+      <marker
+        id="kf-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="kafka-diag__arrow-head"></path>
+      </marker>
+      <marker
+        id="kf-arrow-emerald"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="kafka-diag__arrow-head--emerald"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Block 1: Producer -->
+    <g class="kafka-diag__card" transform="translate(30, 40)">
+      <rect width="210" height="370" rx="12"></rect>
+      <text class="kafka-diag__badge" x="18" y="28">PRODUCER TIER</text>
+      <text class="kafka-diag__title" x="18" y="58">生產者發送端</text>
+      <text class="kafka-diag__desc" x="18" y="86"
+        >• 批次壓縮 (Snappy / ZSTD)</text
+      >
+      <text class="kafka-diag__desc" x="18" y="108"
+        >• RecordAccumulator 緩衝</text
+      >
+
+      <g transform="translate(14, 140)">
+        <rect width="182" height="200" rx="8" class="kafka-diag__subcard"
+        ></rect>
+        <text class="kafka-diag__subhead" x="12" y="24">零丟失核心設定</text>
+        <text class="kafka-diag__code" x="12" y="48">acks = all (-1)</text>
+        <text class="kafka-diag__code" x="12" y="68"
+          >enable.idempotence = true</text
+        >
+        <text class="kafka-diag__subdesc" x="12" y="96"
+          >• 內建 PID + Sequence ID</text
+        >
+        <text class="kafka-diag__subdesc" x="12" y="116"
+          >• 重試不亂序、不重複寫入</text
+        >
+        <text class="kafka-diag__tag kafka-diag__tag--emerald" x="12" y="160"
+          >精確一次 (EOS) 保證</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 to Broker -->
+    <path
+      class="kafka-diag__arrow kafka-diag__arrow--emerald"
+      d="M 240 225 H 315"
+      marker-end="url(#kf-arrow-emerald)"></path>
+    <text class="kafka-diag__wire-label" x="278" y="215" text-anchor="middle"
+      >批次寫入</text
+    >
+
+    <!-- Block 2: Broker & Zero-Copy Engine -->
+    <g
+      class="kafka-diag__card kafka-diag__card--emerald"
+      transform="translate(320, 40)"
+    >
+      <rect width="310" height="370" rx="12"></rect>
+      <text class="kafka-diag__badge kafka-diag__badge--emerald" x="18" y="28"
+        >CORE ENGINE</text
+      >
+      <text class="kafka-diag__title kafka-diag__title--emerald" x="18" y="58"
+        >Kafka Broker 與 OS 核心</text
+      >
+      <text class="kafka-diag__desc" x="18" y="86"
+        >• 順序寫入 (Sequential Disk I/O)</text
+      >
+      <text class="kafka-diag__desc" x="18" y="108"
+        >• 規避 JVM GC（依賴 OS 快取）</text
+      >
+
+      <g transform="translate(14, 130)">
+        <rect width="282" height="210" rx="8" class="kafka-diag__subcard--focus"
+        ></rect>
+        <text
+          class="kafka-diag__subhead kafka-diag__subhead--emerald"
+          x="14"
+          y="26">Zero-Copy (零拷貝技術)</text
+        >
+        <text class="kafka-diag__code" x="14" y="52"
+          >sendfile() 系統呼叫 + DMA</text
+        >
+        <text class="kafka-diag__subdesc" x="14" y="78"
+          >• Page Cache ➔ Network Socket 直接傳輸</text
+        >
+        <text class="kafka-diag__subdesc" x="14" y="100"
+          >• 繞過使用者空間（減少 2 次 Context Switch）</text
+        >
+
+        <path class="kafka-diag__divider" d="M 14 120 H 268"></path>
+
+        <text class="kafka-diag__subhead" x="14" y="145">分區 Commit Log</text>
+        <text class="kafka-diag__subdesc" x="14" y="168"
+          >• 分割槽段 (Segment .log / .index)</text
+        >
+        <text class="kafka-diag__subdesc" x="14" y="190"
+          >• 稀疏索引 (Sparse Index) 二分搜尋</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 to Storage & Consumer -->
+    <path
+      class="kafka-diag__arrow kafka-diag__arrow--emerald"
+      d="M 630 225 H 710"
+      marker-end="url(#kf-arrow-emerald)"></path>
+    <text class="kafka-diag__wire-label" x="670" y="215" text-anchor="middle"
+      >ISR 複寫 / 零拷貝消費</text
+    >
+
+    <!-- Block 3: ISR & Consumer -->
+    <g class="kafka-diag__card" transform="translate(715, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="kafka-diag__badge" x="18" y="28">REPLICATION & SINK</text>
+      <text class="kafka-diag__title" x="18" y="58">ISR 副本與消費者</text>
+      <text class="kafka-diag__desc" x="18" y="86"
+        >• Leader + Follower 複寫</text
+      >
+      <text class="kafka-diag__desc" x="18" y="108"
+        >• 高水位線 (High Watermark)</text
+      >
+
+      <g transform="translate(14, 140)">
+        <rect width="187" height="200" rx="8" class="kafka-diag__subcard"
+        ></rect>
+        <text class="kafka-diag__subhead" x="12" y="24">高可靠副本防禦</text>
+        <text class="kafka-diag__code" x="12" y="48"
+          >min.insync.replicas = 2</text
+        >
+        <text class="kafka-diag__code" x="12" y="68"
+          >unclean.leader.election = false</text
+        >
+        <text class="kafka-diag__subdesc" x="12" y="96"
+          >• 手動提交 Offset (No Auto-commit)</text
+        >
+        <text class="kafka-diag__subdesc" x="12" y="116"
+          >• 死信佇列 (DLQ) 隔離毒藥丸</text
+        >
+        <text class="kafka-diag__tag kafka-diag__tag--emerald" x="12" y="160"
+          >硬體故障零丟失</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version for 320px screens -->
+  <div class="kafka-diag__mobile">
+    <div class="kafka-mobile-card">
+      <span class="kafka-mobile-badge">01. 生產者防線</span>
+      <h4>冪等性與 acks=all</h4>
+      <p>
+        開啟 acks=all 與冪等性（Sequence
+        ID），在發送端杜絕網路重試重複與訊息遺失。
+      </p>
+    </div>
+
+    <div class="kafka-mobile-arrow">↓ 批次高效寫入</div>
+
+    <div class="kafka-mobile-card kafka-mobile-card--emerald">
+      <span class="kafka-mobile-badge kafka-mobile-badge--emerald"
+        >02. 效能核心</span
+      >
+      <h4>順序 I/O 與 Zero-Copy (零拷貝)</h4>
+      <p>
+        充分利用 Linux Page Cache 順序寫入，消費時透過 sendfile() 與 DMA
+        直接傳輸，釋放 CPU 運算力。
+      </p>
+    </div>
+
+    <div class="kafka-mobile-arrow">↓ ISR 同步與消費</div>
+
+    <div class="kafka-mobile-card">
+      <span class="kafka-mobile-badge">03. 儲存與消費端</span>
+      <h4>ISR 副本防護與手動提交 Offset</h4>
+      <p>
+        設定 min.insync.replicas=2 與禁止非同步 Leader 選舉，配合消費端手動提交
+        Offset，達成全鏈路零丟失。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="kafka-diag-caption">
+    圖 1：Apache Kafka 吞吐與可靠性架構：結合 acks=all 冪等發送、OS Page Cache
+    與 Zero-Copy 零拷貝傳輸。
+  </figcaption>
+</figure>
+
+<style>
+  .kafka-diag {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .kafka-diag {
+    background: #091410;
+    border-color: #1e293b;
+  }
+
+  .kafka-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .kafka-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .kafka-diag__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .kafka-diag__card rect {
+    fill: #12201b;
+    stroke: #1f362e;
+  }
+
+  .kafka-diag__card--emerald rect {
+    fill: #f0fdf4;
+    stroke: #059669;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .kafka-diag__card--emerald rect {
+    fill: #064e3b;
+    stroke: #10b981;
+  }
+
+  .kafka-diag__subcard {
+    fill: #f8fafc !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .kafka-diag__subcard {
+    fill: #192b24 !important;
+    stroke: #2b453b !important;
+  }
+
+  .kafka-diag__subcard--focus {
+    fill: #ffffff !important;
+    stroke: #059669 !important;
+    stroke-width: 1.5 !important;
+  }
+
+  :global(.dark) .kafka-diag__subcard--focus {
+    fill: #022c22 !important;
+    stroke: #34d399 !important;
+  }
+
+  .kafka-diag__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .kafka-diag__badge {
+    fill: #9ca3af;
+  }
+
+  .kafka-diag__badge--emerald {
+    fill: #047857;
+  }
+
+  :global(.dark) .kafka-diag__badge--emerald {
+    fill: #a7f3d0;
+  }
+
+  .kafka-diag__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .kafka-diag__title {
+    fill: #f9fafb;
+  }
+
+  .kafka-diag__title--emerald {
+    fill: #065f46;
+  }
+
+  :global(.dark) .kafka-diag__title--emerald {
+    fill: #d1fae5;
+  }
+
+  .kafka-diag__desc {
+    font-size: 12px;
+    fill: #475569;
+  }
+
+  :global(.dark) .kafka-diag__desc {
+    fill: #9ca3af;
+  }
+
+  .kafka-diag__subhead {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1e293b;
+  }
+
+  :global(.dark) .kafka-diag__subhead {
+    fill: #e5e7eb;
+  }
+
+  .kafka-diag__subhead--emerald {
+    fill: #065f46;
+  }
+
+  :global(.dark) .kafka-diag__subhead--emerald {
+    fill: #6ee7b7;
+  }
+
+  .kafka-diag__subdesc {
+    font-size: 11px;
+    fill: #4b5563;
+  }
+
+  :global(.dark) .kafka-diag__subdesc {
+    fill: #d1d5db;
+  }
+
+  .kafka-diag__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    fill: #047857;
+  }
+
+  :global(.dark) .kafka-diag__code {
+    fill: #34d399;
+  }
+
+  .kafka-diag__tag {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #6b7280;
+  }
+
+  :global(.dark) .kafka-diag__tag {
+    fill: #9ca3af;
+  }
+
+  .kafka-diag__tag--emerald {
+    fill: #059669;
+  }
+
+  :global(.dark) .kafka-diag__tag--emerald {
+    fill: #34d399;
+  }
+
+  .kafka-diag__divider {
+    stroke: #d1fae5;
+    stroke-width: 1;
+  }
+
+  :global(.dark) .kafka-diag__divider {
+    stroke: #064e3b;
+  }
+
+  .kafka-diag__arrow {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .kafka-diag__arrow--emerald {
+    stroke: #059669;
+    stroke-width: 2.5;
+  }
+
+  :global(.dark) .kafka-diag__arrow--emerald {
+    stroke: #10b981;
+  }
+
+  .kafka-diag__arrow-head--emerald {
+    fill: #059669;
+  }
+
+  :global(.dark) .kafka-diag__arrow-head--emerald {
+    fill: #10b981;
+  }
+
+  .kafka-diag__wire-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #047857;
+  }
+
+  :global(.dark) .kafka-diag__wire-label {
+    fill: #6ee7b7;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .kafka-diag__desktop {
+      display: none;
+    }
+
+    .kafka-diag__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .kafka-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .kafka-mobile-card {
+      background: #12201b;
+      border-color: #1f362e;
+    }
+
+    .kafka-mobile-card--emerald {
+      background: #f0fdf4;
+      border-color: #059669;
+      border-left: 4px solid #047857;
+    }
+
+    :global(.dark) .kafka-mobile-card--emerald {
+      background: #064e3b;
+      border-color: #10b981;
+    }
+
+    .kafka-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .kafka-mobile-badge--emerald {
+      color: #059669;
+    }
+
+    :global(.dark) .kafka-mobile-badge--emerald {
+      color: #6ee7b7;
+    }
+
+    .kafka-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .kafka-mobile-card h4 {
+      color: #f9fafb;
+    }
+
+    .kafka-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .kafka-mobile-card p {
+      color: #9ca3af;
+    }
+
+    .kafka-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

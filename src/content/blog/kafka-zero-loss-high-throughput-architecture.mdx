@@ -1,0 +1,137 @@
+---
+title: "為什麼 Kafka 既快又不會丟失訊息？Zero-Copy 與 ISR 複寫的底層機制"
+description: "從作業系統 Page Cache、Zero-Copy DMA 系統呼叫、順序 I/O，到 Producer 冪等性、min.insync.replicas 與消費者手動 Offset 提交，全面拆解 Apache Kafka 百萬吞吐與零丟失保障的工程底層。"
+publishDate: 2026-09-02T09:56:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - Kafka
+  - 訊息佇列
+  - 分散式系統
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/kafka-zero-loss-throughput.png
+coverAlt: "高速翡翠綠資料管線透過零拷貝機制直接穿透記憶體環，將資料順序寫入右側同步的 ISR 儲存分區中。"
+---
+
+import KafkaZeroLossThroughputDiagram from "../../components/KafkaZeroLossThroughputDiagram.astro";
+
+在分散式串流與訊息中間件（Message Broker）的領域中，**Apache Kafka** 幾乎是所有大規模數據架構的事實標準。然而，許多開發者在實務整合時常面臨兩大核心疑問：
+
+1. **為什麼 Kafka 能跑出每秒數百萬則訊息的極致吞吐量，且 CPU 佔用率極低？**
+2. **在講求「絕對不丟失訊息（Zero Message Loss）」的金融與交易場景中，Kafka 到底該如何設定才能抵禦各類伺服器崩潰？**
+
+本文結合 [Apache Kafka 官方設計文檔](https://kafka.apache.org/documentation/) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的圖解分析，深度剖析 Kafka 兼顧「超高吞吐」與「高可靠性」的底層硬體與作業系統級機制。
+
+<KafkaZeroLossThroughputDiagram />
+
+---
+
+## 一、為什麼 Kafka 這麼快？四大作業系統級核心優化
+
+許多人誤以為磁碟 I/O 一定比記憶體慢，但這取決於存取方式。Kafka 的架構設計高度迎合了現代作業系統與硬體的底層特性：
+
+### 1. 順序磁碟寫入（Sequential Disk I/O）
+
+- **隨機寫入 vs. 順序寫入**：傳統資料庫（如 B+ Tree 索引）在寫入時需要隨機尋道（Random Seek），極為耗費磁碟 I/O。而 Kafka 的分區日誌（Partition Log）本質上是一個**僅追加的順序日誌檔（Append-only Commit Log）**。
+- **效能表現**：現代硬碟在順序寫入時的速度可達幾百 MB/s，完全不亞於記憶體的隨機存取。
+
+### 2. 擁抱 Linux Page Cache，告別 JVM GC 負擔
+
+Kafka 雖然用 Java/Scala 編寫，但其 Broker 處理程序並沒有在 JVM 堆積（Heap）內自建複雜的記憶體快取：
+
+- **依賴 OS Page Cache**：所有讀寫操作直接經由作業系統核心的 Page Cache 進行。資料寫入時只寫入 Page Cache，由 OS 背景的 `pdflush/flush` 執行緒非同步刷盤。
+- **零 GC 開銷**：數十 GB 的訊息快取全由 Linux 核心管理，JVM 堆記憶體只佔用極小的物件指標，徹底杜絕了巨型堆積造成的 Stop-the-World GC 停頓。
+
+### 3. Zero-Copy（零拷貝）與 `sendfile` 系統呼叫
+
+傳統檔案傳輸在將資料從磁碟發送至網路 Socket 時，需要經歷 **4 次資料拷貝與 4 次上下文切換（Context Switch）**：
+
+```text
+Disk ──(DMA)──► Kernel Page Cache ──(CPU)──► User App Buffer ──(CPU)──► Socket Buffer ──(DMA)──► NIC
+```
+
+Kafka 在消費者拉取訊息時，利用了 Linux 核心的 **`sendfile()`** 系統呼叫（即 **Zero-Copy** 技術）：
+
+```text
+Kernel Page Cache ──(DMA Direct Copy)──► Network Interface (NIC)
+```
+
+- 資料直接透過 DMA（直接記憶體存取）從作業系統 Page Cache 傳輸至網卡緩衝區。
+- **收益**：完全不需要把資料搬移進 JVM 使用者空間，省去 2 次記憶體拷貝與 2 次 Context Switch，大幅降低 CPU 使用率。
+
+### 4. 批次處理與端到端壓縮（Batching & Compression）
+
+Kafka 的 Producer 不是單條單條發送訊息，而是透過 `RecordAccumulator` 在本地記憶體攢批（Batching）。
+
+- **壓縮效益**：一批數百條訊息在客戶端一次性使用 Snappy、ZSTD 或 LZ4 壓縮，Broker 直接將壓縮二進位寫入磁碟，直到消費者拉取時才解壓，大幅節省網路頻寬與磁碟空間。
+
+---
+
+## 二、如何保證 Kafka「絕對不丟失訊息」？全鏈路三道防線
+
+要達成金融級的零丟失（Zero Data Loss），必須在生產端、Broker 叢集與消費端同時建立嚴格約束。
+
+---
+
+### 第一道防線：生產者端（Producer）
+
+```properties
+# 生產者防丟核心配置
+acks = all                   # 或 -1，要求所有 ISR 副本確認寫入
+enable.idempotence = true    # 開啟生產者冪等性
+retries = 2147483647         # 無限重試
+max.in.flight.requests.per.connection = 5
+```
+
+- **`acks = all`**：Leader 節點必須等待所有處於同步狀態中的副本（ISR）全部將訊息寫入本地 Log 後，才向 Producer 回傳 ACK。
+- **生產者冪等性（`enable.idempotence = true`）**：Kafka 為每個 Producer 分配唯一的 PID（Producer ID），並為每條訊息附加單調遞增的 Sequence Number。即使發生網路重試，Broker 也能自動過濾重複訊息，並保證在單分區內的嚴格順序。
+
+---
+
+### 第二道防線：Broker 叢集端
+
+單靠 Producer 的 `acks=all` 還不夠，若叢集中只剩下 Leader 一個節點活著，`acks=all` 也只會等 Leader 一人。
+
+```properties
+# Broker 防丟核心配置
+default.replication.factor = 3   # 副本數至少為 3
+min.insync.replicas = 2          # 最少 ISR 同步副本數
+unclean.leader.election.enable = false # 嚴禁非同步副本競選 Leader
+```
+
+- **`min.insync.replicas = 2`**：若 ISR 集合中的健康節點少於 2 台，Broker 直接拒絕寫入請求並回傳例外（`NotEnoughReplicasException`），以「犧牲部分可用性（Availability）」換取「數據絕對不丟失（Consistency）」。
+- **`unclean.leader.election.enable = false`**：當 Leader 節點崩潰時，絕對不允許落後進度的 Follower 節點上位成為新 Leader，防止歷史資料被覆蓋截斷。
+
+---
+
+### 第三道防線：消費者端（Consumer）
+
+```properties
+# 消費者防丟核心配置
+enable.auto.commit = false   # 關閉自動提交 Offset
+```
+
+- **禁止自動提交（Auto-commit）**：若開啟自動提交，Consumer 可能在剛拉取到訊息尚未執行業務邏輯（如寫入資料庫）時便提交了 Offset。一旦應用崩潰，該批訊息將永遠丟失。
+- **手動提交（Manual Commit）**：必須在**業務邏輯執行完畢且資料庫事務成功提交後**，才呼叫 `consumer.commitSync()`。
+- **死信佇列（Dead Letter Queue）**：對於格式錯誤或無法處理的「毒藥丸（Poison Pill）」訊息，捕獲例外後投遞至專屬 DLQ，防止阻塞整個 Partition 的消費進度。
+
+---
+
+## 三、關鍵機制對照表
+
+| 機制面向              | 追求極致吞吐 (High Throughput)  | 追求絕對可靠 (Zero Loss)             |
+| :-------------------- | :------------------------------ | :----------------------------------- |
+| **生產端確認 (acks)** | `acks = 1`（僅 Leader 確認）    | `acks = all`（所有 ISR 副本確認）    |
+| **生產端冪等**        | 預設關閉                        | `enable.idempotence = true`          |
+| **資料傳輸模式**      | `sendfile()` Zero-Copy 零拷貝   | 配合批次壓縮傳輸                     |
+| **最小 ISR 副本**     | `min.insync.replicas = 1`       | `min.insync.replicas = 2`            |
+| **消費 Offset 提交**  | 自動提交 (`auto.commit = true`) | **手動確認 (`auto.commit = false`)** |
+
+---
+
+### 參考資料與一手文獻
+
+- Apache Kafka Documentation: [_Design - Don't fear the filesystem / Zero-Copy_](https://kafka.apache.org/documentation/#design)
+- ByteByteGo: [_System Design 101: Why is Kafka Fast? & Can Kafka Lose Messages?_](https://github.com/ByteByteGoHq/system-design-101)

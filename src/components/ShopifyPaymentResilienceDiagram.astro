@@ -1,0 +1,524 @@
+---
+// Shopify Resilient Payment Systems Architecture Diagram Component
+---
+
+<figure class="shopify-diag" aria-labelledby="shopify-diag-caption">
+  <svg
+    class="shopify-diag__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="shopify-diag-title shopify-diag-desc"
+  >
+    <title id="shopify-diag-title">
+      Shopify 萬億級高可用支付與彈性防護架構
+    </title>
+    <desc id="shopify-diag-desc">
+      展示 Shopify 如何透過 ULID
+      冪等鍵、明確狀態機轉移、熔斷降級、帶抖動指數退避重試與非同步對帳循環，建構零重複扣款且高耐災的金融級支付系統。
+    </desc>
+
+    <defs>
+      <marker
+        id="sp-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="shopify-diag__arrow-head"></path>
+      </marker>
+      <marker
+        id="sp-arrow-gold"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="shopify-diag__arrow-head--gold"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Block 1: Client & Ingress -->
+    <g class="shopify-diag__card" transform="translate(30, 40)">
+      <rect width="200" height="370" rx="12"></rect>
+      <text class="shopify-diag__badge" x="18" y="28">INGRESS & INITIATION</text
+      >
+      <text class="shopify-diag__title" x="18" y="58">結帳客戶端</text>
+      <text class="shopify-diag__desc" x="18" y="86">• BFCM 百萬湧入流量</text>
+      <text class="shopify-diag__desc" x="18" y="108"
+        >• 虛擬等候室 (Waiting Room)</text
+      >
+
+      <g transform="translate(14, 140)">
+        <rect width="172" height="200" rx="8" class="shopify-diag__subcard"
+        ></rect>
+        <text class="shopify-diag__subhead" x="12" y="24"
+          >原則 01: 嚴格冪等鍵</text
+        >
+        <text class="shopify-diag__code" x="12" y="48">Key: ULID</text>
+        <text class="shopify-diag__subdesc" x="12" y="76">發起請求前先生成</text
+        >
+        <text class="shopify-diag__subdesc" x="12" y="96">單調遞增時間戳</text>
+        <text class="shopify-diag__subdesc" x="12" y="116"
+          >防止網路重發重複扣款</text
+        >
+        <text class="shopify-diag__tag" x="12" y="160">客戶端主動帶入</text>
+      </g>
+    </g>
+
+    <!-- Arrow 1 to Core State Machine -->
+    <path
+      class="shopify-diag__arrow shopify-diag__arrow--gold"
+      d="M 230 225 H 315"
+      marker-end="url(#sp-arrow-gold)"></path>
+    <text class="shopify-diag__wire-label" x="272" y="215" text-anchor="middle"
+      >帶冪等鍵請求</text
+    >
+
+    <!-- Block 2: Core State Machine & Ledger -->
+    <g
+      class="shopify-diag__card shopify-diag__card--gold"
+      transform="translate(320, 40)"
+    >
+      <rect width="310" height="370" rx="12"></rect>
+      <text class="shopify-diag__badge shopify-diag__badge--gold" x="18" y="28"
+        >STATE ENGINE</text
+      >
+      <text class="shopify-diag__title shopify-diag__title--gold" x="18" y="58"
+        >支付核心與狀態機</text
+      >
+      <text class="shopify-diag__desc" x="18" y="86"
+        >• 明確狀態機 (Explicit FSM)</text
+      >
+      <text class="shopify-diag__desc" x="18" y="108"
+        >• 唯一性約束 (DB Unique Constraint)</text
+      >
+
+      <g transform="translate(14, 130)">
+        <rect
+          width="282"
+          height="210"
+          rx="8"
+          class="shopify-diag__subcard--focus"></rect>
+        <text
+          class="shopify-diag__subhead shopify-diag__subhead--gold"
+          x="14"
+          y="26">原子狀態流轉</text
+        >
+        <text class="shopify-diag__code" x="14" y="52"
+          >Pending ➔ Authorized ➔ Captured</text
+        >
+        <text class="shopify-diag__subdesc" x="14" y="78"
+          >• 任何重試請求命中既有 ULID 則直接回傳快照</text
+        >
+        <text class="shopify-diag__subdesc" x="14" y="100"
+          >• 嚴禁模糊狀態（避免 Hanging Transaction）</text
+        >
+
+        <path class="shopify-diag__divider" d="M 14 120 H 268"></path>
+
+        <text class="shopify-diag__subhead" x="14" y="145"
+          >非同步解耦與重試</text
+        >
+        <text class="shopify-diag__subdesc" x="14" y="168"
+          >• 指數退避 + 全抖動 (Exponential Jitter)</text
+        >
+        <text class="shopify-diag__subdesc" x="14" y="190"
+          >• 逾時預算控制 (Client Timeout &lt; Gateway)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 to External Gateways & Reconciliation -->
+    <path
+      class="shopify-diag__arrow shopify-diag__arrow--gold"
+      d="M 630 225 H 710"
+      marker-end="url(#sp-arrow-gold)"></path>
+    <text class="shopify-diag__wire-label" x="670" y="215" text-anchor="middle"
+      >多路分發</text
+    >
+
+    <!-- Block 3: External Gateway & Resilience -->
+    <g class="shopify-diag__card" transform="translate(715, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="shopify-diag__badge" x="18" y="28">DOWNSTREAM & RECON</text>
+      <text class="shopify-diag__title" x="18" y="58">閘道通訊與對帳</text>
+      <text class="shopify-diag__desc" x="18" y="86"
+        >• Stripe / Adyen / 銀行</text
+      >
+      <text class="shopify-diag__desc" x="18" y="108"
+        >• 多渠道故障轉移 (Failover)</text
+      >
+
+      <g transform="translate(14, 140)">
+        <rect width="187" height="200" rx="8" class="shopify-diag__subcard"
+        ></rect>
+        <text class="shopify-diag__subhead" x="12" y="24"
+          >原則 08: 頻外對帳循環</text
+        >
+        <text class="shopify-diag__code" x="12" y="48">Reconciliation Loop</text
+        >
+        <text class="shopify-diag__subdesc" x="12" y="76"
+          >• 定期拉取結算報表</text
+        >
+        <text class="shopify-diag__subdesc" x="12" y="96"
+          >• 修補漏失 Webhook</text
+        >
+        <text class="shopify-diag__subdesc" x="12" y="116"
+          >• 死信佇列 (DLQ) 補償重放</text
+        >
+        <text class="shopify-diag__tag shopify-diag__tag--gold" x="12" y="160"
+          >最終一致性保證</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version for 320px screens -->
+  <div class="shopify-diag__mobile">
+    <div class="shopify-mobile-card">
+      <span class="shopify-mobile-badge">01. 入口防禦</span>
+      <h4>ULID 冪等鍵與流量防護</h4>
+      <p>
+        在客戶端發起扣款前生成單調遞增 ULID
+        冪等鍵，並在尖峰時透過等候室限制並行流量。
+      </p>
+    </div>
+
+    <div class="shopify-mobile-arrow">↓ 帶冪等鍵提交</div>
+
+    <div class="shopify-mobile-card shopify-mobile-card--gold">
+      <span class="shopify-mobile-badge shopify-mobile-badge--gold"
+        >02. 核心狀態引擎</span
+      >
+      <h4>明確狀態機與指數抖動重試</h4>
+      <p>
+        透過資料庫唯一約束鎖定交易狀態（Pending ➔ Authorized ➔ Captured），並以
+        Exponential Backoff with Jitter 消除重試雪崩。
+      </p>
+    </div>
+
+    <div class="shopify-mobile-arrow">↓ 多路安全路由</div>
+
+    <div class="shopify-mobile-card">
+      <span class="shopify-mobile-badge">03. 災備與對帳</span>
+      <h4>熔斷切換與頻外對帳循環</h4>
+      <p>
+        外部支付閘道故障時自動觸發熔斷並切換備用線路，後台對帳排程持續拉取報表自動修復狀態分歧。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="shopify-diag-caption">
+    圖 1：Shopify 支付彈性架構：結合 ULID
+    冪等鍵、原子狀態機、重試抖動退避與頻外對帳循環。
+  </figcaption>
+</figure>
+
+<style>
+  .shopify-diag {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .shopify-diag {
+    background: #0f141c;
+    border-color: #1e293b;
+  }
+
+  .shopify-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .shopify-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .shopify-diag__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .shopify-diag__card rect {
+    fill: #111827;
+    stroke: #1f2937;
+  }
+
+  .shopify-diag__card--gold rect {
+    fill: #fffbeb;
+    stroke: #d97706;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .shopify-diag__card--gold rect {
+    fill: #291e0a;
+    stroke: #f59e0b;
+  }
+
+  .shopify-diag__subcard {
+    fill: #f8fafc !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .shopify-diag__subcard {
+    fill: #1f2937 !important;
+    stroke: #374151 !important;
+  }
+
+  .shopify-diag__subcard--focus {
+    fill: #ffffff !important;
+    stroke: #d97706 !important;
+    stroke-width: 1.5 !important;
+  }
+
+  :global(.dark) .shopify-diag__subcard--focus {
+    fill: #3b2806 !important;
+    stroke: #fbbf24 !important;
+  }
+
+  .shopify-diag__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .shopify-diag__badge {
+    fill: #9ca3af;
+  }
+
+  .shopify-diag__badge--gold {
+    fill: #b45309;
+  }
+
+  :global(.dark) .shopify-diag__badge--gold {
+    fill: #fcd34d;
+  }
+
+  .shopify-diag__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .shopify-diag__title {
+    fill: #f9fafb;
+  }
+
+  .shopify-diag__title--gold {
+    fill: #92400e;
+  }
+
+  :global(.dark) .shopify-diag__title--gold {
+    fill: #fef08a;
+  }
+
+  .shopify-diag__desc {
+    font-size: 12px;
+    fill: #475569;
+  }
+
+  :global(.dark) .shopify-diag__desc {
+    fill: #9ca3af;
+  }
+
+  .shopify-diag__subhead {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1e293b;
+  }
+
+  :global(.dark) .shopify-diag__subhead {
+    fill: #e5e7eb;
+  }
+
+  .shopify-diag__subhead--gold {
+    fill: #92400e;
+  }
+
+  :global(.dark) .shopify-diag__subhead--gold {
+    fill: #fde047;
+  }
+
+  .shopify-diag__subdesc {
+    font-size: 11px;
+    fill: #4b5563;
+  }
+
+  :global(.dark) .shopify-diag__subdesc {
+    fill: #d1d5db;
+  }
+
+  .shopify-diag__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    fill: #b45309;
+  }
+
+  :global(.dark) .shopify-diag__code {
+    fill: #fde047;
+  }
+
+  .shopify-diag__tag {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #6b7280;
+  }
+
+  :global(.dark) .shopify-diag__tag {
+    fill: #9ca3af;
+  }
+
+  .shopify-diag__tag--gold {
+    fill: #b45309;
+  }
+
+  :global(.dark) .shopify-diag__tag--gold {
+    fill: #fbbf24;
+  }
+
+  .shopify-diag__divider {
+    stroke: #fde68a;
+    stroke-width: 1;
+  }
+
+  :global(.dark) .shopify-diag__divider {
+    stroke: #78350f;
+  }
+
+  .shopify-diag__arrow {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .shopify-diag__arrow--gold {
+    stroke: #d97706;
+    stroke-width: 2.5;
+  }
+
+  :global(.dark) .shopify-diag__arrow--gold {
+    stroke: #fbbf24;
+  }
+
+  .shopify-diag__arrow-head--gold {
+    fill: #d97706;
+  }
+
+  :global(.dark) .shopify-diag__arrow-head--gold {
+    fill: #fbbf24;
+  }
+
+  .shopify-diag__wire-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #b45309;
+  }
+
+  :global(.dark) .shopify-diag__wire-label {
+    fill: #fcd34d;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .shopify-diag__desktop {
+      display: none;
+    }
+
+    .shopify-diag__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .shopify-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .shopify-mobile-card {
+      background: #111827;
+      border-color: #1f2937;
+    }
+
+    .shopify-mobile-card--gold {
+      background: #fffbeb;
+      border-color: #d97706;
+      border-left: 4px solid #b45309;
+    }
+
+    :global(.dark) .shopify-mobile-card--gold {
+      background: #291e0a;
+      border-color: #f59e0b;
+    }
+
+    .shopify-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .shopify-mobile-badge--gold {
+      color: #b45309;
+    }
+
+    :global(.dark) .shopify-mobile-badge--gold {
+      color: #fde047;
+    }
+
+    .shopify-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .shopify-mobile-card h4 {
+      color: #f9fafb;
+    }
+
+    .shopify-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .shopify-mobile-card p {
+      color: #9ca3af;
+    }
+
+    .shopify-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

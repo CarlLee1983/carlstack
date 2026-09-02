@@ -1,0 +1,548 @@
+---
+// Netflix Multi-tier Caching & Zuul Push Architecture Diagram Component
+---
+
+<figure class="netflix-diag" aria-labelledby="netflix-diag-caption">
+  <svg
+    class="netflix-diag__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="netflix-diag-title netflix-diag-desc"
+  >
+    <title id="netflix-diag-title">
+      Netflix 階層式快取與 Zuul 百萬推播架構
+    </title>
+    <desc id="netflix-diag-desc">
+      展示 Netflix 如何透過 Zuul Push 邊緣節點維護數千萬智慧電視的長連線、利用
+      Push Registry 精準派發事件，並以 EVCache 與 XFetch 演算法消解快取雪崩。
+    </desc>
+
+    <defs>
+      <marker
+        id="nf-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="netflix-diag__arrow-head"></path>
+      </marker>
+      <marker
+        id="nf-arrow-red"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="netflix-diag__arrow-head--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Block 1: Multi-device Clients -->
+    <g class="netflix-diag__card" transform="translate(30, 40)">
+      <rect width="200" height="370" rx="12"></rect>
+      <text class="netflix-diag__badge" x="18" y="28">ENDPOINTS</text>
+      <text class="netflix-diag__title" x="18" y="58">全球多終端設備</text>
+      <text class="netflix-diag__desc" x="18" y="86"
+        >• Smart TVs / Roku / 盒子</text
+      >
+      <text class="netflix-diag__desc" x="18" y="108"
+        >• iOS / Android 行動客戶端</text
+      >
+      <text class="netflix-diag__desc" x="18" y="130">• 瀏覽器 Web 端</text>
+
+      <g transform="translate(14, 150)">
+        <rect width="172" height="190" rx="8" class="netflix-diag__subcard"
+        ></rect>
+        <text class="netflix-diag__subhead" x="12" y="24">連線協議特化</text>
+        <text class="netflix-diag__code" x="12" y="48">WebSocket / SSE</text>
+        <text class="netflix-diag__subdesc" x="12" y="76"
+          >取代輪詢 (No Polling)</text
+        >
+        <text class="netflix-diag__subdesc" x="12" y="96">保持長連線狀態</text>
+        <text class="netflix-diag__subdesc" x="12" y="116">毫秒級即時互動</text>
+        <text class="netflix-diag__tag" x="12" y="155">依連線數彈性伸縮</text>
+      </g>
+    </g>
+
+    <!-- Bi-directional Line 1 -->
+    <path
+      class="netflix-diag__arrow netflix-diag__arrow--red"
+      d="M 230 180 H 315"
+      marker-end="url(#nf-arrow-red)"></path>
+    <path
+      class="netflix-diag__arrow"
+      d="M 315 280 H 230"
+      marker-end="url(#nf-arrow)"></path>
+    <text class="netflix-diag__wire-label" x="272" y="170" text-anchor="middle"
+      >長連線註冊</text
+    >
+    <text class="netflix-diag__wire-label" x="272" y="300" text-anchor="middle"
+      >即時推播</text
+    >
+
+    <!-- Block 2: Zuul Push Cluster & Registry -->
+    <g
+      class="netflix-diag__card netflix-diag__card--red"
+      transform="translate(320, 40)"
+    >
+      <rect width="310" height="370" rx="12"></rect>
+      <text class="netflix-diag__badge netflix-diag__badge--red" x="18" y="28"
+        >EDGE GATEWAY & PUSH</text
+      >
+      <text class="netflix-diag__title netflix-diag__title--red" x="18" y="58"
+        >Zuul Push 邊緣叢集</text
+      >
+      <text class="netflix-diag__desc" x="18" y="86"
+        >• Goldilocks 策略（大量輕量節點）</text
+      >
+      <text class="netflix-diag__desc" x="18" y="108"
+        >• 單機故障不引發驚群崩潰</text
+      >
+
+      <g transform="translate(14, 130)">
+        <rect
+          width="282"
+          height="210"
+          rx="8"
+          class="netflix-diag__subcard--focus"></rect>
+        <text
+          class="netflix-diag__subhead netflix-diag__subhead--red"
+          x="14"
+          y="26">Push Registry (連線註冊表)</text
+        >
+        <text class="netflix-diag__code" x="14" y="52"
+          >Map: Client ID ➔ Zuul Server Node</text
+        >
+        <text class="netflix-diag__subdesc" x="14" y="78"
+          >• 微服務發布事件時直接尋址目標邊緣機</text
+        >
+
+        <path class="netflix-diag__divider" d="M 14 105 H 268"></path>
+
+        <text
+          class="netflix-diag__subhead netflix-diag__subhead--red"
+          x="14"
+          y="130">EVCache 分散式快取叢集</text
+        >
+        <text class="netflix-diag__subdesc" x="14" y="154"
+          >• 基於 Memcached 的跨 AZ 分散式記憶體</text
+        >
+        <text class="netflix-diag__subdesc" x="14" y="176"
+          >• XFetch 演算法：機率性提前失效防止雪崩</text
+        >
+        <text class="netflix-diag__tag netflix-diag__tag--red" x="14" y="200"
+          >亞毫秒級書籤與片單響應</text
+        >
+      </g>
+    </g>
+
+    <!-- Line 2 to Backend -->
+    <path
+      class="netflix-diag__arrow netflix-diag__arrow--red"
+      d="M 630 180 H 710"
+      marker-end="url(#nf-arrow-red)"></path>
+    <path
+      class="netflix-diag__arrow"
+      d="M 710 280 H 630"
+      marker-end="url(#nf-arrow)"></path>
+    <text class="netflix-diag__wire-label" x="670" y="170" text-anchor="middle"
+      >RENO 事件流</text
+    >
+    <text class="netflix-diag__wire-label" x="670" y="300" text-anchor="middle"
+      >快取讀寫</text
+    >
+
+    <!-- Block 3: Services & Data Tier -->
+    <g class="netflix-diag__card" transform="translate(715, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="netflix-diag__badge" x="18" y="28">BACKEND & STORAGE</text>
+      <text class="netflix-diag__title" x="18" y="58">後端微服務與事件中心</text
+      >
+      <text class="netflix-diag__desc" x="18" y="86">• 推薦演算法引擎</text>
+      <text class="netflix-diag__desc" x="18" y="108"
+        >• 多區域雙活 (Active-Active)</text
+      >
+
+      <g transform="translate(14, 150)">
+        <rect width="187" height="190" rx="8" class="netflix-diag__subcard"
+        ></rect>
+        <text class="netflix-diag__subhead" x="12" y="24">智慧訊息策略</text>
+        <text class="netflix-diag__code" x="12" y="48">Slow-Fast Policy</text>
+        <text class="netflix-diag__subdesc" x="12" y="76"
+          >• Slow: 評估用戶疲勞度</text
+        >
+        <text class="netflix-diag__subdesc" x="12" y="96"
+          >• Fast: 毫秒級內容選擇</text
+        >
+        <text class="netflix-diag__subdesc" x="12" y="116"
+          >• 去重與優先級調度</text
+        >
+        <text class="netflix-diag__tag" x="12" y="155"
+          >跨區 Cassandra 異步複製</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version for 320px screens -->
+  <div class="netflix-diag__mobile">
+    <div class="netflix-mobile-card">
+      <span class="netflix-mobile-badge">01. 全球終端</span>
+      <h4>電視與行動端長連線</h4>
+      <p>
+        透過 WebSocket / SSE 建立持久連線，消除無效輪詢，連線負載自動彈性縮放。
+      </p>
+    </div>
+
+    <div class="netflix-mobile-arrow">↓ 註冊與長連線</div>
+
+    <div class="netflix-mobile-card netflix-mobile-card--red">
+      <span class="netflix-mobile-badge netflix-mobile-badge--red"
+        >02. 邊緣閘道與快取</span
+      >
+      <h4>Zuul Push 與 EVCache 叢集</h4>
+      <p>
+        採用大量輕量節點（Goldilocks）降低單點故障衝擊，透過 Push Registry
+        尋址裝置，並以 EVCache 實現亞毫秒片單查詢。
+      </p>
+    </div>
+
+    <div class="netflix-mobile-arrow">↓ 事件通知與資料流</div>
+
+    <div class="netflix-mobile-card">
+      <span class="netflix-mobile-badge">03. 後端引擎</span>
+      <h4>RENO 事件分發與 Slow-Fast 決策</h4>
+      <p>
+        Slow 政策防止通知疲勞，Fast 政策動態推播最新影片，配合多區域
+        Active-Active 實現極致高可用。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="netflix-diag-caption">
+    圖 1：Netflix 邊緣推播與快取架構：結合 Zuul Push 長連線註冊表、EVCache
+    記憶體叢集與 Slow-Fast 智慧推播決策。
+  </figcaption>
+</figure>
+
+<style>
+  .netflix-diag {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .netflix-diag {
+    background: #110d10;
+    border-color: #1e293b;
+  }
+
+  .netflix-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .netflix-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .netflix-diag__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .netflix-diag__card rect {
+    fill: #1a1518;
+    stroke: #2e2327;
+  }
+
+  .netflix-diag__card--red rect {
+    fill: #fef2f2;
+    stroke: #e11d48;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .netflix-diag__card--red rect {
+    fill: #3b0712;
+    stroke: #f43f5e;
+  }
+
+  .netflix-diag__subcard {
+    fill: #f8fafc !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .netflix-diag__subcard {
+    fill: #241c21 !important;
+    stroke: #3f3138 !important;
+  }
+
+  .netflix-diag__subcard--focus {
+    fill: #ffffff !important;
+    stroke: #e11d48 !important;
+    stroke-width: 1.5 !important;
+  }
+
+  :global(.dark) .netflix-diag__subcard--focus {
+    fill: #4c0519 !important;
+    stroke: #fb7185 !important;
+  }
+
+  .netflix-diag__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .netflix-diag__badge {
+    fill: #9ca3af;
+  }
+
+  .netflix-diag__badge--red {
+    fill: #be123c;
+  }
+
+  :global(.dark) .netflix-diag__badge--red {
+    fill: #fda4af;
+  }
+
+  .netflix-diag__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .netflix-diag__title {
+    fill: #f9fafb;
+  }
+
+  .netflix-diag__title--red {
+    fill: #9f1239;
+  }
+
+  :global(.dark) .netflix-diag__title--red {
+    fill: #ffe4e6;
+  }
+
+  .netflix-diag__desc {
+    font-size: 12px;
+    fill: #475569;
+  }
+
+  :global(.dark) .netflix-diag__desc {
+    fill: #9ca3af;
+  }
+
+  .netflix-diag__subhead {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1e293b;
+  }
+
+  :global(.dark) .netflix-diag__subhead {
+    fill: #e5e7eb;
+  }
+
+  .netflix-diag__subhead--red {
+    fill: #9f1239;
+  }
+
+  :global(.dark) .netflix-diag__subhead--red {
+    fill: #fecdd3;
+  }
+
+  .netflix-diag__subdesc {
+    font-size: 11px;
+    fill: #4b5563;
+  }
+
+  :global(.dark) .netflix-diag__subdesc {
+    fill: #d1d5db;
+  }
+
+  .netflix-diag__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    fill: #be123c;
+  }
+
+  :global(.dark) .netflix-diag__code {
+    fill: #f43f5e;
+  }
+
+  .netflix-diag__tag {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #6b7280;
+  }
+
+  :global(.dark) .netflix-diag__tag {
+    fill: #9ca3af;
+  }
+
+  .netflix-diag__tag--red {
+    fill: #be123c;
+  }
+
+  :global(.dark) .netflix-diag__tag--red {
+    fill: #fb7185;
+  }
+
+  .netflix-diag__divider {
+    stroke: #fecdd3;
+    stroke-width: 1;
+  }
+
+  :global(.dark) .netflix-diag__divider {
+    stroke: #881337;
+  }
+
+  .netflix-diag__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .netflix-diag__arrow {
+    stroke: #475569;
+  }
+
+  .netflix-diag__arrow--red {
+    stroke: #e11d48;
+    stroke-width: 2.5;
+  }
+
+  :global(.dark) .netflix-diag__arrow--red {
+    stroke: #f43f5e;
+  }
+
+  .netflix-diag__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .netflix-diag__arrow-head {
+    fill: #475569;
+  }
+
+  .netflix-diag__arrow-head--red {
+    fill: #e11d48;
+  }
+
+  :global(.dark) .netflix-diag__arrow-head--red {
+    fill: #f43f5e;
+  }
+
+  .netflix-diag__wire-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #be123c;
+  }
+
+  :global(.dark) .netflix-diag__wire-label {
+    fill: #fda4af;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .netflix-diag__desktop {
+      display: none;
+    }
+
+    .netflix-diag__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .netflix-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .netflix-mobile-card {
+      background: #1a1518;
+      border-color: #2e2327;
+    }
+
+    .netflix-mobile-card--red {
+      background: #fef2f2;
+      border-color: #e11d48;
+      border-left: 4px solid #be123c;
+    }
+
+    :global(.dark) .netflix-mobile-card--red {
+      background: #3b0712;
+      border-color: #f43f5e;
+    }
+
+    .netflix-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .netflix-mobile-badge--red {
+      color: #be123c;
+    }
+
+    :global(.dark) .netflix-mobile-badge--red {
+      color: #fecdd3;
+    }
+
+    .netflix-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .netflix-mobile-card h4 {
+      color: #f9fafb;
+    }
+
+    .netflix-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .netflix-mobile-card p {
+      color: #9ca3af;
+    }
+
+    .netflix-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

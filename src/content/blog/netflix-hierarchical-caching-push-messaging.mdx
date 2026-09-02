@@ -1,0 +1,117 @@
+---
+title: "Netflix 億級即時推播與階層式快取架構：Zuul Push 與 EVCache 的極致實踐"
+description: "拆解 Netflix 如何為數億台智慧電視與行動裝置維持毫秒級即時互動：從 Zuul Push 邊緣長連線叢集、Push Registry 尋址、EVCache 跨可用區快取，到以 XFetch 演算法消解快取雪崩的架構全貌。"
+publishDate: 2026-09-02T09:55:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 快取架構
+  - 即時通訊
+  - Zuul
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/netflix-caching-push-messaging.png
+coverAlt: "中央紅色發射塔發出同心光環脈衝，將即時推播事件精準路由至多個裝置終端，下方為層疊的 EVCache 快取矩陣。"
+---
+
+import NetflixCachingPushDiagram from "../../components/NetflixCachingPushDiagram.astro";
+
+對於全球擁有超過 2.6 億付費訂閱用戶的 Netflix 而言，「抓住用戶注意力」的關鍵在於極致的響應速度與無縫的即時體驗：當使用者打開智慧電視時，個人化推薦片單必須在 **200 毫秒內** 完成渲染；當手機端點擊播放時，電視端必須立即同步播放進度。
+
+要在全球數百種異質硬體（Smart TV、Apple TV、Roku、遊戲主機、手機與 Web）上維持低延遲且彈性的服務，Netflix 建構了兩大核心支柱：
+
+1. **EVCache 階層式分散式快取**：跨 AWS 多可用區（Multi-AZ）的分散式記憶體叢集，以亞毫秒級速度供應片單與書籤資料；
+2. **Zuul Push 即時長連線架構**：繞過傳統低效的定時輪詢（Polling），在邊緣端維護數千萬條常駐 WebSocket / SSE 連線。
+
+本文基於 [Netflix Technology Blog 官方技術揭秘](https://netflixtechblog.com/) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的架構分析，深入解析 Netflix 的快取策略與推播引擎。
+
+<NetflixCachingPushDiagram />
+
+---
+
+## 一、Zuul Push：為千萬智慧電視維護持久連線
+
+在 iOS 與 Android 上，系統提供內建的 APNs 與 FCM 推播通道；但在客廳場景中，電視、串流棒與瀏覽器往往缺乏可靠的原生推播服務。若採用客戶端每隔數秒發送一次 HTTP 請求的輪詢機制，將對後端產生數億次無效請求。
+
+Netflix 因此研發了 **Zuul Push** 邊緣閘道叢集：
+
+### 1. 消除輪詢的常駐連線架構
+
+- 裝置開機聯網後，主動與距離最近的 Zuul Push 節點建立 **WebSocket**（支援雙向）或 **Server-Sent Events（SSE）** 長連線。
+- 只要裝置保持開機，連線便持續掛起，伺服器可在事件發生的毫秒內主動推播資料，頻寬開銷降至極致。
+
+### 2. Push Registry：即時連線尋址中心
+
+當後端微服務（如好友觀影邀請、新集數上架）需要通知特定用戶時，微服務如何知道該用戶的電視連在哪一台 Zuul 伺服器上？
+
+- **註冊流程**：客戶端連線成功時，Zuul 節點會將 `(AccountID, DeviceID) ➔ ZuulServerNodeIP` 寫入分散式連線註冊表（Push Registry）。
+- **事件派發**：通知中心（RENO）查詢 Registry 取得目標節點 IP，隨後透過 gRPC 直接將事件投遞給該台 Zuul 伺服器，由其透過已建立的 WebSocket 寫入裝置。
+
+### 3. Goldilocks 容災擴展策略
+
+對於長連線服務而言，「單機斷線」具有毀滅性的連鎖風險。若單台大型伺服器維持 100 萬條連線，一旦該機崩潰，100 萬台電視同時重連將引發嚴重的**驚群風暴（Thundering Herd）**。
+
+- Netflix 採用 **Goldilocks 規模原則**：放棄超大型巨型機器，改用大量輕量級實例（如 AWS `m4.large`），將單節點連線數控制在安全範圍。
+- **依「連線數」彈性縮放**：Zuul Push 節點的 Auto-Scaling 不看 CPU 或 RPS（長連線閒置時 CPU 接近 0%），而是依據 `Current Open Connections` 自動擴容。
+
+---
+
+## 二、EVCache：支撐全域讀取的記憶體快取矩陣
+
+Netflix 後端由數百個微服務構成，單次首頁載入需要聚合數十種推薦模型結果。若所有讀取均穿透至 Cassandra 資料庫，資料庫將不堪重負。
+
+**EVCache（Ephemeral Volatile Cache）** 是 Netflix 基於 Memcached 深度客製的分散式快取層：
+
+- **跨 AZ 異地多活複製**：在同一個 AWS Region 的多個 Availability Zone（AZ）中各自部署一套獨立的 EVCache 叢集。寫入時同步廣播至所有 AZ，讀取時僅讀取同 AZ 節點，保證讀取延遲低於 1 毫秒。
+- **客戶端智慧路由**：EVCache Client 內建一致性雜湊環，若某個節點短暫無響應，自動讀取另一個 AZ 的副本，實現無縫容錯。
+
+---
+
+## 三、防止快取雪崩：XFetch 機率性提前失效演算法
+
+在高併發場景中，最危險的時刻是「熱門快取剛好過期（TTL 到期）」。
+
+> **情境**：首頁「Top 10 熱門片單」快取到期，瞬間有 50,000 個微服務執行緒同時發現快取為空，同時湧入後端重新計算複雜的推薦演算法，導致資料庫 CPU 瞬間衝上 100%（快取擊穿 / Cache Stampede）。
+
+傳統做法是加分散式互斥鎖（Mutex），但鎖會增加延遲。Netflix 採用了 **XFetch 機率性提前更新演算法**：
+
+```text
+P(Refresh) = - beta * delta * ln(random()) > TTL_remaining
+```
+
+- `delta`：重新計算該快取資料所需的耗時（Delta time）。
+- `beta`：激進係數（Aggressiveness parameter，大於 0）。
+- `TTL_remaining`：距離快取過期的剩餘時間。
+
+**運作機制**：在快取即將過期但尚未完全過期的窗口期內，每次讀取請求會依據剩餘時間機率性地判定是否在背景非同步更新快取。剩餘時間越少，觸發更新的機率越高。這保證了**永遠只有一個幸運的請求在背景完成資料刷新，其餘請求繼續讀取舊快取，徹底消除快取擊穿**。
+
+---
+
+## 四、智慧通知防護：Slow-Fast 訊息策略
+
+推播不僅是架構問題，更是使用者體驗的防線。過多的通知會引發用戶關閉通知或卸載 App。
+
+Netflix 建立了 **Slow-Fast 雙層決策引擎**：
+
+- **Slow Policy（宏觀疲勞度評估）**：以離線與準即時模型計算每位用戶的「通知疲勞度（Fatigue Level）」，嚴格限制用戶每週/每天接收推播的上限頻率。
+- **Fast Policy（微觀即時內容選擇）**：在 Slow 策略允許推播時，於數十毫秒內根據用戶當下的觀影狀態、當前設備類型與最新上架內容，精準挑選最具吸引力的通知標題與圖片。
+
+---
+
+## 五、系統架構維度對比
+
+| 架構面向         | 傳統輪詢 / 單一快取方案           | Netflix 邊緣推播與 EVCache 架構       |
+| :--------------- | :-------------------------------- | :------------------------------------ |
+| **推播通訊機制** | 定時 HTTP Polling（資源浪費大）   | **Zuul Push (WebSocket/SSE)** 長連線  |
+| **連線故障防護** | 大節點斷線引發重連雪崩            | **Goldilocks 策略**（分散式輕量實例） |
+| **快取過期管理** | 固定 TTL，到期引發 Cache Stampede | **XFetch 機率性非同步提前失效**       |
+| **跨可用區容災** | 單一快取節點故障穿透資料庫        | **EVCache 跨 AZ 異步複製與本域讀取**  |
+
+---
+
+### 參考資料與一手文獻
+
+- Netflix Technology Blog: [_How Netflix Scales Push Messaging for Millions of Devices_](https://netflixtechblog.com/)
+- Netflix Technology Blog: [_EVCache: Distributed in-memory datastore for Netflix_](https://netflixtechblog.com/)
+- ByteByteGo: [_System Design 101: 4 Ways Netflix Uses Caching_](https://github.com/ByteByteGoHq/system-design-101)
