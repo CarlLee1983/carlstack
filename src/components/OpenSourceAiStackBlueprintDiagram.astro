@@ -1,0 +1,656 @@
+---
+// Open Source AI Stack Blueprint Architecture Diagram
+---
+
+<figure class="stack-diagram" aria-labelledby="stack-caption">
+  <svg
+    class="stack-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="stack-title stack-desc"
+  >
+    <title id="stack-title">端到端開源 AI 技術棧全景架構藍圖</title>
+    <desc id="stack-desc">
+      展示開源 AI 技術棧的四大核心層級：推理服務 (vLLM/Ollama)、向量資料庫
+      (Qdrant/Milvus)、Agent 工作流編排 (LangGraph)，以及可觀測性與評測
+      (Langfuse)。
+    </desc>
+
+    <defs>
+      <marker
+        id="stack-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="stack-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Model Serving Tier -->
+    <g class="stack-diagram__card" transform="translate(25, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="stack-diagram__badge" x="14" y="26">TIER 1: SERVING</text>
+      <text class="stack-diagram__title" x="14" y="54">模型推理與託管</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--indigo"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--indigo"
+          x="10"
+          y="20">vLLM / TGI</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• 多 GPU 張量平行 (TP)</text
+        >
+        <text class="stack-diagram__desc" x="10" y="58"
+          >• PagedAttention 顯存管理</text
+        >
+        <text class="stack-diagram__desc" x="10" y="76"
+          >• 生產級 OpenAI 相容 API</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--blue"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--blue"
+          x="10"
+          y="20">Ollama / llama.cpp</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• GGUF 量化本機輕量部署</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• 邊緣端與開發者本機推薦</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="187" height="85" rx="6" class="stack-diagram__subcard"
+        ></rect>
+        <text class="stack-diagram__header" x="10" y="20">開放權重生態</text>
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• Llama 3 / Qwen 2.5 / DeepSeek</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• AWQ / GPTQ / FP8 量化加速</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Vector & Storage Tier -->
+    <g class="stack-diagram__card" transform="translate(255, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="stack-diagram__badge" x="14" y="26"
+        >TIER 2: VECTOR &amp; MEMORY</text
+      >
+      <text class="stack-diagram__title" x="14" y="54">向量檢索與知識儲存</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--pink"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--pink"
+          x="10"
+          y="20">Qdrant / Milvus</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• 億級向量 HNSW 索引</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• Hybrid 混合檢索 (BM25)</text
+        >
+        <text class="stack-diagram__desc" x="10" y="78"
+          >• Payload Metadata 過濾</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--purple"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--purple"
+          x="10"
+          y="20">pgvector / Chroma</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• 結合關聯式 SQL 事務</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60">• 零新技術棧負擔</text>
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="187" height="85" rx="6" class="stack-diagram__subcard"
+        ></rect>
+        <text class="stack-diagram__header" x="10" y="20"
+          >嵌入模型 (Embedding)</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• BGE-M3 / Nomic Embed</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• 多語言與長文本支援</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Orchestration Tier -->
+    <g class="stack-diagram__card" transform="translate(485, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="stack-diagram__badge" x="14" y="26"
+        >TIER 3: ORCHESTRATION</text
+      >
+      <text class="stack-diagram__title" x="14" y="54">工作流與 Agent 編排</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="85"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--cyan"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--cyan"
+          x="10"
+          y="20">LangGraph / LlamaIndex</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• 狀態圖 (StateGraph) 控制</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• 循環分支與 Human-in-Loop</text
+        >
+        <text class="stack-diagram__desc" x="10" y="78"
+          >• 高級 RAG (Rerank / Chunking)</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="187"
+          height="80"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--teal"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--teal"
+          x="10"
+          y="20">多 Agent 協作框架</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40">• AutoGen / CrewAI</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• 角色分工與訊息總線</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="187" height="85" rx="6" class="stack-diagram__subcard"
+        ></rect>
+        <text class="stack-diagram__header" x="10" y="20">MCP 協議生態</text>
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• Model Context Protocol</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• 標準化工具與數據源對接</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Observability & Eval Tier -->
+    <g class="stack-diagram__card" transform="translate(715, 40)">
+      <rect width="220" height="370" rx="12"></rect>
+      <text class="stack-diagram__badge" x="14" y="26"
+        >TIER 4: OBSERVABILITY</text
+      >
+      <text class="stack-diagram__title" x="14" y="54">評測與鏈路追蹤</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="192"
+          height="85"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--gold"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--gold"
+          x="10"
+          y="20">Langfuse / Phoenix</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• OpenTelemetry 鏈路追蹤</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• Token 成本與延遲瀑布圖</text
+        >
+        <text class="stack-diagram__desc" x="10" y="78"
+          >• 用戶反饋 Score 閉環</text
+        >
+      </g>
+
+      <g transform="translate(14, 170)">
+        <rect
+          width="192"
+          height="80"
+          rx="6"
+          class="stack-diagram__subcard stack-diagram__subcard--green"></rect>
+        <text
+          class="stack-diagram__header stack-diagram__header--green"
+          x="10"
+          y="20">RAG 幻覺自動評測</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40">• Ragas / DeepEval</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• Context Relevance 相關性</text
+        >
+      </g>
+
+      <g transform="translate(14, 260)">
+        <rect width="192" height="85" rx="6" class="stack-diagram__subcard"
+        ></rect>
+        <text class="stack-diagram__header" x="10" y="20"
+          >防護欄 (Guardrails)</text
+        >
+        <text class="stack-diagram__desc" x="10" y="40"
+          >• NeMo Guardrails / Guardrails AI</text
+        >
+        <text class="stack-diagram__desc" x="10" y="60"
+          >• Prompt Injection 注入防禦</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="stack-diagram__mobile">
+    <div class="stack-mobile-card stack-mobile-card--indigo">
+      <span class="stack-mobile-badge stack-mobile-badge--indigo"
+        >TIER 1: SERVING</span
+      >
+      <h4>1. 模型推理層 (vLLM / Ollama)</h4>
+      <p>
+        支援多 GPU 張量平行與 PagedAttention 顯存管理，提供高吞吐、低延遲的
+        OpenAI 相容服務。
+      </p>
+    </div>
+
+    <div class="stack-mobile-card stack-mobile-card--pink">
+      <span class="stack-mobile-badge stack-mobile-badge--pink"
+        >TIER 2: VECTOR</span
+      >
+      <h4>2. 向量檢索層 (Qdrant / Milvus)</h4>
+      <p>
+        億級 HNSW 索引與 BM25 混合檢索，為 Agent 與 RAG
+        提供精確知識召回與語義記憶。
+      </p>
+    </div>
+
+    <div class="stack-mobile-card stack-mobile-card--cyan">
+      <span class="stack-mobile-badge stack-mobile-badge--cyan"
+        >TIER 3: ORCHESTRATION</span
+      >
+      <h4>3. 工作流編排 (LangGraph / MCP)</h4>
+      <p>
+        基於狀態圖（StateGraph）構建循環 Agent、工具調用沙盒與多智能體協同。
+      </p>
+    </div>
+
+    <div class="stack-mobile-card stack-mobile-card--gold">
+      <span class="stack-mobile-badge stack-mobile-badge--gold"
+        >TIER 4: OBSERVABILITY</span
+      >
+      <h4>4. 可觀測與評測 (Langfuse / Ragas)</h4>
+      <p>
+        OTel 全鏈路追蹤 Token 消耗與延遲瀑布圖，透過 RAG Triad
+        自動評測防禦幻覺。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="stack-caption" class="stack-diagram__caption">
+    圖 3：企業端到端開源 AI 技術棧四大核心層級全景架構
+  </figcaption>
+</figure>
+
+<style>
+  .stack-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .stack-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .stack-diagram__mobile {
+    display: none;
+  }
+
+  .stack-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .stack-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .stack-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .stack-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+  :global(.dark) .stack-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .stack-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+  :global(.dark) .stack-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .stack-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .stack-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .stack-diagram__subcard--indigo {
+    stroke: #818cf8;
+    fill: #eef2ff;
+  }
+  :global(.dark) .stack-diagram__subcard--indigo {
+    stroke: #4f46e5;
+    fill: #1e1b4b;
+  }
+
+  .stack-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+  :global(.dark) .stack-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .stack-diagram__subcard--pink {
+    stroke: #f472b6;
+    fill: #fdf2f8;
+  }
+  :global(.dark) .stack-diagram__subcard--pink {
+    stroke: #db2777;
+    fill: #311042;
+  }
+
+  .stack-diagram__subcard--purple {
+    stroke: #c084fc;
+    fill: #faf5ff;
+  }
+  :global(.dark) .stack-diagram__subcard--purple {
+    stroke: #9333ea;
+    fill: #3b0764;
+  }
+
+  .stack-diagram__subcard--cyan {
+    stroke: #22d3ee;
+    fill: #ecfeff;
+  }
+  :global(.dark) .stack-diagram__subcard--cyan {
+    stroke: #0891b2;
+    fill: #083344;
+  }
+
+  .stack-diagram__subcard--teal {
+    stroke: #14b8a6;
+    fill: #f0fdfa;
+  }
+  :global(.dark) .stack-diagram__subcard--teal {
+    stroke: #0f766e;
+    fill: #042f2e;
+  }
+
+  .stack-diagram__subcard--gold {
+    stroke: #fbbf24;
+    fill: #fefce8;
+  }
+  :global(.dark) .stack-diagram__subcard--gold {
+    stroke: #d97706;
+    fill: #451a03;
+  }
+
+  .stack-diagram__subcard--green {
+    stroke: #10b981;
+    fill: #f0fdf4;
+  }
+  :global(.dark) .stack-diagram__subcard--green {
+    stroke: #059669;
+    fill: #064e3b;
+  }
+
+  .stack-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .stack-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .stack-diagram__header--indigo {
+    fill: #4338ca;
+  }
+  :global(.dark) .stack-diagram__header--indigo {
+    fill: #818cf8;
+  }
+
+  .stack-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .stack-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .stack-diagram__header--pink {
+    fill: #be185d;
+  }
+  :global(.dark) .stack-diagram__header--pink {
+    fill: #f472b6;
+  }
+
+  .stack-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .stack-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .stack-diagram__header--cyan {
+    fill: #0e7490;
+  }
+  :global(.dark) .stack-diagram__header--cyan {
+    fill: #22d3ee;
+  }
+
+  .stack-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .stack-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .stack-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .stack-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .stack-diagram__header--green {
+    fill: #047857;
+  }
+  :global(.dark) .stack-diagram__header--green {
+    fill: #34d399;
+  }
+
+  .stack-diagram__desc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .stack-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  @media (max-width: 768px) {
+    .stack-diagram__desktop {
+      display: none;
+    }
+
+    .stack-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .stack-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+    :global(.dark) .stack-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .stack-mobile-card--indigo {
+      border-left: 4px solid #6366f1;
+      background: #eef2ff;
+    }
+    :global(.dark) .stack-mobile-card--indigo {
+      background: #1e1b4b;
+      border-color: #818cf8;
+    }
+
+    .stack-mobile-card--pink {
+      border-left: 4px solid #db2777;
+      background: #fdf2f8;
+    }
+    :global(.dark) .stack-mobile-card--pink {
+      background: #311042;
+      border-color: #f472b6;
+    }
+
+    .stack-mobile-card--cyan {
+      border-left: 4px solid #0891b2;
+      background: #ecfeff;
+    }
+    :global(.dark) .stack-mobile-card--cyan {
+      background: #083344;
+      border-color: #22d3ee;
+    }
+
+    .stack-mobile-card--gold {
+      border-left: 4px solid #d97706;
+      background: #fefce8;
+    }
+    :global(.dark) .stack-mobile-card--gold {
+      background: #451a03;
+      border-color: #fbbf24;
+    }
+
+    .stack-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .stack-mobile-badge--indigo {
+      color: #4338ca;
+    }
+    :global(.dark) .stack-mobile-badge--indigo {
+      color: #818cf8;
+    }
+
+    .stack-mobile-badge--pink {
+      color: #be185d;
+    }
+    :global(.dark) .stack-mobile-badge--pink {
+      color: #f472b6;
+    }
+
+    .stack-mobile-badge--cyan {
+      color: #0891b2;
+    }
+    :global(.dark) .stack-mobile-badge--cyan {
+      color: #22d3ee;
+    }
+
+    .stack-mobile-badge--gold {
+      color: #b45309;
+    }
+    :global(.dark) .stack-mobile-badge--gold {
+      color: #fbbf24;
+    }
+
+    .stack-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .stack-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .stack-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .stack-mobile-card p {
+      color: #cbd5e1;
+    }
+  }
+</style>

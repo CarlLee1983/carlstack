@@ -1,0 +1,571 @@
+---
+// AI Agent State Machine, Memory and Sandbox Diagram
+---
+
+<figure class="agent-diagram" aria-labelledby="agent-caption">
+  <svg
+    class="agent-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="agent-title agent-desc"
+  >
+    <title id="agent-title">AI Agent 狀態機架構、記憶工程與工具執行沙盒</title>
+    <desc id="agent-desc">
+      展示 ReAct/Plan-Solve 狀態機循環、短期與長期記憶架構，以及
+      Firecracker/gVisor 微虛擬機工具隔離沙盒與循環熔斷機制。
+    </desc>
+
+    <defs>
+      <marker
+        id="agent-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="agent-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: State Machine Loop -->
+    <g class="agent-diagram__card" transform="translate(30, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="agent-diagram__badge" x="18" y="26"
+        >AGENT COGNITIVE ENGINE</text
+      >
+      <text class="agent-diagram__title" x="18" y="54">狀態機與決策循環</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--green"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--green"
+          x="12"
+          y="22">ReAct 思考循環</text
+        >
+        <text class="agent-diagram__desc" x="12" y="44"
+          >1. Thought: 狀態評估與策略推導</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >2. Action: 選擇工具與生成參數</text
+        >
+        <text class="agent-diagram__desc" x="12" y="80"
+          >3. Observation: 接收執行反饋並修正</text
+        >
+      </g>
+
+      <g transform="translate(18, 170)">
+        <rect
+          width="234"
+          height="80"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--blue"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--blue"
+          x="12"
+          y="22">Plan-and-Solve (DAG)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="42"
+          >• 將複雜任務分解為有向無環圖</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >• 動態 Re-planning 應對意外分支</text
+        >
+      </g>
+
+      <g transform="translate(18, 260)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--orange"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--orange"
+          x="12"
+          y="22">死循環熔斷 (Cycle Breaker)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="42"
+          >• 重複工具呼叫哈希檢測 (Duplicate Action)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >• 最大步驟 Step Limit (如 25 步)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="80"
+          >• 觸發人工接管 (Human Intervention)</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Memory Engineering -->
+    <g class="agent-diagram__card" transform="translate(340, 40)">
+      <rect width="280" height="370" rx="12"></rect>
+      <text class="agent-diagram__badge" x="18" y="26">MEMORY ENGINEERING</text>
+      <text class="agent-diagram__title" x="18" y="54"
+        >短期工作與長期記憶架構</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="244"
+          height="85"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--cyan"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--cyan"
+          x="12"
+          y="22">短期工作記憶 (Working Context)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="42"
+          >• 當前 Session 滑動視窗 (Sliding Window)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >• 遞迴摘要壓縮 (Recursive Summarization)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="80"
+          >• Scratchpad 暫存演算中間結果</text
+        >
+      </g>
+
+      <g transform="translate(18, 170)">
+        <rect
+          width="244"
+          height="85"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--purple"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--purple"
+          x="12"
+          y="22">情境長期記憶 (Episodic Memory)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="42"
+          >• 向量資料庫語義檢索 (Vector RAG)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >• 時間衰減重要性加權 (Recency * Importance)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="80"
+          >• 歷史任務復盤與經驗提取 (Reflection)</text
+        >
+      </g>
+
+      <g transform="translate(18, 265)">
+        <rect width="244" height="80" rx="6" class="agent-diagram__subcard"
+        ></rect>
+        <text class="agent-diagram__header" x="12" y="22"
+          >語義知識圖譜 (Semantic Memory)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="42"
+          >• 實體關係網路 (Entity-Graph)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="62"
+          >• 精確知識關聯與跨會話偏好沉澱</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Tool Execution Sandbox -->
+    <g class="agent-diagram__card" transform="translate(660, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="agent-diagram__badge" x="18" y="26"
+        >SECURE EXECUTION ENVIRONMENT</text
+      >
+      <text class="agent-diagram__title" x="18" y="54">微虛擬機隔離沙盒</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="95"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--green"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--green"
+          x="12"
+          y="22">Firecracker / gVisor 沙盒</text
+        >
+        <text class="agent-diagram__desc" x="12" y="44"
+          >• 毫秒級冷啟動 MicroVM</text
+        >
+        <text class="agent-diagram__desc" x="12" y="64"
+          >• 核心系統調用 (Syscall) 攔截過濾</text
+        >
+        <text class="agent-diagram__desc" x="12" y="84"
+          >• 唯讀 RootFS + 拋棄式臨時目錄</text
+        >
+      </g>
+
+      <g transform="translate(18, 180)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="agent-diagram__subcard agent-diagram__subcard--orange"></rect>
+        <text
+          class="agent-diagram__header agent-diagram__header--orange"
+          x="12"
+          y="22">雙向授權邊界 (HITL Approval)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="44"
+          >• 高危指令 (寫檔/刪庫/付款) 暫停阻斷</text
+        >
+        <text class="agent-diagram__desc" x="12" y="64"
+          >• 彈出 Human-in-the-loop 審批確認</text
+        >
+        <text class="agent-diagram__desc" x="12" y="84"
+          >• 審批後繼續恢復狀態機 (Resume)</text
+        >
+      </g>
+
+      <g transform="translate(18, 275)">
+        <rect width="234" height="70" rx="6" class="agent-diagram__subcard"
+        ></rect>
+        <text class="agent-diagram__header" x="12" y="20">網路與資源限制</text>
+        <text class="agent-diagram__desc" x="12" y="40"
+          >• 網域白名單 (Egress Whitelist)</text
+        >
+        <text class="agent-diagram__desc" x="12" y="58"
+          >• CPU / 記憶體 / 硬碟 配額硬性隔離</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows -->
+    <path
+      d="M 300 220 L 330 220"
+      class="agent-diagram__flow-line"
+      marker-end="url(#agent-arrow)"></path>
+    <path
+      d="M 620 220 L 650 220"
+      class="agent-diagram__flow-line"
+      marker-end="url(#agent-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="agent-diagram__mobile">
+    <div class="agent-mobile-card agent-mobile-card--green">
+      <span class="agent-mobile-badge agent-mobile-badge--green"
+        >STEP 1: COGNITIVE FSM</span
+      >
+      <h4>ReAct 狀態機與循環熔斷</h4>
+      <p>
+        Thought ➔ Action ➔ Observation
+        遞迴演化；透過動作雜湊比對與最大步數限制，徹底防範 LLM 死循環。
+      </p>
+    </div>
+
+    <div class="agent-mobile-arrow">↓ 記憶檢索與上下文注入</div>
+
+    <div class="agent-mobile-card agent-mobile-card--purple">
+      <span class="agent-mobile-badge agent-mobile-badge--purple"
+        >STEP 2: MEMORY ENGINE</span
+      >
+      <h4>短期工作與長期情境記憶</h4>
+      <p>
+        結合 Session 滑動視窗摘要、向量資料庫（Vector
+        RAG）與知識圖譜，實現精確經驗召回。
+      </p>
+    </div>
+
+    <div class="agent-mobile-arrow">↓ 安全邊界調用</div>
+
+    <div class="agent-mobile-card agent-mobile-card--orange">
+      <span class="agent-mobile-badge agent-mobile-badge--orange"
+        >STEP 3: SANDBOX &amp; HITL</span
+      >
+      <h4>Firecracker 沙盒與人工審批</h4>
+      <p>
+        使用 MicroVM 隔離惡意程式碼執行，高危操作觸發 Human-in-the-loop
+        人工審批確認。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="agent-caption" class="agent-diagram__caption">
+    圖 2：AI Agent 狀態機架構、記憶工程與工具執行安全沙盒
+  </figcaption>
+</figure>
+
+<style>
+  .agent-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .agent-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .agent-diagram__mobile {
+    display: none;
+  }
+
+  .agent-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .agent-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .agent-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .agent-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+  :global(.dark) .agent-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .agent-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+  :global(.dark) .agent-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .agent-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .agent-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .agent-diagram__subcard--green {
+    stroke: #10b981;
+    fill: #f0fdf4;
+  }
+  :global(.dark) .agent-diagram__subcard--green {
+    stroke: #059669;
+    fill: #064e3b;
+  }
+
+  .agent-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+  :global(.dark) .agent-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .agent-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+  :global(.dark) .agent-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .agent-diagram__subcard--cyan {
+    stroke: #22d3ee;
+    fill: #ecfeff;
+  }
+  :global(.dark) .agent-diagram__subcard--cyan {
+    stroke: #0891b2;
+    fill: #083344;
+  }
+
+  .agent-diagram__subcard--purple {
+    stroke: #c084fc;
+    fill: #faf5ff;
+  }
+  :global(.dark) .agent-diagram__subcard--purple {
+    stroke: #9333ea;
+    fill: #3b0764;
+  }
+
+  .agent-diagram__header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .agent-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .agent-diagram__header--green {
+    fill: #047857;
+  }
+  :global(.dark) .agent-diagram__header--green {
+    fill: #34d399;
+  }
+
+  .agent-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .agent-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .agent-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(.dark) .agent-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .agent-diagram__header--cyan {
+    fill: #0e7490;
+  }
+  :global(.dark) .agent-diagram__header--cyan {
+    fill: #22d3ee;
+  }
+
+  .agent-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .agent-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .agent-diagram__desc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .agent-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .agent-diagram__flow-line {
+    stroke: #10b981;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .agent-diagram__arrow-head {
+    fill: #10b981;
+  }
+
+  @media (max-width: 768px) {
+    .agent-diagram__desktop {
+      display: none;
+    }
+
+    .agent-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .agent-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+    :global(.dark) .agent-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .agent-mobile-card--green {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+    }
+    :global(.dark) .agent-mobile-card--green {
+      background: #064e3b;
+      border-color: #34d399;
+    }
+
+    .agent-mobile-card--purple {
+      border-left: 4px solid #7e22ce;
+      background: #faf5ff;
+    }
+    :global(.dark) .agent-mobile-card--purple {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .agent-mobile-card--orange {
+      border-left: 4px solid #f97316;
+      background: #fff7ed;
+    }
+    :global(.dark) .agent-mobile-card--orange {
+      background: #431407;
+      border-color: #fb923c;
+    }
+
+    .agent-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .agent-mobile-badge--green {
+      color: #047857;
+    }
+    :global(.dark) .agent-mobile-badge--green {
+      color: #34d399;
+    }
+
+    .agent-mobile-badge--purple {
+      color: #7e22ce;
+    }
+    :global(.dark) .agent-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .agent-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(.dark) .agent-mobile-badge--orange {
+      color: #fb923c;
+    }
+
+    .agent-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .agent-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .agent-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .agent-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .agent-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

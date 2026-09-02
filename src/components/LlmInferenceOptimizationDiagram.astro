@@ -1,0 +1,584 @@
+---
+// LLM Inference Optimization, KV Cache and PagedAttention Diagram
+---
+
+<figure class="llm-diagram" aria-labelledby="llm-caption">
+  <svg
+    class="llm-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="llm-title llm-desc"
+  >
+    <title id="llm-title">大模型推理引擎優化與 PagedAttention 記憶體架構</title>
+    <desc id="llm-desc">
+      展示 Prefill/Decode 雙階段特徵、KV Cache 記憶體碎片化痛點、vLLM
+      PagedAttention 虛擬分頁區塊映射，以及 Continuous Batching
+      與推測解碼加速機制。
+    </desc>
+
+    <defs>
+      <marker
+        id="llm-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="llm-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Prefill vs Decode & Fragmentation -->
+    <g class="llm-diagram__card" transform="translate(30, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="llm-diagram__badge" x="18" y="26"
+        >INFERENCE PHASES &amp; PAIN</text
+      >
+      <text class="llm-diagram__title" x="18" y="54">推理階段與記憶體痛點</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="75"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--blue"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--blue"
+          x="12"
+          y="22">Prefill vs Decode 階段</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="42"
+          >• Prefill：計算密集型 (Compute-Bound, TTFT)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="60"
+          >• Decode：記憶體頻寬受限 (Memory-Bound, ITL)</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="234"
+          height="95"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--alert"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--alert"
+          x="12"
+          y="22">⚠️ 傳統 KV Cache 碎片化</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="42"
+          >• 預先分配 Max-Seq-Len (如 8K)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="62"
+          >• 內部碎片 (未用完) + 外部碎片 (不連續)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="82"
+          >• 浪費 60% ~ 80% 昂貴 GPU 顯存！</text
+        >
+      </g>
+
+      <g transform="translate(18, 265)">
+        <rect width="234" height="80" rx="6" class="llm-diagram__subcard"
+        ></rect>
+        <text class="llm-diagram__header" x="12" y="22">吞吐量瓶頸</text>
+        <text class="llm-diagram__subdesc" x="12" y="42"
+          >• 顯存不足限制最大併發 Batch Size</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="62"
+          >• 靜態 Padding 浪費大量計算週期</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: vLLM PagedAttention -->
+    <g class="llm-diagram__card" transform="translate(340, 40)">
+      <rect width="280" height="370" rx="12"></rect>
+      <text class="llm-diagram__badge" x="18" y="26">VLLM PAGEDATTENTION</text>
+      <text class="llm-diagram__title" x="18" y="54">虛擬分頁區塊映射架構</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="244"
+          height="85"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--purple"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--purple"
+          x="12"
+          y="22">Logical Block Table</text
+        >
+        <text class="llm-diagram__code" x="12" y="44"
+          >Req 1: [L0➔P7] [L1➔P2] [L2➔P9]</text
+        >
+        <text class="llm-diagram__code" x="12" y="62"
+          >Req 2: [L0➔P7] [L1➔P5] (Fork 共享)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="78"
+          >• 按需動態分配 Fixed-Size Block (如 16 Tokens)</text
+        >
+      </g>
+
+      <g transform="translate(18, 170)">
+        <rect
+          width="244"
+          height="85"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--cyan"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--cyan"
+          x="12"
+          y="22">零拷貝分叉 (Copy-on-Write)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="42"
+          >• Beam Search 與 Parallel Sampling</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="62"
+          >• 多分支共享 System Prompt 物理區塊</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="80"
+          >• 僅在寫入不同 Token 時複製 (COW)</text
+        >
+      </g>
+
+      <g transform="translate(18, 265)">
+        <rect
+          width="244"
+          height="80"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--green"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--green"
+          x="12"
+          y="22">極致顯存利用率</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="42"
+          >• 碎片化降至 &lt; 4% (近乎零浪費)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="62"
+          >• 併發 Batch Size 提升 4x ~ 5x！</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Continuous Batching & Speculative -->
+    <g class="llm-diagram__card" transform="translate(660, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="llm-diagram__badge" x="18" y="26"
+        >ACCELERATION PIPELINES</text
+      >
+      <text class="llm-diagram__title" x="18" y="54">動態批處理與推測解碼</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="110"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--gold"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--gold"
+          x="12"
+          y="22">Continuous Batching</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="44"
+          >• Iteration-level 動態調度</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="64"
+          >• 請求隨到隨入，結束即退出釋放</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="84"
+          >• 徹底消除靜態 Padding 浪費</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="102"
+          >• GPU 算力飽和度逼近 100%</text
+        >
+      </g>
+
+      <g transform="translate(18, 195)">
+        <rect
+          width="234"
+          height="150"
+          rx="6"
+          class="llm-diagram__subcard llm-diagram__subcard--purple"></rect>
+        <text
+          class="llm-diagram__header llm-diagram__header--purple"
+          x="12"
+          y="22">推測解碼 (Speculative Decoding)</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="44"
+          >• Draft 小模型高速生成 K 個候選詞</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="66"
+          >• Target 大模型 1 次 Forward 驗證全批次</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="88"
+          >• 數學嚴格保證輸出分佈完全一致</text
+        >
+        <text class="llm-diagram__subdesc" x="12" y="110"
+          >• 解碼延遲降低 2x ~ 3x！</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows -->
+    <path
+      d="M 300 220 L 330 220"
+      class="llm-diagram__flow-line"
+      marker-end="url(#llm-arrow)"></path>
+    <path
+      d="M 620 220 L 650 220"
+      class="llm-diagram__flow-line"
+      marker-end="url(#llm-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="llm-diagram__mobile">
+    <div class="llm-mobile-card llm-mobile-card--blue">
+      <span class="llm-mobile-badge llm-mobile-badge--blue"
+        >STEP 1: PHASES &amp; BOTTLENECK</span
+      >
+      <h4>Prefill 與 Decode 階段</h4>
+      <p>
+        Prefill 屬於計算密集型，Decode 屬於記憶體頻寬受限。傳統靜態分配 KV Cache
+        造成 60%~80% 顯存碎片浪費。
+      </p>
+    </div>
+
+    <div class="llm-mobile-arrow">↓ 虛擬分頁區塊管理</div>
+
+    <div class="llm-mobile-card llm-mobile-card--purple">
+      <span class="llm-mobile-badge llm-mobile-badge--purple"
+        >STEP 2: PAGEDATTENTION</span
+      >
+      <h4>vLLM 虛擬分頁映射</h4>
+      <p>
+        借鑒作業系統虛擬記憶體，以 16 Token 為單位動態分配物理區塊，支援 Beam
+        Search 零拷貝共享，顯存利用率提升至 96%+。
+      </p>
+    </div>
+
+    <div class="llm-mobile-arrow">↓ 吞吐與延遲極致優化</div>
+
+    <div class="llm-mobile-card llm-mobile-card--gold">
+      <span class="llm-mobile-badge llm-mobile-badge--gold"
+        >STEP 3: ACCELERATION</span
+      >
+      <h4>Continuous Batching 與推測解碼</h4>
+      <p>
+        Iteration-level 動態批處理消除 Padding，搭配 Draft
+        小模型推測驗證，系統吞吐量暴增 4~5 倍。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="llm-caption" class="llm-diagram__caption">
+    圖 1：大模型推理引擎優化、vLLM PagedAttention 記憶體管理與推測解碼架構
+  </figcaption>
+</figure>
+
+<style>
+  .llm-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .llm-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .llm-diagram__mobile {
+    display: none;
+  }
+
+  .llm-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .llm-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .llm-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .llm-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+  :global(.dark) .llm-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .llm-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+  :global(.dark) .llm-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .llm-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .llm-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .llm-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+  :global(.dark) .llm-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .llm-diagram__subcard--alert {
+    stroke: #ef4444;
+    fill: #fef2f2;
+  }
+  :global(.dark) .llm-diagram__subcard--alert {
+    stroke: #dc2626;
+    fill: #450a0a;
+  }
+
+  .llm-diagram__subcard--purple {
+    stroke: #c084fc;
+    fill: #faf5ff;
+  }
+  :global(.dark) .llm-diagram__subcard--purple {
+    stroke: #9333ea;
+    fill: #3b0764;
+  }
+
+  .llm-diagram__subcard--cyan {
+    stroke: #22d3ee;
+    fill: #ecfeff;
+  }
+  :global(.dark) .llm-diagram__subcard--cyan {
+    stroke: #0891b2;
+    fill: #083344;
+  }
+
+  .llm-diagram__subcard--green {
+    stroke: #10b981;
+    fill: #f0fdf4;
+  }
+  :global(.dark) .llm-diagram__subcard--green {
+    stroke: #059669;
+    fill: #064e3b;
+  }
+
+  .llm-diagram__subcard--gold {
+    stroke: #fbbf24;
+    fill: #fefce8;
+  }
+  :global(.dark) .llm-diagram__subcard--gold {
+    stroke: #d97706;
+    fill: #451a03;
+  }
+
+  .llm-diagram__header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .llm-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .llm-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .llm-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .llm-diagram__header--alert {
+    fill: #b91c1c;
+  }
+  :global(.dark) .llm-diagram__header--alert {
+    fill: #f87171;
+  }
+
+  .llm-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .llm-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .llm-diagram__header--cyan {
+    fill: #0e7490;
+  }
+  :global(.dark) .llm-diagram__header--cyan {
+    fill: #22d3ee;
+  }
+
+  .llm-diagram__header--green {
+    fill: #047857;
+  }
+  :global(.dark) .llm-diagram__header--green {
+    fill: #34d399;
+  }
+
+  .llm-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .llm-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .llm-diagram__subdesc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .llm-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .llm-diagram__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    fill: #0369a1;
+  }
+  :global(.dark) .llm-diagram__code {
+    fill: #7dd3fc;
+  }
+
+  .llm-diagram__flow-line {
+    stroke: #0284c7;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .llm-diagram__arrow-head {
+    fill: #0284c7;
+  }
+
+  @media (max-width: 768px) {
+    .llm-diagram__desktop {
+      display: none;
+    }
+
+    .llm-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .llm-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+    :global(.dark) .llm-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .llm-mobile-card--blue {
+      border-left: 4px solid #0284c7;
+      background: #f0f9ff;
+    }
+    :global(.dark) .llm-mobile-card--blue {
+      background: #0c4a6e;
+      border-color: #38bdf8;
+    }
+
+    .llm-mobile-card--purple {
+      border-left: 4px solid #7e22ce;
+      background: #faf5ff;
+    }
+    :global(.dark) .llm-mobile-card--purple {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .llm-mobile-card--gold {
+      border-left: 4px solid #d97706;
+      background: #fefce8;
+    }
+    :global(.dark) .llm-mobile-card--gold {
+      background: #451a03;
+      border-color: #fbbf24;
+    }
+
+    .llm-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .llm-mobile-badge--blue {
+      color: #0284c7;
+    }
+    :global(.dark) .llm-mobile-badge--blue {
+      color: #38bdf8;
+    }
+
+    .llm-mobile-badge--purple {
+      color: #7e22ce;
+    }
+    :global(.dark) .llm-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .llm-mobile-badge--gold {
+      color: #b45309;
+    }
+    :global(.dark) .llm-mobile-badge--gold {
+      color: #fbbf24;
+    }
+
+    .llm-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .llm-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .llm-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .llm-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .llm-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

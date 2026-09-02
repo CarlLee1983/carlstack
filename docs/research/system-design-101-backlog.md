@@ -4,7 +4,7 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 批（5 篇）、第 2 批（4 篇）與第 3 批（4 篇）專題發布，其餘主題已分批結構化歸檔，供後續排期撰寫。
+> 狀態：已完成第 1 批（5 篇）、第 2 批（4 篇）、第 3 批（4 篇）、第 4 批（4 篇）與第 5 批（3 篇）共 20 篇架構專題全數發布上線。
 
 ---
 
@@ -16,7 +16,7 @@
 | **第 2 批** | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
 | **第 3 批** | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全） | 4 篇     | 4 篇       | ✅ **已全數發布** |
 | **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）      | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 3 篇       | ✅ **已全數發布** |
 
 ---
 
@@ -87,15 +87,17 @@
 
 ---
 
-## ⏳ 後續批次主題清單與一手資料庫
-
 ### 第 5 批：AI / LLM 系統架構與 Agent 工程化
 
-| 專題題目                                           | 涉及核心技術與模組                                                                         | 建議一手來源                                                                                                           |
-| :------------------------------------------------- | :----------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| **大模型推理引擎優化：KV Cache 與 PagedAttention** | 記憶體碎片化治理、vLLM 核心原理、Speculative Decoding（推測解碼）、Continuous Batching     | [vLLM: Efficient Memory Management with PagedAttention (SOSP Paper)](https://arxiv.org/abs/2309.06180)                 |
-| **AI Agent 狀態機與工具執行沙盒**                  | ReAct 思考循環、Plan-and-Solve 任務規劃、短期/長期記憶工程（Memory Engineering）、權限沙盒 | [Anthropic: Building Effective Agents / Google Research](https://www.anthropic.com/research/building-effective-agents) |
-| **端到端開源 AI 技術棧（Open Source AI Stack）**   | 模型託管（Ollama / vLLM）、向量檢索（Qdrant / Milvus）、工作流編排與評測追蹤               | [LangChain / LlamaIndex / Hugging Face Guides](https://huggingface.co/docs)                                            |
+1. [**大模型推理引擎優化全景：KV Cache 記憶體碎片化、vLLM PagedAttention 與推測解碼實戰**](../../src/content/blog/llm-inference-optimization-kv-cache-pagedattention.mdx)
+   - **一手來源**：[vLLM: Efficient Memory Management with PagedAttention (SOSP 2023)](https://arxiv.org/abs/2309.06180)
+   - **核心要點**：Prefill（計算密集）vs Decode（記憶體頻寬受限）階段、KV Cache 顯存浪費 60%~80% 機制、vLLM Logical Block Table 虛擬分頁區塊映射與 Copy-on-Write 零拷貝共享、Continuous Batching 迭代級動態調度、Speculative Decoding 推測解碼。
+2. [**AI Agent 狀態機架構演進：ReAct 決策循環、記憶工程與 Firecracker 工具隔離沙盒**](../../src/content/blog/ai-agent-state-machine-sandbox-architecture.mdx)
+   - **一手來源**：[Anthropic: Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)
+   - **核心要點**：Prompt 鏈 vs DAG vs 狀態機（FSM）、ReAct（Thought-Action-Observation）循環與 Plan-and-Solve、短期滑動視窗摘要與長期向量/圖譜記憶加權檢索、Firecracker/gVisor MicroVM 工具隔離沙盒、動作哈希死循環熔斷與 Human-in-the-loop 審批。
+3. [**企業級開源 AI 技術棧藍圖：從 vLLM 推理、Qdrant 向量檢索到 LangGraph 編排與 Langfuse 評測**](../../src/content/blog/open-source-ai-stack-blueprint-architecture.mdx)
+   - **一手來源**：[Hugging Face Guides](https://huggingface.co/docs) / [Langfuse Observability](https://langfuse.com/docs)
+   - **核心要點**：企業開源 AI 四層架構（Serving / Vector & Storage / Orchestration / Observability & Eval）、vLLM 多 GPU 張量平行、Qdrant/Milvus 億級 HNSW 混合檢索（Dense + BM25）、LangGraph 狀態圖編排與 MCP 協議、Langfuse OpenTelemetry 全鏈路追蹤與 RAG Triad 自動評測。
 
 ---
 
