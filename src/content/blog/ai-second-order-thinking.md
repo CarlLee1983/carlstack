@@ -43,6 +43,8 @@ Microsoft Research 與 Carnegie Mellon 的 CHI 2025 問卷收集了 319 位知�
 
 相反方向也有例子。Harvard 對 194 位物理課學生的初步比較發現，經過課程設計的 AI tutor 組學習增益約為傳統課堂組的兩倍；關鍵不是「給出答案更快」，而是 tutor 的設計與課程節奏。[研究團隊說明](https://news.harvard.edu/gazette/story/2024/09/professor-tailored-ai-tutor-to-physics-course-engagement-doubled/)仍指出結果尚待正式發表，但它清楚說明：把 AI 設計成鷹架，與把 AI 設計成答案販賣機，是兩種不同產品。
 
+若要把這個原則落成日常做法，可接著使用[六步 AI 學習閉環](/blog/ai-learning-loop-private-tutor/)：它把目標、教材、練習、閉卷驗證與跨對話進度拆成可檢查的狀態。
+
 ## 把「然後呢？」放在 Prompt 之前
 
 不需要另建一套治理委員會。一個足夠小的檢查，可以在送出 Prompt 前回答四句話：
