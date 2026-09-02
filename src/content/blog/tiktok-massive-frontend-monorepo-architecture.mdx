@@ -78,18 +78,40 @@ monorepo/
 
 在 20 萬檔案的倉庫中，絕不能在每次提交時都無腦執行全量測試與打包。核心策略是**「精準定位受變更影響的最小子圖（Affected Graph）」**：
 
-```
-         [Git Diff 變更檔案]
-                 │
-                 ▼
-     ┌───────────────────────┐
-     │ 依賴關係拓撲圖分析引擎 │
-     └───────────┬───────────┘
-                 │
-  ┌──────────────┼──────────────┐
-  ▼ (受影響)      ▼ (受影響)      ▼ (無關 - 跳過)
-[UI 元件庫]    [TikTok Web]   [TikTok Shop] (0% 運算浪費)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="aff-graph-title aff-graph-desc">
+    <title id="aff-graph-title">MonoRepo 依賴圖譜與受影響範圍（Affected Graph）分析圖</title>
+    <desc id="aff-graph-title">展示 Git Diff 比對變更檔案後經拓撲分析引擎，精準定位受影響子圖並剪枝無關專案以節省 CI 算力。</desc>
+    
+    <defs>
+      <marker id="tk-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="270" y="10" width="260" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Git Diff 變更檔案 (decoder.ts)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#tk-arr)"/>
+
+    <rect x="230" y="65" width="340" height="35" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="400" y="87" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">依賴關係拓撲圖分析引擎 (AST DAG)</text>
+
+    <path d="M 300 100 L 160 125" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tk-arr)"/>
+    <path d="M 400 100 L 400 125" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tk-arr)"/>
+    <path d="M 500 100 L 640 125" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#tk-arr)"/>
+
+    <rect x="40" y="125" width="230" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="155" y="150" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">UI 元件庫 (受影響 ➔ 測試)</text>
+
+    <rect x="290" y="125" width="220" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="150" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">TikTok Web (受影響 ➔ 建置)</text>
+
+    <rect x="530" y="125" width="230" height="40" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="645" y="150" fill="#8b949e" font-size="11" text-anchor="middle">TikTok Shop (無關 ➔ 0% 浪費)</text>
+
+  </svg>
+</div>
 
 1. **靜態 AST 解析建構依賴 DAG**：在每次分支提交時，分析專案內部所有 `import` 與 `export` 關係，生成整個 MonoRepo 的依賴有向無環圖。
 2. **Git Diff 比對與傳播（Propagation）**：若開發者僅修改了 `domains/video-player/src/decoder.ts`：
@@ -106,11 +128,9 @@ monorepo/
 ### 1. 內容定址雲端快取（Content-Addressable Remote Caching）
 
 - **輸入雜湊計算（Hash Key）**：針對每個 Task，系統綜合計算：
-  ```
+  ```text
   TaskHash = Hash(原始碼檔案) + Hash(依賴套件版本) + Hash(環境變數與 Node 版本)
   ```
-
-```
 - **快取命中即重用（Zero-Compute Replay）**：
   - 如果該 TaskHash 曾在任一 CI 機器或同事的電腦上執行過，本地直接從雲端快取（S3 / Redis / Remote Cache）下載建置產物與日誌。
   - 原本需要 3 分鐘的 Webpack/Rspack 編譯在 **200 毫秒內** 直接命中結束。
@@ -129,23 +149,42 @@ MonoRepo 解決了「開發期（Build-time）」的協同與建置效能，但�
 
 TikTok 採用了自研開源的 **Garfish 微前端架構**：
 
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="garfish-title garfish-desc">
+    <title id="garfish-title">Garfish 微前端主基座與子應用沙盒隔離架構圖</title>
+    <desc id="garfish-desc">展示主應用基座共用導航與調度器，底層短影音、電商直播與創作者中心各子應用運行於獨立 JS/CSS 沙盒。</desc>
+    
+    <rect x="50" y="10" width="700" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="35" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">主應用基座 (Shell Application ── 共用導航、登入態、主題與 Garfish 調度器)</text>
 
-┌──────────────────────────────────────────────────────────┐
-│ 主應用基座 (Shell Application) │
-│ (共用導航欄、用戶登入態、全域主題、Garfish 核心調度器) │
-└────────────────────────────┬─────────────────────────────┘
-│
-┌───────────────────────┼───────────────────────┐
-▼ ▼ ▼
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│ 短影音播放子應用 │ │ 電商直播子應用 │ │ 創作者中心子應用 │
-│ (Garfish 沙盒) │ │ (Garfish 沙盒) │ │ (Garfish 沙盒) │
-│ • JS 全域變數隔離│ │ • 獨立 Vue 實例 │ │ • 獨立 React 18 │
-│ • CSS 樣式作用域 │ │ • 獨立發布部署 │ │ • 動態遠端載入 │
-└──────────────────┘ └──────────────────┘ └──────────────────┘
+    <path d="M 180 50 L 180 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#tk-arr)"/>
+    <path d="M 400 50 L 400 75" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tk-arr)"/>
+    <path d="M 620 50 L 620 75" stroke="#d29922" stroke-width="1.5" marker-end="url(#tk-arr)"/>
 
-```
+
+    <rect x="40" y="75" width="220" height="135" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="150" y="100" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">短影音播放子應用</text>
+    <text x="60" y="125" fill="#c9d1d9" font-size="10">• Garfish Proxy JS 沙盒</text>
+    <text x="60" y="147" fill="#c9d1d9" font-size="10">• CSS 命名空間作用域</text>
+    <text x="60" y="169" fill="#8b949e" font-size="10">• React 18 高效渲染</text>
+    <text x="60" y="191" fill="#8b949e" font-size="9">• 獨立 CDN 靜態部署</text>
+
+    <rect x="290" y="75" width="220" height="135" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="100" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">電商直播子應用</text>
+    <text x="310" y="125" fill="#c9d1d9" font-size="10">• 獨立 Vue 3 執行實例</text>
+    <text x="310" y="147" fill="#c9d1d9" font-size="10">• 記憶體洩漏自動防護</text>
+    <text x="310" y="169" fill="#3fb950" font-size="10">• 獨立生命週期卸載</text>
+    <text x="310" y="191" fill="#8b949e" font-size="9">• 獨立發布與灰度上線</text>
+
+    <rect x="540" y="75" width="220" height="135" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="650" y="100" fill="#e3b341" font-size="12" font-weight="700" text-anchor="middle">創作者中心子應用</text>
+    <text x="560" y="125" fill="#c9d1d9" font-size="10">• 動態遠端腳本載入</text>
+    <text x="560" y="147" fill="#c9d1d9" font-size="10">• 全域事件匯流排隔離</text>
+    <text x="560" y="169" fill="#e3b341" font-size="10">• 支援多技術棧共存</text>
+    <text x="560" y="191" fill="#8b949e" font-size="9">• 獨立按需加載切片</text>
+
+  </svg>
+</div>
 
 - **JS 沙盒機制**：透過 `Proxy` 代理全域 `window` 物件，子應用在 `window` 上掛載的屬性與事件監聽器在子應用卸載時自動清理，防止記憶體洩漏與全域污染。
 - **CSS 作用域隔離**：自動為子應用樣式加上命名空間（Namespace）或 Shadow DOM 封裝，徹底解決跨模組 CSS 覆蓋問題。
@@ -179,4 +218,3 @@ TikTok 採用了自研開源的 **Garfish 微前端架構**：
 - ByteDance Web Infra: [_Garfish - Powerful Micro-frontend Framework_](https://github.com/web-infra-dev/garfish)
 - ByteDance Web Infra: [_Rspack - Fast Rust-based Web Bundler_](https://github.com/web-infra-dev/rspack)
 - ByteByteGo: [_System Design 101: Managing Monorepo at Massive Scale_](https://github.com/ByteByteGoHq/system-design-101)
-```

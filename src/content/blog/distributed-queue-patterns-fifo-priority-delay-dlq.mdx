@@ -150,18 +150,45 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 4.1 生產級死信自動化處理管線
 
-```text
-[ 主業務隊列 ] ── (消費失敗) ──> [ 帶指數退避的重試隊列 (Retry Queue) ]
-                                            │ (重試次數達到上限 e.g., 3 次)
-                                            ▼
-                               [ 死信隊列 (Dead Letter Queue, DLQ) ]
-                                            │
-                      ┌─────────────────────┴─────────────────────┐
-                      ▼                                           ▼
-             [ 觸發維運 P1 報警 ]                       [ 死信管理後台 / Dashboard ]
-             (PagerDuty / Slack)                        - 檢視原始 Payload 與錯誤堆疊
-                                                        - 修復 Bug 後一鍵批量重播 (Replay)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dlq-pipe-title dlq-pipe-desc">
+    <title id="dlq-pipe-title">死信隊列（DLQ）毒丸防禦與自動化隔離處理管線圖</title>
+    <desc id="dlq-pipe-desc">展示主業務隊列消費失敗進入帶指數退避重試隊列，重試達上限隔離至死信隊列，觸發 P1 告警並支援死信後台一鍵重播。</desc>
+    
+    <defs>
+      <marker id="dlq-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="15" width="220" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="140" y="40" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">主業務隊列 (Main Queue)</text>
+
+    <path d="M 250 35 L 340 35" stroke="#da3633" stroke-width="2" marker-end="url(#dlq-arr)"/>
+    <text x="295" y="27" fill="#f85149" font-size="9" text-anchor="middle">消費失敗</text>
+
+    <rect x="340" y="15" width="410" height="40" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="545" y="40" fill="#e3b341" font-size="12" font-weight="700" text-anchor="middle">指數退避重試隊列 (Retry Queue with Jitter)</text>
+
+    <path d="M 545 55 L 545 85" stroke="#da3633" stroke-width="2" marker-end="url(#dlq-arr)"/>
+    <text x="555" y="73" fill="#f85149" font-size="9">重試達上限 (如 3 次)</text>
+
+    <rect x="250" y="85" width="500" height="45" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="500" y="112" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">死信隊列 (Dead Letter Queue, DLQ 隔離毒丸)</text>
+
+    <path d="M 400 130 L 220 160" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#dlq-arr)"/>
+    <path d="M 600 130 L 600 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#dlq-arr)"/>
+
+    <rect x="50" y="160" width="320" height="55" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="210" y="182" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">🚨 觸發維運 P1 報警</text>
+    <text x="210" y="200" fill="#8b949e" font-size="9" text-anchor="middle">PagerDuty / Slack 自動通知值班工程師</text>
+
+    <rect x="420" y="160" width="340" height="55" rx="6" fill="#161b22" stroke="#238636"/>
+    <text x="590" y="182" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">🛠️ 死信管理後台 (Dashboard)</text>
+    <text x="590" y="200" fill="#8b949e" font-size="9" text-anchor="middle">檢視 Payload 與錯誤堆疊，修復後一鍵 Replay 重播</text>
+
+  </svg>
+</div>
 
 1. **重試計數器（Retry Counter）**：在 Message Header 中維護 `x-retry-count`。
 2. **熔斷隔離至 DLQ**：當重試次數超過閾值（如 3~5 次）時，停止重新排隊，直接將該訊息路由至死信隊列。

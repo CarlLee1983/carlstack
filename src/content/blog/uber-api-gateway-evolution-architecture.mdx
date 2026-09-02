@@ -48,17 +48,50 @@ import UberApiGatewayEvolutionDiagram from "../../components/UberApiGatewayEvolu
 
 為了解決單體 RTAPI 的研發偶合問題，Uber 開啟了微服務大拆分，各個核心業務團隊開始**自建專屬 API 閘道**（例如 Rider Gateway、Driver Gateway、Eats Gateway）。
 
-```
-           [手機 App / Web 客戶端]
-                      │
-     ┌────────────────┼────────────────┐
-     ▼                ▼                ▼
-[Rider Gateway] [Driver Gateway] [Eats Gateway]
-  (自建 Node)      (自建 Go)       (自建 Java)
-     │                │                │
-     ▼                ▼                ▼
-[叫車微服務群]    [駕駛媒合微服務]   [餐廳訂餐微服務]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ub-gen2-title ub-gen2-desc">
+    <title id="ub-gen2-title">Uber 第 2 代去中心化領域自建閘道架構圖</title>
+    <desc id="ub-gen2-desc">展示手機 App 請求分別打入 Rider、Driver 與 Eats 自建閘道，引發重複造輪子、安全漏洞與跨業務聚合低效。</desc>
+    
+    <defs>
+      <marker id="ub-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">手機 App / Web 客戶端</text>
+
+    <path d="M 320 45 L 170 70" stroke="#da3633" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+    <path d="M 400 45 L 400 70" stroke="#da3633" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+    <path d="M 480 45 L 630 70" stroke="#da3633" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+
+
+    <rect x="60" y="70" width="220" height="40" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="170" y="94" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Rider Gateway (自建 Node)</text>
+
+    <rect x="290" y="70" width="220" height="40" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="400" y="94" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Driver Gateway (自建 Go)</text>
+
+    <rect x="520" y="70" width="220" height="40" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="630" y="94" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Eats Gateway (自建 Java)</text>
+
+
+    <path d="M 170 110 L 170 130" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+    <path d="M 400 110 L 400 130" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+    <path d="M 630 110 L 630 130" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ub-arr)"/>
+
+    <rect x="60" y="130" width="220" height="35" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="170" y="152" fill="#3fb950" font-size="11" text-anchor="middle">叫車微服務群</text>
+
+    <rect x="290" y="130" width="220" height="35" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="152" fill="#3fb950" font-size="11" text-anchor="middle">駕駛媒合微服務群</text>
+
+    <rect x="520" y="130" width="220" height="35" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="630" y="152" fill="#3fb950" font-size="11" text-anchor="middle">餐廳外送微服務群</text>
+
+  </svg>
+</div>
 
 ### 去中心化引發的「治理災難」
 
@@ -93,26 +126,27 @@ import UberApiGatewayEvolutionDiagram from "../../components/UberApiGatewayEvolu
 
 Uber 目前運行的第四代 API 架構徹底告別了「手寫閘道業務代碼」的模式，升級為**「宣告式、Schema-First 的自動化 API 平台」**。
 
-```
-┌────────────────────────────────────────────────────────┐
-│  01. 宣告式 API 定義 (Protobuf Schema in Git Repo)     │
-│  service RiderAppService {                             │
-│    rpc GetHomeScreen(...) returns (...) {              │
-│      option (uber.api.route) = { path: "/v2/home" };   │
-│      option (uber.api.auth)  = { scope: "rider.read" };│
-│    }                                                   │
-│  }                                                     │
-└───────────────────────────┬────────────────────────────┘
-                            │ 自動化編譯器與代碼生成器
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│  02. 智慧 API 閘道執行引擎 (Envoy Core + Go Plugins)  │
-│  • 自動產生端到端強型別 SDK (iOS / Android / TypeScript)│
-│  • 自動解析與並行發起後端 gRPC 扇出 (Fan-out) 聚合     │
-│  • 智慧多區域雙活路由 (Multi-Region Active-Active)     │
-│  • 延遲感知自適應限流 (Adaptive Rate Limiting)          │
-└────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ub-gen4-title ub-gen4-desc">
+    <title id="ub-gen4-title">Uber 第 4 代宣告式統一 API 平台架構圖</title>
+    <desc id="ub-gen4-desc">展示 Protobuf Schema 宣告式定義經自動化編譯器，生成 Envoy 執行引擎、自動 SDK、後端 gRPC 扇出與自適應限流。</desc>
+    
+    <rect x="40" y="10" width="720" height="70" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">01. 宣告式 API 定義 (Protobuf Schema in Git Repo ── 零膠水代碼)</text>
+    <text x="60" y="52" fill="#c9d1d9" font-size="10" font-family="monospace">service RiderAppService &#123; rpc GetHomeScreen(...) returns (...) &#123; option (uber.api.route) = &#123; path: "/v2/home" &#125;; &#125; &#125;</text>
+    <text x="400" y="70" fill="#8b949e" font-size="9" text-anchor="middle">CI 自動靜態檢測向後相容性，杜絕 Breaking Changes</text>
+
+    <path d="M 400 80 L 400 110" stroke="#3fb950" stroke-width="2" marker-end="url(#ub-arr)"/>
+    <text x="410" y="98" fill="#3fb950" font-size="9" font-weight="700">自動化編譯器與代碼生成器</text>
+
+    <rect x="40" y="110" width="720" height="115" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="133" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">02. 智慧 API 閘道執行引擎 (Envoy Core ＋ Go Plugins)</text>
+    <text x="60" y="158" fill="#c9d1d9" font-size="11">• 自動產生端到端強型別 SDK (iOS / Android / TypeScript)</text>
+    <text x="60" y="178" fill="#c9d1d9" font-size="11">• 自動解析與並行發起後端 gRPC 扇出 (Fan-out) 聚合</text>
+    <text x="60" y="198" fill="#3fb950" font-size="11" font-weight="700">• 智慧多區域雙活路由 (Multi-Region Active-Active) ＋ 延遲感知自適應限流</text>
+
+  </svg>
+</div>
 
 ### 第 4 代架構的三大革命性突破
 

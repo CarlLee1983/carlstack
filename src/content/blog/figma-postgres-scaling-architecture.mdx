@@ -50,18 +50,39 @@ Figma 在 2020 至 2024 年間經歷了超過 **100 倍的流量與資料規模�
 
 當單一資料庫無法承擔全域寫入時，下一步標準動作是**垂直拆庫**——依照業務邊界（Bounded Contexts）將彼此低關聯的資料表分離至獨立的 RDS 實例：
 
-```
-                    ┌─────────────────────────┐
-                    │    原單體 RDS 資料庫     │
-                    └────────────┬────────────┘
-                                 │ 垂直領域拆分
-         ┌───────────────────────┼───────────────────────┐
-         ▼                       ▼                       ▼
-┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│   Auth / Org DB  │    │     Files DB     │    │  Activity Log DB │
-│  (用戶、組織、權限) │    │  (檔案、畫布、版本) │    │  (日誌、通知、評論) │
-└──────────────────┘    └──────────────────┘    └──────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fg-vert-title fg-vert-desc">
+    <title id="fg-vert-title">Figma 階段二：依業務領域垂直拆庫拓撲圖</title>
+    <desc id="fg-vert-desc">展示原單體 RDS 資料庫依領域拆解為 Auth/Org DB、Files DB 與 Activity Log DB 三個獨立實例。</desc>
+    
+    <defs>
+      <marker id="fg-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="270" y="10" width="260" height="40" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="35" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">原單體 RDS PostgreSQL 資料庫</text>
+
+    <path d="M 330 50 L 160 85" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
+    <path d="M 400 50 L 400 85" stroke="#3fb950" stroke-width="2" marker-end="url(#fg-arr)"/>
+    <path d="M 470 50 L 640 85" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
+
+
+    <rect x="40" y="85" width="230" height="70" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="155" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Auth / Org DB</text>
+    <text x="155" y="134" fill="#8b949e" font-size="10" text-anchor="middle">使用者、團隊組織、權限</text>
+
+    <rect x="290" y="85" width="220" height="70" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="112" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Files DB (核心瓶頸)</text>
+    <text x="400" y="134" fill="#56d364" font-size="10" text-anchor="middle">檔案、畫布節點、歷史版本</text>
+
+    <rect x="530" y="85" width="230" height="70" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="645" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Activity Log DB</text>
+    <text x="645" y="134" fill="#8b949e" font-size="10" text-anchor="middle">審計日誌、即時通知、評論</text>
+
+  </svg>
+</div>
 
 ### 垂直拆庫付出的架構代價
 
@@ -135,10 +156,35 @@ DBProxy 充當了反向代理與安全網，內建：
 
 將數 TB 的生產環境資料從單體庫搬遷至 128 個分片庫，且不能有任何資料丟失或服務中斷，Figma 設計了極為嚴謹的四步遷移流水線：
 
-```
-[1. 歷史資料快照] ───► [2. CDC 邏輯複製追趕] ───► [3. 影子讀比對 (Shadow Read)] ───► [4. 毫秒切流]
- (Snapshot Copy)       (Postgres Replication)        (Double Read & Diff)             (Write Switch)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fg-mig-title fg-mig-desc">
+    <title id="fg-mig-title">Figma 零停機資料庫分片四步遷移流水線圖</title>
+    <desc id="fg-mig-desc">展示 1. 歷史快照複製、2. CDC 邏輯複製追趕、3. 影子讀雙向比對驗證、4. 毫秒級寫入切流的完整遷移流程。</desc>
+    
+    <rect x="20" y="20" width="165" height="75" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="102" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. 歷史資料快照</text>
+    <text x="102" y="68" fill="#8b949e" font-size="9" text-anchor="middle">Snapshot Copy 恢復基礎</text>
+
+    <path d="M 185 57 L 215 57" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
+
+    <rect x="215" y="20" width="165" height="75" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="297" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">2. CDC 邏輯追趕</text>
+    <text x="297" y="68" fill="#8b949e" font-size="9" text-anchor="middle">Replication Slot 追平 WAL</text>
+
+    <path d="M 380 57 L 410 57" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
+
+    <rect x="410" y="20" width="180" height="75" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="500" y="45" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">3. 影子讀比對 (Shadow)</text>
+    <text x="500" y="68" fill="#d2a8ff" font-size="9" text-anchor="middle">Double Read 零不一致驗收</text>
+
+    <path d="M 590 57 L 620 57" stroke="#3fb950" stroke-width="2" marker-end="url(#fg-arr)"/>
+
+    <rect x="620" y="20" width="160" height="75" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="700" y="45" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">4. 毫秒寫入切流</text>
+    <text x="700" y="68" fill="#3fb950" font-size="9" text-anchor="middle">Write Switch 零停機上線</text>
+
+  </svg>
+</div>
 
 1. **基礎快照複製**：建立目標分片實例，從主資料庫備份恢復基礎資料。
 2. **邏輯複製追趕（Change Data Capture）**：利用 PostgreSQL 的 Logical Decoding 機制建立 Replication Slot，即時捕獲主庫的 WAL 變更日誌，並依照 Shard Key 重播至對應的分片庫。

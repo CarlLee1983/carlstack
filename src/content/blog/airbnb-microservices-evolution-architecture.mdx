@@ -58,18 +58,42 @@ import AirbnbMicroservicesEvolutionDiagram from "../../components/AirbnbMicroser
 
 然而，缺乏頂層架構約束的拆分迅速引發了災難：
 
-```
-[ Frontend Client ]
-        │
-        ▼
-   [ Service A ] ◄──────┐ (循環依賴)
-     │       ▲          │
-     ▼       │          │
-   [ Service B ] ───► [ Service C ]
-     │                  │
-     ▼                  ▼
-  [ Database B ]     [ Database C ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="adhoc-title adhoc-desc">
+    <title id="adhoc-title">第一代無序 SOA 服務蜘蛛網與循環依賴雪崩圖</title>
+    <desc id="adhoc-desc">展示 Client 請求進入 Service A、Service B 與 Service C 之間形成環狀循環依賴，引發級聯雪崩與分散式單體痛苦。</desc>
+    
+    <defs>
+      <marker id="ab-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="65" width="160" height="45" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="92" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Frontend Client</text>
+
+    <path d="M 180 87 L 240 87" stroke="#58a6ff" stroke-width="2" marker-end="url(#ab-arr)"/>
+
+    <rect x="240" y="65" width="140" height="45" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="310" y="92" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Service A</text>
+
+
+    <path d="M 380 75 L 470 45" stroke="#da3633" stroke-width="2" marker-end="url(#ab-arr)"/>
+    <path d="M 380 95 L 470 125" stroke="#da3633" stroke-width="2" marker-end="url(#ab-arr)"/>
+
+    <rect x="470" y="20" width="140" height="45" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="540" y="47" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Service B</text>
+
+    <rect x="470" y="105" width="140" height="45" rx="6" fill="#161b22" stroke="#da3633"/>
+    <text x="540" y="132" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Service C</text>
+
+
+    <path d="M 540 65 L 540 105" stroke="#da3633" stroke-width="1.5" marker-end="url(#ab-arr)"/>
+    <path d="M 610 125 L 680 125 L 680 40 L 310 40 L 310 65" stroke="#da3633" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#ab-arr)"/>
+    <text x="690" y="85" fill="#f85149" font-size="9" font-weight="700">❌ 循環死鎖</text>
+
+  </svg>
+</div>
 
 ### 痛點復盤：
 
@@ -83,26 +107,33 @@ import AirbnbMicroservicesEvolutionDiagram from "../../components/AirbnbMicroser
 
 為了解決服務蜘蛛網，Airbnb 架構委員會制定了嚴格的 **有向無環圖（DAG）服務層級規範**，強制規定服務呼叫只能**由上向下單向傳遞**，禁止平級循環或向上逆流。
 
-```
-                    ┌────────────────────────┐
-                    │  Presentation Layer    │ ── 處理客戶端聚合 (BFF)
-                    └───────────┬────────────┘
-                                │ (單向呼叫)
-                                ▼
-                    ┌────────────────────────┐
-                    │   Mid-tier Business    │ ── 業務領域核心邏輯 (搜尋/定價/風控)
-                    └───────────┬────────────┘
-                                │ (單向呼叫)
-                                ▼
-                    ┌────────────────────────┐
-                    │ Data Access Services   │ ── 實體資料存取門戶 (DAS)
-                    └───────────┬────────────┘
-                                │
-                                ▼
-                    ┌────────────────────────┐
-                    │  Storage (MySQL/HBase) │ ── 底層儲存引擎
-                    └────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dag-lay-title dag-lay-desc">
+    <title id="dag-lay-title">Airbnb 第二代 DAG 樹狀單向分層架構圖</title>
+    <desc id="dag-lay-desc">展示 Presentation BFF、Mid-tier Business、Data Access Services (DAS) 與底層 Storage 的嚴格單向下行調用關係。</desc>
+    
+    <rect x="200" y="10" width="400" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="33" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">1. 展示層 (Presentation Services / BFF ── 客戶端資料聚合)</text>
+
+    <path d="M 400 46 L 400 68" stroke="#58a6ff" stroke-width="2" marker-end="url(#ab-arr)"/>
+    <text x="410" y="60" fill="#8b949e" font-size="9">單向呼叫</text>
+
+    <rect x="160" y="68" width="480" height="36" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="91" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">2. 中間業務層 (Mid-tier ── 房源搜尋算子 / 定價 / 風控審查)</text>
+
+    <path d="M 400 104 L 400 126" stroke="#3fb950" stroke-width="2" marker-end="url(#ab-arr)"/>
+    <text x="410" y="118" fill="#8b949e" font-size="9">單向呼叫</text>
+
+    <rect x="140" y="126" width="520" height="36" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="149" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">3. 資料存取層 (Data Access Services / DAS ── 唯一存取門戶)</text>
+
+    <path d="M 400 162 L 400 184" stroke="#3fb950" stroke-width="2" marker-end="url(#ab-arr)"/>
+
+    <rect x="220" y="184" width="360" height="36" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="400" y="207" fill="#8b949e" font-size="11" font-weight="700" text-anchor="middle">4. 底層儲存引擎 (MySQL Shards ｜ HBase ｜ DynamoDB)</text>
+
+  </svg>
+</div>
 
 ### 3.1 核心三層拓撲職責
 
@@ -137,20 +168,31 @@ import AirbnbMicroservicesEvolutionDiagram from "../../components/AirbnbMicroser
 
 Viaduct 是基於 GraphQL 的集中式資料存取中樞：
 
-```
-[ Mobile / Web App ]
-         │ (單一 GraphQL 查詢請求)
-         ▼
-[ Viaduct Gateway (GraphQL Data Mesh) ]
-         │
-         ├── 1. Schema Stitching (統一實體解析)
-         ├── 2. Auto-Batching & Deduplication (DataLoader)
-         └── 3. Field-Level Authorization & Tracing
-         │
-    ┌────┴───────────────────────────┐
-    ▼                                ▼
-[ User DAS ]                   [ Listing DAS ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="viaduct-title viaduct-desc">
+    <title id="viaduct-title">Airbnb Viaduct GraphQL 統一資料網格架構圖</title>
+    <desc id="viaduct-desc">展示 Mobile/Web App 發送單一 GraphQL 請求至 Viaduct Gateway 進行 Schema 縫合、DataLoader 自動批次與欄位鑑權，分發給 User DAS 與 Listing DAS。</desc>
+    
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Mobile / Web App (單一 GraphQL 查詢)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#ab-arr)"/>
+
+    <rect x="100" y="65" width="600" height="70" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="90" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 Viaduct Gateway 統一資料網格中樞 】</text>
+    <text x="400" y="110" fill="#c9d1d9" font-size="11" text-anchor="middle">1. Schema Stitching 整合 ｜ 2. DataLoader 自動批次與去重 ｜ 3. 欄位級 GDPR/PII 脫敏</text>
+
+    <path d="M 280 135 L 200 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ab-arr)"/>
+    <path d="M 520 135 L 600 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ab-arr)"/>
+
+    <rect x="70" y="160" width="260" height="35" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="200" y="182" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">User DAS (使用者領域資料服務)</text>
+
+    <rect x="470" y="160" width="260" height="35" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="600" y="182" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Listing DAS (房源領域資料服務)</text>
+
+  </svg>
+</div>
 
 1. **Schema 宣告式整合（Schema Stitching）**：各領域團隊只需在自己的 DAS 中宣告 GraphQL Schema 片段，Viaduct 自動將它們拼接為全域統一的 GraphQL 圖譜。
 2. **自動批次與去重（DataLoader）**：前端請求 20 個房源時，Viaduct 自動將 20 個獨立的 `getUserById` 呼叫聚合為一次批次查詢 `getUsersByIds([1, 2, ...20])`，徹底根絕 N+1 查詢效能殺手。

@@ -81,29 +81,40 @@ Omarchy 拋棄了傳統 Linux 發行版常見的重量級桌面環境（如 GNOM
 | **核心終端 (Terminal & Editor)** | **Alacritty / Kitty + LazyVim** | GPU 加速終端機搭配預先最佳化的 Neovim (LazyVim) 配置，結合 Tmux 提供極致響應速度。                                                     |
 | **系統管理 (System CLI)**        | **`omarchy` CLI**               | 自製整合命令列工具，統一管理主題更換、套件升級、顯示器配置與環境診斷。                                                                 |
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                         Omarchy OS                           │
-├──────────────────────────────────────────────────────────────┤
-│  AI-Native Layer                                             │
-│  - Lazy-loaded Agent Launchers (Claude Code, Codex, Copilot) │
-│  - System-level Agent Skills (Config, Themes, Displays)      │
-│  - Dedicated Top Bar Agents & Token Consumption Panel        │
-├──────────────────────────────────────────────────────────────┤
-│  Desktop & Interaction Layer                                 │
-│  - Quickshell UI (Modern Status Bar, OSD, Notices)           │
-│  - Unified Clipboard History, Screen OCR & Audio Dictation   │
-├──────────────────────────────────────────────────────────────┤
-│  Window Management Layer                                     │
-│  - Hyprland (Wayland Tiling, Workspace Animation, Gestures)  │
-├──────────────────────────────────────────────────────────────┤
-│  Core Tools & Runtimes                                       │
-│  - Neovim (LazyVim), Alacritty/Kitty, Obsidian, Chromium    │
-├──────────────────────────────────────────────────────────────┤
-│  Base System Layer                                           │
-│  - Arch Linux Kernel (Rolling) + LUKS Encrypt + Btrfs Snap   │
-└──────────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 310" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="om-arch-title om-arch-desc">
+    <title id="om-arch-title">Omarchy OS 五層現代化系統架構圖</title>
+    <desc id="om-arch-desc">展示 Omarchy 涵蓋 AI 原生層、Quickshell 桌面互動層、Hyprland 視窗管理層、核心終端工具層與 Arch Linux 基礎系統層。</desc>
+    
+    <rect x="20" y="10" width="760" height="290" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#f0f6fc" font-size="13" font-weight="700" text-anchor="middle">Omarchy OS 全棧架構拓撲</text>
+
+    <rect x="35" y="42" width="730" height="46" rx="6" fill="#241b35" stroke="#bc8cff"/>
+    <text x="50" y="60" fill="#d2a8ff" font-size="11" font-weight="700">1. AI-Native Layer (AI 原生整合層)</text>
+    <text x="50" y="78" fill="#c9d1d9" font-size="9">• 惰性加載 Agent 啟動器 (Claude Code / Codex) ｜ 系統級 Skills ｜ 頂部狀態列 Token 監控面板</text>
+
+
+    <rect x="35" y="94" width="730" height="46" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="50" y="112" fill="#58a6ff" font-size="11" font-weight="700">2. Desktop &amp; Interaction Layer (桌面互動層)</text>
+    <text x="50" y="130" fill="#c9d1d9" font-size="9">• Quickshell QML 現代狀態列與控制中心 ｜ 全域剪貼簿歷程 ｜ 螢幕 OCR 與即時語音辨識</text>
+
+
+    <rect x="35" y="146" width="730" height="46" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="50" y="164" fill="#58a6ff" font-size="11" font-weight="700">3. Window Management Layer (視窗合成管理層)</text>
+    <text x="50" y="182" fill="#c9d1d9" font-size="9">• Hyprland (Wayland 動態平鋪 ｜ GPU 渲染硬體加速動畫 ｜ 多螢幕手勢工作區)</text>
+
+
+    <rect x="35" y="198" width="730" height="46" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="50" y="216" fill="#e3b341" font-size="11" font-weight="700">4. Core Tools &amp; Runtimes (核心開發工具鏈)</text>
+    <text x="50" y="234" fill="#c9d1d9" font-size="9">• Neovim (LazyVim) ＋ Alacritty / Kitty ＋ Tmux ＋ Obsidian ＋ Chromium 容器</text>
+
+
+    <rect x="35" y="250" width="730" height="42" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="50" y="268" fill="#3fb950" font-size="11" font-weight="700">5. Base System Layer (基礎系統層)</text>
+    <text x="50" y="284" fill="#3fb950" font-size="9">• Arch Linux 滾動更新核心 ＋ LUKS 全磁碟加密 ＋ Btrfs 快照秒級回滾機制</text>
+
+  </svg>
+</div>
 
 ### 為什麼選擇 Quickshell 而非傳統 Waybar？
 

@@ -162,12 +162,37 @@ MySQL InnoDB 引擎採用 B+ Tree 組織聚簇索引，資料實體行直接儲�
 
 2024 年 IETF 正式發布 RFC 9562，標準化了 **UUIDv7**。UUIDv7 結合了 Snowflake 的時間有序性與 UUID 的全域去中心化無協調特性：
 
-```text
- 48-bit Unix 毫秒時間戳   4-bit 版本 (0111)   12-bit 隨機/計數    2-bit 變體    62-bit 隨機熵
-+------------------------+------------------+-----------------+------------+------------------+
-|      unix_ts_ms        |       0111       |    sub-ms/seq   |     10     |    random data   |
-+------------------------+------------------+-----------------+------------+------------------+
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="u7-layout-title u7-layout-desc">
+    <title id="u7-layout-title">UUIDv7 (RFC 9562) 128-bit 二進位結構圖</title>
+    <desc id="u7-layout-desc">展示 48-bit Unix 毫秒時間戳、4-bit 版本號 0111、12-bit 隨機序列號、2-bit 變體 10 與 62-bit 隨機熵的完整佈局。</desc>
+    
+    
+    <rect x="20" y="20" width="280" height="70" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="160" y="48" fill="#3fb950" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">48-bit Unix 毫秒時間戳</text>
+    <text x="160" y="70" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">unix_ts_ms (有序性保證)</text>
+
+    <rect x="305" y="20" width="90" height="70" rx="4" fill="#161b22" stroke="#8b949e"/>
+    <text x="350" y="48" fill="#8b949e" font-size="11" font-weight="700" text-anchor="middle">4-bit Ver</text>
+    <text x="350" y="70" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">0111 (v7)</text>
+
+
+    <rect x="400" y="20" width="130" height="70" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="465" y="48" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">12-bit 隨機計數</text>
+    <text x="465" y="70" fill="#58a6ff" font-size="9" text-anchor="middle">sub-ms / seq</text>
+
+
+    <rect x="535" y="20" width="70" height="70" rx="4" fill="#161b22" stroke="#8b949e"/>
+    <text x="570" y="48" fill="#8b949e" font-size="10" font-weight="700" text-anchor="middle">2-bit Var</text>
+    <text x="570" y="70" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">10</text>
+
+
+    <rect x="610" y="20" width="170" height="70" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="695" y="48" fill="#d2a8ff" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">62-bit 隨機熵</text>
+    <text x="695" y="70" fill="#d2a8ff" font-size="9" text-anchor="middle">random data</text>
+
+  </svg>
+</div>
 
 ### 5.1 為什麼 UUIDv7 是現代 API 與資料庫的首選？
 

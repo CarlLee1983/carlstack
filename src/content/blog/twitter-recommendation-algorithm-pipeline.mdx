@@ -33,18 +33,44 @@ import TwitterRecommendationPipelineDiagram from "../../components/TwitterRecomm
 
 X 將候選池嚴格劃分為兩大等份來源：**50% 關注圈內（In-Network）** 與 **50% 網絡外探索（Out-of-Network）**。
 
-```
-全球 5 億則每日推文
-       │
-       ├─────────────────────────────────┐
-       ▼ (50%)                           ▼ (50%)
-[In-Network 關注圈內]            [Out-of-Network 網絡外探索]
-  Earlybird 倒排索引                GraphJet 即時圖運算 + SimClusters
-       │                                 │
-       └────────────────┬────────────────┘
-                        ▼
-            1,500 則高品質候選推文
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tw-cand-title tw-cand-desc">
+    <title id="tw-cand-title">Twitter / X 雙軌候選集檢索架構圖</title>
+    <desc id="tw-cand-desc">展示每日 5 億則推文經 50% In-Network 記憶體倒排索引與 50% Out-of-Network GraphJet 圖運算，粗篩收斂至 1500 則候選推文。</desc>
+    
+    <defs>
+      <marker id="tw-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="270" y="10" width="260" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">全球每日 5 億則推文 (500M Daily Tweets)</text>
+
+    <path d="M 330 45 L 180 70" stroke="#388bfd" stroke-width="2" marker-end="url(#tw-arr)"/>
+    <text x="235" y="55" fill="#58a6ff" font-size="10" font-weight="700">50% 關注圈內</text>
+
+    <path d="M 470 45 L 620 70" stroke="#bc8cff" stroke-width="2" marker-end="url(#tw-arr)"/>
+    <text x="565" y="55" fill="#d2a8ff" font-size="10" font-weight="700">50% 網絡外探索</text>
+
+
+    <rect x="40" y="70" width="280" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="180" y="92" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">In-Network (關注圈內)</text>
+    <text x="180" y="108" fill="#8b949e" font-size="10" text-anchor="middle">Earlybird 記憶體倒排索引 (Lucene)</text>
+
+
+    <rect x="480" y="70" width="280" height="50" rx="6" fill="#241b35" stroke="#bc8cff"/>
+    <text x="620" y="92" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Out-of-Network (網絡外探索)</text>
+    <text x="620" y="108" fill="#8b949e" font-size="10" text-anchor="middle">GraphJet 動態圖運算 ＋ SimClusters 向量</text>
+
+    <path d="M 180 120 L 330 145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+    <path d="M 620 120 L 470 145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+    <rect x="250" y="140" width="300" height="32" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="161" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">收斂至 1,500 則高品質候選推文池</text>
+
+  </svg>
+</div>
 
 ### 1. In-Network 檢索：Earlybird 記憶體倒排索引
 
@@ -93,25 +119,54 @@ GraphJet 維護記憶體中的二分圖（Bipartite Graph），即時記錄「�
 
 Heavy Ranker 採用 **MaskNet** 架構，擁有約 **4,800 萬個參數**，其核心任務是透過**多任務學習（Multi-Task Learning, MTL）** 同步預測使用者對該推文做出不同行為的條件機率 `P(Action)`。
 
-```
-                       候選推文特徵矩陣
-                             │
-                             ▼
-                 ┌───────────────────────┐
-                 │  Heavy Ranker 深度模型 │
-                 │   (MaskNet / 48M 參數) │
-                 └───────────┬───────────┘
-                             │
-       ┌─────────────┬───────┴─────┬─────────────┬─────────────┐
-       ▼             ▼             ▼             ▼             ▼
-    P(Like)     P(Retweet)      P(Reply)    P(AuthorEngage) P(Report/Block)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ranker-title ranker-desc">
+    <title id="ranker-title">Heavy Ranker 多任務學習（Multi-Task Learning）預測模型架構圖</title>
+    <desc id="ranker-desc">展示候選推文特徵矩陣進入 48M 參數 MaskNet 模型，平行預測點讚、轉發、作者回覆、媒體查看與負向舉報五大機率。</desc>
+    
+    <rect x="260" y="10" width="280" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">候選推文特徵矩陣 (1,500 則)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#tw-arr)"/>
+
+    <rect x="200" y="65" width="400" height="40" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="89" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Heavy Ranker 深度模型 (MaskNet / 48M 參數)</text>
+
+    <path d="M 240 105 L 100 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+    <path d="M 320 105 L 250 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+    <path d="M 400 105 L 400 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+    <path d="M 480 105 L 550 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+    <path d="M 560 105 L 700 135" stroke="#da3633" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+
+    <rect x="30" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="97" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Like)</text>
+    <text x="97" y="175" fill="#8b949e" font-size="9" text-anchor="middle">點讚 (+30.0)</text>
+
+    <rect x="180" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="247" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Retweet)</text>
+    <text x="247" y="175" fill="#8b949e" font-size="9" text-anchor="middle">轉發 (+1.0)</text>
+
+    <rect x="330" y="135" width="140" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(AuthorEngage)</text>
+    <text x="400" y="175" fill="#56d364" font-size="9" font-weight="700" text-anchor="middle">作者深度回覆 (+75.0)</text>
+
+    <rect x="485" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="552" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Click)</text>
+    <text x="552" y="175" fill="#8b949e" font-size="9" text-anchor="middle">點開對話 (+11.0)</text>
+
+    <rect x="635" y="135" width="135" height="55" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="702" y="157" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">P(Negative)</text>
+    <text x="702" y="175" fill="#f85149" font-size="9" font-weight="700" text-anchor="middle">舉報封鎖 (-369.0)</text>
+
+  </svg>
+</div>
 
 ### 多目標預測與加權期望公式
 
 模型會輸出推文引發各類正向與負向行為的機率，系統再透過**動態權重打分公式**計算出該推文的最終排序得分（Score）：
 
-```
+```text
 Score = Σ [ w_i × P(Action_i) ]
 ```
 
@@ -134,9 +189,36 @@ Score = Σ [ w_i × P(Action_i) ]
 
 得分計算完成後，候選池並不能直接輸出給客戶端。推薦系統必須通過最後一道防線——**啟發式過濾與多樣性重排（Heuristics & Filtering）**：
 
-```
-[評分完成推文] ──► [可見性安全過濾] ──► [作者多樣性打散] ──► [廣告/社交穿插] ──► [最終時間軸]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 100" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="heur-title heur-desc">
+    <title id="heur-title">可見性過濾、疲勞抑制與多樣性重排管線圖</title>
+    <desc id="heur-desc">展示評分完成推文經可見性安全過濾、作者多樣性打散、廣告/社交穿插輸出最終時間軸。</desc>
+    
+    <rect x="15" y="30" width="130" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="80" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">評分完成推文</text>
+
+    <path d="M 145 50 L 175 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+    <rect x="175" y="30" width="150" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="250" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">可見性安全過濾</text>
+
+    <path d="M 325 50 L 355 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+    <rect x="355" y="30" width="150" height="40" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="430" y="55" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">作者多樣性打散</text>
+
+    <path d="M 505 50 L 535 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+    <rect x="535" y="30" width="140" height="40" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="605" y="55" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">廣告 / 社交穿插</text>
+
+    <path d="M 675 50 L 705 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
+
+    <rect x="705" y="30" width="80" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="745" y="55" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">最終時間軸</text>
+
+  </svg>
+</div>
 
 ### 1. 可見性安全過濾（Visibility Filtering）
 

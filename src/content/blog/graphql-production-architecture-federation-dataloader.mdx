@@ -190,17 +190,42 @@ query MaliciousDepthQuery {
 
 APQ 將龐大的 GraphQL 查詢轉化為短小的 SHA-256 雜湊碼：
 
-```text
-1. 客戶端發送 GET 請求:
-   GET /graphql?extensions={"persistedQuery":{"sha256Hash":"e65...8a"}}
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="apq-diag-title apq-diag-desc">
+    <title id="apq-diag-title">GraphQL 自動持久化查詢（APQ）工作時序圖</title>
+    <desc id="apq-diag-desc">展示 Client 發送輕量 SHA-256 Hash GET 請求，命中 CDN 直接回傳；未命中則發送 POST 註冊 Query 並執行。</desc>
+    
+    <defs>
+      <marker id="apq-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-2. 若 CDN / 閘道已快取該 Hash -> 命中快取，直接以 HTTP 200 回傳 (零後端計算)！
+    <line x1="160" y1="20" x2="160" y2="220" stroke="#30363d" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <line x1="640" y1="20" x2="640" y2="220" stroke="#30363d" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <text x="160" y="20" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">Client (前端)</text>
+    <text x="640" y="20" fill="#bc8cff" font-size="13" font-weight="700" text-anchor="middle">CDN 邊緣 / GraphQL Gateway</text>
 
-3. 若快取未命中 (PersistedQueryNotFound):
-   客戶端改發 POST 請求上傳完整 Query 字串與 Hash:
-   POST /graphql (包含 query: "query { ... }", sha256Hash: "e65...8a")
-   伺服器執行並在本地將 Query 與 Hash 綁定快取。
-```
+
+    <line x1="160" y1="55" x2="630" y2="55" stroke="#58a6ff" stroke-width="2" marker-end="url(#apq-arr)"/>
+    <text x="400" y="47" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">1. GET /graphql?extensions=&#123;sha256Hash: "e65..."&#125;</text>
+
+
+    <rect x="260" y="70" width="280" height="24" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="86" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">【情況 A：命中快取】直接 HTTP 200 回傳 (零運算)</text>
+
+
+    <line x1="640" y1="120" x2="170" y2="120" stroke="#d29922" stroke-width="1.5" marker-end="url(#apq-arr)"/>
+    <text x="400" y="112" fill="#e3b341" font-size="11" text-anchor="middle">2. 【情況 B：未命中】回傳 PersistedQueryNotFound</text>
+
+    <line x1="160" y1="160" x2="630" y2="160" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#apq-arr)"/>
+    <text x="400" y="152" fill="#d2a8ff" font-size="11" text-anchor="middle">3. POST /graphql (完整 Query 字串 ＋ SHA256 Hash)</text>
+
+    <line x1="640" y1="200" x2="170" y2="200" stroke="#3fb950" stroke-width="2" marker-end="url(#apq-arr)"/>
+    <text x="400" y="192" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">4. 伺服器本地快取 Hash 映射 ➔ 回傳查詢結果</text>
+
+  </svg>
+</div>
 
 透過 APQ，GraphQL 的讀查詢全面轉為標準的 HTTP `GET` 請求，使系統能夠無縫享受 Cloudflare / Fastly 等全球 CDN 邊緣快取，顯著降低後端負載。
 

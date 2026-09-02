@@ -39,16 +39,37 @@ import ProxyGatewayLoadBalancerDiagram from "../../components/ProxyGatewayLoadBa
 
 ### L4 四層 vs. L7 七層負載均衡
 
-```
-                        [外部客戶端請求]
-                                │
-        ┌───────────────────────┴───────────────────────┐
-        ▼                                               ▼
-[L4 四層負載均衡 (NLB / IPVS)]                  [L7 七層負載均衡 (ALB / HAProxy)]
-  • 依據 IP + Port 轉發                           • 解析 HTTP 標頭、Cookie、URL 路徑
-  • 不拆解 HTTP Payload                          • 支援基於路徑的路由 (/api ➔ Service A)
-  • 極低延遲、極高吞吐 (百萬級 QPS)              • 支援 TLS 憑證集中卸載
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="l4-l7-title l4-l7-desc">
+    <title id="l4-l7-title">L4 四層 vs L7 七層負載均衡架構對比圖</title>
+    <desc id="l4-l7-desc">展示外部客戶端請求經 L4 (NLB/IPVS) 依 IP+Port 轉發具備超高吞吐，與 L7 (ALB/HAProxy) 解析 HTTP 標頭與路徑的特性對比。</desc>
+    
+    <defs>
+      <marker id="lb-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="270" y="10" width="260" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">外部客戶端請求 (Internet Traffic)</text>
+
+    <path d="M 330 45 L 180 70" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+    <path d="M 470 45 L 620 70" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+
+    <rect x="30" y="70" width="340" height="95" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="200" y="94" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">L4 四層負載均衡 (NLB / IPVS / LVS)</text>
+    <text x="50" y="118" fill="#c9d1d9" font-size="10">• 依據 IP ＋ Port 轉發，不拆解 Payload</text>
+    <text x="50" y="138" fill="#3fb950" font-size="10" font-weight="700">• 微秒級極低延遲、百萬級 QPS 吞吐</text>
+
+
+    <rect x="430" y="70" width="340" height="95" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="600" y="94" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">L7 七層負載均衡 (ALB / HAProxy / Nginx)</text>
+    <text x="450" y="118" fill="#c9d1d9" font-size="10">• 完整解析 HTTP 標頭、Cookie、URL 路徑</text>
+    <text x="450" y="138" fill="#d2a8ff" font-size="10" font-weight="700">• 支援路徑路由 (/api ➔ S1) 與 TLS 卸載</text>
+
+  </svg>
+</div>
 
 - **L4（傳輸層，TCP/UDP）**：只根據 IP 地址與 Port 進行 NAT 轉發或 Direct Server Return（DSR），不檢查 HTTP 標頭與 Payload。延遲極低（微秒級），適用於超高併發的網路入口（如 AWS Network Load Balancer）。
 - **L7（應用層，HTTP/HTTPS）**：完整解析 HTTP 協定，可根據請求路徑（如 `/users` vs `/orders`）或 Header 中的授權資訊將流量導向不同集群。
@@ -80,14 +101,44 @@ import ProxyGatewayLoadBalancerDiagram from "../../components/ProxyGatewayLoadBa
 
 API Gateway 專門為解決微服務生態中的複雜通訊而生：
 
-```
-                              [API Gateway]
-                                    │
-    ┌───────────────┬───────────────┼───────────────┬───────────────┐
-    ▼               ▼               ▼               ▼               ▼
-[身份鑑權]      [細粒度限流]    [協定轉換]      [BFF 介面聚合]   [可觀測性]
-(OAuth/JWT)    (Token Bucket)  (REST ⇄ gRPC)   (1 Request ➔ 5) (Tracing/Metrics)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gw-cap-title gw-cap-desc">
+    <title id="gw-cap-title">API 閘道 5 大核心治理能力圖</title>
+    <desc id="gw-cap-desc">展示 API 閘道統一承載身份鑑權、細粒度限流、協定轉換、BFF 介面聚合與分散式可觀測性五大能力。</desc>
+    
+    <rect x="300" y="10" width="200" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">API Gateway (微服務大腦)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#bc8cff" stroke-width="1.5"/>
+    <path d="M 90 65 L 710 65" stroke="#bc8cff" stroke-width="1.5"/>
+    <path d="M 90 65 L 90 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+    <path d="M 245 65 L 245 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+    <path d="M 400 65 L 400 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+    <path d="M 555 65 L 555 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+    <path d="M 710 65 L 710 75" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="20" y="75" width="140" height="42" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="90" y="94" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">身份鑑權</text>
+    <text x="90" y="108" fill="#8b949e" font-size="8" text-anchor="middle">OAuth 2.0 / JWT</text>
+
+    <rect x="175" y="75" width="140" height="42" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="245" y="94" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">細粒度限流</text>
+    <text x="245" y="108" fill="#8b949e" font-size="8" text-anchor="middle">Token Bucket 熔斷</text>
+
+    <rect x="330" y="75" width="140" height="42" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="400" y="94" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">協定轉換</text>
+    <text x="400" y="108" fill="#8b949e" font-size="8" text-anchor="middle">REST ⇄ gRPC</text>
+
+    <rect x="485" y="75" width="140" height="42" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="555" y="94" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">BFF 介面聚合</text>
+    <text x="555" y="108" fill="#8b949e" font-size="8" text-anchor="middle">1 Request ➔ 5 RPC</text>
+
+    <rect x="640" y="75" width="140" height="42" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="710" y="94" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">全鏈路觀測</text>
+    <text x="710" y="108" fill="#8b949e" font-size="8" text-anchor="middle">Tracing / Metrics</text>
+
+  </svg>
+</div>
 
 ### API Gateway 相比反向代理的躍遷
 
@@ -108,10 +159,27 @@ API Gateway 專門為解決微服務生態中的複雜通訊而生：
 - **特點**：**允許一定程度的突發流量（Traffic Burst）**。只要桶內有累積 Token，突發請求可以立即被放行。
 - **應用**：Envoy、Guava RateLimiter、AWS API Gateway 主力演算法。
 
-```
-以固定速率 r 產生 Token ──► [ 容量為 b 的權杖桶 ] ──► 消耗 Token 處理請求
-                              (允許累積突發)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 100" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tb-diag-title tb-diag-desc">
+    <title id="tb-diag-title">權杖桶（Token Bucket）演算法工作原理圖</title>
+    <desc id="tb-diag-desc">展示以固定速率 r 產生 Token 放入容量為 b 的權杖桶，請求消耗 Token 被處理並允許突發流量。</desc>
+    
+    <rect x="20" y="30" width="220" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="130" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">固定速率 r 產生 Token</text>
+
+    <path d="M 240 50 L 290 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="290" y="20" width="240" height="60" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="410" y="45" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">【 容量為 b 的權杖桶 】</text>
+    <text x="410" y="65" fill="#8b949e" font-size="10" text-anchor="middle">支援累積 Token 吸收瞬時突發</text>
+
+    <path d="M 530 50 L 580 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="580" y="30" width="200" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="680" y="55" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">消耗 Token ➔ 放行請求</text>
+
+  </svg>
+</div>
 
 ### 2. 漏桶演算法（Leaky Bucket）
 
@@ -149,14 +217,41 @@ API Gateway 專門為解決微服務生態中的複雜通訊而生：
 
 ## 系統架構師的選型建議
 
-1. **現代雲原生標準拓撲**：
-   ```
-   [公網用戶] ──► [L4 雲負載均衡器 (NLB)] ──► [API Gateway 叢集 (Envoy/APISIX)] ──► [內部微服務群]
-   ```
-   - 最外層用 L4 負載均衡器承載百萬級連線與 DDoS 攻擊；
-   - 內層由 API Gateway 負責身份鑑權、路由排程、BFF 聚合與指標監控。
-2. **不要在 Nginx 裡寫複雜業務邏輯**：如果你的 Nginx 開始引入大量複雜 Lua 腳本或查詢資料庫進行鑑權，說明你已經需要一個真正的 API Gateway。
-3. **根據流量特徵選擇限流**：用戶面 API 優先使用**權杖桶**以容忍正常突發；對外調用第三方有嚴格 TPS 限制的接口使用**漏桶**強制平滑。
+### 1. 現代雲原生標準拓撲
+
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 90" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="top-diag-title top-diag-desc">
+    <title id="top-diag-title">現代雲原生標準網路分層拓撲圖</title>
+    <desc id="top-diag-desc">展示公網用戶經 L4 NLB 進入 API Gateway 叢集再路由至內部微服務群。</desc>
+    
+    <rect x="20" y="25" width="160" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="50" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">公網用戶 (Internet)</text>
+
+    <path d="M 180 45 L 220 45" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="220" y="25" width="220" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="330" y="50" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">L4 雲負載均衡器 (NLB)</text>
+
+    <path d="M 440 45 L 480 45" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="480" y="25" width="200" height="40" rx="6" fill="#241b35" stroke="#bc8cff"/>
+    <text x="580" y="50" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">API Gateway (Envoy/APISIX)</text>
+
+    <path d="M 680 45 L 710 45" stroke="#3fb950" stroke-width="1.5" marker-end="url(#lb-arr)"/>
+
+    <rect x="710" y="25" width="80" height="40" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="750" y="50" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">內部微服務</text>
+
+  </svg>
+</div>
+
+- 最外層用 L4 負載均衡器承載百萬級連線與 DDoS 攻擊；
+- 內層由 API Gateway 負責身份鑑權、路由排程、BFF 聚合與指標監控。
+
+### 2. 關鍵工程實踐
+
+1. **不要在 Nginx 裡寫複雜業務邏輯**：如果你的 Nginx 開始引入大量複雜 Lua 腳本或查詢資料庫進行鑑權，說明你已經需要一個真正的 API Gateway。
+2. **根據流量特徵選擇限流**：用戶面 API 優先使用**權杖桶**以容忍正常突發；對外調用第三方有嚴格 TPS 限制的接口使用**漏桶**強制平滑。
 
 ---
 
