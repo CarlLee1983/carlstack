@@ -1,0 +1,597 @@
+---
+// gRPC vs REST vs GraphQL API Paradigm Comparison Diagram Component
+---
+
+<figure class="grg-diagram" aria-labelledby="grg-caption">
+  <svg
+    class="grg-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="grg-title grg-desc"
+  >
+    <title id="grg-title">
+      gRPC vs. REST vs. GraphQL 通訊範式與架構邊界對比
+    </title>
+    <desc id="grg-desc">
+      比較三種主流 API 通訊典範：基於 Protobuf 二進位與 HTTP/2 串流的
+      gRPC、成熟通用的 REST/JSON，以及靈活圖查詢但伴隨 N+1 查詢與 DataLoader
+      挑戰的 GraphQL。
+    </desc>
+
+    <defs>
+      <marker
+        id="grg-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="grg-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: gRPC -->
+    <g
+      class="grg-diagram__card grg-diagram__card--grpc"
+      transform="translate(30, 40)"
+    >
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="grg-diagram__badge grg-diagram__badge--grpc" x="18" y="26"
+        >BINARY &amp; HIGH PERFORMANCE</text
+      >
+      <text class="grg-diagram__title grg-diagram__title--grpc" x="18" y="54"
+        >gRPC (Protobuf / HTTP/2)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="80"
+        >• 二進位序列化 (Protocol Buffers)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="102"
+        >• 序列化體積縮小 70%，速度快 5-10x</text
+      >
+      <text class="grg-diagram__desc" x="18" y="124"
+        >• 原生雙向串流 (Bi-directional Streaming)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="146"
+        >• Schema-First 強型別合約與代碼自動生成</text
+      >
+      <text class="grg-diagram__desc" x="18" y="168"
+        >• 最佳定位：內部微服務高速 RPC</text
+      >
+
+      <g transform="translate(18, 200)">
+        <rect
+          width="234"
+          height="140"
+          rx="8"
+          class="grg-diagram__subcard grg-diagram__subcard--grpc"></rect>
+        <text
+          class="grg-diagram__subtitle grg-diagram__subtitle--grpc"
+          x="12"
+          y="24">⚖️ 優劣權衡</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="50"
+          >• (+) 極致傳輸效率與強型別約束</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="72"
+          >• (-) 瀏覽器除錯困難 (無法肉眼讀 JSON)</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="94"
+          >• (-) 對外公開 API 整合門檻較高</text
+        >
+        <text class="grg-diagram__tag grg-diagram__tag--grpc" x="12" y="122"
+          >內部微服務黃金標準</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: REST -->
+    <g
+      class="grg-diagram__card grg-diagram__card--rest"
+      transform="translate(345, 40)"
+    >
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="grg-diagram__badge grg-diagram__badge--rest" x="18" y="26"
+        >RESOURCE-ORIENTED</text
+      >
+      <text class="grg-diagram__title grg-diagram__title--rest" x="18" y="54"
+        >REST (JSON / HTTP 1.1/2)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="80"
+        >• 資源導向架構 (URI + HTTP 動詞)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="102"
+        >• JSON 文字格式，人眼直觀可讀</text
+      >
+      <text class="grg-diagram__desc" x="18" y="124"
+        >• 標準 HTTP 狀態碼與快取 (Cache-Control)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="146"
+        >• OpenAPI / Swagger 生態極度成熟</text
+      >
+      <text class="grg-diagram__desc" x="18" y="168"
+        >• 最佳定位：對外公開 API、第三方整合</text
+      >
+
+      <g transform="translate(18, 200)">
+        <rect
+          width="234"
+          height="140"
+          rx="8"
+          class="grg-diagram__subcard grg-diagram__subcard--rest"></rect>
+        <text
+          class="grg-diagram__subtitle grg-diagram__subtitle--rest"
+          x="12"
+          y="24">⚖️ 優劣權衡</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="50"
+          >• (+) 全球相容性最高、生態最完整</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="72"
+          >• (-) Over-fetching (冗餘欄位) / Under-fetching</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="94"
+          >• (-) 移動端複雜頁面需多次來回 Round-trips</text
+        >
+        <text class="grg-diagram__tag grg-diagram__tag--rest" x="12" y="122"
+          >公開生態與合作夥伴首選</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: GraphQL -->
+    <g
+      class="grg-diagram__card grg-diagram__card--graphql"
+      transform="translate(660, 40)"
+    >
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="grg-diagram__badge grg-diagram__badge--graphql" x="18" y="26"
+        >DECLARATIVE GRAPH QUERY</text
+      >
+      <text class="grg-diagram__title grg-diagram__title--graphql" x="18" y="54"
+        >GraphQL (Schema / AST)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="80"
+        >• 客戶端精準按需查詢 (No Over-fetching)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="102"
+        >• 單一端點 `/graphql` 聚合跨領域資料</text
+      >
+      <text class="grg-diagram__desc" x="18" y="124"
+        >• 強型別 GraphQL Schema 定義</text
+      >
+      <text class="grg-diagram__desc" x="18" y="146"
+        >• 訂閱機制 (GraphQL Subscriptions)</text
+      >
+      <text class="grg-diagram__desc" x="18" y="168"
+        >• 最佳定位：複雜多端前端、儀表板聚合</text
+      >
+
+      <g transform="translate(18, 200)">
+        <rect
+          width="234"
+          height="140"
+          rx="8"
+          class="grg-diagram__subcard grg-diagram__subcard--graphql"></rect>
+        <text
+          class="grg-diagram__subtitle grg-diagram__subtitle--graphql"
+          x="12"
+          y="24">⚖️ 優劣權衡</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="50"
+          >• (+) 大幅降低前端發起之 HTTP 請求數</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="72"
+          >• (-) 後端 N+1 查詢瓶頸 (需 DataLoader 快取)</text
+        >
+        <text class="grg-diagram__subdesc" x="12" y="94"
+          >• (-) HTTP 快取失效、惡意深層查詢 DoS 風險</text
+        >
+        <text class="grg-diagram__tag grg-diagram__tag--graphql" x="12" y="122"
+          >前端儀表板與多端視圖神器</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="grg-diagram__mobile">
+    <div class="grg-mobile-card grg-mobile-card--grpc">
+      <span class="grg-mobile-badge grg-mobile-badge--grpc">01. 內部微服務</span
+      >
+      <h4>gRPC (Protobuf / HTTP/2)</h4>
+      <p>
+        極致效能與強型別合約，二進位序列化節省 70% 體積，內部服務間低延遲 RPC
+        通訊首選。
+      </p>
+    </div>
+
+    <div class="grg-mobile-card grg-mobile-card--rest">
+      <span class="grg-mobile-badge grg-mobile-badge--rest"
+        >02. 公開 API 生態</span
+      >
+      <h4>REST (JSON / HTTP)</h4>
+      <p>
+        標準資源導向架構，人眼可讀、瀏覽器原生友好，具備最強的生態工具鏈與公開對外相容性。
+      </p>
+    </div>
+
+    <div class="grg-mobile-card grg-mobile-card--graphql">
+      <span class="grg-mobile-badge grg-mobile-badge--graphql"
+        >03. 複雜視圖聚合</span
+      >
+      <h4>GraphQL (宣告式圖查詢)</h4>
+      <p>
+        前端按需宣告欄位，單一請求聚合多服務資料；需搭配 DataLoader 解決後端 N+1
+        查詢與查詢複雜度熔斷。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="grg-caption">
+    圖 1：API 典範選型矩陣：gRPC（內部高吞吐）、REST（公開生態）與
+    GraphQL（靈活前端聚合）。
+  </figcaption>
+</figure>
+
+<style>
+  .grg-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .grg-diagram {
+    background: #090e17;
+    border-color: #1e293b;
+  }
+
+  .grg-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .grg-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .grg-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .grg-diagram__card rect {
+    fill: #131b2e;
+    stroke: #25334d;
+  }
+
+  .grg-diagram__card--grpc rect {
+    fill: #fff1f2;
+    stroke: #e11d48;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .grg-diagram__card--grpc rect {
+    fill: #4c0519;
+    stroke: #f43f5e;
+  }
+
+  .grg-diagram__card--rest rect {
+    fill: #ecfeff;
+    stroke: #0891b2;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .grg-diagram__card--rest rect {
+    fill: #083344;
+    stroke: #06b6d4;
+  }
+
+  .grg-diagram__card--graphql rect {
+    fill: #faf5ff;
+    stroke: #9333ea;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .grg-diagram__card--graphql rect {
+    fill: #3b0764;
+    stroke: #a855f7;
+  }
+
+  .grg-diagram__subcard {
+    fill: #ffffff !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .grg-diagram__subcard {
+    fill: #1e293b !important;
+    stroke: #334155 !important;
+  }
+
+  .grg-diagram__subcard--grpc {
+    fill: #fff1f2 !important;
+    stroke: #fecdd3 !important;
+  }
+
+  :global(.dark) .grg-diagram__subcard--grpc {
+    fill: #2d0611 !important;
+    stroke: #881337 !important;
+  }
+
+  .grg-diagram__subcard--rest {
+    fill: #f0fdfa !important;
+    stroke: #a5f3fc !important;
+  }
+
+  :global(.dark) .grg-diagram__subcard--rest {
+    fill: #06242e !important;
+    stroke: #155e75 !important;
+  }
+
+  .grg-diagram__subcard--graphql {
+    fill: #fdf4ff !important;
+    stroke: #e9d5ff !important;
+  }
+
+  :global(.dark) .grg-diagram__subcard--graphql {
+    fill: #24043d !important;
+    stroke: #6b21a8 !important;
+  }
+
+  .grg-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .grg-diagram__badge--grpc {
+    fill: #e11d48;
+  }
+
+  :global(.dark) .grg-diagram__badge--grpc {
+    fill: #fb7185;
+  }
+
+  .grg-diagram__badge--rest {
+    fill: #0891b2;
+  }
+
+  :global(.dark) .grg-diagram__badge--rest {
+    fill: #22d3ee;
+  }
+
+  .grg-diagram__badge--graphql {
+    fill: #9333ea;
+  }
+
+  :global(.dark) .grg-diagram__badge--graphql {
+    fill: #c084fc;
+  }
+
+  .grg-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .grg-diagram__title--grpc {
+    fill: #be123c;
+  }
+
+  :global(.dark) .grg-diagram__title--grpc {
+    fill: #fda4af;
+  }
+
+  .grg-diagram__title--rest {
+    fill: #0e7490;
+  }
+
+  :global(.dark) .grg-diagram__title--rest {
+    fill: #67e8f9;
+  }
+
+  .grg-diagram__title--graphql {
+    fill: #7e22ce;
+  }
+
+  :global(.dark) .grg-diagram__title--graphql {
+    fill: #d8b4fe;
+  }
+
+  .grg-diagram__subtitle {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .grg-diagram__subtitle--grpc {
+    fill: #9f1239;
+  }
+
+  :global(.dark) .grg-diagram__subtitle--grpc {
+    fill: #fecdd3;
+  }
+
+  .grg-diagram__subtitle--rest {
+    fill: #155e75;
+  }
+
+  :global(.dark) .grg-diagram__subtitle--rest {
+    fill: #a5f3fc;
+  }
+
+  .grg-diagram__subtitle--graphql {
+    fill: #6b21a8;
+  }
+
+  :global(.dark) .grg-diagram__subtitle--graphql {
+    fill: #e9d5ff;
+  }
+
+  .grg-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .grg-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .grg-diagram__subdesc {
+    font-size: 10px;
+    fill: #64748b;
+  }
+
+  :global(.dark) .grg-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .grg-diagram__tag {
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .grg-diagram__tag--grpc {
+    fill: #e11d48;
+  }
+
+  :global(.dark) .grg-diagram__tag--grpc {
+    fill: #fb7185;
+  }
+
+  .grg-diagram__tag--rest {
+    fill: #0891b2;
+  }
+
+  :global(.dark) .grg-diagram__tag--rest {
+    fill: #22d3ee;
+  }
+
+  .grg-diagram__tag--graphql {
+    fill: #9333ea;
+  }
+
+  :global(.dark) .grg-diagram__tag--graphql {
+    fill: #c084fc;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .grg-diagram__desktop {
+      display: none;
+    }
+
+    .grg-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .grg-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .grg-mobile-card {
+      background: #131b2e;
+      border-color: #25334d;
+    }
+
+    .grg-mobile-card--grpc {
+      border-left: 4px solid #e11d48;
+      background: #fff1f2;
+    }
+
+    :global(.dark) .grg-mobile-card--grpc {
+      background: #4c0519;
+      border-color: #f43f5e;
+    }
+
+    .grg-mobile-card--rest {
+      border-left: 4px solid #0891b2;
+      background: #ecfeff;
+    }
+
+    :global(.dark) .grg-mobile-card--rest {
+      background: #083344;
+      border-color: #06b6d4;
+    }
+
+    .grg-mobile-card--graphql {
+      border-left: 4px solid #9333ea;
+      background: #faf5ff;
+    }
+
+    :global(.dark) .grg-mobile-card--graphql {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .grg-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .grg-mobile-badge--grpc {
+      color: #e11d48;
+    }
+
+    :global(.dark) .grg-mobile-badge--grpc {
+      color: #fb7185;
+    }
+
+    .grg-mobile-badge--rest {
+      color: #0891b2;
+    }
+
+    :global(.dark) .grg-mobile-badge--rest {
+      color: #22d3ee;
+    }
+
+    .grg-mobile-badge--graphql {
+      color: #9333ea;
+    }
+
+    :global(.dark) .grg-mobile-badge--graphql {
+      color: #c084fc;
+    }
+
+    .grg-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .grg-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .grg-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .grg-mobile-card p {
+      color: #cbd5e1;
+    }
+  }
+</style>

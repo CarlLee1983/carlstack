@@ -1,0 +1,180 @@
+---
+title: "傳輸協定演進史：HTTP/1.1 ➔ HTTP/2 ➔ HTTP/3，從隊頭阻塞到 QUIC 的極致實踐"
+description: "深入剖析網際網路傳輸協定的三代演進：從 HTTP/1.1 應用層隊頭阻塞與多連線妥協、HTTP/2 二進位分幀與 TCP 傳輸層阻塞痛點，到 HTTP/3 基於 UDP/QUIC 徹底解決阻塞、實現 0-RTT 極速交握與連線遷移的底層機制。"
+publishDate: 2026-09-02T10:20:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 網路協定
+  - HTTP3
+  - 高效能
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/http-evolution-http1-http2-http3.png
+coverAlt: "立體等距視角展示網路傳輸管線的三個演進階段：從單一狹窄管道、多色纏繞管道，到透明磁浮管中高速流動的 UDP/QUIC 光子流。"
+---
+
+import HttpEvolutionDiagram from "../../components/HttpEvolutionDiagram.astro";
+
+HTTP（超文本傳輸協定）是整個現代網際網路的基石。從 1997 年發布的 HTTP/1.1、2015 年的 HTTP/2，到 2022 年正式標準化的 HTTP/3（[RFC 9114](https://datatracker.ietf.org/doc/html/rfc9114)），這場跨越二十餘年的技術演進史，本質上就是工程師與**隊頭阻塞（Head-of-Line Blocking, HoL）** 及 **網路握手延遲（Round-Trip Time, RTT）** 的極限對決。
+
+為什麼 HTTP/2 已經支援多路復用（Multiplexing），在弱網環境下卻可能比 HTTP/1.1 還慢？為什麼 HTTP/3 敢徹底拋棄稱霸數十年的 TCP，轉而將底層建構在「不可靠」的 UDP 之上？
+
+本文基於 [IETF RFC 9114 官方規範](https://datatracker.ietf.org/doc/html/rfc9114)、[Cloudflare 網路工程文獻](https://www.cloudflare.com/learning/performance/what-is-http3/) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，深入拆解 HTTP 協定三代演進的底層物理機制。
+
+<HttpEvolutionDiagram />
+
+---
+
+## 階段 1：HTTP/1.1 與應用層隊頭阻塞（1997 ~ 2015）
+
+HTTP/1.1 是純文字（ASCII-based）協定，雖然引入了 `Keep-Alive` 機制允許重用 TCP 連線，但其核心運作模式依然是嚴格的**請求-回應序列化（Request-Response Pairing）**。
+
+### 什麼是應用層隊頭阻塞（Application HoL Blocking）？
+
+在單一 TCP 連線上，客戶端發送請求 $A$ 後，必須等待伺服器完整回傳回應 $A$，才能發送請求 $B$。如果請求 $A$ 是一個耗時 2 秒的複雜資料庫查詢，後續所有只需 5 毫秒的靜態 CSS/JS 請求都會被硬生生卡在隊伍後方。
+
+```
+[客戶端] ─── (請求 A: 耗時查詢) ─────────────────────────► [伺服器]
+[客戶端] ─── (請求 B: 5ms 靜態檔) [卡死在佇列中等待 A 完成]
+```
+
+### 前端工程師的歷史妥協（Hacks）
+
+為了繞過 HTTP/1.1 的物理限制，過去十餘年間前端社群發明了大量無奈的工程技巧：
+
+1. **瀏覽器並行多連線**：瀏覽器對同一個網域名稱（Domain）預設開啟 6 個並行 TCP 連線。
+2. **網域名稱分片（Domain Sharding）**：將資源分散到 `static1.example.com`、`static2.example.com`，藉此開啟更多 TCP 連線。
+3. **雪碧圖（CSS Sprites）與資源內聯（Data URIs）**：將數十張小圖合成大圖，或直接 Base64 塞入 HTML，減少 HTTP 請求數量。
+
+> [!WARNING]
+> 開啟大量 TCP 連線會加劇伺服器端的記憶體與連線池負擔，且每個新 TCP 連線都必須經歷「TCP 三向交握 + TLS 握手」，在移動網路下造成高達 3-RTT（數百毫秒）的啟動延遲。
+
+---
+
+## 階段 2：HTTP/2 二進位分幀與傳輸層阻塞痛點（2015 ~ 2022）
+
+2015 年推出的 HTTP/2（RFC 7540）是協定架構的一次重大飛躍，核心引入了**二進位分幀層（Binary Framing Layer）**：
+
+```
++------------------------------------+
+|          HTTP/2 應用層             |
++------------------------------------+
+|  二進位分幀層 (Headers / Data 幀)  |  <--- 核心創新
++------------------------------------+
+|         TLS 1.2 / 1.3              |
++------------------------------------+
+|             TCP 傳輸層             |
++------------------------------------+
+```
+
+### 1. 二進位多路復用（Multiplexing）
+
+- 所有的通訊都在**單一 TCP 連線**上完成。
+- 每個請求被拆分為帶有 Stream ID 的二進位幀（Frames）。
+- 多個請求與回應的幀可以在 TCP 管道中交錯傳輸，接收端根據 Stream ID 重新組裝，徹底解決了 HTTP/1.1 的應用層隊頭阻塞。
+
+### 2. HPACK 標頭壓縮
+
+- 傳統 HTTP 請求的 Cookie 與 User-Agent 往往佔據上千位元組。
+- HPACK 在客戶端與伺服器端維護動態索引表（Dynamic Table），相同標頭只傳送索引號，節省超過 80% 的 Header 傳輸開銷。
+
+---
+
+### HTTP/2 致命傷：TCP 層隊頭阻塞（Transport HoL Blocking）
+
+HTTP/2 在應用層解決了阻塞，卻在弱網環境下將矛盾轉移到了底層的 **TCP 協定** 上。
+
+TCP 是一個保證「可靠、按序傳送（Ordered Byte-Stream）」的協定：
+
+- 假設 HTTP/2 的單一 TCP 連線上同時傳輸 Stream 1（影片）、Stream 2（CSS）、Stream 3（圖片）。
+- 當網路發生 **1% 封包丟失（Packet Loss）**，且丟失的剛好是 Stream 1 的某個 TCP Segment 時：
+  - TCP 接收端緩衝區會停止向應用層交付所有後續封包，直到丟失的 Segment 透過 TCP 重傳確認成功。
+  - **後果**：即使 Stream 2 與 Stream 3 的封包已經完整到達客戶端，作業系統核心也必須將它們全部卡在 Buffer 中。
+
+> [!IMPORTANT]
+> 在丟包率超過 2% 的弱網（如高鐵、移動基地台切換、地鐵電梯）環境下，**HTTP/2 的整體加載延遲甚至可能劣於開啟多個 TCP 連線的 HTTP/1.1**。
+
+---
+
+## 階段 3：HTTP/3 與 QUIC——基於 UDP 的終極重構（2022+）
+
+為徹底消滅 TCP 的本質缺陷，Google 提出了 QUIC 協定，並由 IETF 正式標準化為 **HTTP/3（RFC 9114）**。
+
+HTTP/3 最激進的決定在於：**徹底放棄 TCP，改在 UDP 之上自研傳輸層協定（QUIC）**。
+
+```
++------------------------------------+
+|           HTTP/3 應用層            |
++------------------------------------+
+|     QPACK 標頭壓縮 (解耦依賴)      |
++------------------------------------+
+|      QUIC (可靠傳輸 + TLS 1.3)     |  <--- 運行於使用者空間 (User Space)
++------------------------------------+
+|             UDP 傳輸層             |
++------------------------------------+
+```
+
+### 1. 真·獨立 Stream（徹底消除傳輸層隊頭阻塞）
+
+- 在 QUIC 中，每個 Stream 擁有完全獨立的序列號與滑動窗口。
+- 若 Stream 1 發生丟包，只有 Stream 1 會等待重傳；Stream 2 與 Stream 3 可以立即被應用層讀取與渲染。
+
+### 2. 0-RTT 極速握手（Zero Round-Trip Time Resumption）
+
+- QUIC 將傳輸握手與 **TLS 1.3 加密握手** 合併：
+  - **首次連線**：僅需 1-RTT 即可同時完成金鑰交換與傳輸協商。
+  - **重複連線（Session Resumption）**：支援 **0-RTT**，客戶端在發送第一個 UDP 封包時就能夾帶加密的 HTTP GET 請求 Payload，實現真正的「零延遲」啟動。
+
+```
+[HTTP/1.1 over TCP + TLS 1.2]
+Client ─── SYN ────────► Server (1 RTT - TCP)
+Client ◄── SYN-ACK ──── Server
+Client ─── ClientHello ► Server (2 RTT - TLS)
+Client ◄── ServerHello ─ Server
+Client ─── HTTP GET ───► Server (3 RTT - Data!)
+
+[HTTP/3 over QUIC]
+Client ─── QUIC Initial + TLS 1.3 ──► Server (1 RTT 初次建立)
+Client ◄── QUIC Handshake Done ───── Server
+Client ─── HTTP GET (0-RTT 重連時第一包直接發送) ──► Server
+```
+
+### 3. 連線遷移（Connection Migration）
+
+- 傳統 TCP 以「四元組（來源 IP、來源 Port、目的 IP、目的 Port）」識別連線。當手機從 WiFi 切換到 5G 行動網路時，IP 改變導致所有 TCP 連線必須中斷重連。
+- QUIC 使用隨機生成的 **64 位元 Connection ID** 識別連線。即使 IP 或基地台切換，只要 Connection ID 不變，串流下載與視訊通話無需重連、完全無感知續傳。
+
+---
+
+## HTTP 三代協定全方位技術對比
+
+| 比較維度                 | HTTP/1.1              | HTTP/2                | HTTP/3 (QUIC)                |
+| :----------------------- | :-------------------- | :-------------------- | :--------------------------- |
+| **傳輸層協定**           | TCP                   | TCP                   | **UDP (QUIC)**               |
+| **編碼格式**             | 純文字 ASCII          | 二進位分幀 (Binary)   | 二進位分幀 (Binary)          |
+| **多路復用能力**         | 無 (序列化阻塞)       | 單一 TCP 多路復用     | **原生獨立多串流 (UDP)**     |
+| **隊頭阻塞 (HoL)**       | 應用層嚴重阻塞        | 傳輸層 (TCP 丟包阻塞) | **徹底根除 (無任何阻塞)**    |
+| **標頭壓縮演算法**       | 無 (純文字重複傳送)   | HPACK                 | **QPACK (異步防阻塞)**       |
+| **首次握手延遲**         | 2 ~ 3 RTT (TCP + TLS) | 2 ~ 3 RTT             | **1 RTT (內建 TLS 1.3)**     |
+| **重連握手延遲**         | 1 ~ 2 RTT             | 1 ~ 2 RTT             | **0-RTT (立即發送 Payload)** |
+| **網路切換 (WiFi ➔ 5G)** | 斷線需全量重新握手    | 斷線需全量重新握手    | **Connection ID 無縫遷移**   |
+
+---
+
+## 系統架構師的 4 個實戰啟示
+
+1. **靜態資源打包策略的轉變**：在 HTTP/2 與 HTTP/3 時代，不要再過度進行雪碧圖與大單檔打包（Bundle），合理拆分為細粒度模組可以最大化利用多路復用與瀏覽器快取命中率。
+2. **邊緣 CDN 優先開啟 HTTP/3**：主流雲端服務（Cloudflare、AWS CloudFront、Google Cloud CDN）均已全面支援 HTTP/3。將邊緣連線升級至 HTTP/3 能顯著改善行動端用戶的 首屏渲染時間（LCP）。
+3. **UDP 防火牆放行檢查**：企業內部網路或老舊路由器可能封鎖 UDP 443 埠。架構設計時必須保留 `Alt-Svc` 標頭機制，在 HTTP/3 連線受阻時平滑降級至 HTTP/2。
+4. **伺服器 CPU 消耗評估**：QUIC 在使用者空間處理封包加解密與重傳，初期相較於經過 Linux 核心硬體加速優化的 TCP 會多消耗 10%~20% CPU 算力，需透過支援 UDP GSO（Generic Segmentation Offload）的現代核心緩解。
+
+---
+
+### 參考資料與一手文獻
+
+- IETF RFC 9114: [_HTTP/3 Specification_](https://datatracker.ietf.org/doc/html/rfc9114)
+- IETF RFC 9000: [_QUIC: A UDP-Based Multiplexed and Secure Transport_](https://datatracker.ietf.org/doc/html/rfc9000)
+- Cloudflare: [_Comparing HTTP/3 vs. HTTP/2 Performance_](https://blog.cloudflare.com/http3-the-past-present-and-future/)
+- ByteByteGo: [_System Design 101: Evolution of HTTP_](https://github.com/ByteByteGoHq/system-design-101)

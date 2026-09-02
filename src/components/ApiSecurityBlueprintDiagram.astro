@@ -1,0 +1,683 @@
+---
+// Enterprise API Security Defense Blueprint Diagram Component
+---
+
+<figure class="apisec-diagram" aria-labelledby="apisec-caption">
+  <svg
+    class="apisec-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="apisec-title apisec-desc"
+  >
+    <title id="apisec-title">金融與企業級 API 縱深安全防禦藍圖</title>
+    <desc id="apisec-desc">
+      展示現代企業 API 縱深防禦體系：邊界 WAF 與自適應限流、OAuth 2.1 / OIDC
+      身份鑑權、零信任 mTLS 雙向加密，以及 JWT 重放攻擊防禦與不可篡改稽核日誌。
+    </desc>
+
+    <defs>
+      <marker
+        id="apisec-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="apisec-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="apisec-arrow-gold"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="apisec-diagram__arrow-head--gold"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Layer 1: Perimeter Defense -->
+    <g class="apisec-diagram__card" transform="translate(30, 40)">
+      <rect width="200" height="370" rx="12"></rect>
+      <text class="apisec-diagram__badge" x="16" y="26">DEFENSE LAYER 1</text>
+      <text class="apisec-diagram__title" x="16" y="54">邊界防護與流量清洗</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="80"
+        >• Web 應用防火牆 (WAF)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="102"
+        >• OWASP Top 10 規則攔截</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="124"
+        >• DDoS 與機器人清洗 (Bot)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="146"
+        >• IP 信用庫與地理圍欄</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="168"
+        >• 自適應滑動窗口限流</text
+      >
+
+      <g transform="translate(14, 210)">
+        <rect width="172" height="130" rx="8" class="apisec-diagram__subcard"
+        ></rect>
+        <text class="apisec-diagram__subtitle" x="10" y="24">🛡️ 攔截威脅</text>
+        <text class="apisec-diagram__subdesc" x="10" y="50"
+          >• SQL 注入 / XSS 探針</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="72"
+          >• 帳密暴力破解撞庫</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="94"
+          >• 異常流量突發洪峰</text
+        >
+        <text
+          class="apisec-diagram__tag apisec-diagram__tag--warn"
+          x="10"
+          y="118">第一道邊界過濾</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 to 2 -->
+    <path
+      class="apisec-diagram__arrow"
+      d="M 230 225 H 265"
+      marker-end="url(#apisec-arrow)"></path>
+
+    <!-- Layer 2: Identity & Auth -->
+    <g
+      class="apisec-diagram__card apisec-diagram__card--gold"
+      transform="translate(270, 40)"
+    >
+      <rect width="200" height="370" rx="12"></rect>
+      <text
+        class="apisec-diagram__badge apisec-diagram__badge--gold"
+        x="16"
+        y="26">DEFENSE LAYER 2</text
+      >
+      <text
+        class="apisec-diagram__title apisec-diagram__title--gold"
+        x="16"
+        y="54">身份認證與授權</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="80"
+        >• OAuth 2.1 (PKCE 授權碼)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="102"
+        >• OIDC OpenID Connect</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="124"
+        >• 非對稱加密簽名 (RS256)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="146"
+        >• 短生命週期 Token (15m)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="168"
+        >• Refresh Token 輪換 (RTR)</text
+      >
+
+      <g transform="translate(14, 210)">
+        <rect
+          width="172"
+          height="130"
+          rx="8"
+          class="apisec-diagram__subcard apisec-diagram__subcard--gold"></rect>
+        <text
+          class="apisec-diagram__subtitle apisec-diagram__subtitle--gold"
+          x="10"
+          y="24">🔐 防重放機制</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="50"
+          >• JTI (JWT ID) 單次有效</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="72"
+          >• Redis 快速黑名單吊銷</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="94"
+          >• DPoP 密鑰綁定保護</text
+        >
+        <text
+          class="apisec-diagram__tag apisec-diagram__tag--gold"
+          x="10"
+          y="118">零信任身分確認</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 to 3 -->
+    <path
+      class="apisec-diagram__arrow apisec-diagram__arrow--gold"
+      d="M 470 225 H 505"
+      marker-end="url(#apisec-arrow-gold)"></path>
+
+    <!-- Layer 3: mTLS & Network -->
+    <g
+      class="apisec-diagram__card apisec-diagram__card--green"
+      transform="translate(510, 40)"
+    >
+      <rect width="200" height="370" rx="12"></rect>
+      <text
+        class="apisec-diagram__badge apisec-diagram__badge--green"
+        x="16"
+        y="26">DEFENSE LAYER 3</text
+      >
+      <text
+        class="apisec-diagram__title apisec-diagram__title--green"
+        x="16"
+        y="54">服務間 mTLS 零信任</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="80"
+        >• 雙向證書驗證 (Mutual TLS)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="102"
+        >• 自動化短效憑證簽發 (SPIFFE)</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="124"
+        >• Service Mesh Sidecar 代理</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="146"
+        >• 節點間全鏈路傳輸加密</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="168"
+        >• 內部微服務身份嚴格隔離</text
+      >
+
+      <g transform="translate(14, 210)">
+        <rect
+          width="172"
+          height="130"
+          rx="8"
+          class="apisec-diagram__subcard apisec-diagram__subcard--green"></rect>
+        <text
+          class="apisec-diagram__subtitle apisec-diagram__subtitle--green"
+          x="10"
+          y="24">🔒 內部防橫向移動</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="50"
+          >• 拒絕未認證內部 Pod 訪問</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="72"
+          >• 防範內網竊聽與中間人 (MITM)</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="94"
+          >• 動態網路策略隔離 (Calico)</text
+        >
+        <text
+          class="apisec-diagram__tag apisec-diagram__tag--green"
+          x="10"
+          y="118">微服務傳輸硬隔離</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 3 to 4 -->
+    <path
+      class="apisec-diagram__arrow"
+      d="M 710 225 H 745"
+      marker-end="url(#apisec-arrow)"></path>
+
+    <!-- Layer 4: Audit & Observability -->
+    <g class="apisec-diagram__card" transform="translate(750, 40)">
+      <rect width="180" height="370" rx="12"></rect>
+      <text class="apisec-diagram__badge" x="14" y="26">DEFENSE LAYER 4</text>
+      <text class="apisec-diagram__title" x="14" y="54">稽核日誌與風控</text>
+      <text class="apisec-diagram__desc" x="14" y="80"
+        >• 敏感資料去識別化 (Mask)</text
+      >
+      <text class="apisec-diagram__desc" x="14" y="102"
+        >• 不可篡改 Audit Log 歸檔</text
+      >
+      <text class="apisec-diagram__desc" x="14" y="124"
+        >• 行為異常分析 (UEBA)</text
+      >
+      <text class="apisec-diagram__desc" x="14" y="146"
+        >• 越權 (BOLA / BFLA) 偵測</text
+      >
+      <text class="apisec-diagram__desc" x="16" y="168"
+        >• SIEM 即時告警聯防</text
+      >
+
+      <g transform="translate(12, 210)">
+        <rect width="156" height="130" rx="8" class="apisec-diagram__subcard"
+        ></rect>
+        <text class="apisec-diagram__subtitle" x="10" y="24">📊 合規與追溯</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="50"
+          >• GDPR / PCI-DSS 憑證</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="72"
+          >• 毫秒級事件可追溯性</text
+        >
+        <text class="apisec-diagram__subdesc" x="10" y="94"
+          >• 自動化風控熔斷阻斷</text
+        >
+        <text class="apisec-diagram__tag" x="10" y="118"
+          >全生命週期安全閉環</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="apisec-diagram__mobile">
+    <div class="apisec-mobile-card">
+      <span class="apisec-mobile-badge">01. 邊界防禦</span>
+      <h4>WAF 清洗與自適應限流</h4>
+      <p>
+        邊界攔截 OWASP Top 10 攻擊、防範 DDoS
+        洪峰與機器人撞庫，保護內部系統不受直接衝擊。
+      </p>
+    </div>
+
+    <div class="apisec-mobile-arrow">↓ 身份驗證與授權</div>
+
+    <div class="apisec-mobile-card apisec-mobile-card--gold">
+      <span class="apisec-mobile-badge apisec-mobile-badge--gold"
+        >02. 認證與權杖防護</span
+      >
+      <h4>OAuth 2.1 (PKCE) 與 JWT 防重放</h4>
+      <p>
+        RS256 非對稱簽名、短效 Token、JTI 單次有效性與 Redis
+        黑名單機制，徹底杜絕 Token 劫持與重放。
+      </p>
+    </div>
+
+    <div class="apisec-mobile-arrow">↓ 內部零信任加密</div>
+
+    <div class="apisec-mobile-card apisec-mobile-card--green">
+      <span class="apisec-mobile-badge apisec-mobile-badge--green"
+        >03. 內部通訊安全</span
+      >
+      <h4>服務間 mTLS 雙向認證</h4>
+      <p>
+        基於 SPIFFE 自動簽發短效憑證，微服務之間實施強制雙向 TLS
+        加密，杜絕內網嗅探與橫向滲透。
+      </p>
+    </div>
+
+    <div class="apisec-mobile-arrow">↓ 稽核與合規監控</div>
+
+    <div class="apisec-mobile-card">
+      <span class="apisec-mobile-badge">04. 稽核與風控</span>
+      <h4>不可篡改 Audit Log 與 BOLA 異常監控</h4>
+      <p>
+        敏感欄位遮罩、即時異常行為偵測（UEBA）與不可篡改日誌沉澱，滿足 PCI-DSS
+        與金融級合規監管。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="apisec-caption">
+    圖 1：企業與金融級 API 縱深防禦架構：邊界清洗、OAuth 2.1 / JWT 防重放、mTLS
+    零信任與稽核風控。
+  </figcaption>
+</figure>
+
+<style>
+  .apisec-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .apisec-diagram {
+    background: #090e17;
+    border-color: #1e293b;
+  }
+
+  .apisec-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .apisec-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .apisec-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .apisec-diagram__card rect {
+    fill: #131b2e;
+    stroke: #25334d;
+  }
+
+  .apisec-diagram__card--gold rect {
+    fill: #fefce8;
+    stroke: #ca8a04;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .apisec-diagram__card--gold rect {
+    fill: #422006;
+    stroke: #eab308;
+  }
+
+  .apisec-diagram__card--green rect {
+    fill: #f0fdf4;
+    stroke: #16a34a;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .apisec-diagram__card--green rect {
+    fill: #052e16;
+    stroke: #22c55e;
+  }
+
+  .apisec-diagram__subcard {
+    fill: #ffffff !important;
+    stroke: #e2e8f0 !important;
+    stroke-width: 1 !important;
+  }
+
+  :global(.dark) .apisec-diagram__subcard {
+    fill: #1e293b !important;
+    stroke: #334155 !important;
+  }
+
+  .apisec-diagram__subcard--gold {
+    fill: #fffbeb !important;
+    stroke: #fef08a !important;
+  }
+
+  :global(.dark) .apisec-diagram__subcard--gold {
+    fill: #2e1805 !important;
+    stroke: #854d0e !important;
+  }
+
+  .apisec-diagram__subcard--green {
+    fill: #f0fdf4 !important;
+    stroke: #bbf7d0 !important;
+  }
+
+  :global(.dark) .apisec-diagram__subcard--green {
+    fill: #082813 !important;
+    stroke: #15803d !important;
+  }
+
+  .apisec-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .apisec-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .apisec-diagram__badge--gold {
+    fill: #ca8a04;
+  }
+
+  :global(.dark) .apisec-diagram__badge--gold {
+    fill: #facc15;
+  }
+
+  .apisec-diagram__badge--green {
+    fill: #16a34a;
+  }
+
+  :global(.dark) .apisec-diagram__badge--green {
+    fill: #4ade80;
+  }
+
+  .apisec-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .apisec-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .apisec-diagram__title--gold {
+    fill: #a16207;
+  }
+
+  :global(.dark) .apisec-diagram__title--gold {
+    fill: #fef08a;
+  }
+
+  .apisec-diagram__title--green {
+    fill: #15803d;
+  }
+
+  :global(.dark) .apisec-diagram__title--green {
+    fill: #86efac;
+  }
+
+  .apisec-diagram__subtitle {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #334155;
+  }
+
+  :global(.dark) .apisec-diagram__subtitle {
+    fill: #cbd5e1;
+  }
+
+  .apisec-diagram__subtitle--gold {
+    fill: #854d0e;
+  }
+
+  :global(.dark) .apisec-diagram__subtitle--gold {
+    fill: #fde047;
+  }
+
+  .apisec-diagram__subtitle--green {
+    fill: #166534;
+  }
+
+  :global(.dark) .apisec-diagram__subtitle--green {
+    fill: #4ade80;
+  }
+
+  .apisec-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .apisec-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .apisec-diagram__subdesc {
+    font-size: 10px;
+    fill: #64748b;
+  }
+
+  :global(.dark) .apisec-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .apisec-diagram__tag {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #0284c7;
+  }
+
+  :global(.dark) .apisec-diagram__tag {
+    fill: #38bdf8;
+  }
+
+  .apisec-diagram__tag--warn {
+    fill: #dc2626;
+  }
+
+  :global(.dark) .apisec-diagram__tag--warn {
+    fill: #f87171;
+  }
+
+  .apisec-diagram__tag--gold {
+    fill: #ca8a04;
+  }
+
+  :global(.dark) .apisec-diagram__tag--gold {
+    fill: #facc15;
+  }
+
+  .apisec-diagram__tag--green {
+    fill: #16a34a;
+  }
+
+  :global(.dark) .apisec-diagram__tag--green {
+    fill: #4ade80;
+  }
+
+  .apisec-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+  }
+
+  :global(.dark) .apisec-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .apisec-diagram__arrow--gold {
+    stroke: #ca8a04;
+    stroke-width: 2.2;
+  }
+
+  :global(.dark) .apisec-diagram__arrow--gold {
+    stroke: #facc15;
+  }
+
+  .apisec-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .apisec-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .apisec-diagram__arrow-head--gold {
+    fill: #ca8a04;
+  }
+
+  :global(.dark) .apisec-diagram__arrow-head--gold {
+    fill: #facc15;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .apisec-diagram__desktop {
+      display: none;
+    }
+
+    .apisec-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .apisec-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .apisec-mobile-card {
+      background: #131b2e;
+      border-color: #25334d;
+    }
+
+    .apisec-mobile-card--gold {
+      border-left: 4px solid #ca8a04;
+      background: #fefce8;
+    }
+
+    :global(.dark) .apisec-mobile-card--gold {
+      background: #422006;
+      border-color: #eab308;
+    }
+
+    .apisec-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: #f0fdf4;
+    }
+
+    :global(.dark) .apisec-mobile-card--green {
+      background: #052e16;
+      border-color: #22c55e;
+    }
+
+    .apisec-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .apisec-mobile-badge--gold {
+      color: #ca8a04;
+    }
+
+    :global(.dark) .apisec-mobile-badge--gold {
+      color: #facc15;
+    }
+
+    .apisec-mobile-badge--green {
+      color: #16a34a;
+    }
+
+    :global(.dark) .apisec-mobile-badge--green {
+      color: #4ade80;
+    }
+
+    .apisec-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .apisec-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .apisec-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .apisec-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .apisec-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

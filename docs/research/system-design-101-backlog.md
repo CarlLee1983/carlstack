@@ -4,19 +4,19 @@
 >
 > 研究與建檔日期：2026-09-02
 >
-> 狀態：已完成第 1 批（5 篇）與第 2 批（4 篇）專題發布，其餘主題已分批結構化歸檔，供後續排期撰寫。
+> 狀態：已完成第 1 批（5 篇）、第 2 批（4 篇）與第 3 批（4 篇）專題發布，其餘主題已分批結構化歸檔，供後續排期撰寫。
 
 ---
 
 ## 📊 發布進度與狀態
 
-| 批次        | 主題範疇                                                               | 規劃篇數 | 已發布篇數 | 狀態              |
-| :---------- | :--------------------------------------------------------------------- | :------- | :--------- | :---------------- |
-| **第 1 批** | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）  | 5 篇     | 5 篇       | ✅ **已全數發布** |
-| **第 2 批** | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）        | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 3 批** | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界）       | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）     | 4 篇     | 0 篇       | 📋 儲備中         |
-| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack） | 3 篇     | 0 篇       | 📋 儲備中         |
+| 批次        | 主題範疇                                                                | 規劃篇數 | 已發布篇數 | 狀態              |
+| :---------- | :---------------------------------------------------------------------- | :------- | :--------- | :---------------- |
+| **第 1 批** | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）   | 5 篇     | 5 篇       | ✅ **已全數發布** |
+| **第 2 批** | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 3 批** | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全） | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）      | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
+| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 0 篇       | 📋 儲備中         |
 
 ---
 
@@ -55,20 +55,24 @@
    - **一手來源**：[Uber: The Evolution of Uber's API Gateway Architecture](https://www.uber.com/blog/evolution-of-ubers-api-layer/)
    - **核心要點**：四代演進（單體 RTAPI ➔ 去中心化閘道 ➔ 邊緣 gRPC ➔ 宣告式統一平台）、Protobuf Schema-First 自動生成 BFF、多區域主動雙活、自適應限流。
 
+### 第 3 批：現代通訊協定、API 閘道與網路流量工程
+
+1. [**傳輸協定演進史：HTTP/1.1 ➔ HTTP/2 ➔ HTTP/3，從隊頭阻塞到 QUIC 的極致實踐**](../../src/content/blog/http-evolution-http1-http2-http3.mdx)
+   - **一手來源**：[RFC 9114 (HTTP/3)](https://datatracker.ietf.org/doc/html/rfc9114) / [Cloudflare Learning Center](https://www.cloudflare.com/learning/performance/what-is-http3/)
+   - **核心要點**：HTTP/1.1 應用層阻塞、HTTP/2 二進位多路復用與 TCP 傳輸層阻塞、HTTP/3 QUIC over UDP、0-RTT 握手與 Connection ID 連線遷移。
+2. [**反向代理 vs. API Gateway vs. 負載均衡器：架構邊界、選型維度與限流演算法深度對比**](../../src/content/blog/reverse-proxy-api-gateway-load-balancer.mdx)
+   - **一手來源**：[Envoy Proxy Architecture](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/arch_overview) / [Nginx Documentation](https://nginx.org/en/docs/)
+   - **核心要點**：L4/L7 負載均衡分流、反向代理邊緣 TLS 卸載與快取、API Gateway 微服務業務治理、Token Bucket / Leaky Bucket / 滑動窗口限流。
+3. [**gRPC vs. REST vs. GraphQL 通訊邊界決策：傳輸效能、N+1 查詢與 Schema 演進全景分析**](../../src/content/blog/grpc-vs-rest-vs-graphql-communication-boundaries.mdx)
+   - **一手來源**：[gRPC Documentation](https://grpc.io/docs/) / [GraphQL Specification](https://spec.graphql.org/)
+   - **核心要點**：Protobuf 二進位序列化與 HTTP/2 雙向串流、REST 資源導向與 HTTP 快取生態、GraphQL 宣告式按需查詢與 DataLoader 解決 N+1 查詢。
+4. [**金融與企業級 API 縱深防禦藍圖：OAuth 2.1、JWT 防重放、零信任 mTLS 與 OWASP 防護**](../../src/content/blog/enterprise-api-security-blueprint.mdx)
+   - **一手來源**：[OWASP API Security Top 10](https://owasp.org/www-project-api-security/) / [IETF OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08)
+   - **核心要點**：邊界 WAF 與自適應限流、OAuth 2.1 PKCE 授權碼模式、RS256 非對稱簽名、JTI + Redis 防重放黑名單、微服務間 mTLS 零信任、BOLA 越權防禦。
+
 ---
 
 ## ⏳ 後續批次主題清單與一手資料庫
-
-### 第 3 批：現代通訊協定、API 閘道與網路流量工程
-
-| 專題題目                                     | 涉及核心技術與模組                                                                                  | 建議一手來源                                                                                                           |
-| :------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| **傳輸協定演進：HTTP/1.1 ➔ HTTP/2 ➔ HTTP/3** | 隊頭阻塞（Head-of-Line Blocking）、QUIC / UDP 核心、0-RTT 連線建立、多路復用                        | [RFC 9114 (HTTP/3) / Cloudflare Learning Center](https://www.cloudflare.com/learning/performance/what-is-http3/)       |
-| **反向代理 vs. API Gateway vs. 負載均衡器**  | 四層（TCP/UDP）與七層（HTTP）路由、TLS 卸載、服務發現、Rate Limiting 演算法（Token / Leaky Bucket） | [Envoy Proxy Architecture / Nginx Docs](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/arch_overview) |
-| **gRPC vs. REST vs. GraphQL 通訊邊界決策**   | Protobuf 二進位序列化、雙向串流、N+1 查詢問題、Schema 演進與向後相容                                | [gRPC Documentation / GraphQL Specs](https://grpc.io/docs/)                                                            |
-| **金融與企業級 API 安全防禦藍圖**            | OAuth 2.1 / OIDC、JWT 重放攻擊防禦、mTLS 雙向認證、Rate Limiter 防暴破                              | [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)                                               |
-
----
 
 ### 第 4 批：分散式交易、儲存引擎與資料流
 
