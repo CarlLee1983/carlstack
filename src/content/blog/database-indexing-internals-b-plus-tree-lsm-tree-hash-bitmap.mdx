@@ -43,15 +43,55 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 B+ Tree 是一種多路平衡搜尋樹，專為磁碟與區塊儲存設備而設計。
 
-```text
-                     [ Root Node: 20 | 50 ]
-                    /          |          \
-      [ Internal: 5 | 15 ] [ Internal: 30 | 40 ] [ Internal: 60 | 80 ]
-         /      |      \       ...               ...
-   ┌────┴───┬───┴───┬───┴───┐
-   │ Leaf 1 │◄─►│ Leaf 2│◄─►│ Leaf 3 │ ... (雙向鏈表相連，所有資料行均在葉子節點)
-   └────────┴───┴───────┴───┴────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bplus-tree-title bplus-tree-desc">
+    <title id="bplus-tree-title">B+ Tree 多路平衡搜尋樹與葉子節點雙向鏈表結構圖</title>
+    <desc id="bplus-tree-desc">展示 Root Node 分支至內部節點，內部節點指向葉子節點，葉子節點包含所有資料行並透過雙向鏈表互連。</desc>
+    
+    <defs>
+      <marker id="bp-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="300" y="15" width="200" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle">Root: [ 20 | 50 ]</text>
+
+    <path d="M 340 57 L 200 85" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+    <path d="M 460 57 L 600 85" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+
+    <rect x="100" y="85" width="180" height="40" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="190" y="110" fill="#d2a8ff" font-size="12" font-family="monospace" text-anchor="middle">Internal: [ 5 | 15 ]</text>
+
+    <rect x="310" y="85" width="180" height="40" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="400" y="110" fill="#d2a8ff" font-size="12" font-family="monospace" text-anchor="middle">Internal: [ 30 | 40 ]</text>
+
+    <rect x="520" y="85" width="180" height="40" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="610" y="110" fill="#d2a8ff" font-size="12" font-family="monospace" text-anchor="middle">Internal: [ 60 | 80 ]</text>
+
+    <path d="M 190 125 L 140 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+    <path d="M 400 125 L 400 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+    <path d="M 610 125 L 660 160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#bp-arrow)"/>
+
+    <rect x="50" y="160" width="200" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="150" y="185" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Leaf 1 (Data Rows)</text>
+    <text x="150" y="201" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Keys: 1 ~ 19</text>
+
+    <text x="280" y="190" fill="#58a6ff" font-size="18" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
+
+    <rect x="300" y="160" width="200" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="185" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Leaf 2 (Data Rows)</text>
+    <text x="400" y="201" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Keys: 20 ~ 49</text>
+
+    <text x="530" y="190" fill="#58a6ff" font-size="18" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
+
+    <rect x="550" y="160" width="200" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="650" y="185" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Leaf 3 (Data Rows)</text>
+    <text x="650" y="201" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Keys: 50 ~ 100</text>
+
+  </svg>
+</div>
 
 ### 2.1 B+ Tree 的三大核心設計哲學
 
@@ -69,20 +109,51 @@ B+ Tree 是一種多路平衡搜尋樹，專為磁碟與區塊儲存設備而設
 
 面對日誌採集、時序監控與即時訊息等海量寫入場景，磁碟的隨機寫入延遲成為最大瓶頸（即便是 SSD，順序寫效能仍遠高於隨機寫）。**LSM-Tree（Log-Structured Merge-tree）** 將所有寫入操作全部轉化為純順序寫入。
 
-```text
-[ 寫入請求: Insert / Update / Delete ]
-      ├── 1. 順序追加至 WAL (Write-Ahead Log, 磁碟持久化防當機)
-      └── 2. 寫入記憶體中的 MemTable (跳躍表 SkipList / 紅黑樹, 記憶體極速響應！)
-                │
-                ▼ (當 MemTable 填滿達到閾值 e.g., 64MB)
-      [ 轉為 Immutable MemTable (唯讀快照) ]
-                │
-                ▼ (非同步背景執行緒 Flush 順序寫入磁碟)
-      [ Level 0: SSTable 檔案 (有序字串表, 包含 Bloom Filter) ]
-                │
-                ▼ (背景 Compaction 階層歸併壓實)
-      [ Level 1 ──> Level 2 ──> Level 3 SSTables ... ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 370" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lsm-tree-title lsm-tree-desc">
+    <title id="lsm-tree-title">LSM-Tree 記憶體寫入、SSTable 順序刷盤與 Compaction 壓實流程圖</title>
+    <desc id="lsm-tree-desc">展示寫入並行追加 WAL 與 MemTable，滿後轉 Immutable MemTable 順序 Flush 為 Level 0 SSTable 並非同步 Compaction。</desc>
+    
+    <defs>
+      <marker id="lsm-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="230" y="15" width="340" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">寫入請求 (Insert / Update / Delete)</text>
+
+    <path d="M 330 57 L 220 85" stroke="#d29922" stroke-width="1.5" marker-end="url(#lsm-arrow)"/>
+    <path d="M 470 57 L 580 85" stroke="#3fb950" stroke-width="2" marker-end="url(#lsm-arrow)"/>
+
+    <rect x="80" y="85" width="280" height="46" rx="8" fill="#2a2015" stroke="#d29922" stroke-width="1.2"/>
+    <text x="220" y="108" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">WAL (順序追加磁碟日誌)</text>
+    <text x="220" y="123" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">保證當機不遺失資料</text>
+
+    <rect x="440" y="85" width="280" height="46" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="580" y="108" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">MemTable (記憶體 SkipList)</text>
+    <text x="580" y="123" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">極速寫入，零隨機 I/O 阻塞</text>
+
+    <path d="M 580 131 L 580 160" stroke="#58a6ff" stroke-width="2" marker-end="url(#lsm-arrow)"/>
+
+    <rect x="440" y="160" width="280" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="580" y="186" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Immutable MemTable (唯讀快照)</text>
+
+    <path d="M 580 202 L 580 230" stroke="#bc8cff" stroke-width="2" marker-end="url(#lsm-arrow)"/>
+    <text x="590" y="220" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">非同步 Flush</text>
+
+    <rect x="150" y="230" width="570" height="48" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="435" y="253" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Level 0 SSTable (磁碟順序有序字串表 + Bloom Filter)</text>
+    <text x="435" y="270" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">不可變二進位區塊・布隆過濾器極速判定 Key 是否存在</text>
+
+    <path d="M 435 278 L 435 305" stroke="#58a6ff" stroke-width="2" marker-end="url(#lsm-arrow)"/>
+    <text x="445" y="295" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">Compaction 壓實歸併</text>
+
+    <rect x="150" y="305" width="570" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="435" y="331" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Level 1 ➔ Level 2 ➔ Level N 階層式歸併壓實 (清理歷史廢棄版本與墓碑)</text>
+
+  </svg>
+</div>
 
 ### 3.1 LSM-Tree 的寫入與讀取權衡
 
@@ -104,13 +175,85 @@ B+ Tree 是一種多路平衡搜尋樹，專為磁碟與區塊儲存設備而設
 
 - **適用場景**：**低基數（Low Cardinality）欄位**（如性別、是否付費、國家代碼、商品類別）。
 - **運作原理**：為每個枚舉值建立一個位元陣列（Bit Array），第 $i$ 個位元為 1 表示第 $i$ 行滿足條件。
-  ```text
-  性別欄位:
-    Male:   [1, 0, 1, 1, 0, ...]
-    Female: [0, 1, 0, 0, 1, ...]
-  ```
-- **極致優勢**：在處理多條件複合查詢時（`WHERE gender = 'Male' AND is_vip = 1 AND country = 'TW'`），資料庫底層直接將三個 Bit Array 進行 **CPU 級別的 `AND` / `OR` 位元運算**，在微秒內完成數千萬筆資料的篩選！
-- **現代演進**：現代數倉採用 **Roaring Bitmap** 進行分區動態壓縮，徹底解決稀疏資料的記憶體膨脹問題。
+
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg
+    viewBox="0 0 800 120"
+    class="w-full h-auto"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-labelledby="bitmap-idx-title bitmap-idx-desc"
+  >
+    <title id="bitmap-idx-title">Bitmap 位圖索引低基數欄位位元運算示意圖</title>
+    <desc id="bitmap-idx-desc">
+      展示性別枚舉欄位使用 Male 與 Female 位元陣列，多條件過濾時直接進行硬體級
+      SIMD 位元 AND 運算。
+    </desc>
+
+    <rect
+      x="20"
+      y="15"
+      width="760"
+      height="90"
+      rx="8"
+      fill="#161b22"
+      stroke="#30363d"
+      stroke-width="1.2"
+    />
+    <text
+      x="40"
+      y="42"
+      fill="#8b949e"
+      font-size="13"
+      font-family="system-ui, sans-serif"
+      font-weight="700"
+    >
+      性別欄位位圖索引：
+    </text>
+    <text x="40" y="68" fill="#58a6ff" font-size="13" font-family="monospace">
+      Male: [ 1, 0, 1, 1, 0, 0, 1, 0, 1 ... ]
+    </text>
+    <text x="40" y="92" fill="#bc8cff" font-size="13" font-family="monospace">
+      Female: [ 0, 1, 0, 0, 1, 1, 0, 1, 0 ... ]
+    </text>
+    <rect
+      x="520"
+      y="32"
+      width="240"
+      height="56"
+      rx="6"
+      fill="#1b2e23"
+      stroke="#238636"
+      stroke-width="1"
+    />
+    <text
+      x="640"
+      y="55"
+      fill="#3fb950"
+      font-size="11"
+      font-family="system-ui, sans-serif"
+      font-weight="700"
+      text-anchor="middle"
+    >
+      多條件過濾加速：
+    </text>
+    <text
+      x="640"
+      y="73"
+      fill="#c9d1d9"
+      font-size="11"
+      font-family="system-ui, sans-serif"
+      text-anchor="middle"
+    >
+      直接透過 CPU SIMD 位元 AND/OR 運算
+    </text>
+
+  </svg>
+</div>
+- **極致優勢**：在處理多條件複合查詢時（`WHERE gender = 'Male' AND is_vip = 1
+AND country = 'TW'`），資料庫底層直接將三個 Bit Array 進行 **CPU 級別的 `AND` /
+`OR` 位元運算**，在微秒內完成數千萬筆資料的篩選！ - **現代演進**：現代數倉採用
+**Roaring Bitmap** 進行分區動態壓縮，徹底解決稀疏資料的記憶體膨脹問題。
 
 ---
 

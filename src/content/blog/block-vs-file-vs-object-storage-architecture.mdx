@@ -47,15 +47,34 @@ import StorageTypesComparisonDiagram from "../../components/StorageTypesComparis
 
 區塊儲存**完全沒有檔名、目錄、權限或時間戳等中繼資料（Metadata）概念**。作業系統將區塊設備（如 `/dev/nvme0n1` 或 AWS EBS 卷）格式化為特定的檔案系統（如 ext4、XFS、NTFS）後，才能在上方建立檔案結構。
 
-```text
-[ Application (MySQL / PostgreSQL) ]
-              │ (Direct I/O / Page Cache)
-              ▼
-[ OS File System (ext4 / XFS) ]
-              │ (Block I/O Requests: LBA 0x004A1F)
-              ▼
-[ Block Device (AWS EBS / SAN / NVMe-oF) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="block-io-title block-io-desc">
+    <title id="block-io-title">區塊儲存（Block Storage）分層 I/O 棧架構圖</title>
+    <desc id="block-io-desc">展示應用層 Direct I/O 穿透至作業系統檔案系統，再轉化為 LBA 區塊 I/O 直達區塊設備。</desc>
+    
+    <defs>
+      <marker id="blk-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="200" y="15" width="400" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="43" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Application (MySQL / PostgreSQL / Oracle DB)</text>
+
+    <path d="M 400 61 L 400 92" stroke="#58a6ff" stroke-width="2" marker-end="url(#blk-arrow)"/>
+    <text x="410" y="80" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">Direct I/O / Page Cache</text>
+
+    <rect x="200" y="95" width="400" height="46" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="123" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">OS File System (ext4 / XFS / ZFS 檔案系統層)</text>
+
+    <path d="M 400 141 L 400 172" stroke="#58a6ff" stroke-width="2" marker-end="url(#blk-arrow)"/>
+    <text x="410" y="160" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">Block I/O: LBA 0x004A1F</text>
+
+    <rect x="200" y="175" width="400" height="46" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="203" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Block Device (AWS EBS / NVMe SSD / SAN 裸磁區)</text>
+
+  </svg>
+</div>
 
 ### 1.2 通訊協議與效能特性
 
@@ -142,18 +161,37 @@ import StorageTypesComparisonDiagram from "../../components/StorageTypesComparis
 
 在微服務與雲原生架構規劃時，可依循以下決策鏈進行技術選型：
 
-```text
-1. 是否需要資料庫等級的亞毫秒事務隨機讀寫？
-   ├── 是 ──► 【區塊儲存】 (AWS EBS io2 / gp3, NVMe SSD)
-   └── 否 ──► 進入第 2 步
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="storage-dec-title storage-dec-desc">
+    <title id="storage-dec-title">雲原生架構儲存選型決策樹</title>
+    <desc id="storage-dec-desc">依據事務隨機讀寫、多節點 POSIX 共享與巨量非結構化靜態儲存三步驟快速決策。</desc>
+    
+    <defs>
+      <marker id="str-dec-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-2. 是否需要現有程式碼以 POSIX 檔案路徑與多節點並行掛載共享？
-   ├── 是 ──► 【檔案儲存】 (AWS EFS, GCP Filestore, NFS)
-   └── 否 ──► 進入第 3 步
+    <rect x="20" y="20" width="380" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="40" y="48" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif">1. 是否需要資料庫等級的亞毫秒事務隨機讀寫？</text>
+    <path d="M 400 43 L 450 43" stroke="#58a6ff" stroke-width="2" marker-end="url(#str-dec-arrow)"/>
+    <rect x="460" y="20" width="320" height="46" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="620" y="48" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">👉 區塊儲存 (AWS EBS gp3/io2, NVMe)</text>
 
-3. 是否為巨量非結構化靜態資料、備份或大數據湖倉？
-   └── 是 ──► 【物件儲存】 (AWS S3, Cloudflare R2, MinIO)
-```
+    <rect x="20" y="85" width="380" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="40" y="113" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif">2. 是否需 POSIX 目錄樹與多 Pod 並行共享？</text>
+    <path d="M 400 108 L 450 108" stroke="#bc8cff" stroke-width="2" marker-end="url(#str-dec-arrow)"/>
+    <rect x="460" y="85" width="320" height="46" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="620" y="113" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">👉 檔案儲存 (AWS EFS, GCP Filestore, NFS)</text>
+
+    <rect x="20" y="150" width="380" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="40" y="178" fill="#f0f6fc" font-size="13" font-family="system-ui, sans-serif">3. 巨量非結構化媒體、日誌備份或大數據湖倉？</text>
+    <path d="M 400 173 L 450 173" stroke="#3fb950" stroke-width="2" marker-end="url(#str-dec-arrow)"/>
+    <rect x="460" y="150" width="320" height="46" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="620" y="178" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">👉 物件儲存 (AWS S3, MinIO, R2, JuiceFS)</text>
+
+  </svg>
+</div>
 
 ### 現代融合趨勢：儲存與計算分離
 

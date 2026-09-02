@@ -29,15 +29,30 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 Eric Brewer 提出的 CAP 定理是分散式領域中最被廣泛引用、但也最常被過度簡化與誤讀的理論。
 
-```text
-               [ C ] Consistency (線性一致性 / 強一致性)
-                    /   \
-                   /     \
-                  /  CAP  \
-                 /  Trade- \
-                /    off    \
-[ A ] Availability ───────── [ P ] Partition Tolerance (分區容忍性)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cap-tri-title cap-tri-desc">
+    <title id="cap-tri-title">CAP 定理權衡三角與物理分區約束架構圖</title>
+    <desc id="cap-tri-desc">展示 Consistency 一致性、Availability 可用性與 Partition Tolerance 分區容忍性之間的權衡關係。</desc>
+    
+    <polygon points="400,25 150,210 650,210" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+
+    <circle cx="400" cy="30" r="30" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
+    <text x="400" y="36" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">C</text>
+    <text x="400" y="75" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Consistency (線性強一致性)</text>
+
+    <circle cx="150" cy="205" r="30" fill="#1b2e23" stroke="#238636" stroke-width="2"/>
+    <text x="150" y="211" fill="#3fb950" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">A</text>
+    <text x="150" y="155" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Availability (高可用性)</text>
+
+    <circle cx="650" cy="205" r="30" fill="#241b35" stroke="#bc8cff" stroke-width="2"/>
+    <text x="650" y="211" fill="#d2a8ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">P</text>
+    <text x="650" y="155" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Partition Tolerance (分區容忍性)</text>
+
+    <rect x="280" y="115" width="240" height="34" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
+    <text x="400" y="137" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">分散式實體網路：P 為必選項！</text>
+
+  </svg>
+</div>
 
 ### 1.1 三大特性的嚴格學術定義
 
@@ -53,10 +68,23 @@ Eric Brewer 提出的 CAP 定理是分散式領域中最被廣泛引用、但也
 
 ## 2. 超越 CAP：PACELC 延遲權衡模型
 
-```text
-If P (Partition) -> Choose between A (Availability) and C (Consistency)
-Else (E)         -> Choose between L (Latency) and C (Consistency)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pacelc-title pacelc-desc">
+    <title id="pacelc-title">PACELC 延遲與一致性全景決策邏輯圖</title>
+    <desc id="pacelc-desc">展示若發生網路分區 P 則在 A 與 C 間權衡；若正常無分區 Else 則在 L 延遲與 C 一致性間權衡。</desc>
+    
+    <rect x="20" y="15" width="370" height="90" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="42" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">若發生網路分區 (If Partition - P)：</text>
+    <text x="40" y="70" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif">在【可用性 A】與【強一致性 C】之間二選一</text>
+    <text x="40" y="90" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">（PC vs PA）</text>
+
+    <rect x="410" y="15" width="370" height="90" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="430" y="42" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">若系統正常無分區 (Else - E)：</text>
+    <text x="430" y="70" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif">在【極低延遲 L】與【強一致性 C】之間權衡</text>
+    <text x="430" y="90" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">（EL vs EC）</text>
+
+  </svg>
+</div>
 
 | 系統分類 | 分區時 (P) 選擇      | 正常時 (E) 選擇      | 代表系統                       |
 | :------- | :------------------- | :------------------- | :----------------------------- |
@@ -72,21 +100,40 @@ Else (E)         -> Choose between L (Latency) and C (Consistency)
 
 ### 3.1 三種角色狀態轉換
 
-```text
-                  ┌───────────────────────────────┐
-                  │          FOLLOWER             │
-                  └───────────────────────────────┘
-                     │ (心跳逾時，未收到 Leader 訊息)
-                     ▼
-                  ┌───────────────────────────────┐
-                  │          CANDIDATE            │
-                  └───────────────────────────────┘
-                     │ (獲得過半數 Quorum 投票)
-                     ▼
-                  ┌───────────────────────────────┐
-                  │           LEADER              │
-                  └───────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="raft-fsm-title raft-fsm-desc">
+    <title id="raft-fsm-title">Raft 三種角色狀態轉換狀態機架構圖</title>
+    <desc id="raft-fsm-desc">展示 Follower 心跳逾時轉為 Candidate，獲得過半 Quorum 投票晉升為 Leader，發現更高 Term 降級為 Follower。</desc>
+    
+    <defs>
+      <marker id="rf-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="40" y="85" width="200" height="70" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <text x="140" y="115" fill="#c9d1d9" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">FOLLOWER (跟隨者)</text>
+    <text x="140" y="135" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">被動接收日誌與心跳</text>
+
+    <path d="M 240 120 L 300 120" stroke="#58a6ff" stroke-width="2" marker-end="url(#rf-arrow)"/>
+    <text x="270" y="110" fill="#8b949e" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">逾時</text>
+
+    <rect x="310" y="85" width="200" height="70" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="410" y="115" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">CANDIDATE (候選人)</text>
+    <text x="410" y="135" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">自增 Term・廣播拉票</text>
+
+    <path d="M 510 120 L 570 120" stroke="#3fb950" stroke-width="2" marker-end="url(#rf-arrow)"/>
+    <text x="540" y="110" fill="#3fb950" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">多數票</text>
+
+    <rect x="580" y="85" width="180" height="70" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="115" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">LEADER (領導者)</text>
+    <text x="670" y="135" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">處理請求・同步日誌</text>
+
+    <path d="M 670 85 C 670 30, 140 30, 140 85" fill="none" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#rf-arrow)"/>
+    <text x="400" y="35" fill="#f85149" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">發現更高 Term 或當機重啟 ➔ 降級為 Follower</text>
+
+  </svg>
+</div>
 
 1. **Follower（跟隨者）**：完全被動，僅接收來自 Leader 的日誌追加與心跳，若心跳逾時則發起選舉。
 2. **Candidate（候選人）**：主動拉票，向其他節點發送 `RequestVote` RPC。
@@ -106,19 +153,36 @@ Else (E)         -> Choose between L (Latency) and C (Consistency)
 
 ### 4.2 日誌複製與兩階段提交安全保證
 
-```text
-[ Client Request: Set x=5 ]
-           │
-           ▼
-[ Leader Log: Index 1, Term 1, Set x=5 (Uncommitted) ]
-     ├── AppendEntries RPC ──> [ Follower A Log (寫入本地磁碟) ]
-     └── AppendEntries RPC ──> [ Follower B Log (寫入本地磁碟) ]
-           │
-           ▼ (當過半數節點成功寫入日誌)
-[ Leader Commit Index 推進 ! ] ── (應用至狀態機並回覆 Client 成功)
-           │
-           ▼ (下次心跳通知 Follower 將該日誌提交並應用至狀態機)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="raft-log-title raft-log-desc">
+    <title id="raft-log-title">Raft 日誌兩階段複製與 Commit 推進流程圖</title>
+    <desc id="raft-log-desc">展示 Client 請求寫入 Leader 未提交日誌，經 AppendEntries RPC 複製至 Follower，過半數寫入後 Leader 推進 Commit Index 回覆客戶端。</desc>
+    
+    <rect x="20" y="15" width="220" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="41" fill="#58a6ff" font-size="13" font-family="monospace" font-weight="700" text-anchor="middle">Client: Set x=5</text>
+
+    <path d="M 240 36 L 290 36" stroke="#58a6ff" stroke-width="2" marker-end="url(#rf-arrow)"/>
+
+    <rect x="300" y="15" width="480" height="42" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="540" y="41" fill="#58a6ff" font-size="13" font-family="monospace" text-anchor="middle">Leader Log: [ Index 1, Term 1, Set x=5 (Uncommitted) ]</text>
+
+    <path d="M 400 57 L 220 95" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#rf-arrow)"/>
+    <path d="M 600 57 L 600 95" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#rf-arrow)"/>
+
+    <rect x="60" y="95" width="320" height="42" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="220" y="121" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Follower A (AppendEntries 寫入磁碟)</text>
+
+    <rect x="440" y="95" width="320" height="42" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="600" y="121" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Follower B (AppendEntries 寫入磁碟)</text>
+
+    <path d="M 220 137 L 400 175" stroke="#3fb950" stroke-width="2" marker-end="url(#rf-arrow)"/>
+
+    <rect x="150" y="175" width="500" height="46" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="198" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">過半數 Quorum 寫入成功 ➔ Leader Commit Index 推進！</text>
+    <text x="400" y="214" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">日誌應用至本地狀態機 ➔ 回覆客戶端成功 ➔ 下次心跳通知 Follower Commit</text>
+
+  </svg>
+</div>
 
 ### 4.3 領導者完備性（Leader Completeness Safety Invariant）
 

@@ -102,18 +102,45 @@ func UpdateData(ctx context.Context, key string, data Entity) error {
 
 為了消除應用層對刪除快取的維護負擔與延遲雙刪的 sleep 開銷，現代大型架構普遍採用 **CDC（Change Data Capture）**：
 
-```text
-[ 應用層 ] ── (只負責純粹寫 DB) ──> [ MySQL 主庫 ]
-                                         │ (生成 Binlog)
-                                         ▼
-[ Canal / Debezium 引擎 ] ── (監聽 Binlog 變更事件) ──> [ Kafka 佇列 ]
-                                                             │
-                                                             ▼
-                                                [ 快取淘汰 Worker 服務 ]
-                                                             │ (冪等執行)
-                                                             ▼
-                                                    [ Redis: DEL key ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cdc-cache-title cdc-cache-desc">
+    <title id="cdc-cache-title">Binlog CDC 變更捕獲與非同步快取淘汰架構圖</title>
+    <desc id="cdc-cache-desc">展示應用層寫入 MySQL 主庫，Debezium 監聽 Binlog 發送 Kafka 佇列，淘汰 Worker 冪等刪除 Redis 快取。</desc>
+    
+    <defs>
+      <marker id="cdc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="180" height="60" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="110" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">應用層服務 (App)</text>
+    <text x="110" y="68" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">只負責純粹寫入 DB</text>
+
+    <path d="M 200 50 L 250 50" stroke="#58a6ff" stroke-width="2" marker-end="url(#cdc-arrow)"/>
+
+    <rect x="260" y="20" width="220" height="60" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="370" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">MySQL 主庫 (Primary)</text>
+    <text x="370" y="68" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">生成 Binlog 變更事件</text>
+
+    <path d="M 370 80 L 370 125" stroke="#bc8cff" stroke-width="2" marker-end="url(#cdc-arrow)"/>
+
+    <rect x="240" y="130" width="260" height="42" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="370" y="156" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Canal / Debezium CDC 監聽引擎</text>
+
+    <path d="M 500 151 L 550 151" stroke="#d29922" stroke-width="2" marker-end="url(#cdc-arrow)"/>
+
+    <rect x="560" y="125" width="200" height="50" rx="8" fill="#2a2015" stroke="#d29922" stroke-width="1.2"/>
+    <text x="660" y="155" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Kafka / RabbitMQ 佇列</text>
+
+    <path d="M 660 175 L 660 195 L 490 195" stroke="#3fb950" stroke-width="2" marker-end="url(#cdc-arrow)"/>
+
+    <rect x="230" y="180" width="250" height="48" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="355" y="202" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">快取淘汰 Worker 服務 ➔ Redis DEL</text>
+    <text x="355" y="218" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">業務解耦・支持失敗重試與死信防禦</text>
+
+  </svg>
+</div>
 
 - **核心優勢**：應用層業務邏輯與快取解耦；透過 Kafka 保證刪除指令的可靠重試與死信防禦；天然適配 MySQL 主從延遲。
 

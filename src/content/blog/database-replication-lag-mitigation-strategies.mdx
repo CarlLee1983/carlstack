@@ -47,19 +47,43 @@ import DatabaseReplicationLagDiagram from "../../components/DatabaseReplicationL
 
 在 MySQL 等關聯式資料庫中，標準的主從複製架構涉及三個核心執行緒：
 
-```text
-[ Primary DB ]
-      │ (1. Transaction Commit)
-      ▼
-[ Binary Log (Binlog) ] ─── (2. Binlog Dump Thread 網路發送) ───┐
-                                                                 │
-┌────────────────────────────────────────────────────────────────┘
-▼
-[ Replica DB ]
-      │ (3. I/O Thread 接收)
-      ▼
-[ Relay Log (中繼日誌) ] ─── (4. SQL Thread 重放寫入磁碟) ───► [ Slave Storage ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="repl-thread-title repl-thread-desc">
+    <title id="repl-thread-title">資料庫主從複製三執行緒日誌流轉架構圖</title>
+    <desc id="repl-thread-desc">展示 Primary DB 寫入 Binlog 經 Dump Thread 發送，Replica DB 透過 I/O Thread 寫入 Relay Log 再由 SQL Thread 重放至 Slave 儲存。</desc>
+    
+    <defs>
+      <marker id="rep-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+      <marker id="rep-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="340" height="90" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="190" y="48" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Primary DB (主庫寫入節點)</text>
+    <rect x="40" y="58" width="300" height="36" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1"/>
+    <text x="190" y="81" fill="#c9d1d9" font-size="12" font-family="monospace" text-anchor="middle">1. Transaction Commit ➔ Binlog</text>
+
+    <path d="M 360 65 L 430 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#rep-arrow)"/>
+    <text x="395" y="55" fill="#58a6ff" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">Binlog Dump</text>
+
+    <rect x="440" y="20" width="340" height="200" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="610" y="48" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Replica DB (從庫讀取節點)</text>
+
+    <rect x="460" y="60" width="300" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
+    <text x="610" y="86" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">2. I/O Thread 接收 ➔ Relay Log (中繼日誌)</text>
+
+    <path d="M 610 102 L 610 135" stroke="#d29922" stroke-width="2" marker-end="url(#rep-arrow)"/>
+    <text x="620" y="122" fill="#e3b341" font-size="11" font-family="system-ui, sans-serif">3. SQL Thread 串行/並行重放</text>
+
+    <rect x="460" y="145" width="300" height="60" rx="6" fill="#2a2015" stroke="#d29922" stroke-width="1.2"/>
+    <text x="610" y="170" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4. Slave Storage (資料寫入磁碟)</text>
+    <text x="610" y="190" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">💥 延遲瓶頸：主庫並行寫入 vs 從庫重放速度差</text>
+
+  </svg>
+</div>
 
 ### 1.1 延遲的 4 大核心瓶頸
 
@@ -78,11 +102,22 @@ import DatabaseReplicationLagDiagram from "../../components/DatabaseReplicationL
 
 當用戶執行了寫操作並在毫秒級內嘗試讀取該資料時，若讀請求被負載均衡器路由到了尚未同步完成的從庫，就會發生「時光倒流（Time Travel）」異常。
 
-```text
-1. User ─── (POST /post/create "Hello World") ───► Master DB (寫入成功)
-2. User ─── (GET /post/list) ─────────────────────► Slave DB (延遲中，尚未同步)
-   Slave 回傳: [ 空清單 ] ───► 用戶以為發文失敗，再次點擊發文 ───► 產生重複資料！
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ryow-title ryow-desc">
+    <title id="ryow-title">寫後立即讀（Read-Your-Own-Writes）失效時序異常圖</title>
+    <desc id="ryow-desc">展示用戶發文寫入 Master 成功，立即刷新讀取 Slave 但因複製延遲回傳空清單，引發誤判與重複發文。</desc>
+    
+    <rect x="20" y="15" width="760" height="55" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="46" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">1. 發起寫入：</text>
+    <text x="140" y="46" fill="#c9d1d9" font-size="13" font-family="monospace">POST /posts/create ("Hello World") ➔ Master DB (寫入成功)</text>
+
+    <rect x="20" y="85" width="760" height="60" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="40" y="112" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">2. 立即讀取：</text>
+    <text x="140" y="112" fill="#c9d1d9" font-size="13" font-family="monospace">GET /posts/list ➔ Slave DB (延遲尚未同步) ➔ 回傳 [ 空清單 ]</text>
+    <text x="140" y="132" fill="#f85149" font-size="11" font-family="system-ui, sans-serif">➔ 用戶誤以為發文失敗，再次點擊送出，導致生產資料重複與客訴爆發！</text>
+
+  </svg>
+</div>
 
 ---
 

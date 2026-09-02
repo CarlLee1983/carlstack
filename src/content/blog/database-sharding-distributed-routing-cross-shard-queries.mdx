@@ -31,16 +31,39 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 拆分維度：垂直拆分 vs. 水平拆分
 
-```text
-[ 原始單體大庫: 包含 Users, Orders, Products, Payments 全部資料表 ]
-                               │
-            ┌──────────────────┴──────────────────┐
-            ▼                                     ▼
-   【垂直拆分 (按業務邊界)】             【水平拆分 (按資料行切分)】
-   - User DB (Users 表)                  - Order DB 1 (Orders 1~500 萬)
-   - Order DB (Orders 表)                - Order DB 2 (Orders 500~1000 萬)
-   - Product DB (Products 表)            - Order DB 3 (Orders 1000~1500 萬)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sharding-dim-title sharding-dim-desc">
+    <title id="sharding-dim-title">資料庫垂直拆分 vs 水平拆分架構全景圖</title>
+    <desc id="sharding-dim-desc">展示原始單體大庫向下延伸為依業務邊界的垂直拆分與依資料行切分的水平拆分對比。</desc>
+    
+    <defs>
+      <marker id="shard-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="150" y="15" width="500" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">原始單體大庫 (包含 Users, Orders, Products, Payments 全部資料表)</text>
+
+    <path d="M 280 57 L 200 85" stroke="#bc8cff" stroke-width="2" marker-end="url(#shard-arrow)"/>
+    <path d="M 520 57 L 600 85" stroke="#3fb950" stroke-width="2" marker-end="url(#shard-arrow)"/>
+
+    <rect x="40" y="85" width="340" height="135" rx="10" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="210" y="110" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【垂直拆分】(按業務邊界分庫)</text>
+    <text x="60" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• User DB (Users / Profile 表)</text>
+    <text x="60" y="160" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• Order DB (Orders / Items 表)</text>
+    <text x="60" y="185" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• Payment DB (Payments / Wallets 表)</text>
+    <text x="210" y="208" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">解決業務爭搶・但無法解決單表千萬級上限</text>
+
+    <rect x="420" y="85" width="340" height="135" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="590" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【水平拆分】(按資料行分片)</text>
+    <text x="440" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• Order DB 1 (Orders 1 ~ 500 萬筆)</text>
+    <text x="440" y="160" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• Order DB 2 (Orders 500 ~ 1000 萬筆)</text>
+    <text x="440" y="185" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• Order DB 3 (Orders 1000 ~ 1500 萬筆)</text>
+    <text x="590" y="208" fill="#56d364" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">表結構完全相同・突破單機儲存與 I/O 極限</text>
+
+  </svg>
+</div>
 
 - **垂直分庫（Vertical Sharding）**：按照領域模型（Domain Boundaries）將不同的業務表拆分到不同的資料庫實例中。解決了業務間資源爭搶，但單一核心表（如訂單表）依然會遭遇容量上限。
 - **水平分表（Horizontal Sharding）**：同一張資料表的資料行按照某種路由演算法，分散儲存到多個結構完全相同的物理資料庫與資料表中。

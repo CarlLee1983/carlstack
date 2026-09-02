@@ -29,18 +29,38 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. CPU 多級快取階層（Cache Hierarchy）與延遲金字塔
 
-```text
-[ 核心 0 (Core 0) ]                   [ 核心 1 (Core 1) ]
-  ├── L1i / L1d Cache (32KB, ~1ns)      ├── L1i / L1d Cache (32KB, ~1ns)
-  └── L2 Cache (512KB ~ 1MB, ~3-4ns)    └── L2 Cache (512KB ~ 1MB, ~3-4ns)
-           │                                     │
-           └──────────────────┬──────────────────┘
-                              ▼
-                 [ L3 Cache (LLC 共享快取: 16MB ~ 64MB, ~10-15ns) ]
-                              │
-                              ▼
-                 [ 主記憶體 DRAM (32GB ~ 1TB, ~60-100ns) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cpu-hier-title cpu-hier-desc">
+    <title id="cpu-hier-title">CPU 多級快取階層與存取延遲架構圖</title>
+    <desc id="cpu-hier-desc">展示 Core 0 與 Core 1 各自具備 L1/L2 快取，共享 L3 LLC 快取並最終存取主記憶體 DRAM 的延遲梯度。</desc>
+    
+    <defs>
+      <marker id="cpu-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="50" y="15" width="320" height="75" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="210" y="38" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">核心 0 (Core 0)</text>
+    <text x="210" y="58" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">L1 Cache (32KB, ~1ns) ｜ L2 Cache (512KB, ~3-4ns)</text>
+
+    <rect x="430" y="15" width="320" height="75" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="590" y="38" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">核心 1 (Core 1)</text>
+    <text x="590" y="58" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">L1 Cache (32KB, ~1ns) ｜ L2 Cache (512KB, ~3-4ns)</text>
+
+    <path d="M 210 90 L 320 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+    <path d="M 590 90 L 480 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+
+    <rect x="150" y="115" width="500" height="46" rx="8" fill="#1f242c" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="143" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">L3 Cache (LLC 共享快取: 16MB ~ 64MB, ~10-15ns)</text>
+
+    <path d="M 400 161 L 400 185" stroke="#3fb950" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+
+    <rect x="180" y="185" width="440" height="42" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="211" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">主記憶體 DRAM (32GB ~ 1TB, ~60-100ns 慢速邊界)</text>
+
+  </svg>
+</div>
 
 ### 核心原則：CPU 以快取行（Cache Line）為最小傳輸單位
 
@@ -59,12 +79,29 @@ CPU 快取在讀取記憶體時，**從來不是只讀取單個 4 字節或 8 �
 | **S** | Shared (共享)     | 該 Cache Line 同時存在於多個核心的快取中，數據乾淨。                         |
 | **I** | Invalid (無效)    | 該 Cache Line 中的數據已失效，讀取時必須重新從總線或主存加載。               |
 
-```text
-Core 0 嘗試寫入變數 X (處於 S 狀態)
-  ──> 透過總線發送「Invalidate」廣播信號
-  ──> 強制將 Core 1 上的對應 Cache Line 標記為 I (Invalid)
-  ──> Core 0 上的 Cache Line 狀態轉為 M (Modified)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mesi-inv-title mesi-inv-desc">
+    <title id="mesi-inv-title">MESI 協議 Invalidate 廣播與狀態流轉圖</title>
+    <desc id="mesi-inv-desc">展示 Core 0 寫入共享快取行時向總線發送 Invalidate 標記 Core 1 為 Invalid 並將自身置為 Modified。</desc>
+    
+    <rect x="20" y="20" width="220" height="75" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="130" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Core 0 寫入變數 X</text>
+    <text x="130" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">原始處於 S (Shared) 狀態</text>
+
+    <path d="M 240 57 L 290 57" stroke="#d29922" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+
+    <rect x="295" y="20" width="220" height="75" rx="8" fill="#2a2015" stroke="#d29922" stroke-width="1.5"/>
+    <text x="405" y="48" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">總線廣播 Invalidate</text>
+    <text x="405" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">強制 Core 1 標記為 I (Invalid)</text>
+
+    <path d="M 515 57 L 565 57" stroke="#3fb950" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+
+    <rect x="570" y="20" width="210" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="675" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Core 0 轉為 M 狀態</text>
+    <text x="675" y="70" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">獨占髒數據，寫入完成</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -72,15 +109,29 @@ Core 0 嘗試寫入變數 X (處於 S 狀態)
 
 什麼是偽共享？當兩個完全無關的變數，不幸被分配在**同一個 64 字節的 Cache Line 中**時，災難就發生了：
 
-```text
-                    [ 同一個 64-Byte Cache Line ]
-              ┌────────────────────────┬────────────────────────┐
-              │  變數 a (執行緒 0 頻繁修改) │  變數 b (執行緒 1 頻繁修改) │
-              └────────────────────────┴────────────────────────┘
-                              ▲                        ▲
-                              │                        │
-                     [ 執行緒 0 / Core 0 ]    [ 執行緒 1 / Core 1 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="false-share-title false-share-desc">
+    <title id="false-share-title">多執行緒在同一個 64 字節快取行引發偽共享爭用示意圖</title>
+    <desc id="false-share-desc">展示執行緒 0 修改變數 a，執行緒 1 修改變數 b，因處於同一 64 字節快取行而導致總線快取乒乓效應。</desc>
+    
+    <rect x="80" y="15" width="640" height="70" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
+    <text x="400" y="38" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">同一個 64-Byte Cache Line (快取行爭用單元)</text>
+    <rect x="100" y="45" width="280" height="30" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
+    <text x="240" y="65" fill="#f85149" font-size="12" font-family="monospace" font-weight="600" text-anchor="middle">變數 a (執行緒 0 頻繁修改)</text>
+    <rect x="420" y="45" width="280" height="30" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
+    <text x="560" y="65" fill="#f85149" font-size="12" font-family="monospace" font-weight="600" text-anchor="middle">變數 b (執行緒 1 頻繁修改)</text>
+
+    <path d="M 240 120 L 240 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+    <path d="M 560 120 L 560 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#cpu-arrow)"/>
+
+    <rect x="130" y="125" width="220" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="240" y="150" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">執行緒 0 / Core 0</text>
+
+    <rect x="450" y="125" width="220" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
+    <text x="560" y="150" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">執行緒 1 / Core 1</text>
+
+  </svg>
+</div>
 
 1. Core 0 上的執行緒 0 頻繁修改 `a`；
 2. 根據 MESI 協議，Core 0 必須向總線發送 Invalidate 訊息，將 Core 1 的整個 Cache Line 標記為無效；

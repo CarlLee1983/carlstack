@@ -72,18 +72,44 @@ import MessageDeliverySemanticsDiagram from "../../components/MessageDeliverySem
 
 為了解決 At-Least-Once 模式下 Producer 重試導致 Broker 端訊息重複的問題，Apache Kafka 在 0.11 版本引入了 **Idempotent Producer（冪等生產者）**。
 
-```text
-[ Producer ] ─── (PID: 101, Seq: 0, Msg: "OrderCreated") ───► [ Broker Partition ]
-     │                                                                │
-     │ (ACK 網路遺失，Producer 觸發重試)                              │
-     │                                                                │
-     ▼                                                                ▼
-[ Producer ] ─── (PID: 101, Seq: 0, Msg: "OrderCreated") ───► [ Broker Partition ]
-                                                                      │
-                                                       (檢測到 Seq=0 已存在)
-                                                                      │
-                                                       (自動丟棄重複寫入，回傳 ACK)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="idemp-prod-title idemp-prod-desc">
+    <title id="idemp-prod-title">Kafka 冪等生產者 PID 與 Sequence ID 重試去重架構圖</title>
+    <desc id="idemp-prod-desc">展示生產者帶 PID 與 Seq 發送訊息，因 ACK 遺失重發相同 Seq 時 Broker 識別已存在並丟棄重複寫入回傳 ACK。</desc>
+    
+    <defs>
+      <marker id="idemp-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="60" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Producer (生產者)</text>
+    <text x="130" y="68" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">初次發送 PID:101, Seq:0</text>
+
+    <path d="M 240 50 L 510 50" stroke="#58a6ff" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <text x="375" y="40" fill="#58a6ff" font-size="11" font-family="monospace" text-anchor="middle">PID: 101, Seq: 0, Msg: "OrderCreated"</text>
+
+    <rect x="520" y="20" width="260" height="60" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="650" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Broker Partition</text>
+    <text x="650" y="68" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">寫入磁碟 (ACK 在網路中丟失)</text>
+
+    <path d="M 130 80 L 130 135" stroke="#f85149" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#idemp-arrow)"/>
+    <text x="140" y="112" fill="#f85149" font-size="10" font-family="system-ui, sans-serif">ACK 逾時 ➔ 觸發重試</text>
+
+    <rect x="20" y="135" width="220" height="60" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="163" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Producer 重試發送</text>
+    <text x="130" y="183" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">保持相同 PID:101, Seq:0</text>
+
+    <path d="M 240 165 L 510 165" stroke="#58a6ff" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <text x="375" y="155" fill="#58a6ff" font-size="11" font-family="monospace" text-anchor="middle">PID: 101, Seq: 0 重傳</text>
+
+    <rect x="520" y="135" width="260" height="60" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="650" y="158" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Broker 偵測 Seq=0 已存在</text>
+    <text x="650" y="178" fill="#56d364" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">自動丟棄重複寫入 ➔ 正常補發 ACK</text>
+
+  </svg>
+</div>
 
 ### 2.1 底層工作流程
 
@@ -151,20 +177,36 @@ WHERE order_id = 'ORD_9981' AND status = 'PENDING';
 
 Kafka 透過 **Transaction Coordinator（事務協調器）** 與內部日誌主題 `__transaction_state` 實現分散式兩階段提交：
 
-```text
-[ Transactional Producer ]
-       │
-       ├── 1. AddPartitionsToTxnRequest ──► [ Transaction Coordinator ]
-       │                                            │ (記錄於 __transaction_state)
-       ├── 2. Produce Message ────────────► [ Topic B (Data Partition) ]
-       │                                            │ (帶有未提交標記)
-       ├── 3. SendOffsetsToTxnRequest ────► [ __consumer_offsets ]
-       │
-       └── 4. EndTxnRequest (COMMIT) ─────► [ Transaction Coordinator ]
-                                                    │
-                                                    ▼ (廣播 2PC Commit Marker)
-                                      [ Topic B & __consumer_offsets ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="kafka-txn-title kafka-txn-desc">
+    <title id="kafka-txn-title">Kafka 事務協調器（Transaction Coordinator）兩階段提交架構圖</title>
+    <desc id="kafka-txn-desc">展示 Transactional Producer 註冊分區、發送未提交訊息、發送 Offset 並向 Coordinator 請求 Commit 廣播 2PC 標記。</desc>
+    
+    <rect x="20" y="15" width="220" height="210" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="42" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Transactional Producer</text>
+    <text x="40" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">1. 註冊交易分區</text>
+    <text x="40" y="100" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">2. 生產數據至 Topic B</text>
+    <text x="40" y="130" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">3. 綁定消費端 Offset</text>
+    <text x="40" y="160" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">4. 發起 EndTxn (Commit)</text>
+
+    <path d="M 240 70 L 460 70" stroke="#58a6ff" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <rect x="470" y="50" width="310" height="42" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="625" y="76" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Transaction Coordinator (__transaction_state)</text>
+
+    <path d="M 240 100 L 460 100" stroke="#d29922" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <rect x="470" y="95" width="310" height="42" rx="6" fill="#2a2015" stroke="#d29922" stroke-width="1.2"/>
+    <text x="625" y="121" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Topic B (Data Partition: 帶未提交標記)</text>
+
+    <path d="M 240 130 L 460 130" stroke="#58a6ff" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <rect x="470" y="140" width="310" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
+    <text x="625" y="166" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">__consumer_offsets (原子提交 Offset)</text>
+
+    <path d="M 625 92 L 625 185" stroke="#3fb950" stroke-width="2" marker-end="url(#idemp-arrow)"/>
+    <rect x="470" y="185" width="310" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="625" y="210" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">廣播 2PC Commit Marker ➔ 全鏈路 Exactly-Once</text>
+
+  </svg>
+</div>
 
 ### 4.2 讀取已提交（Read Committed）隔離層級
 

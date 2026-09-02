@@ -45,11 +45,32 @@ LIMIT 1000000, 20;
 2. **回表（Table Lookup）開銷**：若查詢包含非索引欄位（`SELECT *`），資料庫會針對這 1,000,020 筆資料**全部進行回表讀取磁碟上的聚簇索引實體行**。
 3. **無情拋棄**：最後將前面辛辛苦苦讀取的 1,000,000 筆資料全部在記憶體中丟棄，僅返回最後 20 筆。
 
-```text
-[ Offset 分頁底層成本 ]
-掃描並讀取第 1 ~ 1,000,000 行 ── (耗費巨量磁碟 I/O 與 CPU) ──> 全部丟棄！
-僅取出第 1,000,001 ~ 1,000,020 行 (20 筆) ──> 返回客戶端
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="offset-cost-title offset-cost-desc">
+    <title id="offset-cost-title">Offset 分頁深翻頁磁碟 I/O 開銷與無效計算示意圖</title>
+    <desc id="offset-cost-desc">展示深翻頁時掃描前 100 萬筆資料耗費大量磁碟 I/O 與回表後全部丟棄，僅返回最後 20 筆資料的致命瓶頸。</desc>
+    
+    <defs>
+      <marker id="pag-arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#f85149"/>
+      </marker>
+      <marker id="pag-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="760" height="90" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
+    <text x="40" y="38" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 巨量無效讀取區間（第 1 ~ 1,000,000 行）</text>
+    <text x="40" y="62" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">B+ Tree 葉節點逐行讀取 ➔ 回表聚簇索引載入磁碟頁 ➔ 佔用大量 Buffer Pool 與 CPU 排序</text>
+    <path d="M 40 76 L 680 76" stroke="#f85149" stroke-width="2" marker-end="url(#pag-arrow-red)"/>
+    <text x="700" y="80" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700">全部丟棄！</text>
+
+    <rect x="20" y="115" width="760" height="80" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="140" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 實際有效回傳區間（第 1,000,001 ~ 1,000,020 行，共 20 筆）</text>
+    <text x="40" y="165" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">經過漫長 O(N) 全量遍歷後，僅取最後 20 筆序列化為 JSON 回傳客戶端（浪費 99.998% 運算）</text>
+
+  </svg>
+</div>
 
 查詢耗時與 `OFFSET` 大小呈嚴格的 **$O(N)$ 線性正比增長**。
 
