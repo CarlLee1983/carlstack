@@ -31,16 +31,51 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在 64 位元 Linux 系統中，作業系統為每個進程提供了一個獨立且連續的 **虛擬位址空間（Virtual Address Space）**（例如 48 位元尋址高達 256TB）：
 
-```text
-[ 進程 A 虛擬空間 ]             [ 硬體 MMU + 頁表映射 ]             [ 實體 DRAM 記憶體 ]
-┌─────────────────┐                                                ┌─────────────────┐
-│ Page 0 (4KB)    ├───────────────────────────────────────────────>│ Frame 82 (4KB)  │
-├─────────────────┤                                                ├─────────────────┤
-│ Page 1 (4KB)    ├─── (映射到非連續實體頁框) ───────────────────>│ Frame 12 (4KB)  │
-├─────────────────┤                                                ├─────────────────┤
-│ Page 2 (4KB)    ├─── (尚未分配實體內存 ➔ 觸發 Page Fault)        │ Frame 99 (4KB)  │
-└─────────────────┘                                                └─────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="vm-page-title vm-page-desc">
+    <title id="vm-page-title">虛擬記憶體 Page 到實體 DRAM Frame 映射拓撲圖</title>
+    <desc id="vm-page-desc">展示進程虛擬空間 Page 透過 MMU 頁表非連續映射至實體 DRAM Frame，未分配頁觸發 Page Fault 缺頁中斷。</desc>
+    
+    <defs>
+      <marker id="vm-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="220" height="170" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="140" y="45" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">進程虛擬位址空間</text>
+    <rect x="45" y="60" width="190" height="30" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="140" y="80" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">Page 0 (4KB)</text>
+    <rect x="45" y="100" width="190" height="30" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="140" y="120" fill="#c9d1d9" font-size="11" font-family="monospace" text-anchor="middle">Page 1 (4KB)</text>
+    <rect x="45" y="140" width="190" height="30" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="140" y="160" fill="#f85149" font-size="11" font-family="monospace" text-anchor="middle">Page 2 (未映射)</text>
+
+
+    <path d="M 250 75 L 340 75" stroke="#3fb950" stroke-width="2" marker-end="url(#vm-arrow)"/>
+    <path d="M 250 115 L 340 115" stroke="#3fb950" stroke-width="2" marker-end="url(#vm-arrow)"/>
+    <path d="M 250 155 L 340 155" stroke="#da3633" stroke-width="2" stroke-dasharray="3 3" marker-end="url(#vm-arrow)"/>
+
+    <rect x="350" y="50" width="120" height="110" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="410" y="85" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">硬體 MMU</text>
+    <text x="410" y="105" fill="#c9d1d9" font-size="10" text-anchor="middle">＋ 四級頁表</text>
+    <text x="410" y="130" fill="#f85149" font-size="9" text-anchor="middle">Page Fault ⚡</text>
+
+    <path d="M 470 75 L 540 75" stroke="#3fb950" stroke-width="2" marker-end="url(#vm-arrow)"/>
+    <path d="M 470 115 L 540 115" stroke="#3fb950" stroke-width="2" marker-end="url(#vm-arrow)"/>
+
+
+    <rect x="550" y="20" width="220" height="170" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="660" y="45" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">實體 DRAM 記憶體</text>
+    <rect x="565" y="60" width="190" height="30" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="660" y="80" fill="#3fb950" font-size="11" font-family="monospace" text-anchor="middle">Frame 82 (4KB)</text>
+    <rect x="565" y="100" width="190" height="30" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="660" y="120" fill="#3fb950" font-size="11" font-family="monospace" text-anchor="middle">Frame 12 (4KB)</text>
+    <rect x="565" y="140" width="190" height="30" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="660" y="160" fill="#8b949e" font-size="11" font-family="monospace" text-anchor="middle">Frame 99 (空閒頁)</text>
+
+  </svg>
+</div>
 
 - **頁（Page）**：虛擬記憶體的最小劃分單位（標準大小為 **4KB**）。
 - **頁框（Frame）**：實體記憶體 DRAM 的劃分單位（同樣為 **4KB**）。
@@ -54,13 +89,45 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 如果使用單級線性頁表，僅記錄一個進程的頁表就需要消耗數十 GB 記憶體。因此，現代 x86-64 採用 **四級分級頁表**：
 
-```text
-64 位元虛擬位址切分：
-[ 16 位元符號擴展 ] [ 9 位元 PGDIR (L4) ] [ 9 位元 PUD (L3) ] [ 9 位元 PMD (L2) ] [ 9 位元 PTE (L1) ] [ 12 位元頁內偏移 (Offset) ]
-                          │                    │                   │                   │                    │
-                          ▼                    ▼                   ▼                   ▼                    ▼
-[ CR3 暫存器 ] ───> [ PML4 表 ] ───────> [ 頁目錄指針表 ] ───> [ 頁中間目錄 ] ───> [ 頁表項 PTE ] ───> [ 實體頁框 + Offset ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ptw-title ptw-desc">
+    <title id="ptw-title">x86-64 四級分級頁表硬體轉換流程圖</title>
+    <desc id="ptw-desc">展示 CR3 暫存器指向 PML4 表，依序尋址頁目錄指針表、頁中間目錄、頁表項 PTE，結合頁內 Offset 獲得最終實體位址。</desc>
+    
+    <rect x="20" y="15" width="100" height="50" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="70" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">CR3 暫存器</text>
+    <text x="70" y="52" fill="#8b949e" font-size="9" text-anchor="middle">頁表基址</text>
+
+    <path d="M 120 40 L 150 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#vm-arrow)"/>
+
+    <rect x="155" y="15" width="125" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="217" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">PML4 (L4)</text>
+    <text x="217" y="52" fill="#8b949e" font-size="9" text-anchor="middle">9 bits 索引</text>
+
+    <path d="M 280 40 L 310 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#vm-arrow)"/>
+
+    <rect x="315" y="15" width="125" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="377" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">PDPT (L3)</text>
+    <text x="377" y="52" fill="#8b949e" font-size="9" text-anchor="middle">9 bits 索引</text>
+
+    <path d="M 440 40 L 470 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#vm-arrow)"/>
+
+    <rect x="475" y="15" width="125" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="537" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">PD (L2)</text>
+    <text x="537" y="52" fill="#8b949e" font-size="9" text-anchor="middle">9 bits 索引</text>
+
+    <path d="M 600 40 L 630 40" stroke="#3fb950" stroke-width="1.5" marker-end="url(#vm-arrow)"/>
+
+    <rect x="635" y="15" width="145" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="707" y="38" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">PTE (L1 ➔ Frame)</text>
+    <text x="707" y="52" fill="#56d364" font-size="9" text-anchor="middle">＋ 12b 頁內 Offset</text>
+
+    <rect x="155" y="85" width="625" height="55" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="467" y="110" fill="#c9d1d9" font-size="11" text-anchor="middle">按需動態分配：未用到的虛擬位址區間無需建立子頁表，節省海量記憶體開銷！</text>
+    <text x="467" y="128" fill="#58a6ff" font-size="10" text-anchor="middle">64-bit 虛擬位址 = 16b 擴展 + 9b L4 + 9b L3 + 9b L2 + 9b L1 + 12b Offset</text>
+
+  </svg>
+</div>
 
 - **按需分配**：只有實際寫入記憶體時才建立下層子頁表，極大節省了空閒虛擬空間的頁表記憶體開銷。
 
@@ -72,14 +139,35 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 為此，CPU 晶片內部整合了專門的高速 SRAM 快取——**TLB（Translation Lookaside Buffer）**：
 
-```text
-[ CPU 發起虛擬位址存取 ]
-           │
-           ▼
-    [ TLB 快取查詢 ]
-    ├── 命中 (TLB Hit, ~0.5ns) ──> 立即獲得實體位址，直接讀取資料!
-    └── 未命中 (TLB Miss, ~10-30ns) ──> 觸發硬體 Page Table Walk 遍歷四級頁表 ──> 更新 TLB
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tlb-look-title tlb-look-desc">
+    <title id="tlb-look-title">CPU TLB 轉譯後備緩衝區查詢與 Page Table Walk 流程圖</title>
+    <desc id="tlb-look-desc">展示 CPU 存取虛擬位址時優先查詢 TLB 快取，命中僅需 0.5ns，未命中則花費 10-30ns 遍歷四級頁表並更新 TLB。</desc>
+    
+    <rect x="30" y="60" width="200" height="55" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="85" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">CPU 發起虛擬存取</text>
+    <text x="130" y="102" fill="#8b949e" font-size="10" text-anchor="middle">Virtual Address</text>
+
+    <path d="M 230 87 L 290 87" stroke="#58a6ff" stroke-width="2" marker-end="url(#vm-arrow)"/>
+
+    <rect x="300" y="30" width="200" height="110" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="60" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">TLB 快取查詢 (SRAM)</text>
+    <text x="400" y="85" fill="#3fb950" font-size="11" text-anchor="middle">✅ Hit: ~0.5ns</text>
+    <text x="400" y="115" fill="#f85149" font-size="11" text-anchor="middle">❌ Miss: ~10-30ns</text>
+
+    <path d="M 500 65 L 560 45" stroke="#3fb950" stroke-width="2" marker-end="url(#vm-arrow)"/>
+    <path d="M 500 115 L 560 135" stroke="#da3633" stroke-width="2" marker-end="url(#vm-arrow)"/>
+
+    <rect x="570" y="20" width="200" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="44" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">立即獲得實體位址！</text>
+    <text x="670" y="60" fill="#56d364" font-size="9" text-anchor="middle">直接讀取 DRAM 資料</text>
+
+    <rect x="570" y="110" width="200" height="50" rx="6" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
+    <text x="670" y="132" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">四級頁表 Walk 遍歷</text>
+    <text x="670" y="148" fill="#8b949e" font-size="9" text-anchor="middle">回填更新 TLB 快取行</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -87,14 +175,30 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 當進程調用 `malloc()` 分配記憶體時，作業系統只是在虛擬位址空間劃定了一塊區域（VMA），**此時根本沒有分配任何實體 DRAM！**
 
-```text
-1. 進程首次寫入該虛擬位址 ──> CPU 發現 PTE 的 Present 位元為 0
-2. CPU 暫停進程執行，觸發硬體缺頁中斷 (Page Fault Interrupt 14)
-3. 控制權交由 Linux 內核 do_page_fault() 處理:
-   ├── 次要缺頁 (Minor Page Fault): 內核直接從空閒頁鏈表中拿一個 4KB 頁框，填入 PTE
-   └── 主要缺頁 (Major Page Fault): 頁面在 Swap 分區或檔案系統中，需發起阻塞式磁碟 I/O 加載
-4. 內核恢復進程上下文，重新執行先前的寫入指令
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pf-life-title pf-life-desc">
+    <title id="pf-life-title">Linux 缺頁中斷（Page Fault）四步生命週期圖</title>
+    <desc id="pf-life-desc">展示首次寫入觸發硬體中斷 14，進入內核 do_page_fault() 分配空閒頁框（次要）或從磁碟/Swap載入（主要），最終恢復上下文重新執行。</desc>
+    
+    <rect x="20" y="15" width="760" height="42" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="40" y="40" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif">1. 進程首次寫入虛擬位址 ──► CPU 發現 PTE 的 Present 位元為 0 ➔ 觸發中斷 (Interrupt 14)</text>
+
+    <rect x="20" y="65" width="760" height="42" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="40" y="90" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif">2. 控制權移交 Linux 內核 `do_page_fault()` 處理程序</text>
+
+    <rect x="40" y="115" width="350" height="50" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="215" y="137" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">次要缺頁 (Minor Page Fault)</text>
+    <text x="215" y="153" fill="#c9d1d9" font-size="10" text-anchor="middle">直接從空閒鏈表分配 4KB 頁框填入 PTE</text>
+
+    <rect x="410" y="115" width="370" height="50" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="595" y="137" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">主要缺頁 (Major Page Fault)</text>
+    <text x="595" y="153" fill="#c9d1d9" font-size="10" text-anchor="middle">頁面在 Swap / 磁碟，需發起阻塞式 I/O 讀取</text>
+
+    <rect x="20" y="175" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="200" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">4. 內核恢復進程上下文 ──► 重新無感執行先前寫入指令，使用者程式碼完全感知不到中斷！</text>
+
+  </svg>
+</div>
 
 ---
 

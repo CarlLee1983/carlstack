@@ -48,15 +48,30 @@ Kafka 雖然用 Java/Scala 編寫，但其 Broker 處理程序並沒有在 JVM �
 
 傳統檔案傳輸在將資料從磁碟發送至網路 Socket 時，需要經歷 **4 次資料拷貝與 4 次上下文切換（Context Switch）**：
 
-```text
-Disk ──(DMA)──► Kernel Page Cache ──(CPU)──► User App Buffer ──(CPU)──► Socket Buffer ──(DMA)──► NIC
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="kafka-zc-title kafka-zc-desc">
+    <title id="kafka-zc-title">傳統 4 次資料拷貝 vs Kafka Zero-Copy 零拷貝架構對比圖</title>
+    <desc id="kafka-zc-desc">展示傳統傳輸需經 PageCache、User Space、Socket Buffer 4次拷貝與4次切換，而 Kafka sendfile 經由 DMA 直傳網卡達成零 CPU 拷貝。</desc>
+    
+    <defs>
+      <marker id="k-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-Kafka 在消費者拉取訊息時，利用了 Linux 核心的 **`sendfile()`** 系統呼叫（即 **Zero-Copy** 技術）：
+    <rect x="20" y="15" width="760" height="90" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="38" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 傳統讀寫檔案傳輸 (4 次拷貝 + 4 次 Context Switch)：</text>
+    <text x="40" y="65" fill="#c9d1d9" font-size="11" font-family="monospace">Disk ──(DMA)──► Kernel Page Cache ──(CPU)──► User JVM Buffer ──(CPU)──► Socket Buffer ──(DMA)──► NIC</text>
+    <text x="40" y="90" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">資料進入 JVM 使用者空間進行無謂拷貝，引發繁重 CPU 負擔與 GC 壓力</text>
 
-```text
-Kernel Page Cache ──(DMA Direct Copy)──► Network Interface (NIC)
-```
+
+    <rect x="20" y="120" width="760" height="90" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="143" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ Kafka sendfile() Zero-Copy 零拷貝技術：</text>
+    <text x="40" y="170" fill="#3fb950" font-size="12" font-family="monospace">Kernel Page Cache ────────────(DMA Direct Scatter-Gather)────────────► Network Interface (NIC)</text>
+    <text x="40" y="195" fill="#56d364" font-size="10" font-family="system-ui, sans-serif">資料全程留在 OS 核心，省去 2 次 CPU 拷貝與 Context Switch，CPU 佔用率直降！</text>
+
+  </svg>
+</div>
 
 - 資料直接透過 DMA（直接記憶體存取）從作業系統 Page Cache 傳輸至網卡緩衝區。
 - **收益**：完全不需要把資料搬移進 JVM 使用者空間，省去 2 次記憶體拷貝與 2 次 Context Switch，大幅降低 CPU 使用率。

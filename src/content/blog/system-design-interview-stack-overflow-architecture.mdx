@@ -40,25 +40,51 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 2. Stack Overflow 全鏈路核心架構拓撲
 
-```text
-[ 全球用戶請求 (Google 搜尋點擊) ]
-              │
-              ▼
-[ 邊緣 CDN (Fastly) ] ── (快取 95% 的熱門匿名讀取頁面，毫秒級直接回傳)
-              │
-              ▼ (僅 5% 動態請求穿透至源站)
-[ HAProxy 負載平衡器 (雙機主備) ]
-              │
-              ├── Web Server 1 (.NET / IIS)  ──┐
-              ├── Web Server 2 (.NET / IIS)  ──┼─> [ L1 本地進程內記憶體快取 (Local Cache) ]
-              └── Web Server 3 (.NET / IIS)  ──┘
-                          │
-            ┌─────────────┴─────────────┐
-            ▼                           ▼
-[ L2 分散式 Redis 叢集 ]       [ SQL Server 關係型主從庫 ]
-- 熱門 Tag 倒排索引            - Master (純寫入 + Dapper ORM 極致輕量對齊)
-- 使用者 Session 與投票        - Read Replica (唯讀副本，NVMe SSD + 巨量 RAM)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 290" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="so-arch-title so-arch-desc">
+    <title id="so-arch-title">Stack Overflow 全鏈路極致效能垂直擴展架構拓撲圖</title>
+    <desc id="so-arch-desc">展示全球用戶請求經 Fastly CDN 攔截 95% 流量，5% 穿透至 HAProxy 負載均衡與 .NET Web 伺服器 L1 本地快取，底層由 L2 Redis 與 SQL Server 主從庫提供支援。</desc>
+    
+    <defs>
+      <marker id="so-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">全球用戶請求 (Google 搜尋點擊)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#so-arrow)"/>
+
+    <rect x="180" y="65" width="440" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="90" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">L0: 邊緣 CDN (Fastly) ── 攔截 95% 熱門匿名讀取，毫秒級直接回傳！</text>
+
+    <path d="M 400 105 L 400 125" stroke="#58a6ff" stroke-width="2" marker-end="url(#so-arrow)"/>
+    <text x="410" y="118" fill="#8b949e" font-size="9">僅 5% 動態穿透</text>
+
+    <rect x="220" y="125" width="360" height="35" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="400" y="147" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">HAProxy 負載平衡器 (雙機主備高可用)</text>
+
+    <path d="M 400 160 L 400 175" stroke="#bc8cff" stroke-width="2" marker-end="url(#so-arrow)"/>
+
+
+    <rect x="40" y="175" width="720" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="400" y="200" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Web 伺服器集群 (.NET 9 / IIS) ＋ 【 L1 進程內記憶體本地快取 (Local In-Memory Cache) 】</text>
+
+    <path d="M 230 215 L 230 235" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
+    <path d="M 570 215 L 570 235" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
+
+
+    <rect x="40" y="235" width="340" height="45" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="210" y="255" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">L2 分散式 Redis 叢集</text>
+    <text x="210" y="270" fill="#8b949e" font-size="9" text-anchor="middle">Tag 記憶體倒排索引 ｜ Session ｜ 即時投票</text>
+
+    <rect x="420" y="235" width="340" height="45" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="590" y="255" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">SQL Server 巨量 RAM 關係型主從庫</text>
+    <text x="590" y="270" fill="#8b949e" font-size="9" text-anchor="middle">Master 純寫入 ＋ 唯讀副本 ＋ Dapper ORM</text>
+
+  </svg>
+</div>
 
 ---
 

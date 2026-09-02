@@ -40,32 +40,45 @@ Dropbox 之所以能顛覆整個雲端儲存產業，核心正是其精妙的 **
 
 ## 2. Dropbox 全鏈路架構拓撲：中繼資料與區塊儲存分離
 
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                        【 客戶端客戶端 (Client App) 】                 │
-│  ├── 1. Chunking Engine: 將檔案切分為 4MB 固定/動態區塊 (Block)        │
-│  ├── 2. Hash Calculator: 計算每個 Block 的 SHA-256 (用作 Content ID)    │
-│  ├── 3. Watcher: 監控本地檔案系統 (Inotify / FSEvents) 變更            │
-│  └── 4. Local SQLite DB: 快取本地檔案版本與 Chunk 清單                │
-└────────────────────────────────────────────────────────────────────────┘
-          │                                              │
-          │ (1. 上傳/下載 4MB 區塊資料)                   │ (2. 同步中繼資料與版本變更)
-          ▼                                              ▼
-┌──────────────────────────────┐    ┌───────────────────────────────────┐
-│ 【 區塊儲存伺服器 (Block)】  │    │   【 中繼資料伺服器 (Metadata) 】 │
-│  - 接收加密分塊              │    │   - 驗證使用者權限與檔案命名空間  │
-│  - 重複資料刪除 (Deduplication)    │   - 管理檔案結構與目錄樹          │
-│  - 轉存至 AWS S3 / 儲存集群  │    │   - 記錄 File -> [Block_1, Block_2]│
-└──────────────────────────────┘    └───────────────────────────────────┘
-                                                         │
-                                                         ▼
-                                    ┌───────────────────────────────────┐
-                                    │   【 即時通知服務 (Notification)】│
-                                    │   - 基於 WebSocket / SSE 長連線   │
-                                    │   - 向該用戶的其他在線設備廣播    │
-                                    │     「檔案 X 已更新，請拉取差量」 │
-                                    └───────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 280" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dbx-top-title dbx-top-desc">
+    <title id="dbx-top-title">Dropbox 全鏈路架構拓撲：中繼資料與區塊儲存分離架構圖</title>
+    <desc id="dbx-top-desc">展示客戶端切分 4MB 區塊，區塊資料直傳 Block Server 與 S3，中繼資料同步至 Metadata DB 並由 Notification Server 廣播多端。</desc>
+    
+    <defs>
+      <marker id="dbx-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="10" width="760" height="70" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="34" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 客戶端 App (Client App) 】</text>
+    <text x="400" y="55" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Chunking Engine (4MB 動態分塊) ｜ SHA-256 雜湊 ｜ FSEvents 本地監控 ｜ SQLite 快取</text>
+
+    <path d="M 220 80 L 220 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#dbx-arrow)"/>
+    <text x="210" y="102" fill="#58a6ff" font-size="10" text-anchor="end">4MB 區塊二進位</text>
+
+    <path d="M 580 80 L 580 115" stroke="#bc8cff" stroke-width="2" marker-end="url(#dbx-arrow)"/>
+    <text x="590" y="102" fill="#bc8cff" font-size="10">中繼資料與版本樹</text>
+
+    <rect x="40" y="115" width="340" height="80" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="210" y="140" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 區塊儲存 (Block Server) 】</text>
+    <text x="210" y="160" fill="#c9d1d9" font-size="10" text-anchor="middle">接收加密分塊 ｜ 全域去重 (Deduplication)</text>
+    <text x="210" y="178" fill="#3fb950" font-size="10" text-anchor="middle">直存 AWS S3 / 極致 11 個 9 耐久度</text>
+
+    <rect x="420" y="115" width="340" height="80" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="590" y="140" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 中繼資料伺服器 (Metadata) 】</text>
+    <text x="590" y="160" fill="#c9d1d9" font-size="10" text-anchor="middle">身分權限驗證 ｜ 目錄樹版本管理</text>
+    <text x="590" y="178" fill="#bc8cff" font-size="10" text-anchor="middle">記錄 File ➔ [Block_1, Block_2, ...]</text>
+
+    <path d="M 590 195 L 590 220" stroke="#3fb950" stroke-width="2" marker-end="url(#dbx-arrow)"/>
+
+    <rect x="420" y="220" width="340" height="50" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="590" y="242" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 即時通知服務 (WebSocket / SSE) 】</text>
+    <text x="590" y="258" fill="#56d364" font-size="9" text-anchor="middle">向該帳號其他在線設備廣播「檔案已更新，請拉取差量」</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -98,18 +111,33 @@ Dropbox 之所以能顛覆整個雲端儲存產業，核心正是其精妙的 **
 
 當使用者在筆記型電腦離線修改了 `doc.txt`，同時在手機上也編輯了 `doc.txt`，兩台設備重新聯網同步時會發生衝突：
 
-```text
-[ 雲端 Metadata DB: doc.txt (Version 5) ]
-          ├── 設備 A 上線提交: 以 Version 5 為基礎，修改為 Version 6 (A 先到達，提交成功！)
-          │
-          └── 設備 B 上線提交: 依然以舊的 Version 5 為基礎嘗試提交
-                    │
-                    ▼ (樂觀鎖版本衝突檢測！)
-               [ 伺服器拒絕覆蓋！]
-                    │
-                    ▼ (通知設備 B 下載最新 Version 6，並將本地修改重命名為分支衝突檔案)
-               【 生成新檔案: "doc (Conflicted Copy from Device B).txt" 】
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dbx-conf-title dbx-conf-desc">
+    <title id="dbx-conf-title">Dropbox 樂觀鎖衝突檢測與分支重命名機制</title>
+    <desc id="dbx-conf-desc">展示設備 A 先提交 Version 6 成功，設備 B 基於舊 Version 5 提交時觸發樂觀鎖衝突，伺服器拒絕並要求生成衝突分支檔案。</desc>
+    
+    <rect x="250" y="15" width="300" height="42" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="41" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">雲端 Metadata DB: doc.txt (Version 5)</text>
+
+    <path d="M 320 57 L 200 95" stroke="#3fb950" stroke-width="2" marker-end="url(#dbx-arrow)"/>
+    <path d="M 480 57 L 600 95" stroke="#da3633" stroke-width="2" marker-end="url(#dbx-arrow)"/>
+
+
+    <rect x="40" y="95" width="320" height="125" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="120" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">設備 A (筆電 - 先到達)</text>
+    <text x="200" y="145" fill="#c9d1d9" font-size="11" text-anchor="middle">以 Version 5 為基準修改</text>
+    <text x="200" y="170" fill="#56d364" font-size="12" font-weight="700" text-anchor="middle">✅ 升級為 Version 6 (提交成功！)</text>
+    <text x="200" y="195" fill="#8b949e" font-size="10" text-anchor="middle">廣播更新通知給全端設備</text>
+
+
+    <rect x="440" y="95" width="320" height="125" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="600" y="120" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">設備 B (手機 - 後到達)</text>
+    <text x="600" y="145" fill="#c9d1d9" font-size="11" text-anchor="middle">仍以舊 Version 5 嘗試覆蓋</text>
+    <text x="600" y="170" fill="#f85149" font-size="12" font-weight="700" text-anchor="middle">❌ 樂觀鎖衝突！伺服器拒絕覆蓋</text>
+    <text x="600" y="195" fill="#e3b341" font-size="10" text-anchor="middle">本地生成「doc (conflicted copy).txt」</text>
+
+  </svg>
+</div>
 
 - **不採用強制覆蓋（Last-Write-Wins 会丟失數據）**：採用「保留衝突副本（Conflicted Copy）」策略，讓使用者自主決定如何合併內容。
 

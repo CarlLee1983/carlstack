@@ -54,17 +54,17 @@ Transformer 模型在生成文本時，每個 Request 都必須經歷兩個截�
 在 Attention 計算中：
 
 ```text
-Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
+Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V
 ```
 
-為了避免在每次生成新 Token 時重複計算歷史 Prompt 的 Key 和 Value 矩陣，推理引擎會將過去所有層的 K 與 V 張量快取在顯存中，這就是 **KV Cache**。
+在自回歸解碼（Autoregressive Decoding）過程中，每生成一個新 Token，模型需要與歷史上所有的 Token 計算注意力。為了避免重複計算歷史 Token 的 Key 和 Value 向量，系統會將歷史各層的 $K$ 與 $V$ 矩陣快取在顯存中——這就是 **KV Cache**。
 
-### 1. KV Cache 顯存佔用數學公式
+### 1.2 KV Cache 顯存容量估算公式
 
-對於一個標準 Transformer 模型，單一請求單一 Token 的 KV Cache 顯存佔用為：
+每個 Token 所需的 KV Cache 顯存大小計算公式為：
 
 ```text
-KV_Size_Per_Token = 2 * n_layers * n_heads * head_dim * precision_bytes
+KV_Size_Per_Token = 2 * n_layers * n_heads * d_head * precision_bytes
 ```
 
 以 **Llama 3 70B**（80 層、8 個 KV Heads、Head Dim 128、FP16 2 Bytes）為例：
@@ -96,12 +96,43 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
 - 物理顯存不再要求連續存放，而是劃分為一個個不連續的物理塊池（Physical Block Pool）。
 - 透過 **Block Table** 記錄邏輯塊到物理塊的動態映射（類似 OS 的 Page Table）：
 
-```text
-Request 1 邏輯塊:
-  Logical Block 0 (Token 0..15)   ➔ Physical Block 7
-  Logical Block 1 (Token 16..31)  ➔ Physical Block 2
-  Logical Block 2 (Token 32..47)  ➔ Physical Block 9 (按需即時分配)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="paged-att-title paged-att-desc">
+    <title id="paged-att-title">PagedAttention 邏輯分塊到不連續物理顯存塊映射圖</title>
+    <desc id="paged-att-desc">展示 Request 1 的邏輯塊 0 映射至物理塊 7、邏輯塊 1 映射至物理塊 2、邏輯塊 2 按需映射至物理塊 9。</desc>
+    
+    <defs>
+      <marker id="vllm-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="20" width="300" height="140" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="180" y="45" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Request 1 邏輯序列 (Logical Blocks)</text>
+    <rect x="45" y="55" width="270" height="28" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="180" y="74" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">Logical Block 0 (Token 0..15)</text>
+    <rect x="45" y="90" width="270" height="28" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="180" y="109" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">Logical Block 1 (Token 16..31)</text>
+    <rect x="45" y="125" width="270" height="28" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="180" y="144" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">Logical Block 2 (Token 32..47)</text>
+
+
+    <path d="M 330 69 L 460 69" stroke="#3fb950" stroke-width="1.5" marker-end="url(#vllm-arrow)"/>
+    <path d="M 330 104 L 460 104" stroke="#3fb950" stroke-width="1.5" marker-end="url(#vllm-arrow)"/>
+    <path d="M 330 139 L 460 139" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#vllm-arrow)"/>
+
+
+    <rect x="470" y="20" width="300" height="140" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="620" y="45" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">GPU 物理顯存塊池 (Physical HBM)</text>
+    <rect x="485" y="55" width="270" height="28" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="620" y="74" fill="#3fb950" font-size="10" font-family="monospace" text-anchor="middle">Physical Block #7 (Slot 0..15)</text>
+    <rect x="485" y="90" width="270" height="28" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="620" y="109" fill="#3fb950" font-size="10" font-family="monospace" text-anchor="middle">Physical Block #2 (Slot 16..31)</text>
+    <rect x="485" y="125" width="270" height="28" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="620" y="144" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">Physical Block #9 (按需即時動態分配)</text>
+
+  </svg>
+</div>
 
 ### 2. 零拷貝分叉與共享（Copy-on-Write）
 
@@ -119,20 +150,36 @@ Request 1 邏輯塊:
 
 **Continuous Batching（迭代級動態調度）** 徹底改變了調度粒度：
 
-```mermaid
-gantt
-    title Continuous Batching vs. Static Batching
-    dateFormat X
-    axisFormat %s
-    section Static Batching
-    Request A (50 tokens)  :done, 0, 50
-    Request B (200 tokens) :active, 0, 200
-    Request C (Padding 150):crit, 50, 200
-    section Continuous Batching
-    Request A (50 tokens)  :done, 0, 50
-    Request D (隨即插隊)   :active, 50, 180
-    Request B (200 tokens) :active, 0, 200
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cb-batch-title cb-batch-desc">
+    <title id="cb-batch-title">Continuous Batching 持續動態批處理 vs 傳統 Static Batching 對比圖</title>
+    <desc id="cb-batch-desc">展示 Static Batching 短請求結束後需 Padding 等待長請求浪費算力，而 Continuous Batching 在 Iteration 級別立即插隊新請求提升利用率至 95%。</desc>
+    
+    
+    <text x="30" y="25" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700">❌ Static Batching (傳統靜態批次：存在大量 Padding 空轉浪費)</text>
+    <rect x="30" y="35" width="150" height="24" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="105" y="51" fill="#3fb950" font-size="9" text-anchor="middle">Req A (50t)</text>
+    <rect x="180" y="35" width="450" height="24" rx="4" fill="#2d1d24" stroke="#da3633" stroke-dasharray="3 3"/>
+    <text x="405" y="51" fill="#f85149" font-size="9" text-anchor="middle">Padding 浪費等待 (150t 空轉)</text>
+
+    <rect x="30" y="65" width="600" height="24" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="330" y="81" fill="#58a6ff" font-size="9" text-anchor="middle">Req B (200 tokens 長請求)</text>
+
+
+    <text x="30" y="125" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">✅ Continuous Batching (vLLM 迭代級動態插隊：95% 算力飽和)</text>
+    <rect x="30" y="135" width="150" height="24" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="105" y="151" fill="#3fb950" font-size="9" text-anchor="middle">Req A (50t 完成)</text>
+    <rect x="180" y="135" width="390" height="24" rx="4" fill="#241b35" stroke="#bc8cff"/>
+    <text x="375" y="151" fill="#d2a8ff" font-size="9" text-anchor="middle">⚡ Req D 立即無縫插隊執行 (130t)</text>
+
+    <rect x="30" y="165" width="600" height="24" rx="4" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="330" y="181" fill="#58a6ff" font-size="9" text-anchor="middle">Req B (200 tokens 持續並行生成)</text>
+
+    <rect x="30" y="200" width="740" height="30" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="400" y="220" fill="#3fb950" font-size="10" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">吞吐量提升 3 ~ 4 倍，GPU HBM / Tensor Core 全程無空轉！</text>
+
+  </svg>
+</div>
 
 - 在每一次 Token 迭代（Iteration-Level）結束時，檢查是否有已完成的請求；
 - 一旦請求完成，立即釋放其物理 Block，並在下一輪迭代中**無縫插入新的請求**。

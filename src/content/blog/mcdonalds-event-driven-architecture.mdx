@@ -44,17 +44,46 @@ import McdonaldsEventDrivenDiagram from "../../components/McdonaldsEventDrivenDi
 
 麥當勞的點餐來源涵蓋多元管道，不同管道的網路環境與業務特徵差異巨大：
 
-```
-[ Mobile App ]      [ Kiosk 自助機 ]      [ POS / 得來速 ]      [ 外送平台 Webhook ]
-       │                   │                     │                     │
-       └───────────────────┼─────────────────────┴─────────────────────┘
-                           ▼
-             [ CloudFront (全球 Anycast PoP) ]
-                           ▼
-             [ AWS API Gateway (WAF + OAuth) ]
-                           ▼
-             [ Ingestion Lambda Function ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mcd-ing-title mcd-ing-desc">
+    <title id="mcd-ing-title">麥當勞全通路多端接入與流量治理拓撲圖</title>
+    <desc id="mcd-ing-desc">展示 Mobile App、Kiosk、POS 得來速與外送 Webhook 經 CloudFront Anycast 與 API Gateway 進入 Ingestion Lambda。</desc>
+    
+    <defs>
+      <marker id="mcd-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="160" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="100" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Mobile App</text>
+
+    <rect x="210" y="15" width="160" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="290" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">Kiosk 自助點餐機</text>
+
+    <rect x="400" y="15" width="160" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="480" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">POS / 得來速</text>
+
+    <rect x="590" y="15" width="190" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="685" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">外送平台 Webhook</text>
+
+
+    <path d="M 100 55 L 100 75 L 400 75" stroke="#58a6ff" stroke-width="1.5"/>
+    <path d="M 290 55 L 290 75" stroke="#58a6ff" stroke-width="1.5"/>
+    <path d="M 480 55 L 480 75" stroke="#58a6ff" stroke-width="1.5"/>
+    <path d="M 685 55 L 685 75 L 400 75" stroke="#58a6ff" stroke-width="1.5"/>
+    <path d="M 400 75 L 400 95" stroke="#58a6ff" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="200" y="95" width="400" height="35" rx="6" fill="#1f242c" stroke="#bc8cff"/>
+    <text x="400" y="118" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">CloudFront (Anycast PoP) ＋ API Gateway (WAF + JWT)</text>
+
+    <path d="M 400 130 L 400 145" stroke="#3fb950" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="240" y="145" width="320" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="400" y="165" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Ingestion Lambda Function (削峰寫入 SQS)</text>
+
+  </svg>
+</div>
 
 ### 1.1 邊界安全性與流量治理
 
@@ -138,27 +167,81 @@ async function processOrder(orderEvent: any) {
 
 訂單狀態的演進本質上是一個嚴謹的**有限狀態機（Finite State Machine, FSM）**：
 
-```text
-CREATED ➔ PAID ➔ KITCHEN_IN_PREP ➔ READY_FOR_PICKUP ➔ COMPLETED
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 100" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mcd-fsm-title mcd-fsm-desc">
+    <title id="mcd-fsm-title">麥當勞訂單生命週期狀態機演進圖</title>
+    <desc id="mcd-fsm-desc">展示 CREATED ➔ PAID ➔ KITCHEN_IN_PREP ➔ READY_FOR_PICKUP ➔ COMPLETED 五大狀態流轉。</desc>
+    
+    <rect x="15" y="30" width="130" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="80" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">CREATED</text>
+
+    <path d="M 145 50 L 175 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="175" y="30" width="120" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="235" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">PAID</text>
+
+    <path d="M 295 50 L 325 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="325" y="30" width="160" height="40" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="405" y="55" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">KITCHEN_IN_PREP</text>
+
+    <path d="M 485 50 L 515 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="515" y="30" width="160" height="40" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="595" y="55" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">READY_FOR_PICKUP</text>
+
+    <path d="M 675 50 L 705 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="705" y="30" width="80" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="745" y="55" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">DONE</text>
+
+  </svg>
+</div>
 
 ### 3.1 DynamoDB Streams 變更捕獲 (CDC)
 
 每次 DynamoDB 中的訂單狀態欄位被更新，**DynamoDB Streams** 都會即時產生一條 24 小時內順序可重放的變更日誌（Change Data Capture）：
 
-```
-[ DynamoDB Table ] ──(State Changed)──► [ DynamoDB Streams ]
-                                               │
-                                               ▼
-                                      [ Router Lambda ]
-                                               │
-                                               ▼
-                                 [ Amazon EventBridge Event Bus ]
-                                               │
-                     ┌─────────────────────────┼─────────────────────────┐
-                     ▼                         ▼                         ▼
-         [ Store KVS Dispatcher ]     [ Notification Lambda ]   [ Financial Audit S3 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ddb-str-title ddb-str-desc">
+    <title id="ddb-str-title">DynamoDB Streams 捕獲與 EventBridge 廣播分發拓撲圖</title>
+    <desc id="ddb-str-desc">展示 DynamoDB 狀態變更觸發 Streams，由 Router Lambda 派發至 EventBridge，扇出給門市 KVS、客戶推播與財務審計 S3。</desc>
+    
+    <rect x="20" y="20" width="180" height="45" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="110" y="47" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">DynamoDB Table</text>
+
+    <path d="M 200 42 L 270 42" stroke="#58a6ff" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+    <text x="235" y="34" fill="#8b949e" font-size="9" text-anchor="middle">CDC</text>
+
+    <rect x="270" y="20" width="190" height="45" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="365" y="47" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">DynamoDB Streams</text>
+
+    <path d="M 460 42 L 530 42" stroke="#58a6ff" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+
+    <rect x="530" y="20" width="240" height="45" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="650" y="47" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Router Lambda ➔ EventBridge</text>
+
+    <path d="M 650 65 L 650 95" stroke="#bc8cff" stroke-width="2"/>
+    <path d="M 150 95 L 650 95" stroke="#bc8cff" stroke-width="2"/>
+    <path d="M 150 95 L 150 125" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+    <path d="M 400 95 L 400 125" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+    <path d="M 650 95 L 650 125" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#mcd-arrow)"/>
+
+
+    <rect x="40" y="125" width="220" height="60" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="150" y="150" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">門市 KVS 調度服務</text>
+    <text x="150" y="170" fill="#8b949e" font-size="9" text-anchor="middle">推播製作指令至廚房螢幕</text>
+
+    <rect x="290" y="125" width="220" height="60" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="400" y="150" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">顧客通知服務 (Push)</text>
+    <text x="400" y="170" fill="#8b949e" font-size="9" text-anchor="middle">發送「已確認備餐中」推播</text>
+
+    <rect x="540" y="125" width="220" height="60" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="650" y="150" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">財務審計資料湖 (S3)</text>
+    <text x="650" y="170" fill="#8b949e" font-size="9" text-anchor="middle">非同步歸檔日誌備查</text>
+
+  </svg>
+</div>
 
 ### 3.2 Amazon EventBridge 領域事件廣播
 
@@ -210,17 +293,36 @@ CREATED ➔ PAID ➔ KITCHEN_IN_PREP ➔ READY_FOR_PICKUP ➔ COMPLETED
 
 麥當勞在多個 AWS Region（例如 `us-east-1` 與 `us-west-2`）部署了完全對稱的 Serverless 堆疊：
 
-```
-                    [ Route 53 (Latency & Health Routing) ]
-                                 │
-                 ┌───────────────┴───────────────┐
-                 ▼                               ▼
-       [ US-East-1 Region ]            [ US-West-2 Region ]
-       • API Gateway                   • API Gateway
-       • Lambda + SQS                  • Lambda + SQS
-       • DynamoDB (us-east-1) ◄──────► • DynamoDB (us-west-2)
-                 └─── DynamoDB Global Tables Replication ───┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 200" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="multi-act-title multi-act-desc">
+    <title id="multi-act-title">Route 53 與 DynamoDB Global Tables 多區域雙活 Active-Active 架構圖</title>
+    <desc id="multi-act-desc">展示 Route 53 智慧分流至 us-east-1 與 us-west-2 兩個對稱區域，底層 DynamoDB 透過 Global Tables 實現秒級雙向同步與零停機容災。</desc>
+    
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Route 53 (延遲感知與健康檢查 DNS 路由)</text>
+
+    <path d="M 320 45 L 200 70" stroke="#3fb950" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+    <path d="M 480 45 L 600 70" stroke="#3fb950" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+
+
+    <rect x="40" y="70" width="330" height="110" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="205" y="95" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">US-East-1 Region (美東)</text>
+    <text x="60" y="120" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• API Gateway ＋ Lambda ＋ SQS</text>
+    <text x="60" y="142" fill="#3fb950" font-size="10" font-weight="700" font-family="system-ui, sans-serif">• DynamoDB (us-east-1 多主實例)</text>
+
+
+    <rect x="430" y="70" width="330" height="110" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="595" y="95" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">US-West-2 Region (美西)</text>
+    <text x="450" y="120" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• API Gateway ＋ Lambda ＋ SQS</text>
+    <text x="450" y="142" fill="#3fb950" font-size="10" font-weight="700" font-family="system-ui, sans-serif">• DynamoDB (us-west-2 多主實例)</text>
+
+
+    <path d="M 280 155 L 430 155" stroke="#bc8cff" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+    <path d="M 430 165 L 280 165" stroke="#bc8cff" stroke-width="2" marker-end="url(#mcd-arrow)"/>
+    <text x="355" y="150" fill="#d2a8ff" font-size="9" text-anchor="middle">雙向全球同步 (&lt;1s)</text>
+
+  </svg>
+</div>
 
 - **雙向多主複製**：DynamoDB Global Tables 提供基於時間戳的「最後寫入者獲勝（Last-Writer-Wins）」衝突解決機制，跨區域複製延遲通常小於 1 秒。
 - **自動故障轉移**：當 Route 53 探測到某區域健康檢查失敗時，DNS 在 10 秒內將流量全量切換至對等區域，用戶端無感知。

@@ -41,39 +41,45 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 2. 分散式爬蟲全鏈路核心架構拓撲
 
-```text
-                                 [ 種子網址 (Seed URLs) ]
-                                            │
-                                            ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 URL 邊界佇列 (URL Frontier) 】                    │
-│  ├── 1. 優先級模組 (Prioritizer): 按 PageRank 與更新頻率將 URL 劃分優先級│
-│  └── 2. 禮貌性調度器 (Politeness Manager): 保證同主機 (Host) 請求間隔  │
-└────────────────────────────────────────────────────────────────────────┘
-          │ (指派待抓取 URL)
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 分散式網頁下載集群 (HTML Fetchers) 】             │
-│  ├── DNS 快取解析器 (DNS Cache: 消除高頻 DNS 查詢延遲)                 │
-│  ├── Robots.txt 合規快取 (遵守網站爬蟲協議)                            │
-│  └── 高效能非同步 HTTP 客戶端 (帶超時與重試機制)                       │
-└────────────────────────────────────────────────────────────────────────┘
-          │ (下載 HTML 頁面)
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 內容解析與過濾管線 (Parser Pipeline) 】           │
-│  ├── 1. 內容去重過濾 (Content Seen: MD5 / SimHash 局部敏感雜湊過濾)    │
-│  ├── 2. 原始 HTML 儲存 (寫入分散式文件儲存 S3 / HDFS)                 │
-│  └── 3. 連結提取器 (Link Extractor: 解析 <a href="..."> 取得新 URL)    │
-└────────────────────────────────────────────────────────────────────────┘
-          │ (提取出的新 URL)
-          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                   【 URL 去重過濾器 (URL Seen: Bloom Filter) 】         │
-│  ├── (若 URL 已經抓取過) ──> 直接丟棄                                  │
-│  └── (若為全新未見 URL)  ──> 寫回 URL Frontier 佇列形成正向閉環！      │
-└────────────────────────────────────────────────────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 320" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="crawl-arch-title crawl-arch-desc">
+    <title id="crawl-arch-title">分散式網頁爬蟲全鏈路核心架構拓撲圖</title>
+    <desc id="crawl-arch-desc">展示種子網址注入 URL Frontier，經由禮貌性與優先級調度器指派給 Fetchers 下載，經 Parser 解析後透過 Bloom Filter 去重寫回 Frontier 形成閉環。</desc>
+    
+    <defs>
+      <marker id="cr-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="280" y="10" width="240" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">種子網址池 (Seed URLs)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#cr-arrow)"/>
+
+    <rect x="60" y="65" width="680" height="50" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="87" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 URL 邊界佇列 (URL Frontier) 】</text>
+    <text x="400" y="104" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">優先級調度器 (PageRank 權重) ｜ 禮貌性管理器 (同 Host 佇列隔離與延遲冷卻)</text>
+
+    <path d="M 400 115 L 400 135" stroke="#bc8cff" stroke-width="2" marker-end="url(#cr-arrow)"/>
+
+    <rect x="60" y="135" width="680" height="50" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="400" y="157" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 分散式網頁下載集群 (HTML Fetchers) 】</text>
+    <text x="400" y="174" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">DNS 快取解析器 ｜ Robots.txt 規範快取 ｜ 高併發非同步 HTTP 下載客戶端</text>
+
+    <path d="M 400 185 L 400 205" stroke="#388bfd" stroke-width="2" marker-end="url(#cr-arrow)"/>
+
+    <rect x="60" y="205" width="680" height="50" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="400" y="227" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 內容解析與儲存管線 (Parser Pipeline) 】</text>
+    <text x="400" y="244" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">SimHash 內容相似度去重 ｜ 原始文件存 S3/HDFS ｜ 連結提取器 (Link Extractor)</text>
+
+    <path d="M 400 255 L 400 270" stroke="#3fb950" stroke-width="2" marker-end="url(#cr-arrow)"/>
+
+    <rect x="60" y="270" width="680" height="42" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="296" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 URL 去重過濾器 (Bloom Filter) 】➔ 全新 URL 閉環寫回 URL Frontier！</text>
+
+  </svg>
+</div>
 
 ---
 

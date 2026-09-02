@@ -29,24 +29,48 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 現代風控架構採用 **同步決策 + 非同步異步特徵沉澱** 的雙鏈路設計：
 
-```text
-[ 支付請求發起 ]
-       │
-       ▼ (< 50ms 同步鏈路)
-[ API 閘道 / 風控中台 ]
-       ├──> [ 設備指紋 & IP 畫像解析 ] (Canvas Fingerprint, Proxy/VPN 偵測)
-       ├──> [ 即時特徵快取讀取 ] (Redis: 過去 10 分鐘扣款次數、設備切換頻率)
-       ├──> [ 規則引擎 (Rule Engine) ] (Drools / 自研動態 DSL 規則鏈)
-       └──> [ 輕量機器學習評分 (ML Scoring) ] (XGBoost / GBDT 預測模型)
-              │
-              ├── [ 放行 (PASS) ] ──> 進入後續支付扣款
-              ├── [ 挑戰 (CHALLENGE) ] ──> 觸發 3D Secure / OTP 簡訊驗證
-              └── [ 阻斷 (BLOCK) ] ──> 立即終止並標記風險
-                     │
-                     ▼ (非同步資料流)
-[ Kafka 交易事件佇列 ] ──> [ Apache Flink 即時特徵計算 ] ──> [ 寫入 Redis 特徵庫 ]
-                     └──> [ Neo4j / GNN 圖資料庫 ] ──> (黑產團夥聚集社群挖掘)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 280" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="risk-dual-title risk-dual-desc">
+    <title id="risk-dual-title">現代即時風控引擎同步決策與非同步特徵沉澱雙鏈路架構圖</title>
+    <desc id="risk-dual-desc">展示支付請求發起經 50ms 內同步鏈路執行指紋解析、Redis 特徵、規則引擎與 ML 評分進行放行、挑戰或阻斷，非同步發送 Kafka 由 Flink 與圖資料庫沉澱特徵。</desc>
+    
+    <defs>
+      <marker id="rk-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">支付請求發起 (Payment Request)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#rk-arrow)"/>
+    <text x="410" y="58" fill="#3fb950" font-size="10" font-weight="700">&lt; 50ms 同步決策</text>
+
+
+    <rect x="30" y="65" width="740" height="85" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="88" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 API 閘道 ＋ 風控決策中台 】</text>
+    <text x="50" y="112" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 設備指紋 (Canvas Fingerprint) ｜ IP 代理畫像</text>
+    <text x="50" y="132" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• Redis 即時滑動視窗特徵 ｜ Drools 規則引擎 ｜ XGBoost / GBDT 輕量機器學習評分</text>
+
+
+    <path d="M 160 150 L 160 175" stroke="#3fb950" stroke-width="2" marker-end="url(#rk-arrow)"/>
+    <path d="M 400 150 L 400 175" stroke="#d29922" stroke-width="2" marker-end="url(#rk-arrow)"/>
+    <path d="M 640 150 L 640 175" stroke="#da3633" stroke-width="2" marker-end="url(#rk-arrow)"/>
+
+    <rect x="50" y="175" width="220" height="42" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="160" y="201" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ 放行 (PASS) ➔ 正常扣款</text>
+
+    <rect x="290" y="175" width="220" height="42" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="400" y="201" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">⚠️ 挑戰 (CHALLENGE) ➔ 3DS/OTP</text>
+
+    <rect x="530" y="175" width="220" height="42" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="640" y="201" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 阻斷 (BLOCK) ➔ 拒絕交易</text>
+
+    <rect x="30" y="230" width="740" height="40" rx="6" fill="#161b22" stroke="#388bfd" stroke-dasharray="4 2"/>
+    <text x="400" y="255" fill="#58a6ff" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">非同步資料流：Kafka 事件佇列 ➔ Flink 即時特徵聚合 ➔ Neo4j / GNN 黑產團夥社群挖掘</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -104,17 +128,38 @@ return count
 
 頂級架構採用**影子模式（Shadow Pipeline）**：
 
-```text
-               [ 生產即時請求 ]
-                      │
-           ┌──────────┴──────────┐
-           ▼                     ▼ (非同步鏡像流量)
-[ 生產在線風控模型 (v1) ]   [ 實驗中新風控模型 (v2 / 影子模式) ]
-     (實際阻斷/放行)                (僅計算評分與記錄日誌，不阻斷)
-           │                             │
-           ▼                             ▼
-    [ 最終支付扣款 ]             [ 離線準確率/召回率自動比對 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="shd-pipe-title shd-pipe-desc">
+    <title id="shd-pipe-title">風控模型影子模式（Shadow Pipeline）雙軌驗收架構圖</title>
+    <desc id="shd-pipe-desc">展示生產即時請求鏡像分流，線上模型 v1 實際執行阻斷與扣款，影子模型 v2 僅非同步評分打日誌並由離線自動比對準確率與召回率。</desc>
+    
+    <rect x="280" y="10" width="240" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">生產即時請求 (Live Request)</text>
+
+    <path d="M 330 45 L 200 70" stroke="#3fb950" stroke-width="2" marker-end="url(#rk-arrow)"/>
+    <path d="M 470 45 L 600 70" stroke="#bc8cff" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#rk-arrow)"/>
+    <text x="560" y="58" fill="#d2a8ff" font-size="9">鏡像流量 (Mirror)</text>
+
+
+    <rect x="40" y="70" width="320" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="200" y="95" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">生產在線風控模型 (v1)</text>
+    <text x="200" y="118" fill="#c9d1d9" font-size="11" text-anchor="middle">實際決策：放行 / 阻斷 / 挑戰</text>
+    <text x="200" y="134" fill="#56d364" font-size="10" text-anchor="middle">➔ 進入最終支付扣款</text>
+
+
+    <rect x="440" y="70" width="320" height="75" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="600" y="95" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">實驗中新模型 (v2 / 影子模式)</text>
+    <text x="600" y="118" fill="#c9d1d9" font-size="11" text-anchor="middle">僅計算評分與記錄日誌，絕不阻斷</text>
+    <text x="600" y="134" fill="#8b949e" font-size="10" text-anchor="middle">➔ 零線上業務風險！</text>
+
+    <path d="M 200 145 L 350 175" stroke="#388bfd" stroke-width="1.5" marker-end="url(#rk-arrow)"/>
+    <path d="M 600 145 L 450 175" stroke="#388bfd" stroke-width="1.5" marker-end="url(#rk-arrow)"/>
+
+    <rect x="180" y="175" width="440" height="42" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="400" y="201" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">離線準確率 / 召回率 / 混淆矩陣自動比對評估</text>
+
+  </svg>
+</div>
 
 只有在影子模式下連續運行數週，且經過 **混淆矩陣（Precision & Recall）** 嚴格驗證後，新規則與模型才會透過動態權重灰度切換為線上阻斷模式。
 

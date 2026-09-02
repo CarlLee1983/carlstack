@@ -33,16 +33,59 @@ Saga 模式將一個大型的分散式全域事務拆分為一系列有序的**�
 - **正向執行成功**：當 `T_1 -> T_2 -> ... -> T_n` 全部順利完成，全域 Saga 宣告成功。
 - **局部步驟失敗與補償**：若第 `k` 步本地事務 `T_k` 執行失敗（例如庫存不足或扣款失敗），Saga 必須依相反順序觸發一組**補償事務（Compensating Transactions）** `C_{k-1}, ..., C_1`，將先前已提交的歷史變更在業務語義上「撤銷/沖正」，達到最終一致性。
 
-```text
-[ 正向成功路徑 ]
-[T1: 建立訂單] ──> [T2: 預扣庫存] ──> [T3: 執行扣款] ──> [T4: 生成物流] (成功結束)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="saga-path-title saga-path-desc">
+    <title id="saga-path-title">Saga 分散式長事務：正向執行路徑 vs 失敗反向補償路徑對比圖</title>
+    <desc id="saga-path-desc">展示正向 T1 到 T4 依序提交成功，以及當 T3 扣款失敗時觸發 C2 釋放庫存與 C1 取消訂單的反向補償達成最終一致性。</desc>
+    
+    <defs>
+      <marker id="saga-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
 
-[ 失敗補償路徑 (T3 扣款失敗) ]
-[T1: 建立訂單] ──> [T2: 預扣庫存] ──> [T3: 扣款失敗 ✗]
-                          │
-                          ▼ 觸發反向補償
-                   [C2: 釋放預扣庫存] ──> [C1: 標記訂單取消] (最終一致回滾)
-```
+    <rect x="20" y="15" width="760" height="95" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="38" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 正向成功路徑 (Forward Success Execution)：</text>
+
+    <rect x="40" y="50" width="150" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="115" y="76" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">T1: 建立訂單 (Commit)</text>
+
+    <path d="M 190 71 L 230 71" stroke="#3fb950" stroke-width="1.5" marker-end="url(#saga-arrow)"/>
+
+    <rect x="230" y="50" width="150" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="305" y="76" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">T2: 預扣庫存 (Commit)</text>
+
+    <path d="M 380 71 L 420 71" stroke="#3fb950" stroke-width="1.5" marker-end="url(#saga-arrow)"/>
+
+    <rect x="420" y="50" width="150" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="495" y="76" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">T3: 執行扣款 (Commit)</text>
+
+    <path d="M 570 71 L 610 71" stroke="#3fb950" stroke-width="1.5" marker-end="url(#saga-arrow)"/>
+
+    <rect x="610" y="50" width="150" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="685" y="76" fill="#56d364" font-size="11" font-weight="700" text-anchor="middle">T4: 物流發貨 (成功結束)</text>
+
+
+    <rect x="20" y="125" width="760" height="100" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="148" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 失敗補償路徑 (T3 扣款失敗 ➔ 觸發反向補償 C2, C1)：</text>
+
+    <rect x="40" y="160" width="160" height="45" rx="4" fill="#1f242c" stroke="#30363d"/>
+    <text x="120" y="180" fill="#8b949e" font-size="10" text-anchor="middle">T1: 建立訂單</text>
+    <text x="120" y="195" fill="#f85149" font-size="9" text-anchor="middle">C1: 標記取消 ◄──┐</text>
+
+    <rect x="220" y="160" width="160" height="45" rx="4" fill="#1f242c" stroke="#30363d"/>
+    <text x="300" y="180" fill="#8b949e" font-size="10" text-anchor="middle">T2: 預扣庫存</text>
+    <text x="300" y="195" fill="#f85149" font-size="9" text-anchor="middle">C2: 釋放庫存 ◄──┼──┐</text>
+
+    <rect x="400" y="160" width="160" height="45" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="480" y="180" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">T3: 扣款失敗！✗</text>
+    <text x="480" y="195" fill="#f85149" font-size="9" text-anchor="middle">發起補償流程 ───┴──┘</text>
+
+    <rect x="580" y="160" width="180" height="45" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="670" y="187" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">最終一致性 (無孤立狀態)</text>
+
+  </svg>
+</div>
 
 ---
 

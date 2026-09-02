@@ -177,10 +177,19 @@ public class Sequence {
 - 單執行緒下保證 As-if-serial 語義（最終結果正確）；
 - 多執行緒下，Core 0 的寫入可能在很久之後才真正刷新至快取，Core 1 看到的執行順序可能完全顛倒！
 
-```text
-[ 寫入屏障 (Store Barrier / Release) ] ── 強制將 Store Buffer 中的寫入全部刷新至快取
-[ 讀取屏障 (Load Barrier / Acquire) ]  ── 強制清空 Invalidate Queue，確保讀取最新快取
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mem-barr-title mem-barr-desc">
+    <title id="mem-barr-title">硬體記憶體屏障（Store Barrier vs Load Barrier）示意圖</title>
+    <desc id="mem-barr-desc">展示寫入屏障強制刷新 Store Buffer 至快取，讀取屏障清空 Invalidate Queue 確保讀取最新資料。</desc>
+    
+    <rect x="20" y="15" width="760" height="45" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="40" y="42" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">【 寫入屏障 (Store Barrier / Release) 】── 強制將 CPU Store Buffer 中的寫入全部刷新至 Cache</text>
+
+    <rect x="20" y="70" width="760" height="45" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="97" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700">【 讀取屏障 (Load Barrier / Acquire) 】── 強制清空 Invalidate Queue，確保當前核心讀取最新快取數據</text>
+
+  </svg>
+</div>
 
 高併發無鎖演算法（如 CAS、Lock-Free RingBuffer）必須精確使用 **Acquire-Release 語義**，在最低硬體開銷下確保跨核心的可見性與有序性。
 

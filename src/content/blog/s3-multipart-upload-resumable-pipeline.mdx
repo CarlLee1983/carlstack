@@ -58,24 +58,43 @@ AWS S3 對分段上傳制定了精確的邊界規範：
 
 分段上傳將一個龐大的傳輸任務解耦為三個標準的 REST API 階段：
 
-```text
-[ Client ]                                                    [ Amazon S3 ]
-    │                                                               │
-    │ ─── 1. POST /bucket/large.iso?uploads (Initiate) ───────────► │
-    │ ◄── 回傳 UploadId ("VXBsb2FkSW...") ───────────────────────── │
-    │                                                               │
-    │ ─── 2a. PUT /bucket/large.iso?partNumber=1&uploadId=... ────► │
-    │ ◄── 回傳 200 OK + ETag: "a1b2c3d4..." ─────────────────────── │
-    │ ─── 2b. PUT /bucket/large.iso?partNumber=2&uploadId=... ────► │
-    │ ◄── 回傳 200 OK + ETag: "e5f6g7h8..." ─────────────────────── │
-    │                                                               │
-    │ ─── 3. POST /bucket/large.iso?uploadId=... (Complete) ──────► │
-    │        <CompleteMultipartUpload>                              │
-    │          <Part><PartNumber>1</PartNumber><ETag>...</ETag></Part>│
-    │          <Part><PartNumber>2</PartNumber><ETag>...</ETag></Part>│
-    │        </CompleteMultipartUpload>                             │
-    │ ◄── 200 OK (最終 Object 上線，回傳複合 ETag: "...-2") ───────── │
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="s3-seq-title s3-seq-desc">
+    <title id="s3-seq-title">S3 分段上傳三階段標準協議時序圖</title>
+    <desc id="s3-seq-desc">展示 Client 與 Amazon S3 之間 1. 初始化取得 UploadId、2. 多線程並行 PUT 分片與回傳 ETag、3. 提交 Complete 完成物件合併上線的完整時序。</desc>
+    
+    <defs>
+      <marker id="s3-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="50" y="10" width="180" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="140" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Client (客戶端)</text>
+
+    <rect x="570" y="10" width="180" height="35" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="660" y="32" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Amazon S3 儲存</text>
+
+
+    <path d="M 140 65 L 660 65" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#s3-arrow)"/>
+    <text x="400" y="58" fill="#58a6ff" font-size="10" text-anchor="middle">1. POST /bucket/large.iso?uploads ➔ 取得 UploadId</text>
+
+
+    <path d="M 140 100 L 660 100" stroke="#3fb950" stroke-width="1.5" marker-end="url(#s3-arrow)"/>
+    <text x="400" y="93" fill="#3fb950" font-size="10" text-anchor="middle">2a. PUT Part 1 (64MB) ➔ 回傳 ETag_1 (並行)</text>
+
+    <path d="M 140 135 L 660 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#s3-arrow)"/>
+    <text x="400" y="128" fill="#3fb950" font-size="10" text-anchor="middle">2b. PUT Part 2 (64MB) ➔ 回傳 ETag_2 (並行)</text>
+
+
+    <path d="M 140 175 L 660 175" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#s3-arrow)"/>
+    <text x="400" y="168" fill="#d2a8ff" font-size="10" text-anchor="middle">3. POST CompleteMultipartUpload (提交已排序 Part 清單)</text>
+
+    <rect x="140" y="195" width="520" height="30" rx="4" fill="#161b22" stroke="#238636"/>
+    <text x="400" y="215" fill="#3fb950" font-size="10" font-weight="700" text-anchor="middle">✅ 200 OK ── 零拷貝中繼資料指針合併，最終物件瞬間上線！</text>
+
+  </svg>
+</div>
 
 ### 2.1 階段一：初始化（Initiate Multipart Upload）
 
@@ -170,7 +189,7 @@ class ResumableS3Uploader {
 對於單次 `PUT` 上傳的物件，其 `ETag` 就是全檔案的 MD5 雜湊值；但對於 **Multipart Upload** 生成的物件，S3 的 ETag 採用了特殊的複合計算公式：
 
 ```text
-ETag = Hex( MD5( Binary(MD5_Part1) + Binary(MD5_Part2) + ... + Binary(MD5_PartN) ) ) + "-" + N
+ETag = Hex( MD5( Binary(MD5_1) + Binary(MD5_2) + ... + Binary(MD5_N) ) ) + "-" + N
 ```
 
 例如 ETag 為 `"c8b598...-4"`，其中後綴 `-4` 明確標示該物件是由 4 個分段組裝而成。客戶端可以使用相同演算法在本地校驗整個檔案的一致性。

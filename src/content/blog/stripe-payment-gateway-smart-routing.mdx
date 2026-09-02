@@ -31,12 +31,47 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 要設計支付網關，必須先釐清全球銀行卡支付鏈路中的 5 大核心角色：
 
-```text
-[ 消費者 (Cardholder) ] ── (1. 點擊結帳) ──> [ 電商商戶 (Merchant) ]
-                                                   │
-                                                   ▼ (2. 發送授權請求)
-[ 發卡行 (Issuing Bank) ] <── [ 卡組織 (Visa/Mastercard) ] <── [ 支付網關 / 收單行 (Acquirer) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pay-roles-title pay-roles-desc">
+    <title id="pay-roles-title">全球銀行卡支付鏈路五大核心角色拓撲圖</title>
+    <desc id="pay-roles-desc">展示持卡人向商戶發起結帳，商戶透過支付網關向收單行、卡組織與發卡行串聯發起授權請求。</desc>
+    
+    <defs>
+      <marker id="pay-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="25" width="130" height="60" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="85" y="52" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">持卡人 (Cardholder)</text>
+    <text x="85" y="70" fill="#8b949e" font-size="9" text-anchor="middle">消費者</text>
+
+    <path d="M 150 55 L 180 55" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+
+    <rect x="180" y="25" width="130" height="60" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="245" y="52" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">商戶 (Merchant)</text>
+    <text x="245" y="70" fill="#8b949e" font-size="9" text-anchor="middle">電商/平台</text>
+
+    <path d="M 310 55 L 340 55" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+
+    <rect x="340" y="25" width="140" height="60" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="410" y="52" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">支付網關/收單行</text>
+    <text x="410" y="70" fill="#8b949e" font-size="9" text-anchor="middle">Stripe / Acquirer</text>
+
+    <path d="M 480 55 L 510 55" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+
+    <rect x="510" y="25" width="130" height="60" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="575" y="52" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">卡組織 (Schemes)</text>
+    <text x="575" y="70" fill="#8b949e" font-size="9" text-anchor="middle">Visa / Mastercard</text>
+
+    <path d="M 640 55 L 670 55" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+
+    <rect x="670" y="25" width="110" height="60" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="725" y="52" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">發卡行</text>
+    <text x="725" y="70" fill="#8b949e" font-size="9" text-anchor="middle">扣款銀行</text>
+
+  </svg>
+</div>
 
 | 參與角色              | 英文術語                 | 核心職責                                                                     |
 | :-------------------- | :----------------------- | :--------------------------------------------------------------------------- |
@@ -66,31 +101,57 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 支付系統的核心靈魂是嚴格的有限狀態機。任何未定義的狀態跳轉都屬於嚴重系統缺陷。
 
-```text
-               ┌────────────────┐
-               │    INITIATED   │
-               └───────┬────────┘
-                       │ (發起扣款)
-                       ▼
-               ┌────────────────┐
-     ┌─────────┤   PROCESSING   ├─────────┐
-     │ (超時)  └───────┬────────┘         │ (拒付/失敗)
-     ▼                 │ (授權成功)       ▼
-┌─────────┐            ▼            ┌─────────┐
-│ TIMEOUT │    ┌────────────────┐   │ FAILED  │
-└────┬────┘    │   AUTHORIZED   │   └─────────┘
-     │         └───────┬────────┘
-     │ (主動對帳)      │ (發起請款 Capture)
-     │                 ▼
-     │         ┌────────────────┐
-     └────────>│    CAPTURED    │
-               └───────┬────────┘
-                       │ (完成銀行清算)
-                       ▼
-               ┌────────────────┐
-               │    SETTLED     │
-               └────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 320" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fsm-pay-title fsm-pay-desc">
+    <title id="fsm-pay-title">支付交易生命週期有限狀態機（FSM）圖</title>
+    <desc id="fsm-pay-desc">展示 INITIATED ➔ PROCESSING ➔ AUTHORIZED ➔ CAPTURED ➔ SETTLED 正向狀態流轉，以及超時 TIMEOUT 與失敗 FAILED 的分支處理。</desc>
+    
+    <rect x="330" y="10" width="140" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">INITIATED</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#pay-arrow)"/>
+
+    <rect x="320" y="65" width="160" height="40" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="400" y="90" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">PROCESSING</text>
+
+
+    <path d="M 320 85 L 170 85 L 170 125" stroke="#d29922" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+    <text x="235" y="78" fill="#e3b341" font-size="10">網路超時</text>
+    <rect x="100" y="125" width="140" height="40" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="170" y="150" fill="#e3b341" font-size="12" font-weight="700" text-anchor="middle">TIMEOUT</text>
+
+
+    <path d="M 480 85 L 630 85 L 630 125" stroke="#da3633" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+    <text x="565" y="78" fill="#f85149" font-size="10">拒付 / 餘額不足</text>
+    <rect x="560" y="125" width="140" height="40" rx="6" fill="#2d1d24" stroke="#da3633"/>
+    <text x="630" y="150" fill="#f85149" font-size="12" font-weight="700" text-anchor="middle">FAILED</text>
+
+
+    <path d="M 400 105 L 400 135" stroke="#3fb950" stroke-width="2" marker-end="url(#pay-arrow)"/>
+    <text x="410" y="122" fill="#3fb950" font-size="10">授權成功</text>
+
+    <rect x="320" y="135" width="160" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="160" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">AUTHORIZED</text>
+
+
+    <path d="M 400 175 L 400 205" stroke="#3fb950" stroke-width="2" marker-end="url(#pay-arrow)"/>
+    <text x="410" y="192" fill="#3fb950" font-size="10">請款 (Capture)</text>
+
+    <path d="M 170 165 L 170 225 L 320 225" stroke="#d29922" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#pay-arrow)"/>
+    <text x="215" y="218" fill="#e3b341" font-size="9">非同步對帳補齊</text>
+
+    <rect x="320" y="205" width="160" height="40" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="400" y="230" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">CAPTURED</text>
+
+
+    <path d="M 400 245 L 400 270" stroke="#3fb950" stroke-width="2" marker-end="url(#pay-arrow)"/>
+    <text x="410" y="260" fill="#3fb950" font-size="10">銀行清算</text>
+
+    <rect x="320" y="270" width="160" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="2"/>
+    <text x="400" y="295" fill="#56d364" font-size="12" font-weight="700" text-anchor="middle">SETTLED (終態)</text>
+
+  </svg>
+</div>
 
 ### 狀態流轉約束
 
@@ -104,19 +165,34 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 大型全球跨國業務無法單純依賴單一收單行。Stripe 等網關採用動態智慧路由演算法，根據以下維度計算最優路徑：
 
-```text
-[ 交易請求 (BIN, 幣別, 金額) ]
-              │
-              ▼
-    [ 智慧路由決策引擎 ]
-    ├── 1. 硬性規則過濾 (支援幣別、本地卡 BIN 限制)
-    ├── 2. 費率最優模型 (Interchange++ 最低成本)
-    ├── 3. 歷史健康度評分 (即時成功率、延遲 P99)
-    └── 4. 斷路器與配額熔斷 (避免單一收單行過載)
-              │
-              ├──> [ Acquirer A (成功率 98.2%, 延遲 180ms) ] ── 首選
-              └──> [ Acquirer B (備用降級渠道) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="smart-rout-title smart-rout-desc">
+    <title id="smart-rout-title">支付網關智慧路由（Smart Routing）決策拓撲圖</title>
+    <desc id="smart-rout-desc">展示交易請求進入智慧路由引擎，經硬性規則、費率模型、健康度評分與斷路器，動態分流至首選高成功率收單行或備用渠道。</desc>
+    
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">交易請求 (卡 BIN, 幣別, 金額)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#pay-arrow)"/>
+
+    <rect x="40" y="65" width="720" height="75" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="88" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 智慧路由決策引擎 (Smart Routing Engine) 】</text>
+    <text x="60" y="110" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">1. 硬性規則過濾 (支援幣別、本地卡 BIN 限制) ｜ 2. 費率最優模型 (Interchange++ 最低成本)</text>
+    <text x="60" y="128" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">3. 歷史健康度評分 (即時成功率、延遲 P99) ｜ 4. 斷路器與配額熔斷 (防禦收單行過載)</text>
+
+    <path d="M 300 140 L 220 170" stroke="#3fb950" stroke-width="2" marker-end="url(#pay-arrow)"/>
+    <path d="M 500 140 L 580 170" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#pay-arrow)"/>
+
+    <rect x="60" y="170" width="320" height="45" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="220" y="193" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ Acquirer A (成功率 98.2%, 延遲 180ms)</text>
+    <text x="220" y="207" fill="#56d364" font-size="9" text-anchor="middle">首選低成本高品質渠道</text>
+
+    <rect x="420" y="170" width="320" height="45" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="580" y="193" fill="#8b949e" font-size="11" text-anchor="middle">⚠️ Acquirer B (備用降級渠道)</text>
+    <text x="580" y="207" fill="#8b949e" font-size="9" text-anchor="middle">當首選故障或軟性拒絕時自適應切換</text>
+
+  </svg>
+</div>
 
 ### 智慧路由決策演算法指標
 
@@ -131,10 +207,36 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 金融系統最常見的崩潰情境是網路分區造成的「不知道扣款到底成不成功」：
 
-```text
-Merchant  ─── (1. 發起扣款) ───>  Payment Gateway  ─── (2. 扣款請求) ───>  Acquirer
-Merchant  <── (3. 網路逾時斷線) ──  Payment Gateway  <── (4. 扣款成功!) ────  Acquirer
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="idemp-seq-title idemp-seq-desc">
+    <title id="idemp-seq-title">支付超時與網路分區時序圖</title>
+    <desc id="idemp-seq-desc">展示 Merchant 發起扣款經網關向收單行扣款成功，但網關回傳商戶時網路斷線，需依賴冪等鍵防重複扣款與背景輪詢對帳。</desc>
+    
+    <rect x="40" y="20" width="180" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="130" y="45" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Merchant (商戶)</text>
+
+    <path d="M 220 40 L 310 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+    <text x="265" y="32" fill="#8b949e" font-size="9" text-anchor="middle">1. 發起扣款</text>
+
+    <rect x="310" y="20" width="180" height="40" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="400" y="45" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Payment Gateway</text>
+
+    <path d="M 490 40 L 580 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+    <text x="535" y="32" fill="#8b949e" font-size="9" text-anchor="middle">2. 扣款請求</text>
+
+    <rect x="580" y="20" width="180" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="670" y="45" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Acquirer (收單行)</text>
+
+
+    <path d="M 580 85 L 490 85" stroke="#3fb950" stroke-width="1.5" marker-end="url(#pay-arrow)"/>
+    <text x="535" y="78" fill="#3fb950" font-size="9" text-anchor="middle">4. 扣款成功!</text>
+
+    <path d="M 310 85 L 220 85" stroke="#da3633" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <text x="265" y="78" fill="#f85149" font-size="9" text-anchor="middle">3. 網路逾時斷線 ⚡</text>
+    <text x="265" y="110" fill="#f85149" font-size="10" font-weight="700" text-anchor="middle">商戶未知狀態 ➔ 觸發冪等鍵與對帳機制！</text>
+
+  </svg>
+</div>
 
 此時商戶客戶端重試可能導致重複扣款。支付系統必須實作嚴密的雙重防禦：
 

@@ -34,16 +34,24 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 傳統行式儲存（Row-oriented）與 Arrow 列式儲存（Column-oriented）在記憶體中的組織方式存在本質區別：
 
-```text
-[ 傳統行式記憶體佈局 (Row-based) ]
-| ID: 1 | Name: Alice | Age: 25 | ID: 2 | Name: Bob | Age: 30 | ID: 3 | Name: Carl | Age: 28 |
-(計算 Age 平均值時，CPU 必須將 Name 與 ID 等無關字節一同載入 Cache Line，造成 80% 頻寬浪費!)
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 220" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arrow-col-title arrow-col-desc">
+    <title id="arrow-col-title">傳統行式記憶體佈局 vs Apache Arrow 列式記憶體佈局對比圖</title>
+    <desc id="arrow-col-desc">展示行式儲存計算年齡需載入全部欄位浪費80%頻寬，而 Arrow 列式儲存連續排列年齡陣列支援 CPU SIMD 向量化高速計算。</desc>
+    
+    
+    <rect x="20" y="15" width="760" height="85" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
+    <text x="40" y="38" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 傳統行式記憶體佈局 (Row-based)：</text>
+    <text x="40" y="62" fill="#c9d1d9" font-size="11" font-family="monospace">| ID: 1 | Name: Alice | Age: 25 | ID: 2 | Name: Bob | Age: 30 | ID: 3 | Name: Carl | Age: 28 |</text>
+    <text x="40" y="86" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">計算 Age 平均值時，CPU 必須將 Name 與 ID 等無關欄位一同載入快取行，造成 80% 記憶體頻寬浪費！</text>
 
-[ Apache Arrow 列式記憶體佈局 (Columnar) ]
-Age 陣列:  | 25 | 30 | 28 | ──> 連續記憶體，CPU 透過 SIMD 指令單一週期平行計算 8 個整數!
-Name 陣列: | Alice | Bob | Carl |
-ID 陣列:   | 1 | 2 | 3 |
-```
+    <rect x="20" y="115" width="760" height="90" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="138" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ Apache Arrow 列式記憶體佈局 (Columnar)：</text>
+    <text x="40" y="162" fill="#3fb950" font-size="11" font-family="monospace">Age 陣列:  | 25 | 30 | 28 | ──► 連續記憶體，CPU 透過 SIMD (AVX-512) 單一指令週期平行計算！</text>
+    <text x="40" y="184" fill="#8b949e" font-size="10" font-family="monospace">Name 陣列: | Alice | Bob | Carl |  /  ID 陣列: | 1 | 2 | 3 |</text>
+
+  </svg>
+</div>
 
 ### 零拷貝資料共享（Zero-Copy Interoperability）
 
@@ -56,21 +64,38 @@ ID 陣列:   | 1 | 2 | 3 |
 
 Polars 被譽為「Rust 打造的超光速 DataFrame」：
 
-```text
-                     [ Polars 查詢管線 ]
-[ 用戶代碼: pl.scan_parquet("data.parquet") ] ──> (LazyFrame: 構建邏輯計畫樹)
-                                                        │
-                                                        ▼
-                                           [ 查詢優化器 (Query Optimizer) ]
-                                           ├── 1. 謂詞下推 (Predicate Pushdown)
-                                           ├── 2. 投影下推 (Projection Pushdown: 只讀需要的欄位)
-                                           └── 3. 冗餘公共子表達式消除
-                                                        │
-                                                        ▼
-                                           [ 物理執行引擎 (Rust Engine) ]
-                                           ├── 多執行緒自動分塊平行 (Work-Stealing)
-                                           └── CPU AVX-512 / NEON 向量化加速
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="polars-opt-title polars-opt-desc">
+    <title id="polars-opt-title">Polars LazyFrame 邏輯計劃樹與查詢優化管線圖</title>
+    <desc id="polars-opt-desc">展示用戶代碼經 LazyFrame 構建邏輯計畫，由查詢優化器進行謂詞下推與投影下推，交由 Rust 物理執行引擎多核並行與 SIMD 向量化計算。</desc>
+    
+    <defs>
+      <marker id="pol-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="15" width="340" height="50" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="190" y="44" fill="#58a6ff" font-size="12" font-family="monospace" font-weight="700" text-anchor="middle">pl.scan_parquet("data.parquet")</text>
+
+    <path d="M 360 40 L 440 40" stroke="#58a6ff" stroke-width="2" marker-end="url(#pol-arrow)"/>
+    <text x="400" y="32" fill="#8b949e" font-size="9" text-anchor="middle">LazyFrame</text>
+
+    <rect x="450" y="15" width="330" height="90" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="615" y="40" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">查詢優化器 (Query Optimizer)</text>
+    <text x="470" y="62" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 謂詞下推 (Predicate Pushdown 濾除無關行)</text>
+    <text x="470" y="80" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 投影下推 (Projection Pushdown 僅讀目標欄位)</text>
+    <text x="470" y="96" fill="#8b949e" font-size="9" font-family="system-ui, sans-serif">• 冗餘公共子表達式消除</text>
+
+    <path d="M 615 105 L 615 130" stroke="#3fb950" stroke-width="2" marker-end="url(#pol-arrow)"/>
+
+    <rect x="180" y="130" width="600" height="90" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="480" y="155" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">物理執行引擎 (Rust Engine - Rayon Multi-threading)</text>
+    <text x="480" y="180" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Work-Stealing 工作竊取演算法 ｜ AVX-512 / ARM NEON 向量化加速</text>
+    <text x="480" y="202" fill="#56d364" font-size="11" font-weight="700" text-anchor="middle">效能比傳統 Pandas 快 10 ~ 50 倍！</text>
+
+  </svg>
+</div>
 
 ### 為什麼 Polars 比 Pandas 快 10 到 50 倍？
 
@@ -84,15 +109,27 @@ Polars 被譽為「Rust 打造的超光速 DataFrame」：
 
 如果說 SQLite 是 OLTP 交易型資料庫中的單機之王，那麼 **DuckDB** 就是 OLAP 分析型資料庫中的絕對霸主：
 
-```text
-[ 嵌入式進程 (In-Process OLAP) ]
-你的應用程式 (Python / Node.js / Go)
-   └── (直接鏈接 libduckdb.so / 無需維護獨立 Server 伺服器)
-          │
-          ├──> 直接以 SQL 查詢本地或 S3 上的 Parquet / CSV 檔案
-          ├──> 向量化執行引擎 (Vectorized Execution Engine)
-          └──> 支援超越記憶體上限的磁碟溢出 (Out-of-Core Processing)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="duck-arch-title duck-arch-desc">
+    <title id="duck-arch-title">DuckDB 嵌入式進程 OLAP 核心架構圖</title>
+    <desc id="duck-arch-desc">展示應用程式直接鏈接 DuckDB 動態庫無獨立 Server，以 SQL 直接查詢 Parquet，具備向量化執行與 Out-of-Core 磁碟溢出能力。</desc>
+    
+    <rect x="20" y="20" width="300" height="130" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="170" y="50" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">用戶應用程式 (Python/Go/Node)</text>
+    <rect x="40" y="70" width="260" height="60" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="170" y="95" fill="#3fb950" font-size="12" font-family="monospace" text-anchor="middle">libduckdb.so (In-Process)</text>
+    <text x="170" y="115" fill="#8b949e" font-size="10" text-anchor="middle">零獨立 Server 維護開銷！</text>
+
+    <path d="M 320 85 L 420 85" stroke="#3fb950" stroke-width="2.5" marker-end="url(#pol-arrow)"/>
+
+    <rect x="430" y="20" width="350" height="130" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="605" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">DuckDB 核心引擎特性</text>
+    <text x="450" y="75" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 原生 SQL 直查本地與 S3 上的 Parquet / CSV</text>
+    <text x="450" y="100" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 向量化執行引擎 (Vectorized Engine)</text>
+    <text x="450" y="125" fill="#56d364" font-size="11" font-weight="700" font-family="system-ui, sans-serif">• Out-of-Core 磁碟溢出: 16G 記憶體秒查 100GB！</text>
+
+  </svg>
+</div>
 
 ### DuckDB 的殺手級特性
 

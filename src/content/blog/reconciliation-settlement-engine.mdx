@@ -29,10 +29,35 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在金融術語中，「清算」與「結算」有著嚴格的本質區別：
 
-```text
-[ 交易階段 (Transaction) ]  ───>  [ 清算階段 (Clearing) ]  ───>  [ 結算階段 (Settlement) ]
-持卡人點擊支付，額度被凍結        交換對帳數據，計算各方應收應付債權        資金在央行或清算銀行間實際劃撥
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rec-stages-title rec-stages-desc">
+    <title id="rec-stages-title">金融交易、清算與結算三階段演進圖</title>
+    <desc id="rec-stages-desc">展示交易階段凍結額度、清算階段交換對帳數據計算淨應收付、結算階段在銀行間實際劃撥資金的完整週期。</desc>
+    
+    <defs>
+      <marker id="rec-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="20" width="220" height="75" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="130" y="45" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">1. 交易階段 (Transaction)</text>
+    <text x="130" y="68" fill="#c9d1d9" font-size="10" text-anchor="middle">持卡人即時支付，額度凍結</text>
+
+    <path d="M 240 57 L 290 57" stroke="#58a6ff" stroke-width="2" marker-end="url(#rec-arrow)"/>
+
+    <rect x="290" y="20" width="220" height="75" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="45" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">2. 清算階段 (Clearing)</text>
+    <text x="400" y="68" fill="#c9d1d9" font-size="10" text-anchor="middle">T 日交換對帳單，計算淨額債權</text>
+
+    <path d="M 510 57 L 560 57" stroke="#3fb950" stroke-width="2" marker-end="url(#rec-arrow)"/>
+
+    <rect x="560" y="20" width="220" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="670" y="45" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">3. 結算階段 (Settlement)</text>
+    <text x="670" y="68" fill="#56d364" font-size="10" text-anchor="middle">T+1 日銀行間頭寸實際劃撥</text>
+
+  </svg>
+</div>
 
 | 階段     | 英文術語    | 核心定義與動作                                                                                         |
 | :------- | :---------- | :----------------------------------------------------------------------------------------------------- |
@@ -46,17 +71,33 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 最健壯的對帳體系必須涵蓋三個獨立數據源的比對：
 
-```text
-               ┌────────────────────────┐
-               │ 內部核心帳本 (Ledger)  │
-               └───────────┬────────────┘
-                           │
-             ┌─────────────┴─────────────┐
-             ▼                           ▼
-┌────────────────────────┐   ┌────────────────────────┐
-│ 支付網關流水 (Gateway) │<─>│  銀行清算文件 (Bank)   │
-└────────────────────────┘   └────────────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 200" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="three-way-title three-way-desc">
+    <title id="three-way-title">三方對帳三角矩陣拓撲圖</title>
+    <desc id="three-way-desc">展示內部核心帳本、支付網關流水與銀行官方清算文件三者之間的雙向比對校驗閉環。</desc>
+    
+    <rect x="270" y="15" width="260" height="50" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="38" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">內部核心帳本 (Internal Ledger)</text>
+    <text x="400" y="54" fill="#8b949e" font-size="10" text-anchor="middle">業務系統訂單與借貸記錄</text>
+
+    <path d="M 330 65 L 180 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#rec-arrow)"/>
+    <path d="M 470 65 L 620 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#rec-arrow)"/>
+
+    <rect x="50" y="115" width="260" height="60" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="180" y="140" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">支付網關交易紀錄 (Gateway)</text>
+    <text x="180" y="160" fill="#8b949e" font-size="10" text-anchor="middle">Stripe / Adyen 通訊日誌</text>
+
+
+    <path d="M 310 145 L 480 145" stroke="#bc8cff" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#rec-arrow)"/>
+    <path d="M 490 155 L 320 155" stroke="#bc8cff" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#rec-arrow)"/>
+    <text x="400" y="138" fill="#d2a8ff" font-size="10" font-weight="700" text-anchor="middle">三方閉環校驗</text>
+
+    <rect x="490" y="115" width="260" height="60" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="620" y="140" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">銀行清算報表 (Bank File)</text>
+    <text x="620" y="160" fill="#8b949e" font-size="10" text-anchor="middle">官方 MT940 / Camt.053 對帳單</text>
+
+  </svg>
+</div>
 
 1. **內部訂單帳本（Internal Ledger）**：業務系統記錄的訂單與帳戶變動。
 2. **支付網關交易紀錄（Payment Gateway Logs）**：發送給收單行的通訊紀錄與狀態。
@@ -68,20 +109,36 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 面對單日數千萬筆流水，單機對帳程式會直接記憶體溢出。現代系統採用分散式批次處理管線：
 
-```text
-[ 銀行對帳單下載 (SFTP / S3) ]
-             │
-             ▼
-[ 格式化解析 Worker (Parser) ] ── (解析 CSV / XML / MT940，轉換為統一 Parquet 格式)
-             │
-             ▼
-[ 分散式對帳引擎 (Spark / DuckDB) ]
-    ├── 1. 精確匹配 (Join on Idempotency Key / Reference ID)
-    ├── 2. 差額比對 (Amount, Currency, Status Check)
-    └── 3. 輸出對帳結果矩陣
-             ├──> [ 平帳 (Reconciled) ] ──> 歸檔結案
-             └──> [ 差錯帳 (Discrepancy) ] ──> 投遞至差錯處理佇列
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rec-pipe-title rec-pipe-desc">
+    <title id="rec-pipe-title">分散式 T+1 批次對帳引擎處理管線圖</title>
+    <desc id="rec-pipe-desc">展示銀行對帳單下載經 Parser Worker 轉換為統一 Parquet 格式，交由 Spark/DuckDB 引擎進行精確匹配，輸出平帳歸檔或差錯帳佇列。</desc>
+    
+    <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">銀行對帳單自動下載 (SFTP / S3)</text>
+
+    <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#rec-arrow)"/>
+
+    <rect x="180" y="65" width="440" height="35" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="400" y="87" fill="#58a6ff" font-size="11" text-anchor="middle">格式化解析 Worker (CSV / MT940 ➔ 統一 Parquet 列式儲存)</text>
+
+    <path d="M 400 100 L 400 120" stroke="#bc8cff" stroke-width="2" marker-end="url(#rec-arrow)"/>
+
+    <rect x="60" y="120" width="680" height="45" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="400" y="142" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">【 分散式對帳引擎 (Spark / DuckDB SQL Engine) 】</text>
+    <text x="400" y="156" fill="#8b949e" font-size="9" text-anchor="middle">基於 Idempotency Key 進行 JOIN ｜ 差額/幣別/狀態多維自動比對</text>
+
+    <path d="M 260 165 L 200 190" stroke="#3fb950" stroke-width="1.5" marker-end="url(#rec-arrow)"/>
+    <path d="M 540 165 L 600 190" stroke="#da3633" stroke-width="1.5" marker-end="url(#rec-arrow)"/>
+
+    <rect x="60" y="190" width="280" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="200" y="210" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ 平帳 (Reconciled) ➔ 自動歸檔結案</text>
+
+    <rect x="460" y="190" width="280" height="30" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="600" y="210" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 差錯帳 (Discrepancy) ➔ 差錯補償佇列</text>
+
+  </svg>
+</div>
 
 ---
 

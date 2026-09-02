@@ -37,7 +37,6 @@ UPDATE accounts SET balance = balance - 100 WHERE user_id = 42;
 雙式記帳的核心精神只有一句話：**每一筆資金流動，都必須同時記錄來源與去向，且借方（Debit）總額永遠等於貸方（Credit）總額！**
 
 ```text
-[ 核心會計恆等式 ]
 資產 (Assets) = 負債 (Liabilities) + 所有者權益 (Equity)
 ```
 
@@ -55,7 +54,9 @@ UPDATE accounts SET balance = balance - 100 WHERE user_id = 42;
 
 對於任意一筆交易分錄（Entry）：
 
-`Σ Debits = Σ Credits`
+```text
+Σ Debits = Σ Credits
+```
 
 如果一筆交易寫入資料庫時 `Σ Debits ≠ Σ Credits`，系統必須在資料庫層級（如 Check Constraint 或 Trigger）強制拋出異常並拒絕寫入！
 
@@ -65,18 +66,37 @@ UPDATE accounts SET balance = balance - 100 WHERE user_id = 42;
 
 金融級帳本嚴禁執行 `UPDATE` 或 `DELETE`。任何更正必須透過**紅字沖正（Reversal）**或發起一筆反向交易。
 
-```text
-┌─────────────────┐       1:N       ┌─────────────────┐
-│   TRANSACTIONS  ├────────────────>│  ENTRY_LEGS     │
-│ (交易主表/事件) │                 │ (借貸明細分錄)  │
-└─────────────────┘                 └────────┬────────┘
-                                             │ N:1
-                                             ▼
-                                    ┌─────────────────┐
-                                    │    ACCOUNTS     │
-                                    │ (科目與帳戶主檔)│
-                                    └─────────────────┘
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ledger-er-title ledger-er-desc">
+    <title id="ledger-er-title">雙式記帳不可篡改日誌 ER 關聯圖</title>
+    <desc id="ledger-er-desc">展示 TRANSACTIONS 交易主表與 ENTRY_LEGS 借貸明細分錄的 1 對多關聯，以及分錄與 ACCOUNTS 科目帳戶主檔的多對一關聯。</desc>
+    
+    <defs>
+      <marker id="ldg-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="25" width="210" height="75" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="135" y="52" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">TRANSACTIONS</text>
+    <text x="135" y="75" fill="#8b949e" font-size="10" text-anchor="middle">交易主表 (原子業務事件)</text>
+
+    <path d="M 240 62 L 290 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#ldg-arrow)"/>
+    <text x="265" y="52" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">1 : N</text>
+
+    <rect x="295" y="25" width="220" height="75" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="405" y="52" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">ENTRY_LEGS</text>
+    <text x="405" y="75" fill="#8b949e" font-size="10" text-anchor="middle">借貸明細分錄 (只增不減)</text>
+
+    <path d="M 515 62 L 565 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#ldg-arrow)"/>
+    <text x="540" y="52" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">N : 1</text>
+
+    <rect x="570" y="25" width="200" height="75" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="670" y="52" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">ACCOUNTS</text>
+    <text x="670" y="75" fill="#8b949e" font-size="10" text-anchor="middle">科目與帳戶主檔</text>
+
+  </svg>
+</div>
 
 ### 核心表結構設計
 

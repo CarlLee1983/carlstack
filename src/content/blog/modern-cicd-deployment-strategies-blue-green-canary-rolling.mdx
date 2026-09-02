@@ -50,22 +50,45 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 如同早期煤礦工人帶著金絲雀下井以探測瓦斯氣體，金絲雀發布先將極小比例的線上真實流量（如 1%~5%）路由至新版本：
 
-```text
-[ 全球使用者真實流量 (100%) ]
-              │
-              ▼
-[ L7 智慧流量網關 (Envoy / Istio) ]
-   ├── 98% 流量 ──> [ Baseline 基準集群 (v1.0 穩定版: 100 Pods) ]
-   └──  2% 流量 ──> [ Canary 金絲雀集群 (v2.0 新版本: 2 Pods) ]
-                          │
-                          ▼ (即時比對兩者指標)
-        [ 收集 Prometheus 監控: P99 延遲, 5xx 錯誤率, CPU/記憶體 ]
-                          │
-                          ▼
-            [ 自動化金絲雀分析 (ACA: Kayenta) ]
-         ├── (若各項指標正常) ──> 逐步擴展流量至 10% -> 50% -> 100% (發布成功！)
-         └── (若發現異常退化) ──> 自動將 Canary 權重歸零 (秒級止血！)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="canary-arch-title canary-arch-desc">
+    <title id="canary-arch-title">Canary 金絲雀發布與 Netflix Kayenta 自動化分析架構圖</title>
+    <desc id="canary-arch-desc">展示 L7 網關將 98% 流量導向 Baseline 穩定版，2% 導向 Canary 新版，Kayenta 即時採集 P99 與錯誤率自動決策擴展或止血。</desc>
+    
+    <defs>
+      <marker id="dep-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="250" y="10" width="300" height="38" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="34" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">全球使用者真實流量 (100%)</text>
+
+    <path d="M 400 48 L 400 70" stroke="#58a6ff" stroke-width="2" marker-end="url(#dep-arrow)"/>
+
+    <rect x="180" y="70" width="440" height="40" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="400" y="95" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">L7 智慧流量網關 (Envoy / Istio)</text>
+
+    <path d="M 280 110 L 180 135" stroke="#3fb950" stroke-width="2" marker-end="url(#dep-arrow)"/>
+    <text x="210" y="122" fill="#3fb950" font-size="10" font-weight="700">98% 流量</text>
+
+    <path d="M 520 110 L 620 135" stroke="#d29922" stroke-width="2" marker-end="url(#dep-arrow)"/>
+    <text x="590" y="122" fill="#e3b341" font-size="10" font-weight="700">2% 流量</text>
+
+
+    <rect x="40" y="135" width="280" height="85" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="180" y="160" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Baseline 基準集群 (v1.0 穩定版)</text>
+    <text x="180" y="182" fill="#c9d1d9" font-size="10" text-anchor="middle">100 Pods ｜ 提供基準指標對照</text>
+    <text x="180" y="202" fill="#56d364" font-size="10" text-anchor="middle">Prometheus 實時採集樣本</text>
+
+
+    <rect x="480" y="135" width="280" height="85" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="620" y="160" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Canary 金絲雀集群 (v2.0 新版本)</text>
+    <text x="620" y="182" fill="#c9d1d9" font-size="10" text-anchor="middle">2 Pods ｜ 曼-惠特尼 U 統計檢驗</text>
+    <text x="620" y="202" fill="#f85149" font-size="10" font-weight="700" text-anchor="middle">指標異常 ➔ 秒級自動切回歸零！</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -89,18 +112,39 @@ Kayenta 並非簡單地比對「平均值」，而是採用非參數統計學檢
 
 必須採用 **擴展-收縮模式（Expand-Contract Pattern / Parallel Run）**：
 
-```text
-[ 階段一: Expand (擴展) ]
-1. DB 新增欄位 first_name 與 last_name (允許為 NULL)。
-2. 發布新代碼 (雙寫模式): 寫入時同時更新 full_name 以及 first_name/last_name。
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ec-pat-title ec-pat-desc">
+    <title id="ec-pat-title">資料庫零停機結構變更：擴展-收縮（Expand-Contract）三階段流程圖</title>
+    <desc id="ec-pat-desc">展示階段一 Expand 擴展新欄位並雙寫，階段二 Migrate 非同步遷移舊資料，階段三 Contract 完全切換並安全刪除廢棄舊欄位。</desc>
+    
+    
+    <rect x="20" y="20" width="235" height="180" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="137" y="48" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段一: Expand (擴展)</text>
+    <text x="35" y="80" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">1. DB 新增欄位</text>
+    <text x="50" y="100" fill="#8b949e" font-size="10" font-family="monospace">first_name, last_name (NULL)</text>
+    <text x="35" y="130" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">2. 部署新程式碼 (雙寫)</text>
+    <text x="50" y="150" fill="#8b949e" font-size="10" font-family="monospace">同時寫入新舊欄位</text>
+    <text x="137" y="185" fill="#58a6ff" font-size="10" text-anchor="middle">新舊版本共存無虞</text>
 
-[ 階段二: Migrate (歷史資料遷移) ]
-3. 背景非同步 Job 將所有歷史舊資料拆分補齊。
+    <rect x="280" y="20" width="235" height="180" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="397" y="48" fill="#e3b341" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段二: Migrate (遷移)</text>
+    <text x="295" y="80" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">3. 背景非同步 Job</text>
+    <text x="310" y="100" fill="#8b949e" font-size="10" font-family="monospace">拆分並補齊歷史舊資料</text>
+    <text x="295" y="130" fill="#e3b341" font-size="11" font-family="system-ui, sans-serif">4. 校驗雙向一致性</text>
+    <text x="310" y="150" fill="#8b949e" font-size="10" font-family="monospace">確保無一遺漏</text>
+    <text x="397" y="185" fill="#e3b341" font-size="10" text-anchor="middle">資料庫平滑追平</text>
 
-[ 階段三: Contract (收縮) ]
-4. 發布新代碼 (完全切換為讀寫新欄位，停止寫入 full_name)。
-5. 安全執行 ALTER TABLE 刪除廢棄的 full_name 舊欄位。
-```
+
+    <rect x="540" y="20" width="235" height="180" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="657" y="48" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">階段三: Contract (收縮)</text>
+    <text x="555" y="80" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">5. 部署切換程式碼</text>
+    <text x="570" y="100" fill="#8b949e" font-size="10" font-family="monospace">完全僅讀寫新欄位</text>
+    <text x="555" y="130" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">6. 安全執行 DDL</text>
+    <text x="570" y="150" fill="#8b949e" font-size="10" font-family="monospace">刪除廢棄舊欄位 full_name</text>
+    <text x="657" y="185" fill="#56d364" font-size="10" font-weight="700" text-anchor="middle">100% 零停機遷移完成！</text>
+
+  </svg>
+</div>
 
 ---
 

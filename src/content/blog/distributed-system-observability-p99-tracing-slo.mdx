@@ -31,14 +31,43 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在現代電商或搜尋首頁中，用戶的一個請求通常需要在後端平行呼叫數十個微服務（推薦、廣告、庫存、評價）：
 
-```text
-[ 用戶請求 ] ───> [ 聚合閘道器 (Aggregator) ]
-                         │
-                         ├── (平行呼叫) ──> [ 服務 1 (P99 延遲 100ms) ]
-                         ├── (平行呼叫) ──> [ 服務 2 (P99 延遲 100ms) ]
-                         ├── ...
-                         └── (平行呼叫) ──> [ 服務 100 (P99 延遲 100ms) ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fanout-title fanout-desc">
+    <title id="fanout-title">聚合閘道器平行扇出（Fan-out）長尾延遲放大效應圖</title>
+    <desc id="fanout-desc">展示單一請求進入聚合閘道器平行呼叫 100 個微服務，單服務 1% 慢請求導致聚合端超過 63.4% 機率遭遇卡頓。</desc>
+    
+    <defs>
+      <marker id="obs-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="20" y="55" width="160" height="50" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="100" y="80" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">用戶端請求</text>
+    <text x="100" y="96" fill="#8b949e" font-size="9" text-anchor="middle">Single Request</text>
+
+    <path d="M 180 80 L 230 80" stroke="#58a6ff" stroke-width="2" marker-end="url(#obs-arrow)"/>
+
+    <rect x="230" y="55" width="200" height="50" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="330" y="78" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">聚合閘道器 (Aggregator)</text>
+    <text x="330" y="96" fill="#8b949e" font-size="9" text-anchor="middle">平行扇出 100 個 RPC</text>
+
+    <path d="M 430 65 L 500 35" stroke="#da3633" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+    <path d="M 430 80 L 500 80" stroke="#da3633" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+    <path d="M 430 95 L 500 125" stroke="#da3633" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+
+
+    <rect x="510" y="15" width="260" height="35" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="640" y="37" fill="#c9d1d9" font-size="10" text-anchor="middle">微服務 1 (P99 延遲 100ms)</text>
+
+    <rect x="510" y="62" width="260" height="35" rx="4" fill="#161b22" stroke="#388bfd"/>
+    <text x="640" y="84" fill="#c9d1d9" font-size="10" text-anchor="middle">微服務 2 (P99 延遲 100ms)</text>
+
+    <rect x="510" y="110" width="260" height="35" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="640" y="132" fill="#f85149" font-size="10" font-weight="700" text-anchor="middle">微服務 100 ➔ 聚合端卡頓率 &gt; 63.4%！</text>
+
+  </svg>
+</div>
 
 假設單個服務的 P99 延遲為 100ms（即只有 1% 的請求會慢於 100ms）。當聚合器必須**等待所有 100 個子服務全部返回**後才能組裝頁面時：
 
@@ -61,17 +90,41 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 現代可觀測性已從過去各自為政的監控工具，統一匯聚至 CNCF 的 **OpenTelemetry（OTel）** 標準：
 
-```text
-               ┌──────────────────────────────────────┐
-               │    OpenTelemetry 統一收集器 (Collector)│
-               └──────────────────┬───────────────────┘
-                                  │
-         ┌────────────────────────┼────────────────────────┐
-         ▼                        ▼                        ▼
-[ 追蹤 Traces (Jaeger / Tempo) ] [ 指標 Metrics (Prometheus) ] [ 日誌 Logs (Loki / ClickHouse) ]
-- Span Context 串聯全鏈路        - P50 / P95 / P99 延遲分布     - 結構化 JSON 錯誤堆疊
-- 找出 100 個 RPC 中最慢的瓶頸  - 資源利用率 (CPU, RAM, IO)   - 上下文關聯 trace_id
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="otel-arch-title otel-arch-desc">
+    <title id="otel-arch-title">OpenTelemetry 統一收集器與可觀測性三大支柱架構圖</title>
+    <desc id="otel-arch-desc">展示 OTel Collector 統一收集資料並派發至 Traces 分散式追蹤、Metrics 指標監控與 Logs 結構化日誌三大儲存。</desc>
+    
+    <rect x="230" y="10" width="340" height="40" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="35" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">OpenTelemetry 統一收集器 (OTel Collector)</text>
+
+    <path d="M 300 50 L 170 85" stroke="#388bfd" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+    <path d="M 400 50 L 400 85" stroke="#3fb950" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+    <path d="M 500 50 L 630 85" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#obs-arrow)"/>
+
+
+    <rect x="30" y="85" width="230" height="125" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
+    <text x="145" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">追蹤 Traces (Jaeger/Tempo)</text>
+    <text x="45" y="138" fill="#c9d1d9" font-size="10">• Span Context 串聯全鏈路</text>
+    <text x="45" y="160" fill="#c9d1d9" font-size="10">• 定位 100 個 RPC 最慢瓶頸</text>
+    <text x="45" y="182" fill="#8b949e" font-size="9">• 毫秒級時間軸瀑布圖</text>
+
+
+    <rect x="285" y="85" width="230" height="125" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="112" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">指標 Metrics (Prometheus)</text>
+    <text x="300" y="138" fill="#c9d1d9" font-size="10">• P50 / P95 / P99 延遲分佈</text>
+    <text x="300" y="160" fill="#c9d1d9" font-size="10">• 容器 CPU / RAM / IO 飽和度</text>
+    <text x="300" y="182" fill="#8b949e" font-size="9">• 直方圖 Histogram 即時告警</text>
+
+
+    <rect x="540" y="85" width="230" height="125" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="655" y="112" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">日誌 Logs (Loki/ClickHouse)</text>
+    <text x="555" y="138" fill="#c9d1d9" font-size="10">• 結構化 JSON 錯誤堆疊</text>
+    <text x="555" y="160" fill="#c9d1d9" font-size="10">• 注入 trace_id 關聯查詢</text>
+    <text x="555" y="182" fill="#8b949e" font-size="9">• 高壓縮比低成本持久化</text>
+
+  </svg>
+</div>
 
 ### 分散式追蹤（Distributed Tracing）核心概念
 
@@ -90,14 +143,21 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 - $\lambda$：系統的外部平均到達率（QPS / Throughput）；
 - $W$：每個請求的平均停留時間（Latency）。
 
-```text
-[ 小定律實戰推導 ]
-假設某支付 API 的到達率 λ = 5,000 QPS:
-- 當平均延遲 W = 20ms (0.02s) 時:
-  系統內併發請求數 L = 5,000 * 0.02 = 100 個 (常規 Tomcat 執行緒池輕鬆搞定)
-- 當下游資料庫慢查詢導致平均延遲暴增至 W = 2s 時:
-  系統內併發請求數 L = 5,000 * 2 = 10,000 個! (執行緒池與記憶體瞬間耗盡崩潰!)
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="litt-law-title litt-law-desc">
+    <title id="litt-law-title">小定律容量推導與執行緒池負載劇變對比圖</title>
+    <desc id="litt-law-desc">展示 5000 QPS 下，正常 20ms 延遲僅需 100 併發執行緒，而慢查詢 2s 延遲導致併發飆升至 10000 耗盡記憶體。</desc>
+    
+    <rect x="20" y="15" width="760" height="55" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="40" y="38" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">✅ 正常場景 (W = 20ms = 0.02s) ── 系統併發數 L = 5000 * 0.02 = 100 個執行緒</text>
+    <text x="40" y="56" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">常規 Tomcat 執行緒池 (Max Threads = 200) 輕鬆負載，CPU 利用率平穩。</text>
+
+    <rect x="20" y="85" width="760" height="55" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
+    <text x="40" y="108" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700">❌ 慢查詢延遲惡化 (W = 2s) ── 系統併發數 L = 5000 * 2 = 10,000 個執行緒！</text>
+    <text x="40" y="126" fill="#f85149" font-size="10" font-family="system-ui, sans-serif">併發需求暴增 100 倍！執行緒池瞬間打滿，請求在佇列堆積觸發 OOM 崩潰！</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -105,13 +165,25 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 SRE 團隊不應針對每次微小報警疲於奔命，而是應建立基於 **SLO（服務等級目標）** 的錯誤預算體系：
 
-```text
-[ 99.9% 可用性 SLO 預算池 (每月允許 43.2 分鐘的錯誤預算) ]
-        │
-        ├── 消耗 10% 預算 ──> 正常業務迭代，快速發布新功能
-        ├── 消耗 50% 預算 ──> 召開架構審查會議，評估長尾風險
-        └── 消耗 100% 預算 ─> 【發布凍結 (Freeze)】所有人力強制投入穩定性修復!
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="slo-bud-title slo-bud-desc">
+    <title id="slo-bud-title">SLO 錯誤預算三級階梯治理圖</title>
+    <desc id="slo-bud-desc">展示 99.9% SLO 預算池下，消耗 10% 正常發布、消耗 50% 架構審查、消耗 100% 發布凍結強制修復。</desc>
+    
+    <rect x="20" y="15" width="760" height="40" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="40" y="40" fill="#58a6ff" font-size="12" font-weight="700">【 99.9% 可用性 SLO 預算池 】── 每月允許 43.2 分鐘的錯誤預算</text>
+
+    <rect x="40" y="65" width="720" height="30" rx="4" fill="#1b2e23" stroke="#238636"/>
+    <text x="60" y="85" fill="#3fb950" font-size="11">🟢 消耗 10% 預算 ──► 正常業務迭代，快速發布新功能</text>
+
+    <rect x="40" y="102" width="720" height="30" rx="4" fill="#161b22" stroke="#d29922"/>
+    <text x="60" y="122" fill="#e3b341" font-size="11">🟡 消耗 50% 預算 ──► 召開架構審查會議，評估長尾延遲風險</text>
+
+    <rect x="40" y="139" width="720" height="30" rx="4" fill="#2d1d24" stroke="#da3633"/>
+    <text x="60" y="159" fill="#f85149" font-size="11" font-weight="700">🔴 消耗 100% 預算 ─►【發布凍結 (Freeze)】所有人力強制投入穩定性修復！</text>
+
+  </svg>
+</div>
 
 ---
 

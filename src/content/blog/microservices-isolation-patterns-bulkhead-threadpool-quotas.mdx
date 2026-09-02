@@ -27,19 +27,27 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 隔離模式的核心層次全景
 
-```text
-[ 第 1 層：進程內隔離 (In-Process) ]
-  ├── 執行緒池隔離 (Thread Pool Isolation): 為每個依賴分配獨立工作執行緒池
-  └── 信號量隔離 (Semaphore Isolation): 透過計數器限制同時並發呼叫數
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bulkhead-arch-title bulkhead-arch-desc">
+    <title id="bulkhead-arch-title">微服務立體多層級艙壁隔離架構防線圖</title>
+    <desc id="bulkhead-arch-desc">展示第 1 層進程內執行緒池與信號量隔離、第 2 層租戶動態配額與泳道分流隔離、第 3 層 cgroups 與 MicroVM 硬體物理隔離。</desc>
+    
+    
+    <rect x="20" y="15" width="760" height="58" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="38" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700">【 第 1 層：進程內隔離 (In-Process Bulkhead) 】</text>
+    <text x="40" y="58" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 執行緒池隔離 (Thread Pool: 依賴故障 Fast-Fail) ｜ 信號量隔離 (Semaphore: 微秒計數防打垮)</text>
 
-[ 第 2 層：業務與租戶隔離 (Tenant & Domain) ]
-  ├── 多租戶配額隔離 (Tenant Quotas): 防禦 Noisy Neighbor 資源擠佔
-  └── 核心業務分流 (Core vs Non-core): 讀寫分離、VIP 獨立集群通道
+    <rect x="20" y="85" width="760" height="58" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="40" y="108" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700">【 第 2 層：業務與租戶隔離 (Tenant & Domain) 】</text>
+    <text x="40" y="128" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 多租戶動態令牌桶配額 (防禦 Noisy Neighbor 擠佔) ｜ 核心業務泳道分流 (VIP 獨立物理集群)</text>
 
-[ 第 3 層：操作系統與硬體物理隔離 (Kernel & Infra) ]
-  ├── 容器資源配額 (Kubernetes cgroups: CPU/Memory Limits)
-  └── 輕量虛擬化沙盒 (AWS Firecracker MicroVM / gVisor)
-```
+
+    <rect x="20" y="155" width="760" height="58" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
+    <text x="40" y="178" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">【 第 3 層：操作系統與硬體物理隔離 (Kernel & Infra) 】</text>
+    <text x="40" y="198" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 容器資源配額 (Kubernetes cgroups: CPU/Memory Limits) ｜ 輕量虛擬化 (AWS Firecracker MicroVM)</text>
+
+  </svg>
+</div>
 
 ---
 

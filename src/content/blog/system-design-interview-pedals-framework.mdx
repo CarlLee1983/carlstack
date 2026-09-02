@@ -31,13 +31,25 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 1. 45 分鐘標準時間節奏控制（Time Management）
 
-```text
-[ 45 分鐘系統設計面試黃金節奏表 ]
-├─ Step 1: 需求釐清與容量估算 (Understand & Estimate) ─── [ 5 ~ 8 分鐘 ]
-├─ Step 2: 高階架構與 API/資料模型設計 (High-Level Design) ─ [ 10 ~ 15 分鐘 ]
-├─ Step 3: 核心瓶頸深入剖析 (Deep-Dive & Bottlenecks) ─── [ 15 ~ 20 分鐘 ]
-└─ Step 4: 系統演進與權衡總結 (Wrap-Up & Trade-Offs) ───── [ 3 ~ 5 分鐘 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 200" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pedals-time-title pedals-time-desc">
+    <title id="pedals-time-title">45 分鐘系統設計面試時間節奏分配圖</title>
+    <desc id="pedals-time-desc">展示 Step 1 需求與估算 5-8分鐘、Step 2 高階架構 10-15分鐘、Step 3 核心瓶頸剖析 15-20分鐘、Step 4 權衡總結 3-5分鐘。</desc>
+    
+    <rect x="20" y="15" width="760" height="38" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="40" y="38" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700">Step 1: 需求釐清與容量估算 (Understand &amp; Estimate) ─── 5 ~ 8 分鐘 (15%)</text>
+
+    <rect x="20" y="58" width="760" height="38" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="40" y="81" fill="#d2a8ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700">Step 2: 高階架構與 API/資料模型設計 (High-Level Design) ─ 10 ~ 15 分鐘 (30%)</text>
+
+    <rect x="20" y="101" width="760" height="38" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="40" y="124" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">Step 3: 核心瓶頸深入剖析 (Deep-Dive &amp; Bottlenecks) ─── 15 ~ 20 分鐘 (45% 重點！)</text>
+
+    <rect x="20" y="144" width="760" height="38" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
+    <text x="40" y="167" fill="#e3b341" font-size="12" font-family="system-ui, sans-serif" font-weight="700">Step 4: 系統演進與權衡總結 (Wrap-Up &amp; Trade-Offs) ───── 3 ~ 5 分鐘 (10%)</text>
+
+  </svg>
+</div>
 
 ---
 
@@ -60,17 +72,42 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 畫出簡潔清晰的 Macro-Architecture 全景圖：
 
-```text
-[ 客戶端 (Web / Mobile) ]
-           │
-           ▼
-[ CDN (全球邊緣靜態快取) ]
-           │
-           ▼
-[ API 閘道器 (負載平衡, 認證, 限流) ]
-           ├──> [ 核心業務微服務 A ] ──> [ 主資料庫 (PostgreSQL / MySQL) ]
-           └──> [ 非同步處理隊列 (Kafka) ] ──> [ 背景 Worker 叢集 ] ──> [ S3 物件儲存 ]
-```
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hl-arch-title hl-arch-desc">
+    <title id="hl-arch-title">高階 Macro 系統架構拓撲圖</title>
+    <desc id="hl-arch-desc">展示客戶端經 CDN 快取、API 閘道分流至同步核心微服務主庫，與非同步 Kafka 隊列背景 Worker 寫入 S3 物件儲存。</desc>
+    
+    <defs>
+      <marker id="hla-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="30" y="90" width="160" height="50" rx="6" fill="#1f242c" stroke="#58a6ff"/>
+    <text x="110" y="115" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">客戶端 (Web/App)</text>
+    <text x="110" y="130" fill="#8b949e" font-size="9" text-anchor="middle">Client Requests</text>
+
+    <path d="M 190 115 L 240 115" stroke="#58a6ff" stroke-width="2" marker-end="url(#hla-arrow)"/>
+
+    <rect x="240" y="90" width="160" height="50" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="320" y="112" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">CDN 邊緣快取</text>
+    <text x="320" y="130" fill="#8b949e" font-size="9" text-anchor="middle">＋ API 閘道器</text>
+
+    <path d="M 400 100 L 480 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#hla-arrow)"/>
+    <path d="M 400 130 L 480 180" stroke="#d29922" stroke-width="1.5" marker-end="url(#hla-arrow)"/>
+
+
+    <rect x="490" y="25" width="280" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="630" y="48" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">核心業務微服務 (Core Service)</text>
+    <text x="630" y="65" fill="#c9d1d9" font-size="10" text-anchor="middle">➔ 讀寫分庫分表 (PostgreSQL / Redis 快取)</text>
+
+
+    <rect x="490" y="155" width="280" height="55" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="630" y="178" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">非同步訊息隊列 (Kafka Stream)</text>
+    <text x="630" y="195" fill="#8b949e" font-size="10" text-anchor="middle">➔ 背景 Worker 轉碼 ➔ S3 分散式物件儲存</text>
+
+  </svg>
+</div>
 
 - **API 契約設計**：寫出核心端點的 Request/Response 簽名（如 `POST /api/v1/videos/upload`）。
 - **資料模型（Data Schema）**：定義核心實體表與主鍵、索引設計。
