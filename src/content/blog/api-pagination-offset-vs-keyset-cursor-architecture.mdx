@@ -1,0 +1,148 @@
+---
+title: "API 分頁架構設計：Offset 分頁 vs. Keyset / Cursor 游標分頁深度對決與效能極限"
+description: "深入剖析大規模資料庫與 API 分頁架構：深度分頁 (Deep Pagination) 效能崩潰原因、MySQL InnoDB B+ Tree 葉節點全掃描成本、資料動態漂移 (Data Drift) 問題、Keyset / Cursor 游標分頁索引直接尋址與不重複排序鍵 (Tie-breaker) 實戰。"
+publishDate: 2026-09-02T12:50:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/api-pagination-offset-vs-keyset-cursor-architecture.png
+coverAlt: "索引資料由深層 Offset 掃描轉為快速 Keyset 游標尋址"
+tags:
+  - "系統設計"
+  - "資料庫"
+  - "API 設計"
+  - "分頁架構"
+  - "SQL 優化"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在設計 RESTful API、GraphQL 或後台管理系統時，**資料分頁（Pagination）** 是最常見的基礎功能。無論是電商商品列表、社群動態 Feed、或是海量審計日誌檢索，都需要將百萬至億級的資料集合切分為小批次返回給客戶端。
+
+然而，絕大多數工程師在初期最常使用的 **Offset 分頁（`LIMIT offset, limit`）**，在資料量超過數十萬至百萬筆時，會引發災難性的**深度分頁效能崩潰（Deep Pagination Degradation）**：查詢時間從 2ms 驟增至數十秒，甚至直接引發資料庫慢查詢告警與 CPU 飆升。
+
+此外，當列表資料存在頻繁新增或刪除時，Offset 分頁還會導致使用者在翻頁時遇到**資料重複出現（Duplicate Rows）** 或 **遺漏資料（Missing Rows）** 的資料漂移問題。
+
+本文將深入剖析 Offset 分頁的底層瓶頸，並全面探討 **Keyset 分頁** 與 **Cursor 游標分頁** 的架構實作。
+
+---
+
+## 1. 深度分頁的死穴：Offset 分頁底層機制
+
+在關聯式資料庫（如 MySQL / PostgreSQL）中，常見的 Offset 分頁 SQL 如下：
+
+```sql
+SELECT * FROM orders
+ORDER BY created_at DESC
+LIMIT 1000000, 20;
+```
+
+### 1.1 B+ Tree 葉子節點全掃描與回表開銷
+
+許多開發者誤以為資料庫會「直接跳過」前 100 萬筆資料，直接定位到第 1,000,001 筆。
+
+但實際上，資料庫引擎在執行此查詢時的底層步驟如下：
+
+1. **掃描百萬筆資料**：資料庫必須沿著 B+ Tree 索引的雙向鏈表，從頭開始**逐一讀取並排序前 1,000,020 筆資料**。
+2. **回表（Table Lookup）開銷**：若查詢包含非索引欄位（`SELECT *`），資料庫會針對這 1,000,020 筆資料**全部進行回表讀取磁碟上的聚簇索引實體行**。
+3. **無情拋棄**：最後將前面辛辛苦苦讀取的 1,000,000 筆資料全部在記憶體中丟棄，僅返回最後 20 筆。
+
+```text
+[ Offset 分頁底層成本 ]
+掃描並讀取第 1 ~ 1,000,000 行 ── (耗費巨量磁碟 I/O 與 CPU) ──> 全部丟棄！
+僅取出第 1,000,001 ~ 1,000,020 行 (20 筆) ──> 返回客戶端
+```
+
+查詢耗時與 `OFFSET` 大小呈嚴格的 **$O(N)$ 線性正比增長**。
+
+### 1.2 資料動態漂移（Data Drift）
+
+假設每頁展示 10 筆資料：
+
+1. 使用者正在瀏覽第 1 頁（第 1~10 筆）。
+2. 此時系統新增了 2 筆全新訂單（排在最前面）。
+3. 使用者點擊「下一頁」發起 `LIMIT 10, 10`。
+4. 原本第 1 頁的第 9、10 筆資料，因為前面插入了 2 筆新資料，位置被推擠到第 11、12 筆——**使用者在第 2 頁將再次看到這兩筆已看過的舊資料！**
+
+---
+
+## 2. 破局之道：Keyset 分頁（基於搜尋條件直接尋址）
+
+Keyset 分頁（又稱 Seek Method）徹底拋棄了 `OFFSET` 語法，改為利用上一頁最後一筆資料的**索引鍵值作為下一頁的查詢起點**。
+
+### 2.1 核心 SQL 轉換
+
+```sql
+-- 第 1 頁:
+SELECT id, title, created_at FROM orders
+ORDER BY id DESC
+LIMIT 20;
+-- 假設最後一筆記錄的 id 為 9800
+
+-- 第 2 頁 (直接使用 WHERE 條件尋址):
+SELECT id, title, created_at FROM orders
+WHERE id < 9800
+ORDER BY id DESC
+LIMIT 20;
+```
+
+### 2.2 效能本質差距
+
+- **B+ Tree $O(\log N)$ 定位**：資料庫直接透過 B+ Tree 的根節點向下檢索，以 $O(\log N)$ 的速度直接精確定位到 `id = 9800` 的葉子節點位置。
+- **純順序讀取 20 筆**：從該節點向後僅讀取 20 筆記錄即刻終止查詢。
+- **效能表現**：無論翻到第 1 頁還是第 1,000 萬頁，**查詢耗時恆定在 1~2 毫秒以內**！
+
+---
+
+## 3. Cursor（游標）分頁架構設計與實作
+
+在對外開放的現代 API（如 Stripe, GitHub, Slack API）中，通常將 Keyset 參數封裝為一個**不透明的字串（Opaque Cursor Token）**。
+
+### 3.1 Cursor Payload 結構與 Base64 編碼
+
+當排序欄位不是唯一主鍵（例如按 `created_at` 排序），若多筆資料擁有完全相同的時間戳，會導致翻頁遺漏。因此必須引入主鍵 `id` 作為 **Tie-breaker（平局決斷鍵）**：
+
+```json
+// 解碼後的 Cursor 結構
+{
+  "created_at": "2026-09-02T10:00:00.000Z",
+  "id": 105829
+}
+```
+
+將該 JSON 序列化後進行 Base64URL 編碼：
+`cursor = "eyJjcmVhdGVkX2F0IjoiMjAyNi0wOS0wMlQxMDowMDowMC4wMDBaIiwiaWQiOjEwNTgyOX0="`
+
+### 3.2 多欄位複合查詢 SQL 實作
+
+```sql
+SELECT id, title, created_at
+FROM orders
+WHERE (created_at < '2026-09-02 10:00:00.000')
+   OR (created_at = '2026-09-02 10:00:00.000' AND id < 105829)
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+```
+
+配合複合索引 `INDEX idx_orders_created_id (created_at, id)`，資料庫能以最極致的效能走索引範圍掃描。
+
+---
+
+## 4. API 分頁選型全景矩陣
+
+```text
++-----------------------+-----------------------------------+-----------------------------------+
+| 評估維度              | Offset 分頁 (LIMIT / OFFSET)      | Cursor / Keyset 游標分頁          |
++-----------------------+-----------------------------------+-----------------------------------+
+| 查詢效能              | 隨頁數增大線性暴跌 (O(N))         | 恆定毫秒級極速 (O(log N))         |
+| 資料漂移 (動態增刪)   | 存在重複或遺漏風險                | 完全免疫資料漂移                  |
+| 隨機跳頁 (Jump Page)  | 原生完美支援 (直接跳至第 88 頁)   | 不支援 (只能一頁一頁順序翻)       |
+| 實作複雜度            | 極低                              | 中等 (需維護 Cursor 與複合索引)   |
+| 適用業務場景          | 傳統後台資料管理、小規模總量查詢  | 無限捲動 (Infinite Scroll)、Feed  |
++-----------------------+-----------------------------------+-----------------------------------+
+```
+
+---
+
+## 5. 總結建議
+
+1. **移動端 App、社群動態 Feed、訊息列表、巨量 Open API**：一律強制採用 **Cursor 游標分頁**，結合雙向游標（`next_cursor` / `prev_cursor`）提供極致流暢的使用者體驗與資料庫保護。
+2. **需要跳頁的企業後台報表**：若必須使用 Offset 分頁，應透過「延遲關聯（Deferred Join）」優化，或設定「最大翻頁深度限制」（例如最多允許翻至第 100 頁，後續引導使用者透過篩選條件縮小範圍）。

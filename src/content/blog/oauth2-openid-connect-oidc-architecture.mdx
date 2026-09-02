@@ -1,0 +1,164 @@
+---
+title: "OAuth 2.0 與 OpenID Connect (OIDC) 授權拓撲全景：PKCE 防禦、JWT 簽名與 Token 輪換機制"
+description: "全面拆解現代身分認證與授權架構：OAuth 2.0 授權碼模式 + PKCE (RFC 7636)、OIDC ID Token 與 Access Token 職責分離、JWKS 金鑰輪換、Refresh Token 輪換 (RTR) 與重放攻擊防禦。"
+publishDate: 2026-09-02T12:10:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/oauth2-openid-connect-oidc-architecture.png
+coverAlt: "授權碼與 PKCE 流程經 Token 與金鑰輪換閘門"
+tags:
+  - "系統設計"
+  - "資訊安全"
+  - "OAuth2"
+  - "OIDC"
+  - "API 安全"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在分散式系統、微服務架構與現代 Web/Mobile 應用中，身分認證（Authentication, AuthN）與存取授權（Authorization, AuthZ）是防護系統邊界的第一道防線。
+
+然而，許多工程師經常混淆 **OAuth 2.0** 與 **OpenID Connect (OIDC)** 的職責邊界，甚至在單頁應用（SPA）或原生行動 App 中誤用存在嚴重安全隱患的隱式授權流程（Implicit Flow）。
+
+本文將從 OAuth 2.0 與 OIDC 的核心定位切入，深度拆解 **Authorization Code Flow + PKCE** 完整拓撲、**JWT 簽名與 JWKS 輪換**、以及 **Refresh Token Rotation (RTR)** 的重放攻擊防禦架構。
+
+---
+
+## 1. OAuth 2.0 vs. OIDC：認證與授權的本質區別
+
+- **OAuth 2.0（RFC 6749）**：純粹的**授權框架（Authorization Framework）**。它的核心目的在於讓第三方應用程式在不獲取使用者帳號密碼的前提下，獲得對受保護資源（Resource）的有限存取權杖（Access Token）。OAuth 2.0 本身**不負責證明使用者的身分**。
+- **OpenID Connect (OIDC)**：構建在 OAuth 2.0 之上的**身分認證層（Identity Layer）**。它在 OAuth 2.0 的基礎上引入了結構化的 **ID Token（JWT 格式）** 與 `/userinfo` 端點，明確解決「我是誰（Who the user is）」的驗證問題。
+
+```text
++-------------------------------------------------------------+
+|               OpenID Connect (OIDC: 認證 AuthN)             |
+|    - 產物：ID Token (JWT)                                    |
+|    - 目的：證明使用者身分與屬性 (sub, email, name)          |
++-------------------------------------------------------------+
+|               OAuth 2.0 框架 (授權 AuthZ)                   |
+|    - 產物：Access Token (Bearer / JWT / Opaque)             |
+|    - 目的：授權存取受保護的 API 資源 (Scopes: read:profile)  |
++-------------------------------------------------------------+
+|                 底層傳輸 (HTTPS / TLS 1.3)                  |
++-------------------------------------------------------------+
+```
+
+---
+
+## 2. 現代黃金標準：Authorization Code Flow + PKCE
+
+在傳統 Web 應用中，伺服器端（Confidential Client）可妥善保管 `client_secret`。但在 SPA（如 React/Vue）與行動 App（Public Client）中，前端代碼完全暴露於使用者端，無法安全儲存密碼。
+
+為此，RFC 7636 制定了 **PKCE（Proof Key for Code Exchange）** 機制，現已成為所有客戶端（包含前後端分離 Web 與行動端）的強制標準。
+
+### 2.1 PKCE 核心三元素
+
+1. **Code Verifier**：客戶端隨機生成的密碼學高強度隨機字串（43~128 字元，包含 `[A-Z]`, `[a-z]`, `[0-9]`, `-`, `.`, `_`, `~`）。
+2. **Code Challenge**：對 `code_verifier` 進行 SHA-256 雜湊後的 Base64URL 編碼字串：
+   `Code Challenge = BASE64URL-ENCODE(SHA256(Code Verifier))`
+3. **Code Challenge Method**：固定為 `S256`（不應再使用不安全的 `plain`）。
+
+### 2.2 完整時序拓撲流程
+
+```text
++--------+                               +---------------+                               +---------------+
+| Client |                               |  Auth Server  |                               | Resource API  |
++--------+                               +---------------+                               +---------------+
+    |                                            |                                               |
+    | 1. 生成 Verifier 與 Challenge(S256)        |                                               |
+    | 2. 導向登入頁面 (帶 Challenge & S256)      |                                               |
+    |------------------------------------------->|                                               |
+    |                                            |                                               |
+    | 3. 使用者登入並授權                       |                                               |
+    | 4. 授權伺服器回傳 Auth Code                |                                               |
+    |<-------------------------------------------|                                               |
+    |                                            |                                               |
+    | 5. 用 Auth Code + 原始 Code Verifier 換 Token|                                             |
+    |------------------------------------------->|                                               |
+    |    (Auth Server 驗證 SHA256(Verifier) == Challenge)                                        |
+    | 6. 回傳 ID Token, Access Token, Refresh Token                                              |
+    |<-------------------------------------------|                                               |
+    |                                                                                            |
+    | 7. 帶 Access Token 請求 API                                                                |
+    |------------------------------------------------------------------------------------------->|
+    | 8. 驗證 Token 簽名與 Scopes，回傳業務資料                                                  |
+    |<-------------------------------------------------------------------------------------------|
+```
+
+> [!IMPORTANT]
+> **為什麼 PKCE 能防禦授權碼攔截攻擊？**  
+> 即使惡意 App 透過自定義 URL Scheme 攔截了第 4 步中的 `Auth Code`，它因為拿不到客戶端記憶體中私密保留的 `Code Verifier`，在向授權伺服器請求換取 Token 時依然會被嚴格拒絕。
+
+---
+
+## 3. JWT 簽名驗證與 JWKS 金鑰輪換
+
+在微服務架構中，資源伺服器（API 閘道或下游微服務）通常需要高頻驗證 Access Token。如果每次請求都去遠端呼叫授權伺服器進行 Introspection（Token 內省），會造成極高的網路延遲與伺服器負載。
+
+### 3.1 非對稱加密簽名（RS256 vs. ES256）
+
+- 授權伺服器持有**私鑰（Private Key）**，專門負責簽發並簽名 JWT。
+- 所有資源伺服器僅需持有**公鑰（Public Key）**，即可在本地以毫秒級速度獨立驗證 JWT 簽名有效性、過期時間（`exp`）與頒發者（`iss`）。
+- 推薦使用 **RS256**（RSA 2048-bit）或 **ES256**（ECDSA P-256，計算更輕量、簽名更短）。
+
+### 3.2 JWKS（JSON Web Key Set）動態輪換
+
+為了避免金鑰外洩或定期合規輪換時必須重啟所有微服務，授權伺服器會公開一個標準端點：
+`GET /.well-known/jwks.json`
+
+```json
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "alg": "RS256",
+      "kid": "key-2026-q3-prod",
+      "n": "u1W_z...q8M",
+      "e": "AQAB"
+    }
+  ]
+}
+```
+
+資源伺服器驗證邏輯：
+
+1. 解析 JWT Header 中的 `kid`（Key ID）。
+2. 在本地快取的 JWKS 中查找對應的公鑰。
+3. 若找不到未知 `kid`，主動向 `/.well-known/jwks.json` 發起帶快取限制的更新請求。
+4. 授權伺服器在輪換金鑰時，先發布新公鑰至 JWKS，待所有節點同步後再開始簽發新 Token，確保平滑無感過渡。
+
+---
+
+## 4. Refresh Token 輪換（RTR）與重放攻擊防禦
+
+Access Token 為了安全通常設定極短的存活時間（例如 10~15 分鐘）。當過期時，客戶端需使用長效的 Refresh Token 換取全新 Access Token。
+
+然而，若 Refresh Token 不慎在傳輸中被中間人竊取，攻擊者便能在過期前無限制獲取權限。**Refresh Token Rotation（RTR, RFC 6819）** 是防禦此類攻擊的核心機制：
+
+1. **每次使用即作廢（One-Time Use）**：每次客戶端發送 Refresh Token $RT_1$ 換取新 Access Token 時，授權伺服器會**同時註銷 $RT_1$ 並核發全新的 $RT_2$**。
+2. **家族關聯鏈（Token Family Tree）**：授權伺服器維護同一登入會話的 Token 演進鏈條（$RT_1 \to RT_2 \to RT_3$）。
+3. **重放攻擊檢測與全量撤銷（Automatic Invalidation）**：
+   - 假設攻擊者竊取了 $RT_1$。
+   - 正當客戶端先使用了 $RT_1$ 換取了 $RT_2$。
+   - 隨後攻擊者嘗試再次使用已作廢的 $RT_1$ 進行請求。
+   - 授權伺服器一旦偵測到**已失效的 Token 被重複提交**，立即觸發安全警報，將該家族鏈條下的**所有 Token（包含合法使用者手中的 $RT_2$）全數撤銷並強制重新登入**。
+
+```text
+[正常輪換]
+Client ── (發送 RT_1) ──> Auth Server (作廢 RT_1, 簽發 RT_2) ──> Client 保存 RT_2
+
+[攻擊重放檢測]
+Attacker ── (重放已失效的 RT_1) ──> Auth Server
+                                        │
+                                        ▼ 觸發入侵偵測！
+                 【立即作廢該 Session 下的所有 RT 與 Access Token】
+```
+
+---
+
+## 5. 架構實戰安全檢查清單
+
+- [x] **全量淘汰 Implicit Flow**：所有 Web、SPA、Mobile 一律採用 Authorization Code Flow + PKCE (S256)。
+- [x] **嚴格校驗 Redirect URI**：授權伺服器端必須採取完全匹配（Exact Match），禁止萬用字元（Wildcard），防禦 Open Redirect 漏洞。
+- [x] **JWT 核心防禦**：必須明確白名單限定驗證演算法（防禦 `alg: none` 與 HMAC 密鑰混淆攻擊），並嚴格檢查 `iss`、`aud` 與 `exp`。
+- [x] **啟用 Refresh Token 輪換**：搭配 Token Family 偵測機制，攔截並瓦解重放威脅。

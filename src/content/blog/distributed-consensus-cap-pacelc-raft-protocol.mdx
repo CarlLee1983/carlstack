@@ -1,0 +1,140 @@
+---
+title: "分散式系統共識演算法：CAP 定理、PACELC 與 Raft 協定深析"
+description: "深度剖析分散式共識底層理論與實踐：CAP 定理嚴格定義與常見誤區、PACELC 延遲與一致性權衡模型、Raft 共識演算法三大角色、Leader Election 隨機化超時選舉機制、Log Replication 日誌複製與安全性 (Safety) 保證。"
+publishDate: 2026-09-02T13:10:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/distributed-consensus-cap-pacelc-raft-protocol.png
+coverAlt: "分散式節點選出 Leader 並複製安全共識日誌"
+tags:
+  - "系統設計"
+  - "分散式系統"
+  - "CAP 定理"
+  - "Raft"
+  - "分散式共識"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在建構大規模分散式系統（如 Kubernetes 的 etcd、Kafka 的 KRaft、CockroachDB 或 TiDB）時，跨網路的多個獨立節點如何對某個資料值或操作日誌達成**全域唯一且不可撤銷的共識（Consensus）**？
+
+然而，在真實的實體世界中，網路分區（Network Partition）、光纖被挖斷、伺服器硬體當機與時鐘漂移是必然發生的客觀現實。
+
+從理論層面的 **CAP 定理**、**PACELC 模型**，到工程落地的 **Paxos** 與 **Raft** 演算法，分散式共識是整個現代雲端原生與分散式儲存架構的最底層基石。
+
+本文將從理論嚴格證明出發，深度拆解 CAP/PACELC 的權衡本質，並全景剖析 Raft 演算法的狀態機與複製日誌架構。
+
+---
+
+## 1. CAP 定理的嚴格定義與工程誤區
+
+Eric Brewer 提出的 CAP 定理是分散式領域中最被廣泛引用、但也最常被過度簡化與誤讀的理論。
+
+```text
+               [ C ] Consistency (線性一致性 / 強一致性)
+                    /   \
+                   /     \
+                  /  CAP  \
+                 /  Trade- \
+                /    off    \
+[ A ] Availability ───────── [ P ] Partition Tolerance (分區容忍性)
+```
+
+### 1.1 三大特性的嚴格學術定義
+
+1. **一致性（Consistency）**：在 CAP 定理的原始數學證明中，特指**線性一致性（Linearizability / Atomic Consistency）**。即所有節點上的所有讀寫操作必須表現得像是在單一全域時鐘下依序原子執行，讀操作必須永遠返回最新寫入的值。
+2. **可用性（Availability）**：特指**每一個非故障節點（Non-failing node）收到的所有非錯誤請求，都必須返回非錯誤回應（No Error / Timeout）**（即使該回應回傳的是舊資料）。
+3. **分區容忍性（Partition Tolerance）**：在分散式網路中，允許節點之間因網路中斷而丟失任意數量的訊息。
+
+> [!IMPORTANT]
+> **「三選二」是常見的認知誤區！**  
+> 在分散式實體網路環境中，**網路分區（Partition）是客觀不可避免的物理規律**（P 是必選題）。因此，架構師面臨的真實選擇永遠只有：**當網路分區發生時，系統選擇保證強一致性（CP - 拒絕部分節點的寫入/讀取以防髒讀），還是選擇保證可用性（AP - 允許分區節點繼續提供服務但可能讀到舊資料）**。
+
+---
+
+## 2. 超越 CAP：PACELC 延遲權衡模型
+
+```text
+If P (Partition) -> Choose between A (Availability) and C (Consistency)
+Else (E)         -> Choose between L (Latency) and C (Consistency)
+```
+
+```text
++-----------------------+-------------------+-------------------+-----------------------------------+
+| 系統分類              | 分區時 (P) 選擇   | 正常時 (E) 選擇   | 代表系統                          |
++-----------------------+-------------------+-------------------+-----------------------------------+
+| PC/EC                 | Consistency (強一致)| Consistency (強一致)| Spanner, etcd, ZooKeeper, TiDB    |
+| PA/EL                 | Availability (可用)| Latency (極致低延遲)| DynamoDB (最終一致), Cassandra    |
+| PA/EC                 | Availability (可用)| Consistency (強一致)| MongoDB (預設讀主寫主模式)        |
++-----------------------+-------------------+-------------------+-----------------------------------+
+```
+
+---
+
+## 3. Raft 共識協定核心架構
+
+經典的 Paxos 演算法因晦澀難懂且難以在工業界直接實現而著稱。史丹佛大學團隊提出了 **Raft 演算法**，其核心思想是將共識問題分解為兩個完全獨立的子問題：**領導者選舉（Leader Election）** 與 **日誌複製（Log Replication）**。
+
+### 3.1 三種角色狀態轉換
+
+```text
+                  ┌───────────────────────────────┐
+                  │          FOLLOWER             │
+                  └───────────────────────────────┘
+                     │ (心跳逾時，未收到 Leader 訊息)
+                     ▼
+                  ┌───────────────────────────────┐
+                  │          CANDIDATE            │
+                  └───────────────────────────────┘
+                     │ (獲得過半數 Quorum 投票)
+                     ▼
+                  ┌───────────────────────────────┐
+                  │           LEADER              │
+                  └───────────────────────────────┘
+```
+
+1. **Follower（跟隨者）**：完全被動，僅接收來自 Leader 的日誌追加與心跳，若心跳逾時則發起選舉。
+2. **Candidate（候選人）**：主動拉票，向其他節點發送 `RequestVote` RPC。
+3. **Leader（領導者）**：唯一負責處理所有客戶端請求、日誌序列化、並向所有 Follower 同步 `AppendEntries` RPC。
+
+---
+
+## 4. Raft 兩大核心流程機制
+
+### 4.1 領導者選舉與隨機化逾時（Randomized Election Timeouts）
+
+為了防止多個 Follower 在同一瞬間同時逾時發起選舉導致選票被均分（Split Vote），Raft 引入了**隨機化選舉逾時機制（例如 150ms ~ 300ms 隨機抖動）**。
+
+- 第一個逾時的節點將率先自增任期號（Term），並向其他節點廣播拉票。
+- 每個節點在同一 Term 內遵循「先到先得」原則投出一票。
+- 獲得**過半數（Quorum: `floor(N / 2) + 1`）** 投票的 Candidate 立即勝出成為新任 Leader。
+
+### 4.2 日誌複製與兩階段提交安全保證
+
+```text
+[ Client Request: Set x=5 ]
+           │
+           ▼
+[ Leader Log: Index 1, Term 1, Set x=5 (Uncommitted) ]
+     ├── AppendEntries RPC ──> [ Follower A Log (寫入本地磁碟) ]
+     └── AppendEntries RPC ──> [ Follower B Log (寫入本地磁碟) ]
+           │
+           ▼ (當過半數節點成功寫入日誌)
+[ Leader Commit Index 推進 ! ] ── (應用至狀態機並回覆 Client 成功)
+           │
+           ▼ (下次心跳通知 Follower 將該日誌提交並應用至狀態機)
+```
+
+### 4.3 領導者完備性（Leader Completeness Safety Invariant）
+
+Raft 在投票階段施加了強硬的安全限制：
+
+- **投票限制**：若 Candidate 的日誌沒有投票節點的新（即 Candidate 的最後一條日誌的 Term 較小，或 Term 相同但 Index 較小），**投票節點一律拒絕投票**！
+- **保證結果**：任何成功當選的 Leader，**必然已經包含了所有在歷史任期中已被提交（Committed）的全部日誌**，從根本上杜絕了日誌被覆蓋或倒退的致命缺陷！
+
+---
+
+## 5. 總結
+
+- 在高可用金融資料庫與元數據協同層（etcd / ZooKeeper / Raft），我們堅定選擇 **CP / PC/EC** 架構，確保分散式狀態的零丟失與線性一致。
+- 在跨洲超大海量社群與時序監控系統，我們透過 **AP / PA/EL** 換取極致的寫入延遲與分區容錯性。
+- 理解共識協議的代價與極限，是每一位分散式架構師的必修課。

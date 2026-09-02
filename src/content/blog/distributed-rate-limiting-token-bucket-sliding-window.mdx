@@ -1,0 +1,135 @@
+---
+title: "現代分散式限流演算法：Token Bucket vs. Leaky Bucket vs. 滑動視窗底層實作"
+description: "全面拆解分散式限流的核心演算法：固定視窗、滑動日誌 (Sliding Log)、滑動視窗計數器 (Sliding Window Counter)、漏桶 (Leaky Bucket) 與權杖桶 (Token Bucket) 的數學模型、Redis + Lua 原子實作與叢集自適應限流策略。"
+publishDate: 2026-09-02T12:30:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/distributed-rate-limiting-token-bucket-sliding-window.png
+coverAlt: "Token Bucket 與滑動視窗將突發流量整形成受控脈衝"
+tags:
+  - "系統設計"
+  - "分散式系統"
+  - "限流演算法"
+  - "高可用"
+  - "Redis"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在高併發分散式系統與微服務架構中，系統的處理能力始終存在極限。面對突發流量峰值、網路爬蟲狂暴抓取、惡意 DDoS 攻擊或下游服務依賴緩慢引發的資源耗盡，**限流（Rate Limiting）與流量整形（Traffic Shaping）** 是保護系統不被衝垮的最核心防線。
+
+然而，許多系統在實作限流時，往往因選型不當而面臨「視窗邊界雙倍流量突刺」、「記憶體無節制暴增」或「分散式競態條件（Race Condition）」等嚴重問題。
+
+本文將從數學模型、時間複雜度、記憶體開銷到生產級 Redis + Lua 原子實踐，全面剖析五大經典限流演算法與叢集限流架構。
+
+---
+
+## 1. 五大限流演算法深度對比
+
+```text
++-----------------------+---------------------+-------------------+-------------------+-------------------+
+| 演算法                | 突發流量處理 (Burst)| 記憶體開銷        | 計算複雜度        | 核心缺點          |
++-----------------------+---------------------+-------------------+-------------------+-------------------+
+| 1. 固定視窗計數器     | 完全無法防禦突刺    | 極低 (單一 Key)   | O(1)              | 視窗交界處雙倍流量|
+| 2. 滑動日誌 (Log)     | 完美精確平滑        | 極高 (儲存所有 TS)| O(log N) 或 O(N)  | 記憶體隨請求量爆炸|
+| 3. 滑動視窗計數器     | 良好平滑近似        | 極低 (兩個計數器) | O(1)              | 假設流量均勻分佈  |
+| 4. 漏桶 (Leaky Bucket)| 強制平滑，消除突發  | 低 (容量+流速)    | O(1)              | 突發請求強制排隊  |
+| 5. 權杖桶 (Token)     | 完美允許合理突發    | 低 (餘額+時間戳)  | O(1)              | 需要合理預估桶容量|
++-----------------------+---------------------+-------------------+-------------------+-------------------+
+```
+
+---
+
+## 2. 演算法原理與邊界陷阱
+
+### 2.1 固定視窗計數器（Fixed Window Counter）與邊界雙倍突刺
+
+- **原理**：將時間劃分為固定大小的視窗（例如每 1 分鐘允許 100 次請求）。視窗內維護一個計數器，達到閾值即拒絕，視窗重置時計數器歸零。
+- **致命陷阱（2x Burst Issue）**：若在第 0:59 秒湧入 100 個請求，在第 1:01 秒又湧入 100 個請求。在系統看來兩個視窗各自均未超標（各 100 次），但在第 0:59 至 1:01 這短短 **2 秒鐘的滑動時間區間內，系統實際承受了 200 次請求（2 倍於額定峰值）**，可能直接導致後端資料庫崩潰。
+
+### 2.2 滑動視窗計數器（Sliding Window Counter）
+
+為了在維持 $O(1)$ 極低記憶體開銷的同時解決邊界突刺問題，Cloudflare 提出了滑動視窗權重近似演算法：
+
+- **當前滑動 1 分鐘內的估計請求總數**：
+  `Requests = C_prev * (1 - 0.3) + C_curr`
+- 若 `Requests > Limit`，則觸發限流。
+
+### 2.3 漏桶（Leaky Bucket）vs. 權杖桶（Token Bucket）
+
+- **漏桶（Leaky Bucket）**：水（請求）以任意速率注入桶中，但以**嚴格恆定的速率（Constant Rate）從桶底漏出**。若水滿則溢出（拋棄請求）。
+  - **適用場景**：對下游依賴系統有嚴苛的平滑流量要求（如呼叫只支援固定 TPS 的老舊銀行主機）。
+- **權杖桶（Token Bucket）**：以恆定速率向桶中放入 Token（達到桶容量上限時停止投放）。請求到來時必須先從桶中拿走 1 個（或多個）Token。
+  - **適用場景**：絕大多數現代 Web API 與微服務。既能保證長期平均速率受控，又能**優雅容忍合理的突發短暫高峰（Burst Traffic）**。
+
+---
+
+## 3. 分散式限流架構：Redis + Lua 原子實作
+
+在多台 API 閘道實例組成的叢集中，若直接透過 Redis 的 `GET` 與 `SET` 指令進行限流計算，會因網路延遲引發嚴重的**併發讀寫競爭（Race Condition）**。必須使用 **Lua 腳本** 確保「計算剩餘 Token、扣減、更新時間戳」在 Redis 單執行緒中以**原子性（Atomicity）** 執行。
+
+### 3.1 生產級分散式 Token Bucket Lua 腳本
+
+```lua
+-- KEYS[1]: 限流鍵 (例如 rate_limit:user_123:api_order)
+-- ARGV[1]: 桶容量 (Bucket Capacity, 例如 100)
+-- ARGV[2]: Token 注入速率 (Tokens per second, 例如 10)
+-- ARGV[3]: 當前時間戳 (秒或毫秒)
+-- ARGV[4]: 本次請求消耗 Token 數 (通常為 1)
+
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local requested = tonumber(ARGV[4])
+
+-- 取得桶內當前 Token 數與上次更新時間戳
+local data = redis.call('HMGET', key, 'tokens', 'last_updated')
+local tokens = tonumber(data[1])
+local last_updated = tonumber(data[2])
+
+if tokens == nil then
+    -- 首次訪問，初始化為滿桶
+    tokens = capacity
+    last_updated = now
+else
+    -- 惰性計算：根據時間差補足生成的 Token (不超過容量上限)
+    local delta = math.max(0, now - last_updated)
+    local generated = delta * rate
+    tokens = math.min(capacity, tokens + generated)
+    last_updated = now
+end
+
+if tokens >= requested then
+    -- 允許通過，扣減 Token
+    tokens = tokens - requested
+    redis.call('HMSET', key, 'tokens', tokens, 'last_updated', last_updated)
+    -- 設定過期時間防記憶體洩漏 (桶填滿所需時間 * 2)
+    redis.call('EXPIRE', key, math.ceil(capacity / rate) * 2)
+    return {1, tokens} -- 1: 允許, 剩餘 tokens
+else
+    -- 拒絕請求 (限流)
+    redis.call('HMSET', key, 'tokens', tokens, 'last_updated', last_updated)
+    return {0, tokens} -- 0: 拒絕, 當前 tokens
+end
+```
+
+> [!TIP]
+> **惰性補償機制（Lazy Replenishment）**  
+> 程式不需要在背景跑定時器去持續加 Token，而是在每次請求進來時，透過 `(now - last_updated) * rate` 算式動態補齊 Token，將時間與空間複雜度完美壓低至 $O(1)$！
+
+---
+
+## 4. 叢集自適應限流與維運最佳實踐
+
+1. **分層多級限流（Multi-tier Limiting）**：
+   - 邊界 WAF 層：按 Client IP 限流（防惡意爆破與 DDoS）。
+   - API 閘道層：按 API 路由與使用者 Tenant ID 限流（防資源擠佔）。
+   - 服務內部層：按 CPU / 記憶體負載自適應熔斷。
+2. **限流 HTTP Header 標準規範（IETF RFC 6585）**：
+   - `X-RateLimit-Limit`：時間週期內允許的最大請求數。
+   - `X-RateLimit-Remaining`：當前剩餘可用配額。
+   - `X-RateLimit-Reset`：配額重置的 Unix 時間戳。
+   - 觸發限流時一律回傳 `429 Too Many Requests` 並附帶 `Retry-After: 5`。
+3. **優雅降級與非關鍵業務旁路**：
+   - 對於寫入操作（如按讚、日誌採集），可排入非同步 Kafka 佇列進行削峰填谷。
+   - 對於唯讀操作，可降級為回傳過期快取（Stale-while-revalidate）或靜態兜底資料。

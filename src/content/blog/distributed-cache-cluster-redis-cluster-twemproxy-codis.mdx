@@ -1,0 +1,116 @@
+---
+title: "分散式快取叢集架構：Redis Cluster vs. Twemproxy vs. Codis 深度對比與 16384 虛擬槽分片機制"
+description: "全面剖析大規模 Redis 分散式快取叢集架構演進：客戶端分片 vs. 代理層分片 (Twemproxy / Codis) vs. 伺服器端原生分片 (Redis Cluster)、16384 虛擬雜湊槽 (Hash Slots) 與 CRC16、Gossip 節點協定、MOVED 與 ASK 重定向機制、主從自動切換與選舉機制。"
+publishDate: 2026-09-02T13:50:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/distributed-cache-cluster-redis-cluster-twemproxy-codis.png
+coverAlt: "客戶端、代理與原生叢集共同路由分散式快取節點"
+tags:
+  - "系統設計"
+  - "Redis"
+  - "分散式快取"
+  - "叢集架構"
+  - "高可用"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+當單一 Redis 實例的記憶體容量達到數十 GB（受限於單機記憶體與 RDB/AOF 巨量 Fork 停頓開銷），或者讀寫 QPS 突破百萬級別時，單體 Redis 實例便無法滿足需求，系統必須邁向**分散式快取叢集（Distributed Cache Cluster）**。
+
+在 Redis 的歷史演進中，工程界歷經了三大架構流派：
+
+1. **客戶端分片（Client-side Sharding）**；
+2. **代理層中介軟體分片（Proxy-based: Twitter Twemproxy, Codis）**；
+3. **Redis 官方原生去中心化叢集（Redis Cluster）**。
+
+本文將從分片拓撲、16384 雜湊槽設計、Gossip 協定到自動容錯轉移，全面拆解分散式 Redis 叢集的架構演進史。
+
+---
+
+## 1. 三大叢集架構流派深度對比
+
+```text
++-----------------------+---------------------+---------------------+---------------------+
+| 評估維度              | Twemproxy (Twitter) | Codis (豌豆莢/知乎) | Redis Cluster (官方)|
++-----------------------+---------------------+---------------------+---------------------+
+| 架構形態              | 代理層 (Proxy)      | 代理層 + ZooKeeper  | 無中心化 P2P 網狀   |
+| 線上動態擴容 / 遷移   | 不支援 (需停機重算) | 支援 (平滑無縫遷移) | 支援 (Slot 槽位遷移)|
+| 額外網路延遲          | 增加一跳 Proxy 延遲 | 增加一跳 Proxy 延遲 | 零額外跳轉 (直連節點)|
+| 協同依賴元件          | 無                  | ZooKeeper / etcd    | 無任何外部依賴      |
+| 多鍵操作 (MGET / MSET)| 有限支援 (同一節點) | 有限支援 (Hash Tag) | 支援 (需使用 {tag}) |
+| 容錯切換 (Failover)   | 需搭配 Sentinel     | Codis Dashboard     | 內建 Gossip 投票選舉|
++-----------------------+---------------------+---------------------+---------------------+
+```
+
+---
+
+## 2. 官方核心基石：16384 虛擬雜湊槽 (Hash Slots)
+
+Redis Cluster 沒有採用傳統的一致性雜湊環，而是引入了 **16384 個固定雜湊槽（Hash Slots）** 的概念。
+
+```text
+[ 客戶端請求 Key ] ──> 計算槽位: Slot = CRC16(Key) % 16384
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+     [ Node A (Master) ] [ Node B (Master) ] [ Node C (Master) ]
+     (負責槽位: 0~5460)  (負責槽位: 5461~10922) (負責槽位: 10923~16383)
+            │                │                │
+     [ Node A_Slave ] [ Node B_Slave ] [ Node C_Slave ]
+```
+
+### 2.1 為什麼固定是 16384 (16K) 個槽位？
+
+1. **Gossip 心跳封包大小最佳化**：Redis 節點間每秒頻繁發送 PING/PONG 心跳封包，封包頭部攜帶了節點負責的槽位位元遮罩（Bitmap）。16384 個槽位僅需 $16384 / 8 = 2\text{KB}$ 的記憶體開銷；若設為 65536，心跳封包將膨脹至 8KB，造成嚴重的網路頻寬浪費。
+2. **叢集規模極限**：Redis 官方建議叢集最大主節點數量不超過 1000 台。對於 1000 台機器，16384 個槽位已足夠均勻分攤（平均每台約 16 個槽位）。
+
+### 2.2 Hash Tag（保證多鍵在同一節點）
+
+若業務需要原子執行多個 Key 的操作（如 MGET 或 Lua 腳本），可在 Key 中使用 `{}` 包裹：
+
+- `user:{1001}:profile` 與 `user:{1001}:orders`：
+- Redis 只會對 `{}` 內部的內容 `1001` 計算 CRC16，確保兩者必然映射到**同一個 Hash Slot 與同一台實體節點**！
+
+---
+
+## 3. 客戶端路由與重定向機制：MOVED vs. ASK
+
+Redis Cluster 節點不會幫客戶端轉發請求，而是透過重定向指令告知客戶端：
+
+### 3.1 MOVED 永久重定向
+
+當客戶端向 Node A 發送了一個屬於 Node B 槽位的請求時：
+
+1. Node A 拒絕執行，回傳錯誤：`-MOVED 5461 192.168.1.2:6379`。
+2. 客戶端收到後，**更新本地的 Slot-to-Node 路由快取表**，並向 Node B 重新發起請求。
+3. 後續對該槽位的查詢將直接直連 Node B。
+
+### 3.2 ASK 臨時重定向（資料遷移進行中）
+
+當槽位 5461 正在從 Node A 遷移至 Node B 的過程中：
+
+1. 若 Key 尚未遷移，Node A 本地正常處理。
+2. 若 Key 已經搬移到 Node B，Node A 回傳 `-ASK 5461 192.168.1.2:6379`。
+3. 客戶端必須：
+   - 先向 Node B 發送一次 `ASKING` 指令（開啟單次臨時通行權）。
+   - 緊接著向 Node B 發送業務查詢。
+4. **注意**：客戶端**不會更新本地路由快取**，後續請求依然優先打向 Node A，直到整個槽位遷移完畢並觸發 MOVED 為止。
+
+---
+
+## 4. Gossip 協定與主從自動容錯轉移 (Failover)
+
+Redis Cluster 是一個去中心化的 P2P 系統，節點間透過 **Gossip 協定**（預設監聽 `連線 Port + 10000`）交換彼此的狀態：
+
+1. **主觀下線（PFAIL - Possible Fail）**：節點 A 在 `cluster-node-timeout` 內未收到節點 B 的 PONG 回應，標記 B 為 PFAIL。
+2. **客觀下線（FAIL）**：當半數以上的主節點（Master）都認為節點 B 處於 PFAIL 狀態時，廣播 FAIL 訊息，正式宣告 B 客觀當機。
+3. **從節點故障選舉（Election）**：
+   - 故障 Master 的多個 Slave 節點中，資料複製最完整（`replication offset` 最大）的 Slave 發起拉票請求。
+   - 獲得過半數 Master 投票同意的 Slave 晉升為新 Master，接管原有的 Hash Slots，並向全叢集廣播 PONG，完成秒級無感故障轉移！
+
+---
+
+## 5. 架構選型總結
+
+- **自建超大規模基礎設施（500+ 實例）**：官方 **Redis Cluster** 是絕對主流，具備去中心化、無代理延遲與自動故障自癒能力。
+- **遺留老舊客戶端（不支援 Cluster 協議）或需要統一 SQL-like 管控**：採用 **Codis** 或雲端託管服務（如 AWS ElastiCache / GCP Memorystore）。

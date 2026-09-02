@@ -1,0 +1,128 @@
+---
+title: "Git 內部核心架構：Blob、Tree、Commit 與 Packfile 內容尋址物件資料庫深析"
+description: "深入剖析分散式版本控制系統 Git 的底層物理架構：.git 內部目錄、內容尋址物件資料庫 (Content-Addressable Storage)、SHA-1/SHA-256 雜湊、Blob/Tree/Commit/Tag 四大物件模型、Packfile Delta 增量壓縮與 gc 垃圾回收機制。"
+publishDate: 2026-09-02T12:55:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/git-internals-blob-tree-commit-packfile.png
+coverAlt: "Git 內容尋址物件由 Blob、Tree、Commit 分支並壓縮為 Packfile"
+tags:
+  - "系統設計"
+  - "DevOps"
+  - "Git"
+  - "資料結構"
+  - "底層原理"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+Git 是全世界軟體工程師每天最高頻使用的工具之一。多數開發者熟悉 `git add`、`git commit`、`git merge` 與 `git rebase` 等高階命令（Porcelain Commands）。
+
+然而，當面對龐大的 MonoRepo 效能瓶頸、複雜的分支衝突、或是 Git 歷史庫體積膨脹時，僅僅掌握高階指令是不夠的。
+
+Git 的本質並不是一套傳統的檔案版本差量追蹤系統，而是一個**極度精巧、以內容尋址的鍵值物件資料庫（Content-Addressable Key-Value Store）**，並在其上構建了一個具備 DAG（有向無環圖）特性的檔案系統快照樹。
+
+本文將透過拆解 `.git` 目錄、四大核心物件、Packfile 增量壓縮與垃圾回收（Garbage Collection），全面解密 Git 的底層架構。
+
+---
+
+## 1. Git 內容尋址儲存原理 (Content-Addressable Storage)
+
+在 Git 儲存庫根目錄下，`.git/objects` 目錄就是 Git 的物件資料庫。
+
+任何存入 Git 的資料，無論是檔案內容、目錄結構還是提交歷史，都會遵循統一的物件格式：
+
+```text
+[ 物件封裝格式 ]
+header = "<type> <content_byte_size>\0"
+full_payload = header + content
+object_id = SHA1(full_payload) 或 SHA256(full_payload)
+compressed_data = zlib.compress(full_payload)
+```
+
+- **Object ID（40 位元十六進位字串）**：由內容與 Header 的 SHA-1 雜湊唯一決定。只要內容不變，生成的 Hash 永遠相同；內容只要改變 1 個 Byte，Hash 就完全不同。
+- **儲存路徑**：前 2 個字元作為目錄名，後 38 個字元作為檔名。例如 Hash 為 `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391`，則物理檔案儲存於 `.git/objects/e6/9de29bb2d1d6434b8b29ae775ad8c2e48c5391`。
+
+---
+
+## 2. Git 四大核心物件模型
+
+Git 透過四種純粹的底層物件（Loose Objects）構建了整個版本樹：
+
+```text
+       [ Commit Object ] (作者、提交者、時間戳、Commit Message)
+              │
+              ├── Parent ──> [ 上一個 Commit Object (形成歷史 DAG) ]
+              │
+              └── Tree ────> [ Root Tree Object (根目錄) ]
+                                   │
+                                   ├── Tree Object (src/ 目錄)
+                                   │      └── Blob Object (main.js 原始檔案內容)
+                                   └── Blob Object (README.md 原始檔案內容)
+```
+
+### 2.1 Blob 物件（純檔案內容）
+
+- **儲存內容**：僅儲存純檔案的二進位內容，**完全不包含檔名、目錄路徑或檔案權限（Mode）**。
+- **去重特性**：若專案中有 10 個完全相同的檔案（即使檔名與路徑完全不同），Git 在底層只會建立一份 Blob 物件！
+
+### 2.2 Tree 物件（目錄與檔案清單）
+
+- **儲存內容**：相當於檔案系統中的目錄。每個 Tree 物件由多個列表項目組成：
+  `[File Mode] [Object Type: blob/tree] [Object SHA-1] [File/Directory Name]`
+- 透過樹狀嵌套的 Tree 物件，Git 完美重建出任意歷史提交時的完整專案目錄快照。
+
+### 2.3 Commit 物件（提交快照與中繼資料）
+
+- **儲存內容**：
+  - 指向頂層根目錄的 `tree <hash>`。
+  - 零個或多個指向父提交的 `parent <hash>`（首次 commit 無 parent，merge commit 有多個 parent）。
+  - 作者（`author`）與提交者（`committer`）的身分與時間戳。
+  - 提交說明（Commit Message）。
+
+### 2.4 Tag 物件（註解標籤）
+
+- 儲存指向某個 Commit 的指標、標籤名稱、PGP 簽名與建立者資訊。
+
+---
+
+## 3. 分支與 HEAD 的本質：極輕量的指標
+
+在 Git 中，分支（Branch）不是檔案夾的拷貝，而僅僅是一個**包含 41 個 Bytes（40 位元 Hash + 換行符號）的純文字檔案**！
+
+- `.git/refs/heads/main` 的內容就是它當前指向的 Commit SHA-1。
+- `.git/HEAD` 記錄當前檢出的引用（如 `ref: refs/heads/main`）。
+- **建立分支的成本**：僅僅是建立一個 41 Bytes 的文字檔案，因此 Git 建立分支的速度恆定為 $O(1)$（微秒級），比傳統版本控制系統（如 SVN）快數千倍。
+
+---
+
+## 4. 效能優化核心：Packfile 與 Delta 壓縮
+
+如果專案每次修改 1 行代碼，Git 都要建立一個全新的完整 Blob 物件，儲存庫體積會迅速膨脹。為了極致壓縮空間與優化網路傳輸（`git push` / `git fetch`），Git 引入了 **Packfile** 機制。
+
+```text
+.git/objects/pack/
+  ├── pack-7a8f3b...idx  (二分檢索索引檔案，加速尋址)
+  └── pack-7a8f3b...pack (打包壓縮檔案，包含成千上萬個物件)
+```
+
+### 4.1 Delta 增量壓縮演算法
+
+1. Git 在執行 `git gc` 或網路傳輸時，會在記憶體中對相似的 Blob 進行滑動視窗比對。
+2. Git 採用**反向差異儲存（Reverse Delta）**：將**最新版本的檔案儲存為完整內容**（確保讀取最新代碼時速度最快），而將歷史舊版本儲存為相對於新版本的差異增量（Diff Bytecodes）。
+3. 透過 Packfile，大型專案（如 Linux Kernel）的磁碟佔用通常可被**壓縮 70% 至 90% 以上**！
+
+### 4.2 Git 垃圾回收（`git gc` 與 Prune）
+
+當開發者頻繁執行 `git commit --amend` 或 `git rebase` 時，被廢棄的舊 Commit 與 Blob 會變成「懸空物件（Dangling / Orphan Objects）」。
+
+- `git gc`（Garbage Collection）會遍歷所有 Ref 可達性圖形，將活著的 Loose Objects 打包入 Packfile，並在過期寬限期（預設 2 週）後安全刪除無人引用的懸空垃圾物件。
+
+---
+
+## 5. 架構總結
+
+Git 之所以歷經數十年依然站在版本控制的巔峰，正是因為其簡潔而強大的底層數學架構：
+
+- **內容尋址（CAS）** 帶來了天然的內容完整性驗證與去重；
+- **不可變物件與有向無環圖（DAG）** 保證了歷史記錄的防篡改與分支的高效並行；
+- **Packfile 與 Delta 壓縮** 在儲存密度與傳輸效率上達到了工程極限。

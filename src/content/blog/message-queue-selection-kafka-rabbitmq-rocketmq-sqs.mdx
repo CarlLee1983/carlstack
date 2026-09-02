@@ -1,0 +1,111 @@
+---
+title: "主流消息隊列技術選型：Kafka vs. RabbitMQ vs. RocketMQ vs. AWS SQS 全景架構對決"
+description: "深入剖析現代分散式消息隊列核心架構：AMQP 協定（Smart Broker / Dumb Consumer）vs. 分布式提交日誌（Dumb Broker / Smart Consumer）、次毫秒延遲 vs. 百萬級吞吐量權衡、延時隊列、死信隊列（DLQ）與 RocketMQ 半消息事務。"
+publishDate: 2026-09-02T13:55:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/message-queue-selection-kafka-rabbitmq-rocketmq-sqs.png
+coverAlt: "四種消息隊列架構以不同吞吐與路由機制並列比較"
+tags:
+  - "系統設計"
+  - "消息隊列"
+  - "Kafka"
+  - "RabbitMQ"
+  - "RocketMQ"
+  - "事件驅動"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在微服務架構與事件驅動系統（Event-Driven Architecture）中，**消息隊列（Message Queue, MQ）** 是實現系統**非同步解耦（Asynchronous Decoupling）**、**流量削峰填谷（Traffic Leveling）** 與 **可靠事件廣播** 的核心樞紐。
+
+然而，面對市面上琳瑯滿目的消息中介軟體——從老牌經典的 **RabbitMQ**、巨量資料串流標竿 **Apache Kafka**、金融級業務利器 **Apache RocketMQ**，到雲端託管的 **AWS SQS**，許多架構師在選型時容易陷入「盲目追逐百萬吞吐量而忽視複雜度」或「誤將串流平台當作任務佇列」的陷阱。
+
+本文將從底層架構模型、延遲與吞吐量特性、事務消息支援到死信機制，全方位拆解四大主流消息隊列的架構維度與選型決策路徑。
+
+---
+
+## 1. 四大主流消息隊列架構全景矩陣
+
+```text
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+| 評估維度              | RabbitMQ            | Apache Kafka        | Apache RocketMQ     | AWS SQS             |
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+| 核心架構模型          | AMQP 路由交換機     | 分散式 Append 日誌  | 分散式分區主題      | 雲端託管分散式隊列  |
+| Broker / Consumer 哲學| Smart Broker        | Dumb Broker         | 平衡型 (具備業務功能)| 完全託管 Serverless |
+|                       | Dumb Consumer       | Smart Consumer      |                     |                     |
+| 單機吞吐量極限        | 萬級 (10K~50K EPS)  | 百萬級 (1M+ EPS)    | 十萬至百萬級        | 自動彈性擴展        |
+| 訊息傳輸延遲          | 微秒至次毫秒 (< 1ms)| 毫秒級 (2~10ms)     | 毫秒級 (1~5ms)      | 數十至數百毫秒      |
+| 訊息消費確認模型      | 記憶體追蹤 ACK      | Consumer Offset 指標| Consumer Offset 指標| Visibility Timeout  |
+| 訊息重播 (Replay)     | 不支援 (消費即刪除) | 完美支援 (按 Offset)| 支援 (時間/位置回溯)| 不支援 (消費即刪除) |
+| 延時消息原生支援      | 需外掛/死信 TTL 模擬| 不原生支援          | 原生精確支援 (時間輪)| 原生支援 (最大15分鐘)|
+| 分散式事務消息        | 不原生 (需發布確認) | 支援 (跨 Topic 事務)| 原生支援 (半消息二階段)| 不支援              |
+| 典型最佳場景          | 企業微服務、複雜路由| 大數據串流、日誌採集| 電商交易、金融結算  | 快速雲端開發、無運維|
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+```
+
+---
+
+## 2. 根本哲學分歧：Smart Broker vs. Dumb Broker
+
+### 2.1 RabbitMQ：Smart Broker / Dumb Consumer
+
+- **運作模式**：Broker 負責極其複雜的訊息路由邏輯（Exchange、Binding Key、Routing Key、Direct / Topic / Fanout 模式）。
+- **狀態管理**：Broker 在記憶體中精確追蹤每一條訊息發送給了哪一個 Consumer、是否收到 ACK。一旦收到 ACK，**立即從記憶體與磁碟中刪除該訊息**。
+- **優缺點**：路由極度靈活、延遲極低（次毫秒級）；但 Broker 負擔極重，連線數與佇列堆積過多時記憶體迅速暴增，吞吐量受限。
+
+### 2.2 Apache Kafka：Dumb Broker / Smart Consumer
+
+- **運作模式**：Broker 本質上只是一個**純順序追加的分散式日誌檔案（Append-only Commit Log）**。Broker 完全不管誰消費了資料，訊息寫入後長期保留（例如保留 7 天）。
+- **狀態管理**：消費者自行維護各自的消費進度（`Consumer Offset`）。
+- **優缺點**：Broker 幾乎零運算負擔，利用作業系統 Page Cache 與 Zero-Copy `sendfile()` 榨乾網卡頻寬，**實現百萬級極限吞吐量**，且天生支援歷史事件重播（Event Sourcing）。
+
+---
+
+## 3. 企業級業務殺手鐧：RocketMQ 事務消息（Half-Message）
+
+在電商下單扣款場景中，如何保證「本地資料庫扣款成功」與「發送 MQ 通知庫存服務」具備原子性？RocketMQ 透過**半消息（Half-Message）二階段機制**完美解決了雙寫一致性難題：
+
+```text
+[ 訂單服務 (Producer) ] ── (1. 發送 Half Message: 半消息暫時對 Consumer 不可見) ──> [ RocketMQ Broker ]
+          │                                                                                 │
+          │ ◄────────────────── (2. Broker 回傳發送成功 ACK) ───────────────────────────────┘
+          │
+          ├── 3. 執行本地資料庫事務 (CREATE ORDER)
+          │
+          ├── (若本地事務成功) ── (4a. 發送 Commit 指令) ──> Broker 將消息標記為可見 ──> [ 庫存服務 Consumer ]
+          │
+          └── (若本地事務超時/無回應)
+                    │
+                    ▼ (Broker 主動發起反查)
+             [ 5. Check Local Transaction 回查接口 ] ── (訂單服務檢查 DB 確認狀態並回傳 Commit / Rollback)
+```
+
+---
+
+## 4. 雲端原生 Serverless：AWS SQS 與可見性逾時 (Visibility Timeout)
+
+AWS SQS（Simple Queue Service）是完全託管的雲端隊列服務：
+
+- **Visibility Timeout（可見性超時）**：當 Consumer A 透過 `ReceiveMessage` 讀取到一條訊息後，SQS 並不會刪除它，而是將該訊息對其他 Consumer **「隱藏」一段時間（例如 30 秒）**。
+- 若 Consumer A 在 30 秒內處理完畢並呼叫 `DeleteMessage`，該訊息被永久刪除。
+- 若 Consumer A 在 30 秒內發生崩潰未能刪除，超時結束後該訊息自動重新變為「可見」，由 Consumer B 接手重試，保證了**至少一次（At-Least-Once）交付**。
+
+---
+
+## 5. 技術選型決策指南
+
+```text
+                                  【消息隊列選型決策樹】
+                                            │
+               ┌────────────────────────────┴────────────────────────────┐
+               ▼                                                         ▼
+       需要百萬級吞吐量、串流計算                                 需要複雜業務邏輯、延遲低
+       或事件重播 (Event Sourcing)                               或事務消息/延時調度
+               │                                                         │
+               ▼                                                         ▼
+      【 Apache Kafka 】                                 全託管 AWS 雲原生環境？
+                                                                 ├── 是 ──> 【 AWS SQS / SNS 】
+                                                                 └── 否 ──> 是否需要金融級事務/延時隊列？
+                                                                              ├── 是 ──> 【 Apache RocketMQ 】
+                                                                              └── 否 ──> 【 RabbitMQ 】(極速路由)
+```

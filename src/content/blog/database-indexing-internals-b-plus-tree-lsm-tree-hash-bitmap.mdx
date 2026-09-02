@@ -1,0 +1,126 @@
+---
+title: "資料庫索引底層深度拆解：B+ Tree vs. LSM-Tree vs. Hash vs. Bitmap 索引架構對決"
+description: "全面拆解現代資料庫儲存與檢索的核心引擎：磁碟 I/O 與頁面讀寫特性、B+ Tree 多路平衡樹與聚簇索引、LSM-Tree（MemTable / WAL / SSTable / Compaction）寫入特化與寫入放大、Hash 索引與 Bitmap 位圖索引極限效能對比。"
+publishDate: 2026-09-02T13:30:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/database-indexing-internals-b-plus-tree-lsm-tree-hash-bitmap.png
+coverAlt: "B+ Tree、LSM、Hash 與 Bitmap 索引結構並列展示"
+tags:
+  - "系統設計"
+  - "資料庫"
+  - "儲存引擎"
+  - "B+ Tree"
+  - "LSM-Tree"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在資料庫系統的浩瀚世界中，資料結構的選擇直接決定了系統是「偏向極致讀取」還是「偏向極致寫入」。
+
+為什麼 MySQL InnoDB 和 PostgreSQL 選擇了 **B+ Tree** 作為預設索引？  
+為什麼 RocksDB、Cassandra、TiKV 和 Bigtable 紛紛轉向 **LSM-Tree**？  
+為什麼 Redis 字典與 Memory 表偏愛 **Hash 索引**，而 OLAP 數倉（如 ClickHouse）熱衷於 **Bitmap 位圖索引**？
+
+資料結構的背後，本質上是對底層硬體特性（**磁碟順序寫 vs. 隨機寫**、**CPU 快取行**、**記憶體與磁碟層級結構**）的深刻妥協與極限榨取。
+
+本文將從物理硬體特性出發，深度剖析四大主流索引結構的底層原理與架構選型維度。
+
+---
+
+## 1. 四大資料庫索引架構全景矩陣
+
+```text
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+| 評估維度              | B+ Tree             | LSM-Tree            | Hash 索引           | Bitmap 位圖索引     |
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+| 核心最佳化方向        | 極致讀取、點查+範圍 | 極致高併發寫入吞吐  | 極致等值點查 O(1)   | 低基數欄位多條件過濾|
+| 寫入 I/O 特性         | 隨機 I/O (頁分裂)   | 純順序 I/O (Append) | 隨機 I/O            | 批次壓縮寫入        |
+| 範圍查詢支援          | 完美支援 (葉節點鏈表)| 支援 (需多層歸併)   | 完全不支援          | 支援 (位元運算加速) |
+| 空間放大與寫入放大    | 空間碎片化中等      | 寫入放大與空間放大高| 需額外哈希桶空間    | 極高壓縮比 (節省90%)|
+| 典型代表資料庫        | MySQL, PostgreSQL   | RocksDB, Cassandra  | Redis, Memory 引擎  | ClickHouse, Oracle  |
++-----------------------+---------------------+---------------------+---------------------+---------------------+
+```
+
+---
+
+## 2. B+ Tree：讀多寫少時代的王者
+
+B+ Tree 是一種多路平衡搜尋樹，專為磁碟與區塊儲存設備而設計。
+
+```text
+                     [ Root Node: 20 | 50 ]
+                    /          |          \
+      [ Internal: 5 | 15 ] [ Internal: 30 | 40 ] [ Internal: 60 | 80 ]
+         /      |      \       ...               ...
+   ┌────┴───┬───┴───┬───┴───┐
+   │ Leaf 1 │◄─►│ Leaf 2│◄─►│ Leaf 3 │ ... (雙向鏈表相連，所有資料行均在葉子節點)
+   └────────┴───┴───────┴───┴────────┘
+```
+
+### 2.1 B+ Tree 的三大核心設計哲學
+
+1. **極高的扇出（High Fanout）與極低的樹高**：
+   - 每個節點大小恰好等於一個作業系統磁碟頁（如 16KB）。
+   - 內部節點只儲存 Key 與子節點指標，使得單個頁面能容納上千個指標。通常 3~4 層高的 B+ Tree 就能容納數千萬至上億筆資料，**單次查詢僅需 3~4 次磁碟 I/O**。
+2. **葉子節點雙向鏈表**：
+   - 所有資料行實體或主鍵均位於葉子節點。
+   - 葉子節點之間透過雙向鏈表相互串聯，使得 `BETWEEN 10 AND 50` 等範圍查詢只需定位起點後進行鏈表遍歷，無需反覆回溯樹根。
+3. **痛點**：寫入新資料可能引發頁分裂（Page Splits），造成嚴重的隨機 I/O 與磁碟碎片。
+
+---
+
+## 3. LSM-Tree：為寫入吞吐而生的顛覆者
+
+面對日誌採集、時序監控與即時訊息等海量寫入場景，磁碟的隨機寫入延遲成為最大瓶頸（即便是 SSD，順序寫效能仍遠高於隨機寫）。**LSM-Tree（Log-Structured Merge-tree）** 將所有寫入操作全部轉化為純順序寫入。
+
+```text
+[ 寫入請求: Insert / Update / Delete ]
+      ├── 1. 順序追加至 WAL (Write-Ahead Log, 磁碟持久化防當機)
+      └── 2. 寫入記憶體中的 MemTable (跳躍表 SkipList / 紅黑樹, 記憶體極速響應！)
+                │
+                ▼ (當 MemTable 填滿達到閾值 e.g., 64MB)
+      [ 轉為 Immutable MemTable (唯讀快照) ]
+                │
+                ▼ (非同步背景執行緒 Flush 順序寫入磁碟)
+      [ Level 0: SSTable 檔案 (有序字串表, 包含 Bloom Filter) ]
+                │
+                ▼ (背景 Compaction 階層歸併壓實)
+      [ Level 1 ──> Level 2 ──> Level 3 SSTables ... ]
+```
+
+### 3.1 LSM-Tree 的寫入與讀取權衡
+
+- **寫入極速**：寫入只需走記憶體 `MemTable` 與磁碟順序追加 `WAL`，完全沒有任何隨機 I/O，**寫入吞吐量高達 B+ Tree 的 5~10 倍**！
+- **讀取放緩（Read Amplification）**：查詢某個 Key 時，必須依序搜尋 `MemTable` -> `Immutable MemTable` -> `Level 0 ~ Level N` 的 SSTable 檔案。
+  - **救星**：LSM-Tree 在每個 SSTable 檔案頭部引入了 **布隆過濾器（Bloom Filter）**，在記憶體中快速判斷某個 SSTable 是否「絕對不包含該 Key」，將讀取 I/O 降至最低。
+- **Compaction（壓實與寫入放大）**：背景執行緒定期將多個 SSTable 進行歸併排序，清理被覆蓋的舊版本資料與被刪除的墓碑（Tombstones）。Compaction 會佔用可觀的磁碟 I/O 與頻寬（寫入放大）。
+
+---
+
+## 4. Hash 索引與 Bitmap 位圖索引
+
+### 4.1 Hash 索引
+
+- **原理**：透過雜湊表以 $O(1)$ 時間複雜度直接定位資料指標。
+- **極限**：**完全不支援任何範圍查詢、排序（`ORDER BY`）或模糊查詢（`LIKE 'abc%'`）**。僅適用於 Memory 儲存引擎或 Redis 鍵值查找。
+
+### 4.2 Bitmap（位圖）索引與 Roaring Bitmap
+
+- **適用場景**：**低基數（Low Cardinality）欄位**（如性別、是否付費、國家代碼、商品類別）。
+- **運作原理**：為每個枚舉值建立一個位元陣列（Bit Array），第 $i$ 個位元為 1 表示第 $i$ 行滿足條件。
+  ```text
+  性別欄位:
+    Male:   [1, 0, 1, 1, 0, ...]
+    Female: [0, 1, 0, 0, 1, ...]
+  ```
+- **極致優勢**：在處理多條件複合查詢時（`WHERE gender = 'Male' AND is_vip = 1 AND country = 'TW'`），資料庫底層直接將三個 Bit Array 進行 **CPU 級別的 `AND` / `OR` 位元運算**，在微秒內完成數千萬筆資料的篩選！
+- **現代演進**：現代數倉採用 **Roaring Bitmap** 進行分區動態壓縮，徹底解決稀疏資料的記憶體膨脹問題。
+
+---
+
+## 5. 架構選型總結
+
+- **標準 OLTP 業務、讀多寫少、強大範圍掃描**：毫不猶豫選擇 **B+ Tree（MySQL / PostgreSQL）**。
+- **海量寫入、時序監控、分散式 KV 儲存**：選擇 **LSM-Tree（RocksDB / TiKV / Cassandra）**。
+- **極速點查快取**：選擇 **Hash 索引（Redis）**。
+- **OLAP 大規模多維度篩選與標籤畫像系統**：選擇 **Bitmap 索引（ClickHouse / Doris）**。

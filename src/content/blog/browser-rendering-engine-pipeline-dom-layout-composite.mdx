@@ -1,0 +1,105 @@
+---
+title: "瀏覽器渲染引擎底層原理：從 HTML/CSS 解析到 DOM、Layout 與 Composite 全鏈路架構"
+description: "深度剖析現代瀏覽器核心（Blink / WebKit）的關鍵渲染路徑 (Critical Rendering Path, CRP)：HTML 詞法分析與 DOM 樹構建、CSSOM 計算、Render Tree 縫合、Layout 重排 (Reflow)、Paint 重繪 (Repaint) 與 GPU 圖層合成 (Layer Compositing) 效能優化。"
+publishDate: 2026-09-02T13:00:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/browser-rendering-engine-pipeline-dom-layout-composite.png
+coverAlt: "HTML 與 CSS 依序經過 DOM、Layout、Paint 與 GPU 合成渲染"
+tags:
+  - "系統設計"
+  - "瀏覽器核心"
+  - "前端效能"
+  - "渲染管線"
+  - "計算機原理"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+當使用者在瀏覽器網址列輸入 URL 並完成網路傳輸後，瀏覽器收到的僅僅是一串 UTF-8 編碼的原始字節流（Byte Stream）。
+
+現代瀏覽器核心（如 Google Chrome 的 **Blink**、Apple Safari 的 **WebKit**）是如何在短短數十毫秒內，將這些抽象的字節轉換為螢幕上流暢交互、每秒 60/120 幀（FPS）的像素畫面的？
+
+理解**關鍵渲染路徑（Critical Rendering Path, CRP）** 與渲染引擎管線，是前端效能極限優化、解決介面卡頓（Jank）與理解現代框架（如 React Virtual DOM）設計初衷的底層基石。
+
+本文將全景拆解瀏覽器從字節流到 GPU 像素呈現的六大核心階段。
+
+---
+
+## 1. 瀏覽器關鍵渲染路徑（CRP）全景架構
+
+```text
+[ 原始 HTML Bytes ] ──> [ Tokens ] ──> [ Nodes ] ──> [ DOM Tree ] ──┐
+                                                                       ├──> [ Render Tree ]
+[ 原始 CSS Bytes  ] ──> [ Tokens ] ──> [ Nodes ] ──> [ CSSOM Tree ] ─┘          │
+                                                                                ▼
+[ GPU 像素螢幕輸出 ] ◄── [ Compositing ] ◄── [ Raster / Paint ] ◄── [ Layout (Reflow) ]
+```
+
+---
+
+## 2. 渲染管線的六大執行階段
+
+### 2.1 階段一：DOM 樹構建（HTML Parsing & Tokenization）
+
+1. **字節轉字元（Conversion）**：依據 `Content-Type` 的編碼（如 UTF-8）將二進位字節解碼為字串。
+2. **詞法分析（Tokenization）**：遵循 W3C HTML5 規範，透過狀態機將字串解析為獨立的 Token（如 `StartTag: html`、`StartTag: body`、`EndTag: body`）。
+3. **節點化與樹狀化（Tree Construction）**：依據父子嵌套關係將 Token 轉換為 Node 物件，組裝成 **DOM 樹（Document Object Model）**。
+
+### 2.2 階段二：CSSOM 樹構建（CSS Object Model）
+
+- 瀏覽器遇到 `<link rel="stylesheet">` 或 `<style>` 時，平行解析 CSS。
+- 構建 CSSOM 樹並進行**樣式計算（Style Calculation / Cascading）**，結合繼承規則、優先權（Specificity）與 User-Agent 預設樣式，確定每個節點的最終樣式。
+- **關鍵特性**：**CSS 是渲染阻斷資源（Render-blocking Resource）**。在 CSSOM 構建完成前，瀏覽器不會開始繪製任何像素（以避免白屏或閃爍的無樣式內容 FOUC）。
+
+### 2.3 階段三：渲染樹構建（Render Tree）
+
+瀏覽器將 DOM 樹與 CSSOM 樹合併生成 **Render Tree**：
+
+- Render Tree **僅包含需要顯示的可見節點**。
+- `display: none` 的節點以及 `<head>`、`<script>`、`<meta>` 等標籤**完全不會出現在 Render Tree 中**。
+- `visibility: hidden` 的節點會出現在 Render Tree 中（因為它雖然不可見，但仍佔據排版空間）。
+
+### 2.4 階段四：版面配置與排版（Layout / Reflow 重排）
+
+- 根據可視區域（Viewport）尺寸，精確計算 Render Tree 中每個幾何節點在螢幕上的**確切物理座標（$X, Y$）與寬高尺寸（Width, Height）**。
+- **重排（Reflow）觸發條件**：增加/刪除 DOM 節點、修改元素幾何屬性（`width`、`height`、`padding`、`margin`、`font-size`）、調整視窗大小（Resize）、或呼叫讀取幾何屬性的 API（如 `offsetWidth`、`getBoundingClientRect`）。
+
+### 2.5 階段五：繪製列表與光柵化（Paint & Raster）
+
+- **繪製列表（Paint Records）**：將 Layout 階段計算出的幾何形狀轉換為繪製指令序列（例如先畫背景色、再畫邊框、再畫文字、最後畫陰影）。
+- **光柵化（Rasterization）**：將繪製指令轉換為實際的像素點點陣圖（Bitmap），現代瀏覽器透過合成器執行緒（Compositor Thread）將頁面劃分為多個瓦片（Tiles），並調用 GPU 進行硬體加速光柵化。
+
+### 2.6 階段六：圖層合成（Layer Compositing）
+
+- 將整個頁面拆分為多個獨立的**圖層（Compositing Layers / RenderLayers）**。
+- 專屬合成執行緒（Compositor Thread）協同 GPU，將不同圖層按照正確的層疊順序（$Z$-index）在 GPU 顯存中合成，最終輸出到螢幕顯示器上。
+
+---
+
+## 3. 效能極限：Reflow vs. Repaint vs. Composite
+
+理解不同 CSS 屬性修改所觸發的渲染成本，是維持 60 FPS 流暢度的核心：
+
+```text
++---------------------+-------------------+-------------------+-------------------+
+| 變更操作            | Reflow (重排)     | Repaint (重繪)    | Composite (合成)  |
++---------------------+-------------------+-------------------+-------------------+
+| 影響階段            | 重新執行 4, 5, 6  | 跳過 4，執行 5, 6 | 跳過 4 和 5，僅 6 |
+| 典型屬性            | width, height,    | color, background,| transform,        |
+|                     | margin, top, left | border-color, 陰影| opacity, filter   |
+| CPU / 主執行緒開銷  | 極高 (全樹幾何重新計算)| 中等 (重新生成像素)| 極微 (GPU 直接運算)|
++---------------------+-------------------+-------------------+-------------------+
+```
+
+---
+
+## 4. 頂級前端架構優化指南
+
+1. **優先使用 GPU 合成屬性**：
+   - 移動動畫一律使用 `transform: translate3d(x, y, z)` 代替 `top` / `left`。
+   - 透明度漸變使用 `opacity` 代替 `rgba()` 背景切換。
+   - 透過 `will-change: transform` 提示瀏覽器提前提升為獨立合成圖層（避免過度使用造成顯存溢出）。
+2. **防禦強制同步版面配置（Forced Synchronous Layout）**：
+   - 避免在寫入 DOM 樣式後立即讀取幾何屬性（例如：先 `elem.style.width = '100px'` 再立即讀取 `elem.offsetWidth`），這會強迫瀏覽器中斷排程，立即強制執行昂貴的 Reflow。
+3. **指令碼非同步載入**：
+   - 外部 JavaScript 預設會阻斷 HTML 解析（Parser-blocking）。使用 `<script async>`（下載完立即非同步執行）或 `<script defer>`（HTML 解析完畢後按順序執行），釋放主執行緒。

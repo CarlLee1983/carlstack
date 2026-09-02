@@ -1,0 +1,162 @@
+---
+title: "即時通訊協定全景對決：WebSocket vs. SSE vs. Long Polling 架構選型與底層機制"
+description: "深度剖析現代 Web 即時通訊核心技術：Short/Long Polling、Server-Sent Events (SSE) 與 WebSocket 的連線生命週期開銷、伺服器 File Descriptors 資源消耗、心跳保活與重連風暴防禦策略。"
+publishDate: 2026-09-02T12:05:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/realtime-protocols-websocket-sse-polling.png
+coverAlt: "Polling、SSE 與 WebSocket 三種即時連線路徑對比"
+tags:
+  - "系統設計"
+  - "網路協定"
+  - "WebSocket"
+  - "SSE"
+  - "即時通訊"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在構建現代高互動性 Web 與分散式系統時，從金融股票即時報價、協同編輯工具（如 Figma、Google Docs）、社群聊天室，到大型語言模型（LLM）的 Token 串流輸出，底層都依賴於高效率的即時通訊機制。
+
+然而，HTTP/1.1 原生採用「請求-回應（Request-Response）」模型，本質上是半雙工且由客戶端主動發起的無狀態協定。為了在 Web 環境中實現伺服器主動推播（Server Push）或即時雙向通訊，工程界演進出三大主流方案：**輪詢（Short & Long Polling）**、**伺服器發送事件（Server-Sent Events, SSE）** 與 **全雙工 WebSocket**。
+
+本文將從連線生命週期、網路協定開銷、伺服器資源消耗（File Descriptors 與記憶體佔用）、心跳保活機制到重連風暴防禦，全方位拆解這三種即時通訊機制的底層原理與架構選型維度。
+
+---
+
+## 1. 三大即時通訊機制核心工作原理
+
+### 1.1 短輪詢（Short Polling）與長輪詢（Long Polling）
+
+- **短輪詢（Short Polling）**：客戶端以固定時間間隔（例如每 1 秒）向伺服器發送標準 HTTP GET 請求。伺服器收到請求後立即檢查是否有新資料，無論有無新訊息皆立即回傳（若無新資料則回傳空陣列或 304 Not Modified），隨後關閉或重用 TCP 連線。
+  - **致命缺點**：若 99% 的時間都沒有新訊息，這 99% 的 HTTP 請求就是純粹的 CPU、頻寬與 Header 開銷浪費；若拉長輪詢間隔，訊息即時性則顯著下降。
+- **長輪詢（Long Polling）**：客戶端發起 HTTP 請求，若伺服器端當前無新資料，**伺服器會將該 HTTP 請求掛起（Hold Connection）**，直到有新資料產生或達到超時時間（Timeout，通常設為 20~60 秒）。客戶端收到回應（或超時中斷）後，立即再發起下一個長輪詢請求。
+
+```text
+[Short Polling]
+Client ─── HTTP GET ───> Server (無資料，立即回傳空 200 OK)
+Client ─── HTTP GET ───> Server (無資料，立即回傳空 200 OK)
+Client ─── HTTP GET ───> Server (有新資料，回傳資料 200 OK)
+
+[Long Polling]
+Client ─── HTTP GET ───> Server (無資料，掛起連線等待...)
+                                  ... 5 秒後產生新訊息 ...
+Client <── 200 OK ────── Server (帶回新訊息)
+Client ─── HTTP GET ───> Server (立即建立下一輪掛起連線...)
+```
+
+### 1.2 伺服器發送事件（Server-Sent Events, SSE）
+
+SSE（RFC 8895 / W3C EventSource API）是基於標準 HTTP 協定的**單向持久連線技術（Server-to-Client）**。
+
+- 客戶端發送標準 HTTP GET 請求，並帶有特定的請求標頭：
+  `Accept: text/event-stream`
+- 伺服器回應 `Content-Type: text/event-stream`、`Cache-Control: no-cache` 與 `Connection: keep-alive`，並保持連線開放。
+- 伺服器透過該連線以 UTF-8 純文字格式持續向客戶端推送事件串流：
+  ```http
+  event: message
+  id: 1001
+  retry: 5000
+  data: {"delta": "Hello, world!"}
+  \n\n
+  ```
+- **核心優勢**：原生基於 HTTP（直接受惠於 HTTP/2 多路復用、CDN 快取與公司防火牆通行）、瀏覽器 `EventSource` 內建自動斷線重連與 `Last-Event-ID` 斷點續傳。
+
+### 1.3 WebSocket 協定
+
+WebSocket（RFC 6455）是一個獨立於 HTTP 的**全雙工（Full-Duplex）、雙向、低延遲傳輸層協定**，但初始連線透過 HTTP 升級協商（Upgrade Handshake）。
+
+1. **握手階段（HTTP Upgrade）**：
+   ```http
+   GET /chat HTTP/1.1
+   Host: api.example.com
+   Upgrade: websocket
+   Connection: Upgrade
+   Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+   Sec-WebSocket-Version: 13
+   ```
+2. **伺服器回應 101 Switching Protocols**：
+   ```http
+   HTTP/1.1 101 Switching Protocols
+   Upgrade: websocket
+   Connection: Upgrade
+   Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+   ```
+3. **資料傳輸階段**：底層 TCP 連線移交給 WebSocket 協議處理，不再有任何 HTTP 標頭，而是採用極輕量級的**資料訊框（Framing Protocol）**，訊框最小 Overhead 僅需 2 至 10 個 Bytes。
+
+---
+
+## 2. 核心架構維度深度對比
+
+```text
++----------------------+--------------------+--------------------+--------------------+
+| 比較維度             | Long Polling       | Server-Sent Events | WebSocket          |
++----------------------+--------------------+--------------------+--------------------+
+| 通訊方向             | 偽雙向（頻繁重建） | 單向（Server Push）| 真全雙工（雙向）   |
+| 底層通訊協定         | HTTP/1.1 或 HTTP/2 | HTTP/1.1 或 HTTP/2 | TCP (WS / WSS)     |
+| 單次傳輸 Header 開銷 | 極大 (幾百 Bytes)  | 極小 (純文字資料)  | 極微 (2~10 Bytes)  |
+| 斷線重連支援         | 應用層手動實作     | 瀏覽器原生自動重連 | 應用層需手動實作   |
+| 二進位資料傳輸       | 需 Base64 編碼     | 需 Base64 編碼     | 原生支援 (Blob/Buf)|
+| HTTP/2 多路復用支援  | 支援               | 完美原生支援       | 不原生 (需 RFC8441)|
+| 防火牆 / Proxy 穿透  | 極高 (普通 HTTP)   | 極高 (普通 HTTP)   | 中等 (某些嚴格代理)|
+| 適用典型場景         | 舊瀏覽器相容後備   | LLM 串流、即時看板 | 多人遊戲、即時協作 |
++----------------------+--------------------+--------------------+--------------------+
+```
+
+---
+
+## 3. 伺服器資源消耗與 C10K / C1000K 瓶頸
+
+在評估高併發即時架構時，伺服器資源消耗主要集中在以下三個面向：
+
+### 3.1 檔案描述符（File Descriptors, FD）與連線佔用
+
+在 Linux 系統中，無論是 WebSocket 還是保持連線的 SSE，每一個持久連線都會佔用一個 Socket 檔案描述符（FD）。
+
+- **系統限制**：需調整 Linux 核心參數 `/etc/security/limits.conf` 中的 `nofile` 與 `fs.file-max`。
+- **Ephemeral Port 限制**：伺服器作為服務端監聽固定 Port（如 443），理論上連線數受限於 `Client IP:Client Port:Server IP:Server Port` 四元組。對於單一客戶端 IP，最多可建立約 60,000 個連線；但若透過反向代理（如 Nginx / HAProxy），代理到上游伺服器的可用 Port 數可能成為瓶頸。
+
+### 3.2 記憶體消耗（Socket Buffer 與執行緒模型）
+
+- **傳統阻塞 I/O（Thread-per-Connection）**：如早期的 Tomcat/Apache，若每個連線分配 1MB 執行緒堆疊，1 萬個連線就需要 10GB 記憶體，瞬間造成 OOM。
+- **現代非阻塞 I/O（Event Loop + epoll）**：如 Node.js、Go（Goroutine 初始僅約 2KB）、Netty 或 Rust Tokio。每個連線主要開銷為作業系統核心的 TCP Socket Buffer（`rmem` 與 `wmem`）。在高密度連接場景下，可將 TCP buffer 預設值下調（例如 4KB~8KB），使單台伺服器能夠支撐 50 萬至 100 萬個長連線。
+
+---
+
+## 4. 生產級穩定性設計：心跳、保活與重連風暴防禦
+
+### 4.1 為什麼 TCP Keep-Alive 不夠？
+
+許多開發者誤以為啟用作業系統層級的 `SO_KEEPALIVE` 就足以維持連線。然而：
+
+1. **TCP Keep-Alive 預設間隔過長**（Linux 預設為 7200 秒 / 2 小時），無法及時感知客戶端斷網（如進入電梯、切換 Wi-Fi）。
+2. **中間網路設備（NAT 閘道、負載平衡器、防火牆）的主動剔除**：許多雲端 Load Balancer（如 AWS ALB）或家用 NAT 路由器會在連線靜默 60~350 秒後，直接默默關閉對應的連線映射表項，而不發送 RST 封包。
+3. **應用層卡死無法感知**：若行程死鎖或 Event Loop 堵塞，TCP 核心仍能回應 TCP ACK，但應用層已無法處理業務。
+
+因此，必須在應用層實作**定時心跳 Ping/Pong 機制**（建議間隔 15~30 秒）。
+
+### 4.2 重連風暴（Reconnection Storm）與防禦演算法
+
+當後端服務進行滾動重啟、或是網路抖動導致數十萬客戶端同時斷線時，若所有客戶端在斷線瞬間「立即」向後端發起重連，瞬間產生的 QPS 峰值會直接擊垮 API 閘道與認證資料庫，引發連鎖崩潰（Cascading Failure）。
+
+防禦重連風暴的三大核心策略：
+
+1. **指數退避（Exponential Backoff）**：重連間隔隨著失敗次數呈幾何級數增加：`T = min(T_max, T_base * 2^attempt)`。
+2. **全隨機抖動（Full Jitter）**：在退避區間內引入均勻分佈的隨機延遲，打散併發流量：
+   `Sleep = random(0, min(T_max, T_base * 2^attempt))`
+3. **閘道限流與排隊退避**：API 閘道回傳 `429 Too Many Requests` 並附帶 `Retry-After` Header，客戶端必須嚴格遵循該冷卻時間。
+
+---
+
+## 5. 架構選型決策矩陣
+
+在實際系統設計中，請遵循以下原則進行決策：
+
+1. **優先選擇 SSE 的情境**：
+   - 伺服器到客戶端的單向資料串流（如 ChatGPT / Claude 等 LLM 模型的 Token 生成串流）。
+   - 股票行情看盤、即時日誌檢視、儀表板監控警報。
+   - 需要完美相容 HTTP/2 多路復用、降低維運代理難度與防火牆阻擋率。
+2. **必須選擇 WebSocket 的情境**：
+   - 雙向頻繁互動（如即時協同白板、在線多人遊戲、客服即時聊天）。
+   - 對傳輸頻寬與延遲極端敏感、需要傳輸自定義二進位資料（Protobuf / FlatBuffers）。
+3. **退回 Long Polling 的情境**：
+   - 必須相容老舊企業內網受限環境、嚴格封鎖非標準 HTTP 協定的專有網路。

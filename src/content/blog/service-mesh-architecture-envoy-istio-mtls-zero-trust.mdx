@@ -1,0 +1,111 @@
+---
+title: "Service Mesh 服務網格底層架構：Envoy Sidecar、控制面 Istio 與 mTLS 零信任傳輸深度剖析"
+description: "深入剖析雲原生服務網格核心架構：從厚 SDK (Fat SDK) 到邊車代理 (Sidecar Proxy) 演進、Istiod 控制面與 Envoy 資料面、xDS 動態配置協議 (LDS/RDS/CDS/EDS)、流量攔截 (iptables vs. eBPF sockops) 與 mTLS 零信任雙向認證實踐。"
+publishDate: 2026-09-02T14:20:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/service-mesh-architecture-envoy-istio-mtls-zero-trust.png
+coverAlt: "Sidecar 代理在控制面下組成 mTLS 零信任服務網格"
+tags:
+  - "系統設計"
+  - "Service Mesh"
+  - "Envoy"
+  - "Istio"
+  - "雲原生"
+  - "零信任"
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+---
+
+在早期的微服務架構中，服務治理邏輯（如服務發現、客戶端負載平衡、熔斷限流、分散式鏈路追蹤、安全加密）通常以**厚 SDK（Fat SDK / Heavy Library）** 的形式嵌入在業務代碼中（例如 Spring Cloud Netflix、Finagle、gRPC SDK）。
+
+然而，當企業採用多語言技術棧（Java, Go, Node.js, Python, Rust）時，厚 SDK 帶來了巨大的維運噩夢：
+
+1. **多語言重複實作成本高昂**；
+2. **升級推進極其痛苦**：每次 SDK 修復漏洞，都需要推動全公司數十個業務團隊重新修改代碼、發布上線；
+3. **業務代碼與基礎設施強偶合**。
+
+**服務網格（Service Mesh）** 透過將服務治理能力從應用進程中徹底剝離，下沉至獨立的 **邊車代理（Sidecar Proxy）**，實現了基礎設施的完全透明化。
+
+本文將深度拆解 Istio 控制面、Envoy 資料面、xDS 協議以及零信任 mTLS 的底層實作。
+
+---
+
+## 1. 服務網格核心架構：控制面與資料面分離
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                   【 控制面 (Control Plane: Istiod) 】                  │
+│  ├── Pilot (服務發現與 xDS 配置轉換)                                   │
+│  ├── Citadel (CA 憑證簽發與 SPIFFE 身分管理)                           │
+│  └── Galley (Kubernetes CRD 配置驗證)                                  │
+└────────────────────────────────────────────────────────────────────────┘
+          │ (透過 gRPC 雙向串流推送 xDS 動態配置與 mTLS 憑證)
+          ▼
+┌────────────────────────────────────────┐    ┌────────────────────────────────────────┐
+│             【 Pod A 】                │    │             【 Pod B 】                │
+│  ┌──────────────────────────────────┐  │    │  ┌──────────────────────────────────┐  │
+│  │ 業務應用 (App A: Go / Java / Node)│  │    │  │ 業務應用 (App B)                 │  │
+│  └──────────────────────────────────┘  │    │  └──────────────────────────────────┘  │
+│               │ (Localhost: 127.0.0.1) │    │               ▲ (Localhost: 127.0.0.1) │
+│               ▼                        │    │               │                        │
+│  ┌──────────────────────────────────┐  │    │  ┌──────────────────────────────────┐  │
+│  │ Sidecar Proxy (Envoy)            │ ─┼────┼─>│ Sidecar Proxy (Envoy)            │  │
+│  └──────────────────────────────────┘  │    │  └──────────────────────────────────┘  │
+└────────────────────────────────────────┘    └────────────────────────────────────────┘
+                    ▲                                      ▲
+                    └─────── [ mTLS 零信任雙向加密傳輸 ] ────┘
+```
+
+---
+
+## 2. Envoy 動態配置核心：xDS 協定族系
+
+傳統的反向代理（如 Nginx）在變更配置時需要 `nginx -s reload` 重載進程。Envoy 自研了一套基於 gRPC 雙向串流的 **xDS（Discovery Service）動態配置協定**，允許在不重啟進程、不中斷任何連線的前提下熱更新全域路由：
+
+```text
++-----------------------+-------------------------------------------------------------------+
+| xDS 協定              | 職責與配置內容                                                    |
++-----------------------+-------------------------------------------------------------------+
+| 1. LDS (Listener DS)  | 監聽器發現：定義 Envoy 在哪個 Port 監聽流量 (如 L4/L7 Listener)   |
+| 2. RDS (Route DS)     | 路由發現：定義 HTTP 路由規則 (URL Path 匹配、流量權重切分、Header)|
+| 3. CDS (Cluster DS)   | 叢集發現：定義上游服務名稱與負載平衡策略 (Round Robin, P2C)       |
+| 4. EDS (Endpoint DS)  | 端點發現：定義具體上游服務的實體 IP:Port 清單 (秒級動態更新)      |
++-----------------------+-------------------------------------------------------------------+
+```
+
+---
+
+## 3. 流量攔截演進：iptables vs. eBPF sockops
+
+應用程式在發出請求時，是如何不知不覺被同 Pod 內的 Envoy 邊車代理攔截的？
+
+### 3.1 傳統 iptables PREROUTING 轉發
+
+- 容器啟動時透過 `initContainers` 執行腳本，在 Linux 網路命名空間配置 iptables 規則。
+- 將所有進出 Pod 的 TCP 流量強制重定向（`REDIRECT`）至 Envoy 的 `15001` 或 `15006` 本地監聽 Port。
+- **痛點**：每個請求都需要穿越兩次完整的 Linux 核心 TCP/IP 網路協定棧（App -> iptables -> Envoy -> 網卡），帶來 1~3ms 的額外延遲。
+
+### 3.2 現代 eBPF sockops 極速直通（Cilium Service Mesh）
+
+- 透過 **eBPF（Extended Berkeley Packet Filter）** 核心技術，在 Socket 層（`sockops`）直接建立 App Socket 與 Envoy Socket 的直連映射。
+- **完全繞過傳統 iptables 與核心 TCP/IP 協定棧的複雜封裝**，將 Service Mesh 的轉發延遲降低 **50% 至 70%**！
+
+---
+
+## 4. 零信任架構：mTLS 雙向加密與 SPIFFE 身分體系
+
+在現代雲原生環境中，「內網是安全的」這一假定已徹底破產。Service Mesh 提供了開箱即用的**零信任（Zero Trust）** 傳輸安全：
+
+1. **SPIFFE 身分標準**：每個 Pod 在啟動時，由 Istiod Citadel 自動頒發一個密碼學證書，並賦予標準的身分標識（SPIFFE ID，例如 `spiffe://cluster.local/ns/prod/sa/order-service-account`）。
+2. **透明 mTLS 雙向認證**：
+   - 應用程式之間發送純文字 HTTP 請求。
+   - 來源端 Envoy 自動進行 TLS 加密並附帶客戶端證書。
+   - 目標端 Envoy 驗證證書有效性與 SPIFFE 身分，解密後以純文字交給目標應用。
+3. **無感密鑰輪換**：證書預設有效期極短（如 24 小時），由 Envoy 透過 **SDS（Secret Discovery Service）** 在記憶體中動態自動輪換，完全零業務感知。
+
+---
+
+## 5. 架構選型總結
+
+- **擁抱 Service Mesh 的收益**：跨多語言統一生態、零程式碼侵入的 mTLS 與全鏈路分散式追蹤、精準的金絲雀發布控制。
+- **代價與維運挑戰**：微量 CPU/記憶體開銷（每個 Pod 多一個 Envoy 容器）、網路延遲增加 0.5~2ms、控制面排錯複雜度提高。
