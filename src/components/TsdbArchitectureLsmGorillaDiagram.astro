@@ -1,0 +1,535 @@
+---
+// TSDB Architecture, LSM Engine & Gorilla Compression Diagram
+---
+
+<figure class="tsdb-diagram" aria-labelledby="tsdb-caption">
+  <svg
+    class="tsdb-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="tsdb-title tsdb-desc"
+  >
+    <title id="tsdb-title">
+      時序資料庫 TSDB 儲存引擎、倒排索引與 Gorilla 壓縮架構
+    </title>
+    <desc id="tsdb-desc">
+      展示時序資料寫入管線 (MemTable / WAL / TSM Compaction)、Tag 多維倒排索引
+      (Roaring Bitmap)，以及 Facebook Gorilla 時間戳 Delta-of-Delta 與浮點數 XOR
+      壓縮演算法。
+    </desc>
+
+    <defs>
+      <marker
+        id="tsdb-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="tsdb-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: LSM/TSM Write Pipeline -->
+    <g class="tsdb-diagram__card" transform="translate(30, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="tsdb-diagram__badge" x="18" y="26">LSM / TSM WRITE PATH</text
+      >
+      <text class="tsdb-diagram__title" x="18" y="54">時序寫入與分層合併</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="75"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--purple"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--purple"
+          x="12"
+          y="22">MemTable + WAL</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="42"
+          >• WAL 順序追加寫入磁碟 (防崩潰)</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="60"
+          >• 記憶體 SkipList 按時間戳排序</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--cyan"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--cyan"
+          x="12"
+          y="22">不可變 Chunk / TSM File</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="42"
+          >• MemTable 滿後 Flush 成唯讀塊</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="60"
+          >• 每個 Series 按時間排序連續存放</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="78"
+          >• 採用 Gorilla 演算法極致壓縮</text
+        >
+      </g>
+
+      <g transform="translate(18, 255)">
+        <rect width="234" height="90" rx="6" class="tsdb-diagram__subcard"
+        ></rect>
+        <text class="tsdb-diagram__header" x="12" y="22"
+          >Compaction &amp; Downsampling</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="42"
+          >• 定期合併小檔案，消除墓碑標記</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="62"
+          >• Rollup 降採樣 (10s ➔ 5m ➔ 1h)</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="82"
+          >• 冷熱資料分層儲存 (NVMe ➔ S3)</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Inverted Index for Tags -->
+    <g class="tsdb-diagram__card" transform="translate(340, 40)">
+      <rect width="280" height="370" rx="12"></rect>
+      <text class="tsdb-diagram__badge" x="18" y="26"
+        >TAG MULTI-DIMENSIONAL INDEX</text
+      >
+      <text class="tsdb-diagram__title" x="18" y="54">多維標籤倒排索引</text>
+
+      <g transform="translate(18, 75)">
+        <rect width="244" height="75" rx="6" class="tsdb-diagram__subcard"
+        ></rect>
+        <text class="tsdb-diagram__header" x="12" y="22">Series Key 尋址</text>
+        <text class="tsdb-diagram__code" x="12" y="44"
+          >metric&#123;host="s1", env="prod"&#125;</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="244"
+          height="95"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--purple"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--purple"
+          x="12"
+          y="22">倒排索引表 (Inverted Index)</text
+        >
+        <text class="tsdb-diagram__code" x="12" y="44"
+          >host="s1" ➔ [SID 1, 4, 9, 12]</text
+        >
+        <text class="tsdb-diagram__code" x="12" y="62"
+          >env="prod" ➔ [SID 1, 2, 9, 15]</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="82"
+          >• 使用 Roaring Bitmap 快速位元交集</text
+        >
+      </g>
+
+      <g transform="translate(18, 265)">
+        <rect
+          width="244"
+          height="80"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--orange"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--orange"
+          x="12"
+          y="22">高基數 (High Cardinality) 防禦</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="42"
+          >• 禁止隨機 UUID 注入 Tag 標籤</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="62"
+          >• 避免 Series 數量膨脹壓垮記憶體</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Gorilla Compression Algorithm -->
+    <g class="tsdb-diagram__card" transform="translate(660, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="tsdb-diagram__badge" x="18" y="26"
+        >GORILLA COMPRESSION (VLDB)</text
+      >
+      <text class="tsdb-diagram__title" x="18" y="54"
+        >Gorilla 浮點與時間壓縮</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="115"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--cyan"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--cyan"
+          x="12"
+          y="22">1. 時間戳 Delta-of-Delta</text
+        >
+        <text class="tsdb-diagram__code" x="12" y="44"
+          >D = (t_n - t_n-1) - (t_n-1 - t_n-2)</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="66"
+          >• 若 D == 0 ➔ 僅儲存 1 bit ('0')</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="84"
+          >• 若 -63 &lt;= D &lt;= 64 ➔ 儲存 9 bits</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="102"
+          >• 平均壓縮率：96% (1~2 bit/pt)</text
+        >
+      </g>
+
+      <g transform="translate(18, 200)">
+        <rect
+          width="234"
+          height="145"
+          rx="6"
+          class="tsdb-diagram__subcard tsdb-diagram__subcard--purple"></rect>
+        <text
+          class="tsdb-diagram__header tsdb-diagram__header--purple"
+          x="12"
+          y="22">2. Float64 數值 XOR 壓縮</text
+        >
+        <text class="tsdb-diagram__code" x="12" y="44"
+          >XOR = val_curr ^ val_prev</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="66"
+          >• 若 XOR == 0 ➔ 僅儲存 1 bit ('0')</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="86"
+          >• 若有效位長度相同 ➔ 複用前導零</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="106"
+          >• 只存變化有效位 (Meaningful bits)</text
+        >
+        <text class="tsdb-diagram__subdesc" x="12" y="126"
+          >• 平均每點僅佔 1.37 Bytes (原 8B)</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows -->
+    <path
+      d="M 300 220 L 330 220"
+      class="tsdb-diagram__flow-line"
+      marker-end="url(#tsdb-arrow)"></path>
+    <path
+      d="M 620 220 L 650 220"
+      class="tsdb-diagram__flow-line"
+      marker-end="url(#tsdb-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="tsdb-diagram__mobile">
+    <div class="tsdb-mobile-card tsdb-mobile-card--purple">
+      <span class="tsdb-mobile-badge tsdb-mobile-badge--purple">WRITE PATH</span
+      >
+      <h4>1. LSM / TSM 寫入管線</h4>
+      <p>
+        WAL 保障資料不丟失，MemTable 記憶體內排序，Flush 順序寫入磁碟
+        Chunk，透過 Compaction 降採樣合併。
+      </p>
+    </div>
+
+    <div class="tsdb-mobile-arrow">↓ 多維索引標籤尋址</div>
+
+    <div class="tsdb-mobile-card tsdb-mobile-card--orange">
+      <span class="tsdb-mobile-badge tsdb-mobile-badge--orange">INDEXING</span>
+      <h4>2. Tag 倒排索引 (Inverted Index)</h4>
+      <p>
+        將標籤鍵值對映射為 Series ID 列表，利用 Roaring Bitmap
+        進行高速布林交集查詢。
+      </p>
+    </div>
+
+    <div class="tsdb-mobile-arrow">↓ 極致位元級壓縮</div>
+
+    <div class="tsdb-mobile-card tsdb-mobile-card--cyan">
+      <span class="tsdb-mobile-badge tsdb-mobile-badge--cyan">GORILLA</span>
+      <h4>3. Facebook Gorilla 演算法</h4>
+      <p>
+        時間戳 Delta-of-Delta 與 Float64 數值 XOR 壓縮，將原始 16 Byte/點 壓縮至
+        1.37 Byte/點，壓縮比達 10 倍以上。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="tsdb-caption" class="tsdb-diagram__caption">
+    圖 4：時序資料庫 TSDB 儲存引擎、多維倒排索引與 Gorilla 壓縮演算法全景
+  </figcaption>
+</figure>
+
+<style>
+  .tsdb-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .tsdb-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .tsdb-diagram__mobile {
+    display: none;
+  }
+
+  .tsdb-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .tsdb-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .tsdb-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .tsdb-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .tsdb-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .tsdb-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+
+  :global(.dark) .tsdb-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .tsdb-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  :global(.dark) .tsdb-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .tsdb-diagram__subcard--purple {
+    stroke: #c084fc;
+    fill: #faf5ff;
+  }
+  :global(.dark) .tsdb-diagram__subcard--purple {
+    stroke: #9333ea;
+    fill: #3b0764;
+  }
+
+  .tsdb-diagram__subcard--cyan {
+    stroke: #22d3ee;
+    fill: #ecfeff;
+  }
+  :global(.dark) .tsdb-diagram__subcard--cyan {
+    stroke: #0891b2;
+    fill: #083344;
+  }
+
+  .tsdb-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+  :global(.dark) .tsdb-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .tsdb-diagram__header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .tsdb-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .tsdb-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .tsdb-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .tsdb-diagram__header--cyan {
+    fill: #0e7490;
+  }
+  :global(.dark) .tsdb-diagram__header--cyan {
+    fill: #22d3ee;
+  }
+
+  .tsdb-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(.dark) .tsdb-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .tsdb-diagram__subdesc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .tsdb-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .tsdb-diagram__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    fill: #0369a1;
+  }
+  :global(.dark) .tsdb-diagram__code {
+    fill: #7dd3fc;
+  }
+
+  .tsdb-diagram__flow-line {
+    stroke: #a855f7;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .tsdb-diagram__arrow-head {
+    fill: #a855f7;
+  }
+
+  @media (max-width: 768px) {
+    .tsdb-diagram__desktop {
+      display: none;
+    }
+
+    .tsdb-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .tsdb-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .tsdb-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .tsdb-mobile-card--purple {
+      border-left: 4px solid #a855f7;
+      background: #faf5ff;
+    }
+    :global(.dark) .tsdb-mobile-card--purple {
+      background: #3b0764;
+      border-color: #c084fc;
+    }
+
+    .tsdb-mobile-card--cyan {
+      border-left: 4px solid #0891b2;
+      background: #ecfeff;
+    }
+    :global(.dark) .tsdb-mobile-card--cyan {
+      background: #083344;
+      border-color: #22d3ee;
+    }
+
+    .tsdb-mobile-card--orange {
+      border-left: 4px solid #f97316;
+      background: #fff7ed;
+    }
+    :global(.dark) .tsdb-mobile-card--orange {
+      background: #431407;
+      border-color: #fb923c;
+    }
+
+    .tsdb-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .tsdb-mobile-badge--purple {
+      color: #7e22ce;
+    }
+    :global(.dark) .tsdb-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .tsdb-mobile-badge--cyan {
+      color: #0891b2;
+    }
+    :global(.dark) .tsdb-mobile-badge--cyan {
+      color: #22d3ee;
+    }
+
+    .tsdb-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(.dark) .tsdb-mobile-badge--orange {
+      color: #fb923c;
+    }
+
+    .tsdb-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .tsdb-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .tsdb-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .tsdb-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .tsdb-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

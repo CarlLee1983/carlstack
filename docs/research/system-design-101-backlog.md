@@ -15,8 +15,8 @@
 | **第 1 批** | 科技巨頭核心架構演進（Postgres / ScyllaDB / 支付 / 推播快取 / Kafka）   | 5 篇     | 5 篇       | ✅ **已全數發布** |
 | **第 2 批** | 影音、社交與即時高併發管線（Twitter / YouTube / TikTok / Uber）         | 4 篇     | 4 篇       | ✅ **已全數發布** |
 | **第 3 批** | 現代通訊協定、API 閘道與網路流量工程（HTTP/3 / gRPC / 閘道邊界 / 安全） | 4 篇     | 4 篇       | ✅ **已全數發布** |
-| **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）      | 4 篇     | 0 篇       | ⏳ 排入待辦佇列   |
-| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 0 篇       | 📋 儲備中         |
+| **第 4 批** | 分散式交易、儲存引擎與資料流（隔離層級 / 樂觀悲觀鎖 / CDC / TSDB）      | 4 篇     | 4 篇       | ✅ **已全數發布** |
+| **第 5 批** | AI / LLM 系統架構與 Agent 工程化（推理加速 / Agent 狀態機 / AI Stack）  | 3 篇     | 0 篇       | ⏳ 排入待辦佇列   |
 
 ---
 
@@ -70,20 +70,24 @@
    - **一手來源**：[OWASP API Security Top 10](https://owasp.org/www-project-api-security/) / [IETF OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-08)
    - **核心要點**：邊界 WAF 與自適應限流、OAuth 2.1 PKCE 授權碼模式、RS256 非對稱簽名、JTI + Redis 防重放黑名單、微服務間 mTLS 零信任、BOLA 越權防禦。
 
+### 第 4 批：分散式交易、儲存引擎與資料流
+
+1. [**資料庫交易隔離層級與 MVCC 底層實作：從 Read Phenomena、寫偏斜到 PostgreSQL Snapshot 尋址**](../../src/content/blog/database-isolation-levels-mvcc-mechanisms.mdx)
+   - **一手來源**：[PostgreSQL Concurrency Control](https://www.postgresql.org/docs/current/mvcc.html) / [A Critique of ANSI SQL Isolation Levels](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/)
+   - **核心要點**：ANSI 讀異象（髒讀/不可重複讀/幻讀）、寫偏斜（Write Skew）異常與醫生值班問題、PostgreSQL Heap Tuple（xmin/xmax/t_ctid）、Snapshot 4 步可見性演算法、SSI 可序列化快照隔離與 SIREAD 依賴圖。
+2. [**高併發秒殺庫存扣減架構：樂觀鎖、悲觀鎖、Redis 分散式鎖爭議與分段加鎖實踐**](../../src/content/blog/high-concurrency-inventory-locking-strategies.mdx)
+   - **一手來源**：[Martin Kleppmann: How to do distributed locking](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html)
+   - **核心要點**：`SELECT ... FOR UPDATE` 悲觀行鎖瓶頸、CAS 樂觀鎖與重試風暴、Redis Lua 原子扣減、Martin Kleppmann 對 Redlock 批判（GC 停頓/時鐘漂移）與 Fencing Token 解法、10 萬 QPS 分段庫存（Inventory Segment Sharding）。
+3. [**CDC（變更資料擷取）與 Debezium 架構實戰：告別雙寫不一致、Transactional Outbox 與即時資料串流**](../../src/content/blog/cdc-debezium-transactional-outbox-streaming.mdx)
+   - **一手來源**：[Debezium Documentation](https://debezium.io/documentation/)
+   - **核心要點**：應用層雙寫不一致（Dual-Write）難題、Polling vs Log-based CDC、Transactional Outbox 模式、Debezium 引擎解析 Binlog/WAL、SMT 事件路由與 Kafka Connect 串流拓撲。
+4. [**時序資料庫（TSDB）架構演進：LSM-Tree 寫入特化、倒排索引與 Facebook Gorilla 浮點壓縮**](../../src/content/blog/tsdb-architecture-lsm-gorilla-compression.mdx)
+   - **一手來源**：[Facebook Gorilla Paper (VLDB 2015)](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf)
+   - **核心要點**：B+ Tree 隨機寫入崩潰、LSM-Tree/TSM 寫入管線、Tag 多維倒排索引與 Roaring Bitmap 位元運算、Facebook Gorilla 雙重壓縮（時間戳 Delta-of-Delta 與 Float64 XOR 浮點壓縮）、Rollup 階層降採樣。
+
 ---
 
 ## ⏳ 後續批次主題清單與一手資料庫
-
-### 第 4 批：分散式交易、儲存引擎與資料流
-
-| 專題題目                                       | 涉及核心技術與模組                                                                                      | 建議一手來源                                                                                                                  |
-| :--------------------------------------------- | :------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------- |
-| **資料庫交易隔離層級與 MVCC 底層實作**         | Read Committed, Repeatable Read, Serializable、髒讀 / 幻讀 / 寫偏斜（Write Skew）、PostgreSQL MVCC 快照 | [PostgreSQL Documentation Chapter 13: Concurrency Control](https://www.postgresql.org/docs/current/mvcc.html)                 |
-| **高併發扣減：樂觀鎖 vs. 悲觀鎖 vs. 分散式鎖** | `SELECT ... FOR UPDATE`、CAS（Compare-And-Swap）、Redis Redlock 爭議、庫存分段加鎖                      | [Martin Kleppmann: How to do distributed locking](https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html) |
-| **CDC（Change Data Capture）與 Debezium 實戰** | 捕獲 WAL / Binlog、雙寫一致性問題、Outbox Pattern、即時 ETL 資料湖管線                                  | [Debezium Documentation / Confluent CDC Guides](https://debezium.io/documentation/)                                           |
-| **時序資料庫（TSDB）架構與 LSM-Tree 寫入特化** | 倒排索引（Inverted Index）、Gorilla 浮點數壓縮、Rollup 降採樣、InfluxDB / TimescaleDB                   | [Gorilla: A Fast, Scalable, In-Memory Time Series Database (VLDB Paper)](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf)     |
-
----
 
 ### 第 5 批：AI / LLM 系統架構與 Agent 工程化
 

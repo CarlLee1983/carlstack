@@ -1,0 +1,198 @@
+---
+title: "資料庫交易隔離層級與 MVCC 底層實作：從 Read Phenomena、寫偏斜到 PostgreSQL Snapshot 尋址"
+description: "深度解析關聯式資料庫交易隔離層級與 MVCC（多版本併發控制）核心原理：詳細對比 Read Committed、Repeatable Read 與 Serializable；拆解髒讀、不可重複讀、幻讀與寫偏斜（Write Skew）異常；剖析 PostgreSQL 底層 Tuple 結構（xmin/xmax/t_ctid）、Snapshot 尋址演算法與 SSI（可序列化快照隔離）。"
+publishDate: 2026-09-02T10:30:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 資料庫
+  - PostgreSQL
+  - 交易隔離
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/database-isolation-levels-mvcc.png
+coverAlt: "立體等距視角展示資料庫多維快照立方體：頂層為 ACID 隔離屏障，中層為多版本 Tuple 鏈（xmin/xmax），底層為物理 Heap 頁面，光束標註快照可見性演算法。"
+---
+
+import DatabaseIsolationMvccDiagram from "../../components/DatabaseIsolationMvccDiagram.astro";
+
+在關聯式資料庫（RDBMS）的 ACID 特性中，**隔離性（Isolation）** 是實作最為複雜、對系統高併發效能影響最深遠的一環。
+
+如果完全追求嚴格的循序執行（Serializability），傳統的二階段鎖（2PL, Two-Phase Locking）會讓所有讀寫交易互相阻塞，導致系統吞吐量暴跌；而若為了效能放寬隔離，又會引發髒讀（Dirty Read）、不可重複讀（Non-Repeatable Read）、幻讀（Phantom Read）甚至是災難性的**寫偏斜（Write Skew）**。
+
+現代資料庫（如 PostgreSQL、MySQL InnoDB、Oracle）透過 **MVCC（Multi-Version Concurrency Control，多版本併發控制）** 實現了「讀不阻塞寫，寫不阻塞讀」的高併發哲學。
+
+本文基於 [PostgreSQL Concurrency Control 官方規範](https://www.postgresql.org/docs/current/mvcc.html)、Berenson 等人的經典論文《A Critique of ANSI SQL Isolation Levels》與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，深入剖析隔離層級的讀異象防禦與 PostgreSQL MVCC 底層快照尋址演算法。
+
+<DatabaseIsolationMvccDiagram />
+
+---
+
+## 一、ANSI SQL-92 隔離層級標準與現實缺陷
+
+在 1992 年的 ANSI SQL 標準中，定義了四種經典交易隔離層級與三種讀異象（Read Phenomena）：
+
+| 隔離層級 (Isolation Level)         | 髒讀 (Dirty Read) | 不可重複讀 (Non-repeatable Read) | 幻讀 (Phantom Read) |
+| :--------------------------------- | :---------------: | :------------------------------: | :-----------------: |
+| **Read Uncommitted**               |      ❌ 發生      |             ❌ 發生              |       ❌ 發生       |
+| **Read Committed** (Postgres 預設) |      ✅ 防禦      |             ❌ 發生              |       ❌ 發生       |
+| **Repeatable Read** (MySQL 預設)   |      ✅ 防禦      |             ✅ 防禦              |     ⚠️ 部分防禦     |
+| **Serializable**                   |      ✅ 防禦      |             ✅ 防禦              |       ✅ 防禦       |
+
+### ANSI 標準的三大讀異象定義
+
+1. **髒讀（Dirty Read, P1）**：交易 T1 修改了一筆記錄但尚未提交，交易 T2 讀取到了此未提交的暫態值；隨後 T1 Rollback 回滾，導致 T2 讀到了幽靈數據。
+2. **不可重複讀（Non-Repeatable Read, P2 / Fuzzy Read）**：交易 T1 讀取某筆記錄，交易 T2 修改或刪除了該記錄並 Commit；T1 再次讀取時，發現數據已被改變。
+3. **幻讀（Phantom Read, P3）**：交易 T1 依條件查詢一批記錄集合（如 `WHERE age > 30`），交易 T2 插入了符合條件的新記錄並 Commit；T1 再次查詢相同條件時，多出了先前不存在的「幽靈行」。
+
+---
+
+## 二、ANSI 標準遺漏的致命異常：寫偏斜（Write Skew）
+
+1995 年微軟研究院的 Berenson 等人在論文中指出：ANSI SQL-92 的三種現象定義過於狹隘，無法描述基於快照隔離（Snapshot Isolation, SI）時產生的進階併發異常——最典型的就是**寫偏斜（Write Skew）**。
+
+### 經典案例：醫院醫生值班問題
+
+假設某醫院規則要求：「任何時刻必須至少有 1 名醫生在線值班」。目前系統中有兩名醫生 Alice 與 Bob 都在值班（`on_call = true`）。
+
+```sql
+-- Alice 申請請假 (Transaction 1)
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT COUNT(*) FROM doctors WHERE on_call = true; -- 返回 2，滿足 > 1 限制
+UPDATE doctors SET on_call = false WHERE name = 'Alice';
+COMMIT;
+
+-- 與此同時，Bob 也申請請假 (Transaction 2)
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT COUNT(*) FROM doctors WHERE on_call = true; -- 返回 2 (基於自己的快照)
+UPDATE doctors SET on_call = false WHERE name = 'Bob';
+COMMIT;
+```
+
+- 在 **Repeatable Read（快照隔離）** 下，T1 與 T2 讀取到的都是各自一致性的快照（值班人數為 2）。
+- 兩筆交易各自修改不同的記錄行（T1 改 Alice，T2 改 Bob），在行鎖層面完全沒有衝突！
+- 兩者皆成功提交後，值班醫生人數變為 **0**，徹底破壞了業務約束（Invariant Violation）。
+
+> [!IMPORTANT]
+> **寫偏斜的本質**：兩筆併發交易讀取了重疊的資料集，但各自修改了互不重疊的不同記錄，最終破壞了跨多行資料的全局約束條件。**一般的行級鎖無法阻止寫偏斜，必須透過 Serializable（可序列化）或悲觀顯式加鎖防禦**。
+
+---
+
+## 三、PostgreSQL MVCC 底層 Tuple 物理佈局
+
+在 PostgreSQL 中，當執行 `UPDATE` 操作時，資料庫**不會在原地覆蓋（In-place Update）**舊資料，而是將舊 Tuple 標記為過期，並在 Heap Page 中追加寫入一筆全新的 Tuple 版本。
+
+每個物理 Tuple 在磁碟上的頭部結構（`HeapTupleHeaderData`，佔 23 Bytes）包含關鍵的 MVCC 欄位：
+
+```c
+// PostgreSQL 核心源碼結構簡化 (src/include/access/htup_details.h)
+struct HeapTupleHeaderData {
+    TransactionId t_xmin;     // 建立該版本的 Transaction ID
+    TransactionId t_xmax;     // 覆蓋/刪除該版本的 Transaction ID (0 表示當前有效)
+    union {
+        CommandId  t_cid;     // 同一交易內部的 SQL 命令序號
+        TransactionId t_xvac; // VACUUM 操作相關
+    } t_field3;
+    ItemPointerData t_ctid;   // 物理位置指針 (Block Number, Offset Number)
+    uint16          t_infomask; // 狀態標記位 (COMMITTED, INVALID, HOT 等)
+};
+```
+
+### 1. `t_xmin` 與 `t_xmax` 生命週期
+
+- **INSERT**：新寫入 Tuple 的 `t_xmin = 當前交易 XID`，`t_xmax = 0`。
+- **DELETE**：並不立即從磁碟移除，而是將目標 Tuple 的 `t_xmax = 當前交易 XID`。
+- **UPDATE**：
+  1. 將舊 Tuple 的 `t_xmax = 當前交易 XID`，並將其 `t_ctid` 指向新 Tuple 的物理位址。
+  2. 新增一筆新 Tuple，其 `t_xmin = 當前交易 XID`，`t_xmax = 0`，`t_ctid` 指向自身。
+
+### 2. 標記位 `t_infomask` 與 Commit Log (CLOG) 效能優化
+
+為了避免每次判斷 Tuple 可見性時都要去硬碟讀取 CLOG（Commit Log）檢查交易是否已提交，PostgreSQL 在 Tuple 頭部設計了提示標記（Hint Bits）：
+
+- `HEAP_XMIN_COMMITTED`：建立此 Tuple 的交易已確定提交。
+- `HEAP_XMIN_INVALID`：建立此 Tuple 的交易已回滾（Aborted）。
+- `HEAP_XMAX_INVALID`：該行資料依然活躍，尚未被任何提交的交易所刪除或覆蓋。
+
+---
+
+## 四、Snapshot 快照可見性判定演算法
+
+當用戶端發起查詢時，PostgreSQL 會為其建立一個快照資料結構 `SnapshotData`：
+
+```text
+Snapshot 定義格式：xmin:xmax:xip_list
+例如：100:108:102,105
+```
+
+- **`xmin`**：快照建立時，系統中**最小尚未提交的活躍交易 XID**。任何 `XID < xmin` 的交易必定已經提交或回滾。
+- **`xmax`**：快照建立時，系統已分配的最大交易 XID + 1。任何 `XID >= xmax` 的交易在快照建立時尚不存在，視為「未來的交易」。
+- **`xip_list`**：在 `[xmin, xmax)` 區間內，於快照建立瞬間**仍然處於活躍中（Active / In-progress）**的交易 XID 陣列。
+
+### 可見性 4 步決策流程（以 Tuple 的 `t_xmin` 為例）
+
+1. **自身修改檢查**：若 `t_xmin == 當前交易 XID`，則依據語句級別的 `t_cid` 判斷是否由當前交易稍早的語句產生，若成立則可見。
+2. **已提交判定**：若 `t_xmin < Snapshot.xmin`，代表該交易在快照建立前早已結束。只要該交易已提交（非回滾），則 Tuple 必定可見。
+3. **未來交易判定**：若 `t_xmin >= Snapshot.xmax`，代表該交易是在快照建立之後才開啟的未來交易，直接判定為**不可見**。
+4. **活躍區間判定**：若 `Snapshot.xmin <= t_xmin < Snapshot.xmax`：
+   - 若 `t_xmin` 出現在 `xip_list` 中，代表快照建立瞬間該交易尚未提交，判定為**不可見**；
+   - 若 `t_xmin` 未出現在 `xip_list` 中，代表該交易在快照建立前已成功提交，判定為**可見**。
+
+---
+
+## 五、Read Committed vs. Repeatable Read 的本質差異
+
+兩者的核心差異僅在於**「何時獲取 Snapshot」**：
+
+1. **Read Committed（語句級快照）**：
+   - 交易內**每一條獨立的 SQL 查詢語句**執行前，都會重新獲取一次最新的 Snapshot。
+   - 若 T2 在 T1 的兩次查詢之間提交了更新，T1 的第二條語句獲取的最新快照會包含 T2 的提交結果，因此會出現不可重複讀。
+2. **Repeatable Read（交易級快照）**：
+   - 交易在**執行第一條 SQL 語句時**獲取 Snapshot，並在整筆交易存續期間始終複用該快照。
+   - 任何後續提交的交易對此快照皆不可見，從而徹底解決不可重複讀與幻讀。
+
+---
+
+## 六、Serializable 隔離：SSI（可序列化快照隔離）
+
+PostgreSQL 自 9.1 起引入了業界頂尖的 **SSI（Serializable Snapshot Isolation）** 演算法。
+
+傳統 Serializable 依賴表級或行級排他鎖，吞吐量極低；SSI 則允許所有交易在 Repeatable Read 的快照下無鎖平行讀取，並在記憶體中維護一張**依賴衝突圖（Dependency Graph）**：
+
+1. **SIREAD 鎖（無阻塞鎖）**：讀取資料時僅在記憶體註冊輕量級 SIREAD 標記，不阻塞任何並發寫入。
+2. **rw-antidependency 檢測**：當交易 T1 讀取了某個版本，隨後 T2 寫入了該版本的新數據，系統記錄一條反依賴邊 `T1 -> (rw) -> T2`。
+3. **環路中斷（Abort）**：當依賴圖中檢測到潛在的交錯環路（可能導致寫偏斜異常）時，資料庫會主動中止其中一筆交易並拋出經典錯誤：
+   ```text
+   ERROR: could not serialize access due to read/write dependencies among transactions
+   DETAIL: Reason code: Canceled on identification as a pivot, scenario rxw.
+   HINT: The transaction might succeed if retried.
+   ```
+
+---
+
+## 七、MVCC 副作用治理：VACUUM 與 XID Wraparound
+
+由於 MVCC 採用「追加寫入 + 標記刪除」，長時間運行會產生大量無法被任何活躍快照看見的**無效死元組（Dead Tuples）**，造成表格與索引的**空間膨脹（Bloat）**。
+
+### 1. AutoVacuum 核心職責
+
+- **死元組清理**：遍歷 Heap 頁面回收 Dead Tuples 所佔用的空間，更新 Free Space Map (FSM)。
+- **HOT（Heap-Only Tuples）優化**：若 UPDATE 操作未修改索引欄位，且新 Tuple 能放入同一 Data Page，則直接在資料頁內構建指針鏈，完全不需更新 Index B+ Tree。
+
+### 2. 32 位元 XID 迴繞危機（Transaction ID Wraparound）
+
+PostgreSQL 的交易 ID 是 32 位元整數（約 42 億次交易上限）。若達到極限回滾為 0，原本舊的交易會突然被視為「未來交易」，導致全庫歷史數據瞬間不可見！
+
+- **解決方案：Freeze 機制**。
+- AutoVacuum 定期執行 Freeze 操作，將超過年齡閾值（如 2 億次）的 Tuple 標記為 `HEAP_XMIN_FROZEN`，代表此資料永遠對所有交易可見，不再參與 XID 大小比較。
+
+---
+
+## 八、生產環境實戰建議
+
+1. **OLTP 高頻交易預設選用 Read Committed**：在單條語句中配合原子條件更新（如 `WHERE stock >= count`），兼顧高吞吐量與數據一致性。
+2. **需要跨表一致性校驗時選用 Serializable**：配合應用層**指數退避重試機制（Exponential Backoff Retry）**，優雅捕獲並重試序列化失敗異常。
+3. **警惕長事務（Long-Running Transactions）**：
+   - 長時間未提交的交易會卡住系統的 `xmin`，導致 AutoVacuum 無法回收其後的任何 Dead Tuples，引發磁碟膨脹與效能雪崩。
+   - 務必在連線池（如 PgBouncer）或資料庫端配置 `idle_in_transaction_session_timeout`。

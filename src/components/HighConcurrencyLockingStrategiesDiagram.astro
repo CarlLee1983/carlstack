@@ -1,0 +1,630 @@
+---
+// High Concurrency Inventory Locking Strategies Diagram
+---
+
+<figure class="lock-diagram" aria-labelledby="lock-caption">
+  <svg
+    class="lock-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="lock-title lock-desc"
+  >
+    <title id="lock-title">高併發秒殺庫存扣減鎖策略與分段架構對比</title>
+    <desc id="lock-desc">
+      展示悲觀鎖 (SELECT FOR UPDATE)、樂觀鎖 (CAS Version)、Redis Redlock (與
+      Fencing Token) 及 10 萬 QPS 分段庫存 (Segment Sharding)
+      的工作機制與吞吐量對比。
+    </desc>
+
+    <defs>
+      <marker
+        id="lock-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="lock-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Strategy 1: Pessimistic Locking -->
+    <g class="lock-diagram__card" transform="translate(25, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="lock-diagram__badge" x="14" y="26">DATABASE ROW LOCK</text>
+      <text class="lock-diagram__title" x="14" y="54">悲觀鎖 (Pessimistic)</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="65"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--orange"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--orange"
+          x="10"
+          y="20">語法機制</text
+        >
+        <text class="lock-diagram__code" x="10" y="38"
+          >SELECT stock FROM inv</text
+        >
+        <text class="lock-diagram__code" x="10" y="54"
+          >WHERE id=1 FOR UPDATE;</text
+        >
+      </g>
+
+      <g transform="translate(14, 150)">
+        <rect width="187" height="85" rx="6" class="lock-diagram__subcard"
+        ></rect>
+        <text class="lock-diagram__header" x="10" y="20">優勢與適用場景</text>
+        <text class="lock-diagram__desc" x="10" y="40"
+          >• 強一致性，絕對杜絕超賣</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58">• 業務邏輯簡單直接</text>
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• 寫入衝突極高且吞吐量低</text
+        >
+      </g>
+
+      <g transform="translate(14, 245)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--alert"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--alert"
+          x="10"
+          y="20">⚠️ 效能瓶頸</text
+        >
+        <text class="lock-diagram__desc" x="10" y="40"
+          >• 佇列阻塞，連線池耗盡</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58"
+          >• 容易引發死鎖 (Deadlock)</text
+        >
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• TPS 上限約 500~1,000</text
+        >
+      </g>
+    </g>
+
+    <!-- Strategy 2: Optimistic Locking -->
+    <g class="lock-diagram__card" transform="translate(255, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="lock-diagram__badge" x="14" y="26">CAS VERSIONING</text>
+      <text class="lock-diagram__title" x="14" y="54">樂觀鎖 (Optimistic)</text>
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="65"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--blue"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--blue"
+          x="10"
+          y="20">語法機制</text
+        >
+        <text class="lock-diagram__code" x="10" y="38"
+          >UPDATE inv SET stock=s-1</text
+        >
+        <text class="lock-diagram__code" x="10" y="54"
+          >WHERE id=1 AND ver=v;</text
+        >
+      </g>
+
+      <g transform="translate(14, 150)">
+        <rect width="187" height="85" rx="6" class="lock-diagram__subcard"
+        ></rect>
+        <text class="lock-diagram__header" x="10" y="20">優勢與適用場景</text>
+        <text class="lock-diagram__desc" x="10" y="40">• 無資料庫行鎖等待</text>
+        <text class="lock-diagram__desc" x="10" y="58"
+          >• 讀多寫少場景效能極佳</text
+        >
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• 條件原子扣 (stock &gt;= 1)</text
+        >
+      </g>
+
+      <g transform="translate(14, 245)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--alert"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--alert"
+          x="10"
+          y="20">⚠️ 效能瓶頸</text
+        >
+        <text class="lock-diagram__desc" x="10" y="40"
+          >• 秒殺時大量請求失敗</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58"
+          >• 重試風暴引發 CPU 空轉</text
+        >
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• TPS 上限約 2,000~3,000</text
+        >
+      </g>
+    </g>
+
+    <!-- Strategy 3: Distributed Locking -->
+    <g class="lock-diagram__card" transform="translate(485, 40)">
+      <rect width="215" height="370" rx="12"></rect>
+      <text class="lock-diagram__badge" x="14" y="26">REDIS + FENCING</text>
+      <text class="lock-diagram__title" x="14" y="54"
+        >分散式鎖 (Distributed)</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="187"
+          height="65"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--purple"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--purple"
+          x="10"
+          y="20">Lua 腳本原子扣減</text
+        >
+        <text class="lock-diagram__code" x="10" y="38"
+          >redis.call('decrby', k, 1)</text
+        >
+        <text class="lock-diagram__code" x="10" y="54"
+          >SET lock_key uuid NX PX 30s</text
+        >
+      </g>
+
+      <g transform="translate(14, 150)">
+        <rect width="187" height="85" rx="6" class="lock-diagram__subcard"
+        ></rect>
+        <text class="lock-diagram__header" x="10" y="20">優勢與防漂移</text>
+        <text class="lock-diagram__desc" x="10" y="40">• 記憶體級高速處理</text>
+        <text class="lock-diagram__desc" x="10" y="58"
+          >• Fencing Token 遞增保護</text
+        >
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• 將壓力卸載至快取層</text
+        >
+      </g>
+
+      <g transform="translate(14, 245)">
+        <rect
+          width="187"
+          height="95"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--alert"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--alert"
+          x="10"
+          y="20">⚠️ 爭議與風險</text
+        >
+        <text class="lock-diagram__desc" x="10" y="40"
+          >• GC 停頓導致鎖過期失效</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58">• 主從切換可能丟鎖</text>
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• 單 Key TPS 約 20,000</text
+        >
+      </g>
+    </g>
+
+    <!-- Strategy 4: Segment Sharding -->
+    <g class="lock-diagram__card" transform="translate(715, 40)">
+      <rect width="220" height="370" rx="12"></rect>
+      <text class="lock-diagram__badge" x="14" y="26">SEGMENT SHARDING</text>
+      <text class="lock-diagram__title" x="14" y="54">分段庫存 (100k+ QPS)</text
+      >
+
+      <g transform="translate(14, 75)">
+        <rect
+          width="192"
+          height="65"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--green"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--green"
+          x="10"
+          y="20">分桶架構</text
+        >
+        <text class="lock-diagram__code" x="10" y="38"
+          >Bucket 0..9 (各 100 件)</text
+        >
+        <text class="lock-diagram__code" x="10" y="54"
+          >hash(userId) % 10 路由</text
+        >
+      </g>
+
+      <g transform="translate(14, 150)">
+        <rect width="192" height="85" rx="6" class="lock-diagram__subcard"
+        ></rect>
+        <text class="lock-diagram__header" x="10" y="20">核心優勢</text>
+        <text class="lock-diagram__desc" x="10" y="40"
+          >• 鎖競爭點分散 10~100 倍</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58">• 支援平行獨立扣減</text>
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• 非同步 MQ 批量回寫 DB</text
+        >
+      </g>
+
+      <g transform="translate(14, 245)">
+        <rect
+          width="192"
+          height="95"
+          rx="6"
+          class="lock-diagram__subcard lock-diagram__subcard--green"></rect>
+        <text
+          class="lock-diagram__header lock-diagram__header--green"
+          x="10"
+          y="20">🎯 最佳實踐</text
+        >
+        <text class="lock-diagram__desc" x="10" y="40">• 局部重試/借調算法</text
+        >
+        <text class="lock-diagram__desc" x="10" y="58"
+          >• 適合超百萬級秒殺大促</text
+        >
+        <text class="lock-diagram__desc" x="10" y="76"
+          >• TPS 上限可達 100,000+</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="lock-diagram__mobile">
+    <div class="lock-mobile-card lock-mobile-card--orange">
+      <span class="lock-mobile-badge lock-mobile-badge--orange"
+        >PESSIMISTIC</span
+      >
+      <h4>1. 悲觀鎖 (SELECT FOR UPDATE)</h4>
+      <p>
+        強一致性杜絕超賣，但行鎖競爭激烈、易引發連線池枯竭與死鎖。TPS 上限約
+        500~1,000。
+      </p>
+    </div>
+
+    <div class="lock-mobile-card lock-mobile-card--blue">
+      <span class="lock-mobile-badge lock-mobile-badge--blue">OPTIMISTIC</span>
+      <h4>2. 樂觀鎖 (CAS Version)</h4>
+      <p>
+        無鎖等待，適合讀多寫少；但在極高併發秒殺下會引發「重試風暴」消耗
+        CPU。TPS 上限約 2,000~3,000。
+      </p>
+    </div>
+
+    <div class="lock-mobile-card lock-mobile-card--purple">
+      <span class="lock-mobile-badge lock-mobile-badge--purple"
+        >DISTRIBUTED</span
+      >
+      <h4>3. Redis 分散式鎖 + Lua</h4>
+      <p>
+        記憶體級高速扣減；需搭配 Fencing Token 防範 GC
+        停頓引起的時鐘漂移與鎖過期。單 Key TPS 約 20,000。
+      </p>
+    </div>
+
+    <div class="lock-mobile-card lock-mobile-card--green">
+      <span class="lock-mobile-badge lock-mobile-badge--green">SCALE-OUT</span>
+      <h4>4. 分段庫存 (Segment Sharding)</h4>
+      <p>
+        將庫存拆解為 10~100 個獨立 Bucket，分散熱點，實現 100,000+ QPS
+        線性擴展。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="lock-caption" class="lock-diagram__caption">
+    圖 2：高併發秒殺扣減：悲觀鎖、樂觀鎖、Redis 分散式鎖與分段庫存架構全景對比
+  </figcaption>
+</figure>
+
+<style>
+  .lock-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .lock-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .lock-diagram__mobile {
+    display: none;
+  }
+
+  .lock-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .lock-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .lock-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .lock-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .lock-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .lock-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+
+  :global(.dark) .lock-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .lock-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  :global(.dark) .lock-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .lock-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+
+  :global(.dark) .lock-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .lock-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+
+  :global(.dark) .lock-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .lock-diagram__subcard--purple {
+    stroke: #a855f7;
+    fill: #faf5ff;
+  }
+
+  :global(.dark) .lock-diagram__subcard--purple {
+    stroke: #7e22ce;
+    fill: #3b0764;
+  }
+
+  .lock-diagram__subcard--green {
+    stroke: #10b981;
+    fill: #f0fdf4;
+  }
+
+  :global(.dark) .lock-diagram__subcard--green {
+    stroke: #059669;
+    fill: #064e3b;
+  }
+
+  .lock-diagram__subcard--alert {
+    stroke: #ef4444;
+    fill: #fef2f2;
+  }
+
+  :global(.dark) .lock-diagram__subcard--alert {
+    stroke: #dc2626;
+    fill: #450a0a;
+  }
+
+  .lock-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .lock-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .lock-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(.dark) .lock-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .lock-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .lock-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .lock-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .lock-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .lock-diagram__header--green {
+    fill: #047857;
+  }
+  :global(.dark) .lock-diagram__header--green {
+    fill: #34d399;
+  }
+
+  .lock-diagram__header--alert {
+    fill: #b91c1c;
+  }
+  :global(.dark) .lock-diagram__header--alert {
+    fill: #f87171;
+  }
+
+  .lock-diagram__desc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+
+  :global(.dark) .lock-diagram__desc {
+    fill: #94a3b8;
+  }
+
+  .lock-diagram__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10.5px;
+    fill: #0369a1;
+  }
+
+  :global(.dark) .lock-diagram__code {
+    fill: #7dd3fc;
+  }
+
+  .lock-diagram__arrow-head {
+    fill: #64748b;
+  }
+
+  @media (max-width: 768px) {
+    .lock-diagram__desktop {
+      display: none;
+    }
+
+    .lock-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .lock-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .lock-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .lock-mobile-card--orange {
+      border-left: 4px solid #f97316;
+      background: #fff7ed;
+    }
+    :global(.dark) .lock-mobile-card--orange {
+      background: #431407;
+      border-color: #f97316;
+    }
+
+    .lock-mobile-card--blue {
+      border-left: 4px solid #0284c7;
+      background: #f0f9ff;
+    }
+    :global(.dark) .lock-mobile-card--blue {
+      background: #0c4a6e;
+      border-color: #38bdf8;
+    }
+
+    .lock-mobile-card--purple {
+      border-left: 4px solid #7e22ce;
+      background: #faf5ff;
+    }
+    :global(.dark) .lock-mobile-card--purple {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .lock-mobile-card--green {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+    }
+    :global(.dark) .lock-mobile-card--green {
+      background: #064e3b;
+      border-color: #34d399;
+    }
+
+    .lock-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .lock-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(.dark) .lock-mobile-badge--orange {
+      color: #fb923c;
+    }
+
+    .lock-mobile-badge--blue {
+      color: #0284c7;
+    }
+    :global(.dark) .lock-mobile-badge--blue {
+      color: #38bdf8;
+    }
+
+    .lock-mobile-badge--purple {
+      color: #7e22ce;
+    }
+    :global(.dark) .lock-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .lock-mobile-badge--green {
+      color: #047857;
+    }
+    :global(.dark) .lock-mobile-badge--green {
+      color: #34d399;
+    }
+
+    .lock-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .lock-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .lock-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .lock-mobile-card p {
+      color: #cbd5e1;
+    }
+  }
+</style>

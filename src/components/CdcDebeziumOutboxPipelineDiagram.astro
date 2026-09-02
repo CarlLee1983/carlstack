@@ -1,0 +1,596 @@
+---
+// CDC and Debezium Transactional Outbox Pipeline Diagram
+---
+
+<figure class="cdc-diagram" aria-labelledby="cdc-caption">
+  <svg
+    class="cdc-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="cdc-title cdc-desc"
+  >
+    <title id="cdc-title">CDC 變更資料擷取與 Debezium Outbox 串流拓撲</title>
+    <desc id="cdc-desc">
+      展示從 RDBMS 交易、Transactional Outbox 模式、Debezium 解析 Binlog/WAL，到
+      Kafka Connect 分發至快取失效與即時資料湖的完整管線。
+    </desc>
+
+    <defs>
+      <marker
+        id="cdc-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="cdc-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Stage 1: RDBMS & Outbox Table -->
+    <g class="cdc-diagram__card" transform="translate(30, 40)">
+      <rect width="260" height="370" rx="12"></rect>
+      <text class="cdc-diagram__badge" x="18" y="26"
+        >ACID LOCAL TRANSACTION</text
+      >
+      <text class="cdc-diagram__title" x="18" y="54">業務 DB 與 Outbox 表</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="224"
+          height="75"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--blue"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--blue"
+          x="12"
+          y="22">業務表 (orders / users)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 執行核心業務寫入</text
+        >
+        <text class="cdc-diagram__code" x="12" y="62"
+          >INSERT INTO orders ...;</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="224"
+          height="85"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--orange"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--orange"
+          x="12"
+          y="22">發件匣表 (outbox_table)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 同一 ACID 交易內寫入事件</text
+        >
+        <text class="cdc-diagram__code" x="12" y="62"
+          >INSERT INTO outbox (id,</text
+        >
+        <text class="cdc-diagram__code" x="12" y="76">
+          aggregatetype, payload);</text
+        >
+      </g>
+
+      <g transform="translate(18, 255)">
+        <rect width="224" height="90" rx="6" class="cdc-diagram__subcard"
+        ></rect>
+        <text class="cdc-diagram__header" x="12" y="22"
+          >底層日誌 (WAL / Binlog)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• MySQL Binlog (ROW format)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• Postgres WAL (Logical pgoutput)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="82"
+          >• 零侵入、順序寫入、精確持久</text
+        >
+      </g>
+    </g>
+
+    <!-- Stage 2: Debezium & Kafka Connect -->
+    <g class="cdc-diagram__card" transform="translate(340, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="cdc-diagram__badge" x="18" y="26">LOG-BASED CDC ENGINE</text>
+      <text class="cdc-diagram__title" x="18" y="54">Debezium 捕獲與轉換</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--red"></rect>
+        <text class="cdc-diagram__header cdc-diagram__header--red" x="12" y="22"
+          >Debezium Connector</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 模擬從庫 (Replication Client)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• 實時讀取解析日誌位移 (Offset)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="82"
+          >• 全量 Snapshot + 增量 Streaming</text
+        >
+      </g>
+
+      <g transform="translate(18, 170)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--purple"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--purple"
+          x="12"
+          y="22">SMT 事件轉換 (Transform)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• Outbox Event Router 路由</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• 移除包裝層，扁平化 Payload</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="82"
+          >• 動態指定 Target Kafka Topic</text
+        >
+      </g>
+
+      <g transform="translate(18, 265)">
+        <rect width="234" height="80" rx="6" class="cdc-diagram__subcard"
+        ></rect>
+        <text class="cdc-diagram__header" x="12" y="22"
+          >Kafka Connect Runtime</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 分散式高可用節點叢集</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• 自動容錯與 Offset 狀態管理</text
+        >
+      </g>
+    </g>
+
+    <!-- Stage 3: Downstream Consumers & Data Lake -->
+    <g class="cdc-diagram__card" transform="translate(660, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="cdc-diagram__badge" x="18" y="26">DOWNSTREAM STREAMING</text>
+      <text class="cdc-diagram__title" x="18" y="54">下游消費與資料湖同步</text>
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="80"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--gold"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--gold"
+          x="12"
+          y="22">Apache Kafka Cluster</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 分區 Key = Aggregate ID 保障順序</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• acks=all 冪等發送，零遺失</text
+        >
+      </g>
+
+      <g transform="translate(18, 165)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--teal"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--teal"
+          x="12"
+          y="22">即時微服務與快取失效</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• 異步驅動領域事件 (Event-Driven)</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• Redis / Memcached 主動失效</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="82"
+          >• 搜尋引擎 Elasticsearch 即時同步</text
+        >
+      </g>
+
+      <g transform="translate(18, 260)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="cdc-diagram__subcard cdc-diagram__subcard--purple"></rect>
+        <text
+          class="cdc-diagram__header cdc-diagram__header--purple"
+          x="12"
+          y="22">即時 OLAP / 資料湖</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="44"
+          >• ClickHouse / StarRocks 數倉</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="64"
+          >• Apache Iceberg / Hudi 湖倉</text
+        >
+        <text class="cdc-diagram__subdesc" x="12" y="82"
+          >• 秒級端到端即時分析 (RT-ETL)</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows -->
+    <path
+      d="M 290 220 L 330 220"
+      class="cdc-diagram__flow-line"
+      marker-end="url(#cdc-arrow)"></path>
+    <path
+      d="M 610 220 L 650 220"
+      class="cdc-diagram__flow-line"
+      marker-end="url(#cdc-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="cdc-diagram__mobile">
+    <div class="cdc-mobile-card cdc-mobile-card--orange">
+      <span class="cdc-mobile-badge cdc-mobile-badge--orange"
+        >STEP 1: OUTBOX PATTERN</span
+      >
+      <h4>業務資料庫與 Outbox 表</h4>
+      <p>
+        業務變更與 Outbox 事件在同一 ACID
+        本地交易內寫入，徹底解決雙寫失敗與資料不一致。
+      </p>
+    </div>
+
+    <div class="cdc-mobile-arrow">↓ 讀取 WAL / Binlog 日誌</div>
+
+    <div class="cdc-mobile-card cdc-mobile-card--red">
+      <span class="cdc-mobile-badge cdc-mobile-badge--red"
+        >STEP 2: DEBEZIUM CDC</span
+      >
+      <h4>Debezium 引擎與 Kafka Connect</h4>
+      <p>
+        模擬 Replica 串流讀取日誌，透過 SMT 轉換扁平化事件並推送到對應 Kafka
+        Topics。
+      </p>
+    </div>
+
+    <div class="cdc-mobile-arrow">↓ 串流分發與即時消費</div>
+
+    <div class="cdc-mobile-card cdc-mobile-card--teal">
+      <span class="cdc-mobile-badge cdc-mobile-badge--teal"
+        >STEP 3: STREAMING SINK</span
+      >
+      <h4>微服務、快取失效與資料湖</h4>
+      <p>
+        觸發 Redis 快取主動失效、ES 檢索同步，並將巨量資料即時寫入 ClickHouse /
+        Iceberg。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="cdc-caption" class="cdc-diagram__caption">
+    圖 3：CDC 變更資料擷取、Transactional Outbox 模式與 Debezium 即時串流架構
+  </figcaption>
+</figure>
+
+<style>
+  .cdc-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .cdc-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .cdc-diagram__mobile {
+    display: none;
+  }
+
+  .cdc-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .cdc-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .cdc-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .cdc-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .cdc-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .cdc-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+
+  :global(.dark) .cdc-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .cdc-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  :global(.dark) .cdc-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .cdc-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+  :global(.dark) .cdc-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .cdc-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+  :global(.dark) .cdc-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .cdc-diagram__subcard--red {
+    stroke: #f43f5e;
+    fill: #fff1f2;
+  }
+  :global(.dark) .cdc-diagram__subcard--red {
+    stroke: #be123c;
+    fill: #4c0519;
+  }
+
+  .cdc-diagram__subcard--purple {
+    stroke: #a855f7;
+    fill: #faf5ff;
+  }
+  :global(.dark) .cdc-diagram__subcard--purple {
+    stroke: #7e22ce;
+    fill: #3b0764;
+  }
+
+  .cdc-diagram__subcard--gold {
+    stroke: #fbbf24;
+    fill: #fefce8;
+  }
+  :global(.dark) .cdc-diagram__subcard--gold {
+    stroke: #d97706;
+    fill: #451a03;
+  }
+
+  .cdc-diagram__subcard--teal {
+    stroke: #14b8a6;
+    fill: #f0fdfa;
+  }
+  :global(.dark) .cdc-diagram__subcard--teal {
+    stroke: #0f766e;
+    fill: #042f2e;
+  }
+
+  .cdc-diagram__header {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+  :global(.dark) .cdc-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .cdc-diagram__header--blue {
+    fill: #0284c7;
+  }
+  :global(.dark) .cdc-diagram__header--blue {
+    fill: #38bdf8;
+  }
+
+  .cdc-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(.dark) .cdc-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .cdc-diagram__header--red {
+    fill: #be123c;
+  }
+  :global(.dark) .cdc-diagram__header--red {
+    fill: #fb7185;
+  }
+
+  .cdc-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(.dark) .cdc-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .cdc-diagram__header--gold {
+    fill: #b45309;
+  }
+  :global(.dark) .cdc-diagram__header--gold {
+    fill: #fbbf24;
+  }
+
+  .cdc-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(.dark) .cdc-diagram__header--teal {
+    fill: #2dd4bf;
+  }
+
+  .cdc-diagram__subdesc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+  :global(.dark) .cdc-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .cdc-diagram__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    fill: #0369a1;
+  }
+  :global(.dark) .cdc-diagram__code {
+    fill: #7dd3fc;
+  }
+
+  .cdc-diagram__flow-line {
+    stroke: #f43f5e;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .cdc-diagram__arrow-head {
+    fill: #f43f5e;
+  }
+
+  @media (max-width: 768px) {
+    .cdc-diagram__desktop {
+      display: none;
+    }
+
+    .cdc-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .cdc-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .cdc-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .cdc-mobile-card--orange {
+      border-left: 4px solid #f97316;
+      background: #fff7ed;
+    }
+    :global(.dark) .cdc-mobile-card--orange {
+      background: #431407;
+      border-color: #f97316;
+    }
+
+    .cdc-mobile-card--red {
+      border-left: 4px solid #f43f5e;
+      background: #fff1f2;
+    }
+    :global(.dark) .cdc-mobile-card--red {
+      background: #4c0519;
+      border-color: #fb7185;
+    }
+
+    .cdc-mobile-card--teal {
+      border-left: 4px solid #14b8a6;
+      background: #f0fdfa;
+    }
+    :global(.dark) .cdc-mobile-card--teal {
+      background: #042f2e;
+      border-color: #2dd4bf;
+    }
+
+    .cdc-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .cdc-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(.dark) .cdc-mobile-badge--orange {
+      color: #fb923c;
+    }
+
+    .cdc-mobile-badge--red {
+      color: #be123c;
+    }
+    :global(.dark) .cdc-mobile-badge--red {
+      color: #fb7185;
+    }
+
+    .cdc-mobile-badge--teal {
+      color: #0f766e;
+    }
+    :global(.dark) .cdc-mobile-badge--teal {
+      color: #2dd4bf;
+    }
+
+    .cdc-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+    :global(.dark) .cdc-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .cdc-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+    :global(.dark) .cdc-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .cdc-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

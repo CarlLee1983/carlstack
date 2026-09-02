@@ -1,0 +1,584 @@
+---
+// Database Isolation Levels and MVCC Snapshot Mechanisms Diagram
+---
+
+<figure class="mvcc-diagram" aria-labelledby="mvcc-caption">
+  <svg
+    class="mvcc-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="mvcc-title mvcc-desc"
+  >
+    <title id="mvcc-title">資料庫交易隔離層級與 MVCC 底層快照尋址架構</title>
+    <desc id="mvcc-desc">
+      展示 ANSI SQL 隔離層級與讀異象防禦矩陣、PostgreSQL Heap Tuple 底層結構
+      (xmin/xmax/t_ctid)，以及 Snapshot 快照可見性判定演算法。
+    </desc>
+
+    <defs>
+      <marker
+        id="mvcc-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="mvcc-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Isolation Levels & Anomalies -->
+    <g class="mvcc-diagram__card" transform="translate(30, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="mvcc-diagram__badge" x="18" y="26"
+        >ANSI SQL &amp; PHENOMENA</text
+      >
+      <text class="mvcc-diagram__title" x="18" y="54">交易隔離層級與讀異象</text
+      >
+
+      <!-- Tier 1 -->
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="60"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--dim"></rect>
+        <text class="mvcc-diagram__label" x="10" y="20"
+          >1. Read Uncommitted</text
+        >
+        <text class="mvcc-diagram__subdesc" x="10" y="42"
+          >允許髒讀 (Dirty Read)，實務極少採用</text
+        >
+      </g>
+
+      <!-- Tier 2 -->
+      <g transform="translate(18, 145)">
+        <rect
+          width="234"
+          height="60"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--blue"></rect>
+        <text
+          class="mvcc-diagram__label mvcc-diagram__label--blue"
+          x="10"
+          y="20">2. Read Committed (預設)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="10" y="42"
+          >防髒讀；每條 SQL 語句獲取獨立快照</text
+        >
+      </g>
+
+      <!-- Tier 3 -->
+      <g transform="translate(18, 215)">
+        <rect
+          width="234"
+          height="60"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--purple"></rect>
+        <text
+          class="mvcc-diagram__label mvcc-diagram__label--purple"
+          x="10"
+          y="20">3. Repeatable Read</text
+        >
+        <text class="mvcc-diagram__subdesc" x="10" y="42"
+          >防不可重複讀；整筆交易共用初始快照</text
+        >
+      </g>
+
+      <!-- Tier 4 -->
+      <g transform="translate(18, 285)">
+        <rect
+          width="234"
+          height="60"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--gold"></rect>
+        <text
+          class="mvcc-diagram__label mvcc-diagram__label--gold"
+          x="10"
+          y="20">4. Serializable (SSI)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="10" y="42"
+          >防寫偏斜 (Write Skew)；SIREAD 鎖圖檢測</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Physical Heap Tuple Structure -->
+    <g class="mvcc-diagram__card" transform="translate(340, 40)">
+      <rect width="280" height="370" rx="12"></rect>
+      <text class="mvcc-diagram__badge" x="18" y="26">POSTGRES HEAP TUPLE</text>
+      <text class="mvcc-diagram__title" x="18" y="54"
+        >MVCC 多版本 Tuple 結構</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect width="244" height="70" rx="6" class="mvcc-diagram__subcard"
+        ></rect>
+        <text class="mvcc-diagram__header" x="12" y="22"
+          >Tuple Header (23 Bytes)</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="44"
+          >xmin: 建立此版本的 XID</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="60"
+          >xmax: 刪除/覆蓋此版本的 XID</text
+        >
+      </g>
+
+      <g transform="translate(18, 155)">
+        <rect width="244" height="65" rx="6" class="mvcc-diagram__subcard"
+        ></rect>
+        <text class="mvcc-diagram__header" x="12" y="22"
+          >版本指針鏈 (t_ctid)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="42"
+          >指向當前物理位置或最新版本 Tuple</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="58"
+          >(block_num, offset_num)</text
+        >
+      </g>
+
+      <g transform="translate(18, 230)">
+        <rect
+          width="244"
+          height="115"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--orange"></rect>
+        <text
+          class="mvcc-diagram__header mvcc-diagram__header--orange"
+          x="12"
+          y="22">狀態標記 (t_infomask)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="42"
+          >• HEAP_XMIN_COMMITTED</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="62"
+          >• HEAP_XMIN_INVALID (Rollback)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="82"
+          >• HEAP_XMAX_INVALID (Active Row)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="102"
+          >• HEAP_HOT_UPDATED (HOT 鏈)</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Snapshot Visibility Engine -->
+    <g class="mvcc-diagram__card" transform="translate(660, 40)">
+      <rect width="270" height="370" rx="12"></rect>
+      <text class="mvcc-diagram__badge" x="18" y="26">VISIBILITY ENGINE</text>
+      <text class="mvcc-diagram__title" x="18" y="54">快照可見性判斷演算法</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="234"
+          height="85"
+          rx="6"
+          class="mvcc-diagram__subcard mvcc-diagram__subcard--purple"></rect>
+        <text
+          class="mvcc-diagram__header mvcc-diagram__header--purple"
+          x="12"
+          y="22">SnapshotData 結構</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="44"
+          >xmin: 最小未提交 XID</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="60"
+          >xmax: 獲取快照時最大分配 XID + 1</text
+        >
+        <text class="mvcc-diagram__code" x="12" y="76"
+          >xip_list: 快照瞬間活躍中的 XID 集合</text
+        >
+      </g>
+
+      <g transform="translate(18, 170)">
+        <rect width="234" height="175" rx="6" class="mvcc-diagram__subcard"
+        ></rect>
+        <text class="mvcc-diagram__header" x="12" y="22"
+          >可見性判定準則 (xmin)</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="46"
+          >1. xmin == 當前 XID ➔ 可見</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="70"
+          >2. xmin &lt; Snapshot.xmin ➔ 必定已提交</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="94"
+          >3. xmin &gt;= Snapshot.xmax ➔ 視為未來不可見</text
+        >
+        <text class="mvcc-diagram__subdesc" x="12" y="118"
+          >4. Snapshot.xmin &lt;= xmin &lt; xmax:</text
+        >
+        <text class="mvcc-diagram__subdesc" x="24" y="138"
+          >若 xmin in xip_list ➔ 活躍中不可見</text
+        >
+        <text class="mvcc-diagram__subdesc" x="24" y="158"
+          >若 xmin not in xip_list ➔ 已提交可見</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows -->
+    <path
+      d="M 300 220 L 330 220"
+      class="mvcc-diagram__flow-line"
+      marker-end="url(#mvcc-arrow)"></path>
+    <path
+      d="M 620 220 L 650 220"
+      class="mvcc-diagram__flow-line"
+      marker-end="url(#mvcc-arrow)"></path>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="mvcc-diagram__mobile">
+    <div class="mvcc-mobile-card">
+      <span class="mvcc-mobile-badge">ANSI SQL 隔離層級</span>
+      <h4>交易隔離層級與讀異象防禦</h4>
+      <p>
+        <strong>Read Committed:</strong> 語句級快照，防髒讀（Postgres/Oracle 預設）。
+      </p>
+      <p>
+        <strong>Repeatable Read:</strong> 交易級快照，防不可重複讀與幻讀（MySQL 預設）。
+      </p>
+      <p>
+        <strong>Serializable:</strong> 序列化隔離，透過 SSI 依賴圖防範寫偏斜（Write
+        Skew）。
+      </p>
+    </div>
+
+    <div class="mvcc-mobile-arrow">↓ 底層物理 Tuple 標記</div>
+
+    <div class="mvcc-mobile-card mvcc-mobile-card--blue">
+      <span class="mvcc-mobile-badge mvcc-mobile-badge--blue">HEAP TUPLE</span>
+      <h4>PostgreSQL MVCC 版本結構</h4>
+      <p><strong>xmin:</strong> 建立該版本的 Transaction ID。</p>
+      <p>
+        <strong>xmax:</strong> 刪除或更新該版本的 Transaction ID（若有效為 0）。
+      </p>
+      <p><strong>t_ctid:</strong> 指向當前 Tuple 或更新版本鏈的物理指標。</p>
+    </div>
+
+    <div class="mvcc-mobile-arrow">↓ 快照可見性判定</div>
+
+    <div class="mvcc-mobile-card mvcc-mobile-card--purple">
+      <span class="mvcc-mobile-badge mvcc-mobile-badge--purple"
+        >SNAPSHOT DATA</span
+      >
+      <h4>快照可見性演算法</h4>
+      <p>
+        依據 <code>xmin:xmax:xip_list</code> 過濾未提交與未來交易，實現高併發讀寫不互斥。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="mvcc-caption" class="mvcc-diagram__caption">
+    圖 1：資料庫交易隔離層級、PostgreSQL Heap Tuple 欄位與 MVCC 快照判定架構
+  </figcaption>
+</figure>
+
+<style>
+  .mvcc-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .mvcc-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .mvcc-diagram__mobile {
+    display: none;
+  }
+
+  .mvcc-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--color-text-muted, #64748b);
+  }
+
+  .mvcc-diagram__card rect {
+    fill: var(--color-bg-surface, #f8fafc);
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .mvcc-diagram__card rect {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+
+  .mvcc-diagram__badge {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.dark) .mvcc-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .mvcc-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--color-text-main, #0f172a);
+  }
+
+  :global(.dark) .mvcc-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .mvcc-diagram__subcard {
+    fill: #ffffff;
+    stroke: var(--color-border, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  :global(.dark) .mvcc-diagram__subcard {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .mvcc-diagram__subcard--dim {
+    opacity: 0.8;
+  }
+
+  .mvcc-diagram__subcard--blue {
+    stroke: #38bdf8;
+    fill: #f0f9ff;
+  }
+
+  :global(.dark) .mvcc-diagram__subcard--blue {
+    stroke: #0284c7;
+    fill: #0c4a6e;
+  }
+
+  .mvcc-diagram__subcard--purple {
+    stroke: #a855f7;
+    fill: #faf5ff;
+  }
+
+  :global(.dark) .mvcc-diagram__subcard--purple {
+    stroke: #7e22ce;
+    fill: #3b0764;
+  }
+
+  .mvcc-diagram__subcard--gold {
+    stroke: #fbbf24;
+    fill: #fefce8;
+  }
+
+  :global(.dark) .mvcc-diagram__subcard--gold {
+    stroke: #d97706;
+    fill: #451a03;
+  }
+
+  .mvcc-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: #fff7ed;
+  }
+
+  :global(.dark) .mvcc-diagram__subcard--orange {
+    stroke: #ea580c;
+    fill: #431407;
+  }
+
+  .mvcc-diagram__label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #334155;
+  }
+
+  :global(.dark) .mvcc-diagram__label {
+    fill: #e2e8f0;
+  }
+
+  .mvcc-diagram__label--blue {
+    fill: #0284c7;
+  }
+
+  :global(.dark) .mvcc-diagram__label--blue {
+    fill: #38bdf8;
+  }
+
+  .mvcc-diagram__label--purple {
+    fill: #7e22ce;
+  }
+
+  :global(.dark) .mvcc-diagram__label--purple {
+    fill: #c084fc;
+  }
+
+  .mvcc-diagram__label--gold {
+    fill: #b45309;
+  }
+
+  :global(.dark) .mvcc-diagram__label--gold {
+    fill: #fbbf24;
+  }
+
+  .mvcc-diagram__header {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .mvcc-diagram__header {
+    fill: #f8fafc;
+  }
+
+  .mvcc-diagram__header--purple {
+    fill: #7e22ce;
+  }
+
+  :global(.dark) .mvcc-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .mvcc-diagram__header--orange {
+    fill: #c2410c;
+  }
+
+  :global(.dark) .mvcc-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .mvcc-diagram__subdesc {
+    font-size: 11px;
+    fill: #64748b;
+  }
+
+  :global(.dark) .mvcc-diagram__subdesc {
+    fill: #94a3b8;
+  }
+
+  .mvcc-diagram__code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    fill: #0369a1;
+  }
+
+  :global(.dark) .mvcc-diagram__code {
+    fill: #7dd3fc;
+  }
+
+  .mvcc-diagram__flow-line {
+    stroke: #0284c7;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4, 4;
+  }
+
+  .mvcc-diagram__arrow-head {
+    fill: #0284c7;
+  }
+
+  @media (max-width: 768px) {
+    .mvcc-diagram__desktop {
+      display: none;
+    }
+
+    .mvcc-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .mvcc-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .mvcc-mobile-card {
+      background: #0f172a;
+      border-color: #1e293b;
+    }
+
+    .mvcc-mobile-card--blue {
+      border-left: 4px solid #0284c7;
+      background: #f0f9ff;
+    }
+
+    :global(.dark) .mvcc-mobile-card--blue {
+      background: #0c4a6e;
+      border-color: #38bdf8;
+    }
+
+    .mvcc-mobile-card--purple {
+      border-left: 4px solid #7e22ce;
+      background: #faf5ff;
+    }
+
+    :global(.dark) .mvcc-mobile-card--purple {
+      background: #3b0764;
+      border-color: #a855f7;
+    }
+
+    .mvcc-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .mvcc-mobile-badge--blue {
+      color: #0284c7;
+    }
+
+    :global(.dark) .mvcc-mobile-badge--blue {
+      color: #38bdf8;
+    }
+
+    .mvcc-mobile-badge--purple {
+      color: #7e22ce;
+    }
+
+    :global(.dark) .mvcc-mobile-badge--purple {
+      color: #c084fc;
+    }
+
+    .mvcc-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .mvcc-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .mvcc-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .mvcc-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .mvcc-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>
