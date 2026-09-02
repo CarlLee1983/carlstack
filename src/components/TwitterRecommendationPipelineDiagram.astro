@@ -1,0 +1,614 @@
+---
+// Twitter (X) Recommendation Algorithm & Heavy Ranker Pipeline Diagram Component
+---
+
+<figure class="twitter-pipe-diagram" aria-labelledby="twitter-pipe-caption">
+  <svg
+    class="twitter-pipe-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="twitter-pipe-title twitter-pipe-desc"
+  >
+    <title id="twitter-pipe-title">
+      Twitter (X) 為你推薦時間軸推薦管線架構
+    </title>
+    <desc id="twitter-pipe-desc">
+      展示從 5 億則推文中透過 In-Network (Earlybird) 與 Out-of-Network
+      (GraphJet/SimClusters) 檢索出 1,500 則候選推文，經由 Heavy Ranker 4800
+      萬參數類神經網路評分，再通過可見性過濾與多樣性重排，最終在 1.5
+      秒內渲染時間軸的完整管線。
+    </desc>
+
+    <defs>
+      <marker
+        id="tpipe-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="twitter-pipe-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="tpipe-arrow-accent"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="twitter-pipe-diagram__arrow-head--accent"></path>
+      </marker>
+    </defs>
+
+    <!-- Stage 1: Candidate Retrieval (Left Column) -->
+    <g class="twitter-pipe-diagram__card" transform="translate(30, 40)">
+      <rect width="200" height="150" rx="12"></rect>
+      <text class="twitter-pipe-diagram__badge" x="16" y="24"
+        >STAGE 01: 500M ➔ 1.5K</text
+      >
+      <text class="twitter-pipe-diagram__title" x="16" y="50"
+        >候選集檢索 (50%)</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="74"
+        >• In-Network: Earlybird</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="94"
+        >• Lucene 記憶體倒排索引</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="114"
+        >• 追蹤者的最新動態</text
+      >
+      <text class="twitter-pipe-diagram__tag" x="16" y="136"
+        >~750 則關注圈內推文</text
+      >
+    </g>
+
+    <g class="twitter-pipe-diagram__card" transform="translate(30, 230)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="twitter-pipe-diagram__badge" x="16" y="24"
+        >STAGE 01: 500M ➔ 1.5K</text
+      >
+      <text class="twitter-pipe-diagram__title" x="16" y="50"
+        >網絡外檢索 (50%)</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="74"
+        >• Out-of-Network</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="94"
+        >• GraphJet 即時圖遍歷</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="114"
+        >• SimClusters 興趣社群</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="134"
+        >• 矩陣分解與向量相似度</text
+      >
+      <text class="twitter-pipe-diagram__tag" x="16" y="156"
+        >~750 則探索推薦推文</text
+      >
+    </g>
+
+    <!-- Arrows from Stage 1 to Home Mixer -->
+    <path
+      class="twitter-pipe-diagram__arrow"
+      d="M 230 115 H 285"
+      marker-end="url(#tpipe-arrow)"></path>
+    <path
+      class="twitter-pipe-diagram__arrow"
+      d="M 230 315 H 285"
+      marker-end="url(#tpipe-arrow)"></path>
+
+    <!-- Stage 2: Home Mixer Pipeline Orchestrator -->
+    <g
+      class="twitter-pipe-diagram__card twitter-pipe-diagram__card--mixer"
+      transform="translate(290, 110)"
+    >
+      <rect width="180" height="200" rx="12"></rect>
+      <text
+        class="twitter-pipe-diagram__badge twitter-pipe-diagram__badge--accent"
+        x="16"
+        y="24">ORCHESTRATOR</text
+      >
+      <text
+        class="twitter-pipe-diagram__title twitter-pipe-diagram__title--focus"
+        x="16"
+        y="52">Home Mixer</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="78"
+        >• 推薦管線協調整合</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="100"
+        >• 匯聚 1,500 則候選池</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="122"
+        >• 特徵工程提取 (Feature Store)</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="144"
+        >• 派發至 Heavy Ranker</text
+      >
+      <text
+        class="twitter-pipe-diagram__tag twitter-pipe-diagram__tag--accent"
+        x="16"
+        y="180">端到端 SLA 嚴控 &lt;1.5s</text
+      >
+    </g>
+
+    <!-- Arrow from Home Mixer to Heavy Ranker -->
+    <path
+      class="twitter-pipe-diagram__arrow twitter-pipe-diagram__arrow--accent"
+      d="M 470 210 H 515"
+      marker-end="url(#tpipe-arrow-accent)"></path>
+
+    <!-- Stage 3: Heavy Ranker (Neural Network) -->
+    <g
+      class="twitter-pipe-diagram__card twitter-pipe-diagram__card--ranker"
+      transform="translate(520, 70)"
+    >
+      <rect width="210" height="280" rx="12"></rect>
+      <text
+        class="twitter-pipe-diagram__badge twitter-pipe-diagram__badge--neural"
+        x="16"
+        y="24">STAGE 02: 1.5K ➔ SCORED</text
+      >
+      <text
+        class="twitter-pipe-diagram__title twitter-pipe-diagram__title--neural"
+        x="16"
+        y="52">Heavy Ranker</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="78"
+        >• 4800 萬參數 MaskNet 網路</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="100"
+        >• 多任務學習 (Multi-Task):</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="24" y="122"
+        >▫ P(Like) × 30</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="24" y="142"
+        >▫ P(Retweet) × 1</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="24" y="162"
+        >▫ P(Reply &amp; Author Engage) × 75</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="24" y="182"
+        >▫ P(Report / Block) × -369</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="16" y="208"
+        >• 綜合加權公式計算預期效用</text
+      >
+      <text
+        class="twitter-pipe-diagram__tag twitter-pipe-diagram__tag--neural"
+        x="16"
+        y="254">GPU 叢集低延遲推理 (&lt;50ms)</text
+      >
+    </g>
+
+    <!-- Arrow from Heavy Ranker to Filters & Re-ranking -->
+    <path
+      class="twitter-pipe-diagram__arrow twitter-pipe-diagram__arrow--accent"
+      d="M 730 210 H 775"
+      marker-end="url(#tpipe-arrow-accent)"></path>
+
+    <!-- Stage 4: Filtering & Final Timeline Output -->
+    <g class="twitter-pipe-diagram__card" transform="translate(780, 40)">
+      <rect width="150" height="150" rx="12"></rect>
+      <text class="twitter-pipe-diagram__badge" x="14" y="24"
+        >STAGE 03: FILTER</text
+      >
+      <text class="twitter-pipe-diagram__title" x="14" y="50">可見性過濾</text>
+      <text class="twitter-pipe-diagram__desc" x="14" y="74"
+        >• 封鎖 / 靜音黑名單</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="94"
+        >• NSFW / 安全合規</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="114"
+        >• 疲勞抑制 (Fatigue)</text
+      >
+      <text class="twitter-pipe-diagram__tag" x="14" y="136">過濾剔除 ~50%</text
+      >
+    </g>
+
+    <g
+      class="twitter-pipe-diagram__card twitter-pipe-diagram__card--output"
+      transform="translate(780, 230)"
+    >
+      <rect width="150" height="170" rx="12"></rect>
+      <text
+        class="twitter-pipe-diagram__badge twitter-pipe-diagram__badge--accent"
+        x="14"
+        y="24">STAGE 04: OUTPUT</text
+      >
+      <text
+        class="twitter-pipe-diagram__title twitter-pipe-diagram__title--focus"
+        x="14"
+        y="50">多樣性重排</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="74"
+        >• 作者多樣性交錯</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="94"
+        >• 廣告 / 社交穿插</text
+      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="114"
+        >• 最終推薦時間軸</text
+      >
+      <text
+        class="twitter-pipe-diagram__tag twitter-pipe-diagram__tag--accent"
+        x="14"
+        y="156">Top-N 渲染交付</text
+      >
+    </g>
+
+    <!-- Flow connection in Stage 4 -->
+    <path
+      class="twitter-pipe-diagram__arrow"
+      d="M 855 190 V 225"
+      marker-end="url(#tpipe-arrow)"></path>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="twitter-pipe-diagram__mobile">
+    <div class="twitter-pipe-mobile-card">
+      <span class="twitter-pipe-mobile-badge">01. 候選檢索 (500M ➔ 1500)</span>
+      <h4>雙軌候選檢索 (Candidate Sources)</h4>
+      <p>
+        50% 關注圈內（Earlybird 倒排索引）+ 50% 網絡外探索（GraphJet 實時圖與
+        SimClusters 興趣嵌入）。
+      </p>
+    </div>
+
+    <div class="twitter-pipe-mobile-arrow">↓ 整合 1,500 則候選推文</div>
+
+    <div class="twitter-pipe-mobile-card twitter-pipe-mobile-card--mixer">
+      <span class="twitter-pipe-mobile-badge twitter-pipe-mobile-badge--accent"
+        >02. 管線協調中心</span
+      >
+      <h4>Home Mixer 與特徵工程</h4>
+      <p>
+        快速聚合候選名單，提取即時用戶互動特徵，派發給深度模型進行批次推論。
+      </p>
+    </div>
+
+    <div class="twitter-pipe-mobile-arrow">↓ 毫秒級神經網路推論</div>
+
+    <div class="twitter-pipe-mobile-card twitter-pipe-mobile-card--ranker">
+      <span class="twitter-pipe-mobile-badge twitter-pipe-mobile-badge--neural"
+        >03. 核心評分模型</span
+      >
+      <h4>Heavy Ranker (48M 參數 MaskNet)</h4>
+      <p>
+        預測 Like, Retweet, Reply, Engage
+        等多目標機率，計算全域加權正負期望分值。
+      </p>
+    </div>
+
+    <div class="twitter-pipe-mobile-arrow">↓ 業務合規與重排</div>
+
+    <div class="twitter-pipe-mobile-card twitter-pipe-mobile-card--output">
+      <span class="twitter-pipe-mobile-badge twitter-pipe-mobile-badge--accent"
+        >04. 過濾與多樣性重排</span
+      >
+      <h4>Visibility Filtering &amp; Heuristics</h4>
+      <p>
+        扣除封鎖/NSFW，防止同作者洗版，穿插廣告與推播，1.5
+        秒內完成「為你推薦」渲染。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="twitter-pipe-caption">
+    圖 1：Twitter (X) 推薦演算法全景管線：雙軌候選檢索、Home Mixer 協調、Heavy
+    Ranker 神經網路與多樣性重排。
+  </figcaption>
+</figure>
+
+<style>
+  .twitter-pipe-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .twitter-pipe-diagram {
+    background: #0b1120;
+    border-color: #1e293b;
+  }
+
+  .twitter-pipe-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .twitter-pipe-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .twitter-pipe-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__card rect {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .twitter-pipe-diagram__card--mixer rect {
+    fill: #eff6ff;
+    stroke: #3b82f6;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__card--mixer rect {
+    fill: #172554;
+    stroke: #2563eb;
+  }
+
+  .twitter-pipe-diagram__card--ranker rect {
+    fill: #faf5ff;
+    stroke: #8b5cf6;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__card--ranker rect {
+    fill: #2e1065;
+    stroke: #7c3aed;
+  }
+
+  .twitter-pipe-diagram__card--output rect {
+    fill: #f0fdf4;
+    stroke: #10b981;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__card--output rect {
+    fill: #064e3b;
+    stroke: #059669;
+  }
+
+  .twitter-pipe-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .twitter-pipe-diagram__badge--accent {
+    fill: #2563eb;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__badge--accent {
+    fill: #60a5fa;
+  }
+
+  .twitter-pipe-diagram__badge--neural {
+    fill: #7c3aed;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__badge--neural {
+    fill: #c084fc;
+  }
+
+  .twitter-pipe-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .twitter-pipe-diagram__title--focus {
+    fill: #1d4ed8;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__title--focus {
+    fill: #93c5fd;
+  }
+
+  .twitter-pipe-diagram__title--neural {
+    fill: #6b21a8;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__title--neural {
+    fill: #d8b4fe;
+  }
+
+  .twitter-pipe-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .twitter-pipe-diagram__tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: #64748b;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__tag {
+    fill: #94a3b8;
+  }
+
+  .twitter-pipe-diagram__tag--accent {
+    fill: #0284c7;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__tag--accent {
+    fill: #38bdf8;
+  }
+
+  .twitter-pipe-diagram__tag--neural {
+    fill: #9333ea;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__tag--neural {
+    fill: #e9d5ff;
+  }
+
+  .twitter-pipe-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .twitter-pipe-diagram__arrow--accent {
+    stroke: #3b82f6;
+    stroke-width: 2.2;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__arrow--accent {
+    stroke: #60a5fa;
+  }
+
+  .twitter-pipe-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .twitter-pipe-diagram__arrow-head--accent {
+    fill: #3b82f6;
+  }
+
+  :global(.dark) .twitter-pipe-diagram__arrow-head--accent {
+    fill: #60a5fa;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .twitter-pipe-diagram__desktop {
+      display: none;
+    }
+
+    .twitter-pipe-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .twitter-pipe-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    .twitter-pipe-mobile-card--mixer {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-card--mixer {
+      background: #172554;
+      border-color: #2563eb;
+    }
+
+    .twitter-pipe-mobile-card--ranker {
+      border-left: 4px solid #8b5cf6;
+      background: #faf5ff;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-card--ranker {
+      background: #2e1065;
+      border-color: #7c3aed;
+    }
+
+    .twitter-pipe-mobile-card--output {
+      border-left: 4px solid #10b981;
+    }
+
+    .twitter-pipe-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .twitter-pipe-mobile-badge--accent {
+      color: #2563eb;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-badge--accent {
+      color: #60a5fa;
+    }
+
+    .twitter-pipe-mobile-badge--neural {
+      color: #7c3aed;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-badge--neural {
+      color: #c084fc;
+    }
+
+    .twitter-pipe-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .twitter-pipe-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .twitter-pipe-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .twitter-pipe-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .twitter-pipe-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

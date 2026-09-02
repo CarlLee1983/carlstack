@@ -2,9 +2,9 @@
 
 只放還沒寫成正式草稿的題目，依處理順序由上往下排列。
 
-## 排隊中
+## 排隊中（第 3 批：現代通訊協定、API 閘道與網路流量工程）
 
-1. [Twitter (X) 1.5 秒渲染「為你推薦」時間軸演算法與重排管線](https://github.com/ByteByteGoHq/system-design-101) — 深度拆解 Earlybird 檢索、Heavy Ranker 評分、Home Mixer 推薦管線與 GraphJet 圖運算
-2. [YouTube 海量影片非同步上傳與分塊轉碼串流架構](https://github.com/ByteByteGoHq/system-design-101) — 解析 Chunked Upload、非同步 DAG 工作流、自適應碼率（HLS / DASH）與邊緣快取
-3. [TikTok 20 萬檔案超大型前端 MonoRepo 治理](https://github.com/ByteByteGoHq/system-design-101) — 解析巨型前端專案的模組邊界隔離、增量建置快取與 CI 平行化調度
-4. [Uber 全球 API 閘道架構演進史](https://github.com/ByteByteGoHq/system-design-101) — 從單體 Edge 到分散式 Gateway、gRPC 反向代理與多區域動態流量調度
+1. [傳輸協定演進：HTTP/1.1 ➔ HTTP/2 ➔ HTTP/3](https://github.com/ByteByteGoHq/system-design-101) — 深入解析 TCP 隊頭阻塞（Head-of-Line Blocking）、QUIC / UDP 核心、0-RTT 連線建立與多路復用底層機制
+2. [反向代理 vs. API Gateway vs. 負載均衡器](https://github.com/ByteByteGoHq/system-design-101) — 四層（TCP/UDP）與七層（HTTP）路由、TLS 卸載、服務發現與 Rate Limiting 演算法（Token / Leaky Bucket）深度對比
+3. [gRPC vs. REST vs. GraphQL 通訊邊界決策](https://github.com/ByteByteGoHq/system-design-101) — Protobuf 二進位序列化、雙向串流、N+1 查詢問題、Schema 演進與向後相容工程決策矩陣
+4. [金融與企業級 API 安全防禦藍圖](https://github.com/ByteByteGoHq/system-design-101) — OAuth 2.1 / OIDC、JWT 重放攻擊防禦、mTLS 雙向認證與防暴力破解速率限制機制

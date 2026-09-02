@@ -1,0 +1,608 @@
+---
+// YouTube Video Upload & Transcoding DAG Pipeline Diagram Component
+---
+
+<figure class="yt-pipe-diagram" aria-labelledby="yt-pipe-caption">
+  <svg
+    class="yt-pipe-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="yt-pipe-title yt-pipe-desc"
+  >
+    <title id="yt-pipe-title">
+      YouTube 海量影片非同步上傳與分塊轉碼串流架構
+    </title>
+    <desc id="yt-pipe-desc">
+      展示從客戶端可中斷續傳分塊上傳 (Chunked Upload)，經 API 閘道進入 BlobStore
+      原始儲存，由 DAG 工作流排程引擎切分為 GOP
+      影片分塊，透過分散式轉碼工作叢集進行多編碼與多解析度平行轉碼，最終生成
+      HLS/DASH 清單並分發至全球邊緣 CDN。
+    </desc>
+
+    <defs>
+      <marker
+        id="yt-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="yt-pipe-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="yt-arrow-red"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="yt-pipe-diagram__arrow-head--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Stage 1: Upload & Ingestion -->
+    <g class="yt-pipe-diagram__card" transform="translate(30, 40)">
+      <rect width="180" height="160" rx="12"></rect>
+      <text class="yt-pipe-diagram__badge" x="16" y="24">01. INGESTION</text>
+      <text class="yt-pipe-diagram__title" x="16" y="52">可續傳分塊上傳</text>
+      <text class="yt-pipe-diagram__desc" x="16" y="76"
+        >• Resumable Chunked</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="96"
+        >• 5MB-20MB 局部區塊</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="116"
+        >• 斷網自動重試與校驗</text
+      >
+      <text class="yt-pipe-diagram__tag" x="16" y="142"
+        >HTTP Range / TUS Protocol</text
+      >
+    </g>
+
+    <g
+      class="yt-pipe-diagram__card yt-pipe-diagram__card--storage"
+      transform="translate(30, 240)"
+    >
+      <rect width="180" height="160" rx="12"></rect>
+      <text
+        class="yt-pipe-diagram__badge yt-pipe-diagram__badge--storage"
+        x="16"
+        y="24">STORAGE</text
+      >
+      <text
+        class="yt-pipe-diagram__title yt-pipe-diagram__title--storage"
+        x="16"
+        y="52">原始儲存與中繼庫</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="76"
+        >• Colossus / BlobStore</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="96"
+        >• Bigtable 影片中繼資訊</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="116"
+        >• 完整性 SHA-256 驗證</text
+      >
+      <text
+        class="yt-pipe-diagram__tag yt-pipe-diagram__tag--storage"
+        x="16"
+        y="142">Raw Video Retention</text
+      >
+    </g>
+
+    <!-- Arrows from Stage 1 to DAG Orchestrator -->
+    <path
+      class="yt-pipe-diagram__arrow"
+      d="M 210 120 H 265"
+      marker-end="url(#yt-arrow)"></path>
+    <path
+      class="yt-pipe-diagram__arrow"
+      d="M 210 320 H 265"
+      marker-end="url(#yt-arrow)"></path>
+
+    <!-- Stage 2: DAG Task Orchestrator & Splitter -->
+    <g
+      class="yt-pipe-diagram__card yt-pipe-diagram__card--red"
+      transform="translate(270, 100)"
+    >
+      <rect width="190" height="220" rx="12"></rect>
+      <text
+        class="yt-pipe-diagram__badge yt-pipe-diagram__badge--red"
+        x="16"
+        y="24">02. ORCHESTRATION</text
+      >
+      <text
+        class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
+        x="16"
+        y="52">DAG 工作流引擎</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="78"
+        >• GOP 關鍵幀精準分塊</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="98"
+        >• 5-10 秒影片切片 (Chunks)</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="118"
+        >• 音訊/視訊/字幕軌分離</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="138"
+        >• 任務依賴圖 (DAG Engine)</text
+      >
+      <text class="yt-pipe-diagram__desc" x="16" y="158"
+        >• 轉碼失敗局部自動重試</text
+      >
+      <text
+        class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red"
+        x="16"
+        y="196">動態算力資源調度</text
+      >
+    </g>
+
+    <!-- Arrows from DAG to Worker Fleet -->
+    <path
+      class="yt-pipe-diagram__arrow yt-pipe-diagram__arrow--red"
+      d="M 460 170 H 510"
+      marker-end="url(#yt-arrow-red)"></path>
+    <path
+      class="yt-pipe-diagram__arrow yt-pipe-diagram__arrow--red"
+      d="M 460 210 H 510"
+      marker-end="url(#yt-arrow-red)"></path>
+    <path
+      class="yt-pipe-diagram__arrow yt-pipe-diagram__arrow--red"
+      d="M 460 250 H 510"
+      marker-end="url(#yt-arrow-red)"></path>
+
+    <!-- Stage 3: Parallel Transcoding Workers Matrix -->
+    <g class="yt-pipe-diagram__card" transform="translate(515, 40)">
+      <rect width="210" height="110" rx="10"></rect>
+      <text class="yt-pipe-diagram__badge" x="14" y="22">WORKER POOL 1</text>
+      <text class="yt-pipe-diagram__title" x="14" y="46"
+        >H.264 / AVC 轉碼陣列</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="68"
+        >• 360p / 720p / 1080p</text
+      >
+      <text class="yt-pipe-diagram__tag" x="14" y="92"
+        >最大化老舊設備相容性</text
+      >
+    </g>
+
+    <g
+      class="yt-pipe-diagram__card yt-pipe-diagram__card--focus"
+      transform="translate(515, 165)"
+    >
+      <rect width="210" height="110" rx="10"></rect>
+      <text
+        class="yt-pipe-diagram__badge yt-pipe-diagram__badge--red"
+        x="14"
+        y="22">WORKER POOL 2 (MODERN)</text
+      >
+      <text
+        class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
+        x="14"
+        y="46">VP9 / AV1 轉碼陣列</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="68"
+        >• 1440p 2K / 4K / 8K HDR</text
+      >
+      <text class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red" x="14" y="92"
+        >節省 30%-50% 串流頻寬</text
+      >
+    </g>
+
+    <g class="yt-pipe-diagram__card" transform="translate(515, 290)">
+      <rect width="210" height="110" rx="10"></rect>
+      <text class="yt-pipe-diagram__badge" x="14" y="22"
+        >AUDIO &amp; THUMBNAILS</text
+      >
+      <text class="yt-pipe-diagram__title" x="14" y="46"
+        >多音軌與精靈圖處理</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="68"
+        >• AAC / Opus / 多國語音</text
+      >
+      <text class="yt-pipe-diagram__tag" x="14" y="92"
+        >預覽縮圖 / AI 字幕生成</text
+      >
+    </g>
+
+    <!-- Arrows from Workers to Packaging -->
+    <path
+      class="yt-pipe-diagram__arrow"
+      d="M 725 95 H 765"
+      marker-end="url(#yt-arrow)"></path>
+    <path
+      class="yt-pipe-diagram__arrow yt-pipe-diagram__arrow--red"
+      d="M 725 220 H 765"
+      marker-end="url(#yt-arrow-red)"></path>
+    <path
+      class="yt-pipe-diagram__arrow"
+      d="M 725 345 H 765"
+      marker-end="url(#yt-arrow)"></path>
+
+    <!-- Stage 4: Packaging, CDN & Adaptive Streaming -->
+    <g class="yt-pipe-diagram__card" transform="translate(770, 40)">
+      <rect width="160" height="160" rx="12"></rect>
+      <text class="yt-pipe-diagram__badge" x="14" y="24">03. PACKAGING</text>
+      <text class="yt-pipe-diagram__title" x="14" y="50">自適應封裝</text>
+      <text class="yt-pipe-diagram__desc" x="14" y="74">• HLS (.m3u8 清單)</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="94"
+        >• DASH (.mpd 描述檔)</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="114">• DRM 加密保護</text>
+      <text class="yt-pipe-diagram__tag" x="14" y="142">分段索引清單合成</text>
+    </g>
+
+    <g
+      class="yt-pipe-diagram__card yt-pipe-diagram__card--focus"
+      transform="translate(770, 240)"
+    >
+      <rect width="160" height="160" rx="12"></rect>
+      <text
+        class="yt-pipe-diagram__badge yt-pipe-diagram__badge--red"
+        x="14"
+        y="24">04. STREAMING</text
+      >
+      <text
+        class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
+        x="14"
+        y="50">全球 CDN &amp; ABR</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="74">• Google Edge PoPs</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="94">• 自適應碼率 (ABR)</text
+      >
+      <text class="yt-pipe-diagram__desc" x="14" y="114"
+        >• 毫秒動態切換畫質</text
+      >
+      <text
+        class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red"
+        x="14"
+        y="142">零緩衝流暢播放</text
+      >
+    </g>
+
+    <path
+      class="yt-pipe-diagram__arrow yt-pipe-diagram__arrow--red"
+      d="M 850 200 V 235"
+      marker-end="url(#yt-arrow-red)"></path>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="yt-pipe-diagram__mobile">
+    <div class="yt-pipe-mobile-card">
+      <span class="yt-pipe-mobile-badge">01. 可續傳上傳 (Ingestion)</span>
+      <h4>Chunked Upload &amp; 原始儲存</h4>
+      <p>
+        客戶端透過 5MB-20MB 分塊上傳，斷網可精確續傳；原始大檔寫入分散式
+        BlobStore 並寫入中繼資料。
+      </p>
+    </div>
+
+    <div class="yt-pipe-mobile-arrow">↓ 觸發非同步轉碼 DAG</div>
+
+    <div class="yt-pipe-mobile-card yt-pipe-mobile-card--red">
+      <span class="yt-pipe-mobile-badge yt-pipe-mobile-badge--red"
+        >02. 任務排程中心</span
+      >
+      <h4>GOP 分塊切片與 DAG 工作流</h4>
+      <p>
+        依關鍵幀切分成 5-10
+        秒小片段，自動建立跨編碼器與解析度的轉碼依賴有向無環圖。
+      </p>
+    </div>
+
+    <div class="yt-pipe-mobile-arrow">↓ 萬核平行矩陣轉碼</div>
+
+    <div class="yt-pipe-mobile-card">
+      <span class="yt-pipe-mobile-badge">03. 分散式轉碼叢集</span>
+      <h4>多編碼矩陣 (H.264 / VP9 / AV1)</h4>
+      <p>
+        數百台工作節點平行壓製各清晰度切片，兼顧老舊裝置相容性與現代高效頻寬節省。
+      </p>
+    </div>
+
+    <div class="yt-pipe-mobile-arrow">↓ 清單封裝與邊緣分發</div>
+
+    <div class="yt-pipe-mobile-card yt-pipe-mobile-card--red">
+      <span class="yt-pipe-mobile-badge yt-pipe-mobile-badge--red"
+        >04. 串流分發與 ABR</span
+      >
+      <h4>HLS / DASH 封裝與全球 CDN 邊緣快取</h4>
+      <p>
+        產生動態清單，播放器依據用戶即時頻寬毫秒動態切換解析度，達到極致零停頓觀影體驗。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="yt-pipe-caption">
+    圖 1：YouTube 影片非同步上傳與分塊轉碼全景架構：分塊續傳、DAG
+    任務排程、分散式編碼矩陣與 CDN 自適應串流。
+  </figcaption>
+</figure>
+
+<style>
+  .yt-pipe-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .yt-pipe-diagram {
+    background: #0f172a;
+    border-color: #1e293b;
+  }
+
+  .yt-pipe-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .yt-pipe-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .yt-pipe-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .yt-pipe-diagram__card rect {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+
+  .yt-pipe-diagram__card--red rect {
+    fill: #fef2f2;
+    stroke: #dc2626;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .yt-pipe-diagram__card--red rect {
+    fill: #450a0a;
+    stroke: #ef4444;
+  }
+
+  .yt-pipe-diagram__card--storage rect {
+    fill: #fffbeb;
+    stroke: #d97706;
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .yt-pipe-diagram__card--storage rect {
+    fill: #451a03;
+    stroke: #f59e0b;
+  }
+
+  .yt-pipe-diagram__card--focus rect {
+    stroke: #dc2626;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .yt-pipe-diagram__card--focus rect {
+    stroke: #f87171;
+  }
+
+  .yt-pipe-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .yt-pipe-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .yt-pipe-diagram__badge--red {
+    fill: #dc2626;
+  }
+
+  :global(.dark) .yt-pipe-diagram__badge--red {
+    fill: #f87171;
+  }
+
+  .yt-pipe-diagram__badge--storage {
+    fill: #d97706;
+  }
+
+  :global(.dark) .yt-pipe-diagram__badge--storage {
+    fill: #fbbf24;
+  }
+
+  .yt-pipe-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .yt-pipe-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .yt-pipe-diagram__title--red {
+    fill: #b91c1c;
+  }
+
+  :global(.dark) .yt-pipe-diagram__title--red {
+    fill: #fca5a5;
+  }
+
+  .yt-pipe-diagram__title--storage {
+    fill: #b45309;
+  }
+
+  :global(.dark) .yt-pipe-diagram__title--storage {
+    fill: #fde68a;
+  }
+
+  .yt-pipe-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .yt-pipe-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .yt-pipe-diagram__tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: #64748b;
+  }
+
+  :global(.dark) .yt-pipe-diagram__tag {
+    fill: #94a3b8;
+  }
+
+  .yt-pipe-diagram__tag--red {
+    fill: #dc2626;
+  }
+
+  :global(.dark) .yt-pipe-diagram__tag--red {
+    fill: #f87171;
+  }
+
+  .yt-pipe-diagram__tag--storage {
+    fill: #d97706;
+  }
+
+  :global(.dark) .yt-pipe-diagram__tag--storage {
+    fill: #fbbf24;
+  }
+
+  .yt-pipe-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+  }
+
+  :global(.dark) .yt-pipe-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .yt-pipe-diagram__arrow--red {
+    stroke: #dc2626;
+    stroke-width: 2.2;
+  }
+
+  :global(.dark) .yt-pipe-diagram__arrow--red {
+    stroke: #ef4444;
+  }
+
+  .yt-pipe-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .yt-pipe-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .yt-pipe-diagram__arrow-head--red {
+    fill: #dc2626;
+  }
+
+  :global(.dark) .yt-pipe-diagram__arrow-head--red {
+    fill: #ef4444;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .yt-pipe-diagram__desktop {
+      display: none;
+    }
+
+    .yt-pipe-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .yt-pipe-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .yt-pipe-mobile-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    .yt-pipe-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: #fef2f2;
+    }
+
+    :global(.dark) .yt-pipe-mobile-card--red {
+      background: #450a0a;
+      border-color: #ef4444;
+    }
+
+    .yt-pipe-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .yt-pipe-mobile-badge--red {
+      color: #dc2626;
+    }
+
+    :global(.dark) .yt-pipe-mobile-badge--red {
+      color: #f87171;
+    }
+
+    .yt-pipe-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .yt-pipe-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .yt-pipe-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .yt-pipe-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .yt-pipe-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

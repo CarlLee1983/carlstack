@@ -1,0 +1,182 @@
+---
+title: "TikTok 20 萬檔案超大型前端 MonoRepo 治理：模組邊界、增量快取與微前端架構"
+description: "深度剖析位元組跳動（ByteDance / TikTok）如何治理超過 20 萬個檔案的超大型前端 MonoRepo：從 AST 邊界防禦、依賴圖譜影響分析（Affected Graph）、全域內容雜湊雲端快取，到分散式任務排程（DTE）與微前端沙盒隔離。"
+publishDate: 2026-09-02T10:12:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 前端工程化
+  - MonoRepo
+  - 架構演進
+  - 微前端
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/tiktok-monorepo-governance.png
+coverAlt: "立體等距視角展示蜂巢狀的巨型模組化軟體架構，獨立的領域套件透過發光的光纖通道與中央雲端快取金庫相連，周圍環繞著雷射安全邊界。"
+---
+
+import TikTokMonorepoGovernanceDiagram from "../../components/TikTokMonorepoGovernanceDiagram.astro";
+
+當一家科技巨頭的前端團隊規模擴展到數千名工程師、上百個業務子應用（TikTok 短影音、電商直播 TikTok Shop、創作者中心、廣告後台、私訊通訊），程式庫的組織架構往往會面臨巨大挑戰。
+
+如果採用多專案庫（Multi-Repo），團隊會迅速陷入**依賴地獄（Dependency Hell）**、共用元件升級困難、跨專案重構步履蹣跚的泥淖；但如果將所有程式碼合併為單一巨大單體庫（MonoRepo），在規模達到 **20 萬個檔案（200k+ Files）** 時，Git 會變得極為緩慢、IDE 索引卡死、每次 CI 建置動輒超過 1 小時，且任何工程師的錯誤提交都可能導致全域系統崩潰。
+
+位元組跳動（ByteDance）團隊透過自研工程體系（包含 [Garfish 微前端框架](https://github.com/web-infra-dev/garfish)、[Rspack 高效能打包器](https://github.com/web-infra-dev/rspack) 與現代 MonoRepo 治理工具鏈），成功在超大型規模下實現了高效開發與極速部署。
+
+本文基於 [ByteDance Web Infra 開源實踐](https://github.com/web-infra-dev) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，拆解這套超大型前端 MonoRepo 的四大治理防線。
+
+<TikTokMonorepoGovernanceDiagram />
+
+---
+
+## 挑戰：當 MonoRepo 膨脹至 20 萬個檔案時的物理極限
+
+在小型專案中，MonoRepo 帶來了一處修改全域生效的美好體驗。但在 20 萬檔案規模下，會迎面撞上三大物理瓶頸：
+
+1. **依賴關係混亂與架構腐化**：不同業務團隊隨意以相對路徑 `import ../../../shop/private/utils` 引入私有邏輯，業務模組間嚴重偶合，無法獨立拆分與發布。
+2. **CI 運算資源雪崩**：只要有人修改了一行共用型別定義，傳統 CI 會重新編譯所有 200 個子專案、執行數萬個單元測試，CI 佇列排隊超過 60 分鐘。
+3. **本機開發環境崩潰**：`pnpm install` 與 TypeScript `tsc --noEmit` 型別檢查消耗數十 GB 記憶體，工程師筆電風扇狂轉、開發體驗極度惡劣。
+
+---
+
+## 第一道防線：領域套件邊界隔離（Package Boundary Defense）
+
+為了解決模組偶合問題，專案庫必須在代碼結構與工具鏈層級建立嚴格的**領域邊界（Bounded Contexts）**：
+
+```
+monorepo/
+├── apps/                          # 獨立部署業務應用
+│   ├── tiktok-web/
+│   ├── tiktok-shop/
+│   └── creator-studio/
+├── packages/                      # 公共基礎庫 (Strictly Versioned)
+│   ├── ui-components/
+│   ├── api-client/
+│   └── analytics-sdk/
+└── domains/                       # 業務領域隔離套件
+    ├── video-player/              # 僅暴露 index.ts 定義的公共 API
+    │   ├── src/
+    │   └── package.json
+    └── checkout-flow/
+```
+
+### 1. 模組導出收斂（Public API Exports）
+
+- 每個 Package 必須在 `package.json` 的 `exports` 欄位中嚴格宣告公開介面。
+- 禁止任何外部套件繞過 `index.ts` 直連內部私有檔案（如 `package/src/internal/*`）。
+
+### 2. AST 靜態語法檢查與 ESLint 邊界攔截
+
+在提交與 CI 階段運行自訂 ESLint / AST 規則：
+
+- **層級依賴規則（Hierarchy Rules）**：基礎庫（`packages/*`）絕對禁止依賴上層業務庫（`apps/*`）。
+- **領域隔離規則（Domain Isolation）**：`domains/video-player` 禁止直接引入 `domains/checkout-flow`，跨領域通訊必須透過明確的事件匯流排（Event Bus）或標準 API 介面。
+
+---
+
+## 第二道防線：依賴圖譜與受影響範圍分析（Affected Graph Analysis）
+
+在 20 萬檔案的倉庫中，絕不能在每次提交時都無腦執行全量測試與打包。核心策略是**「精準定位受變更影響的最小子圖（Affected Graph）」**：
+
+```
+         [Git Diff 變更檔案]
+                 │
+                 ▼
+     ┌───────────────────────┐
+     │ 依賴關係拓撲圖分析引擎 │
+     └───────────┬───────────┘
+                 │
+  ┌──────────────┼──────────────┐
+  ▼ (受影響)      ▼ (受影響)      ▼ (無關 - 跳過)
+[UI 元件庫]    [TikTok Web]   [TikTok Shop] (0% 運算浪費)
+```
+
+1. **靜態 AST 解析建構依賴 DAG**：在每次分支提交時，分析專案內部所有 `import` 與 `export` 關係，生成整個 MonoRepo 的依賴有向無環圖。
+2. **Git Diff 比對與傳播（Propagation）**：若開發者僅修改了 `domains/video-player/src/decoder.ts`：
+   - 識別出依賴 `video-player` 的上游應用為 `apps/tiktok-web`。
+   - 與其無關的 `apps/tiktok-shop` 與 `apps/creator-studio` 被標記為 **Clean**。
+3. **精準執行**：CI 僅對受影響的套件執行 Lint、Test 與 Build，將 80% 以上無關任務直接剪枝。
+
+---
+
+## 第三道防線：內容雜湊雲端快取與分散式排程（Cloud Cache & DTE）
+
+即使將範圍縮減到受影響套件，某些核心底層庫的修改仍可能波及多個子專案。為此，TikTok 導入了兩大終極效能加速器：
+
+### 1. 內容定址雲端快取（Content-Addressable Remote Caching）
+
+- **輸入雜湊計算（Hash Key）**：針對每個 Task，系統綜合計算：
+  ```
+  TaskHash = Hash(原始碼檔案) + Hash(依賴套件版本) + Hash(環境變數與 Node 版本)
+  ```
+
+```
+- **快取命中即重用（Zero-Compute Replay）**：
+  - 如果該 TaskHash 曾在任一 CI 機器或同事的電腦上執行過，本地直接從雲端快取（S3 / Redis / Remote Cache）下載建置產物與日誌。
+  - 原本需要 3 分鐘的 Webpack/Rspack 編譯在 **200 毫秒內** 直接命中結束。
+
+### 2. 分散式任務排程（Distributed Task Execution, DTE）
+
+- 將原本在單台 CI 機器上循序運行的數百個 Task 拆分為動態佇列。
+- 由中央協調器動態派發至 **20 ~ 50 台平行 CI Agent 節點**。
+- 結合 Rust 編寫的打包器（Rspack），將超大型專案的端到端 CI 時間由 **60 分鐘壓縮至 5 分鐘以內**。
+
+---
+
+## 第四道防線：微前端運行時沙盒隔離（Garfish Runtime Sandbox）
+
+MonoRepo 解決了「開發期（Build-time）」的協同與建置效能，但多個業務應用最終在瀏覽器中運行時，依然需要「運行時（Runtime）」的隔離保護。
+
+TikTok 採用了自研開源的 **Garfish 微前端架構**：
+
+```
+
+┌──────────────────────────────────────────────────────────┐
+│ 主應用基座 (Shell Application) │
+│ (共用導航欄、用戶登入態、全域主題、Garfish 核心調度器) │
+└────────────────────────────┬─────────────────────────────┘
+│
+┌───────────────────────┼───────────────────────┐
+▼ ▼ ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│ 短影音播放子應用 │ │ 電商直播子應用 │ │ 創作者中心子應用 │
+│ (Garfish 沙盒) │ │ (Garfish 沙盒) │ │ (Garfish 沙盒) │
+│ • JS 全域變數隔離│ │ • 獨立 Vue 實例 │ │ • 獨立 React 18 │
+│ • CSS 樣式作用域 │ │ • 獨立發布部署 │ │ • 動態遠端載入 │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+
+```
+
+- **JS 沙盒機制**：透過 `Proxy` 代理全域 `window` 物件，子應用在 `window` 上掛載的屬性與事件監聽器在子應用卸載時自動清理，防止記憶體洩漏與全域污染。
+- **CSS 作用域隔離**：自動為子應用樣式加上命名空間（Namespace）或 Shadow DOM 封裝，徹底解決跨模組 CSS 覆蓋問題。
+- **獨立部署上線**：雖然在同一個 MonoRepo 中開發，但各子應用可獨立打成靜態資源包並發布至 CDN，實現各業務團隊自主交付。
+
+---
+
+## 現代大型 MonoRepo 工具鏈體系對比
+
+| 治理維度               | 傳統無管理單體倉庫 (Raw Monorepo) | 現代治理 MonoRepo (Nx / Turbo / ByteDance Eden) |
+| :--------------------- | :-------------------------------- | :---------------------------------------------- |
+| **邊界控制**           | 無約束，隨意跨目錄 import         | 模組導出白名單 + AST ESLint 強制阻斷            |
+| **CI 執行策略**        | 每次提交全量重跑（慢、易阻塞）    | Affected Graph 依賴分析，僅重跑受影響節點       |
+| **建置快取**           | 無快取，重複編譯浪費算力          | 全域 Content-Hash 雲端快取，秒級命中            |
+| **任務平行化**         | 受限單台 CI 伺服器 CPU 核心       | 分散式排程（DTE）跨數十台機器水平負載均衡       |
+| **打包與型別檢查速度** | 傳統 JS 工具（Webpack/tsc）極慢   | Rust 現代編譯鏈（Rspack/SWC/Oxc）極致加速       |
+
+---
+
+## 系統架構師的 4 個核心啟示
+
+1. **MonoRepo 不等於單體架構**：MonoRepo 是「程式碼組織形式」，而非「架構設計」。即便所有代碼放在同一個 Git 倉庫，各模組之間依然要維持清晰的領域邊界與職責劃分。
+2. **沒有快取的 MonoRepo 必將崩潰**：倉庫規模一旦突破數萬個檔案，依賴圖譜分析與雲端內容快取就從「選配性能優化」升級為「維持系統運轉的必要生命線」。
+3. **編譯鏈原生化（Rustification）是必然趨勢**：用 Rust 重寫的前端工具鏈（如 Rspack、SWC、Turbopack）帶來 5~10 倍的基礎效能躍升，是支撐 20 萬檔案巨庫的硬核底座。
+4. **開發期治理與運行期隔離並重**：MonoRepo 管控開發建置效率，微前端沙盒保障生產運行穩定，兩者結合才能打造真正具備彈性的企業級前端中台。
+
+---
+
+### 參考資料與一手文獻
+
+- ByteDance Web Infra: [_Garfish - Powerful Micro-frontend Framework_](https://github.com/web-infra-dev/garfish)
+- ByteDance Web Infra: [_Rspack - Fast Rust-based Web Bundler_](https://github.com/web-infra-dev/rspack)
+- ByteByteGo: [_System Design 101: Managing Monorepo at Massive Scale_](https://github.com/ByteByteGoHq/system-design-101)
+```

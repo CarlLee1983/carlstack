@@ -1,0 +1,178 @@
+---
+title: "YouTube 海量影片非同步上傳與分塊轉碼串流架構：從 Chunked Upload 到自適應 ABR"
+description: "解析全球最大影音平台 YouTube 每分鐘接收 500 小時影片背後的工程架構：可續傳分塊上傳協議、DAG 工作流依賴排程、GOP 關鍵幀切片、平行萬核轉碼矩陣（H.264/VP9/AV1）與 HLS/DASH 自適應碼率分發。"
+publishDate: 2026-09-02T10:11:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 影音架構
+  - 分散式系統
+  - 串流傳輸
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/youtube-transcoding-pipeline.png
+coverAlt: "立體等距視角展示影音資料流進入自動化處理工廠，被分割為資料塊後由平行雷射轉碼核心壓縮，最後分發至多層邊緣 CDN 甜甜圈環形結構。"
+---
+
+import YouTubeVideoPipelineDiagram from "../../components/YouTubeVideoPipelineDiagram.astro";
+
+YouTube 是全球流量最大的影音平台之一，每分鐘有超過 **500 小時** 的全新影片被上傳至伺服器。用戶上傳的影片格式五花八門（從手機拍的 4K MOV、直播錄製的 FLV 到老舊攝影機的 AVI），檔案大小從幾 MB 到上百 GB 不等。
+
+要在全球數十億種不同的客戶端設備（4K 智慧電視、旗艦 iPhone、低頻寬 3G 網路的廉價 Android 手機）上實現**秒開、零卡頓、畫質自適應**的播放體驗，背後需要一套極度複雜的分散式影片處理管線。
+
+本文基於 [Google Cloud Media Architecture 文獻](https://cloud.google.com/solutions/media-entertainment) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，深入剖析 YouTube 影片從用戶點擊「上傳」到在全球邊緣節點流暢播放的端到端技術實現。
+
+<YouTubeVideoPipelineDiagram />
+
+---
+
+## 階段 1：可續傳分塊上傳（Resumable Chunked Upload）
+
+當用戶上傳一個 50 GB 的 4K 影片時，若採用傳統的單一 HTTP POST 請求，任何網路中斷（WiFi 波動、行動基地台切換）都會導致整個檔案必須從頭重傳，這在工程上是不可接受的。
+
+YouTube 採用了基於 HTTP 的**可中斷續傳分塊上傳協議（類似 TUS 或 Google Resumable Media Upload）**：
+
+```
+[客戶端]                                              [API 閘道 / BlobStore]
+   │                                                             │
+   │─── 1. POST /upload/init (宣告檔案大小、SHA-256、格式) ────►│
+   │◄── 2. 回傳 Session ID 與專屬 Upload URL ────────────────────│
+   │                                                             │
+   │─── 3. PUT Chunk #1 (Bytes 0-10485759 / 10MB) ──────────────►│
+   │◄── 4. 200 OK (已確認接收 Chunk #1) ────────────────────────│
+   │                                                             │
+   │     [網路突發中斷 30 秒]                                     │
+   │                                                             │
+   │─── 5. HEAD /upload/status (查詢已接收進度) ────────────────►│
+   │◄── 6. 308 Resume Incomplete (Range: 0-10485759) ────────────│
+   │                                                             │
+   │─── 7. PUT Chunk #2 (Bytes 10485760-20971519) ──────────────►│
+   │    ... (持續分塊傳輸直到 100%)                               │
+```
+
+### 核心機制設計
+
+1. **分塊切片（Chunking）**：客戶端將檔案切為 5MB ~ 20MB 的 Chunk，逐塊上傳。
+2. **狀態持久化**：伺服器在分散式中繼資料庫（Bigtable / Spanner）中記錄已成功接收的 Byte Range。
+3. **校驗與去重**：每個 Chunk 攜帶 MD5 / CRC32 校驗碼；整檔完成時驗證全域 SHA-256。
+4. **原始儲存**：完成後的完整原始影片（Raw Video）沉澱於高可靠物件儲存（Colossus / Distributed BlobStore）中，作為轉碼的唯讀來源。
+
+---
+
+## 階段 2：GOP 切片與非同步 DAG 任務排程
+
+如果將整個 2 小時的 4K 原始影片丟給單台伺服器進行轉碼，單次轉碼可能需要數小時，且一旦中途記憶體溢位（OOM）或硬體故障，所有計算前功盡棄。
+
+為了實現極致的轉碼速度，YouTube 將轉碼任務拆解為**細粒度的 DAG（有向無環圖）工作流**：
+
+### 1. 基於 GOP（Group of Pictures）的精準切片
+
+- 視訊編碼由 **I 幀（關鍵幀，獨立圖像）**、**P 幀（前向預測）** 與 **B 幀（雙向預測）** 組成。
+- 影片切分引擎不能隨意在任意時間戳截斷，必須在 **I 幀（Keyframe）邊界** 處精準切片（通常為 5 ~ 10 秒一段）。
+- 每個切片可以完全獨立解碼與重新編碼，無需依賴前後切片。
+
+### 2. DAG 依賴工作流編排
+
+系統自動將單個影片轉換為包含數千個獨立子任務的 DAG 圖：
+
+```
+                    [原始 4K 影片上傳完成]
+                              │
+               ┌──────────────┴──────────────┐
+               ▼                             ▼
+        [音訊軌提取與轉碼]             [視訊 GOP 關鍵幀切片]
+        (AAC / Opus / 多語系)         (切分為 Chunk_001 ~ Chunk_100)
+                                             │
+                       ┌─────────────────────┼─────────────────────┐
+                       ▼                     ▼                     ▼
+                 [Chunk_001]           [Chunk_002]           [Chunk_003]
+                ┌──────┴──────┐       ┌──────┴──────┐       ┌──────┴──────┐
+                ▼             ▼       ▼             ▼       ▼             ▼
+             (H.264)        (AV1)   (H.264)        (AV1)   (H.264)        (AV1)
+              1080p          4K      1080p          4K      1080p          4K
+```
+
+---
+
+## 階段 3：平行萬核分散式轉碼矩陣
+
+轉碼工作節點（Transcoding Workers）從任務佇列中領取小切片任務進行平行壓製。YouTube 會同時產生**多編碼格式**與**多解析度階梯（Encoding Ladder）**：
+
+### 多編碼格式矩陣（Codec Tradeoffs）
+
+| 編碼格式        | 壓縮效率 (頻寬節省) | 計算複雜度 (轉碼耗時)  | 設備硬體解碼支援度   | 策略定位                             |
+| :-------------- | :------------------ | :--------------------- | :------------------- | :----------------------------------- |
+| **H.264 / AVC** | 基準 (1x)           | 極低 (快)              | 接近 100%（全設備）  | **兜底相容**：老舊瀏覽器與低階裝置   |
+| **VP9**         | 比 H.264 省 30-40%  | 中等                   | 高（Android / PC）   | **主力串流**：一般高清 1080p / 1440p |
+| **AV1**         | 比 VP9 再省 20-30%  | 極高 (慢、需專用 ASIC) | 逐步普及（旗艦晶片） | **極致頻寬**：4K / 8K HDR 超高清首選 |
+
+> [!IMPORTANT]
+> **熱度感知轉碼策略（Hotness-Aware Transcoding）**：
+> 新上傳的普通影片會先快速轉碼出 H.264 360p/720p/1080p 以便立即發布上線；只有當影片播放量上升（成為熱門內容）時，系統才會在背景非同步觸發昂貴的 AV1 與 4K/8K 深度壓製，以極大化節省全球 CDN 伺服器頻寬。
+
+---
+
+## 階段 4：自適應封裝（HLS / DASH）與邊緣 CDN 串流
+
+轉碼完成的所有音視訊切片會被重新封裝為現代串流協議格式：
+
+1. **HLS（HTTP Live Streaming）**：產生 `.m3u8` 主索引清單與 `.ts` / `.m4s` 切片。
+2. **MPEG-DASH（Dynamic Adaptive Streaming over HTTP）**：產生 `.mpd` XML 媒體描述檔。
+
+### Manifest 清單結構示例（自適應碼率梯隊）
+
+```
+#EXTM3U
+#EXT-X-VERSION:6
+
+# 4K AV1 高碼率流
+#EXT-X-STREAM-INF:BANDWIDTH=15000000,RESOLUTION=3840x2160,CODECS="av01.0.12M.08"
+4k_av1_master.m3u8
+
+# 1080p VP9 中碼率流
+#EXT-X-STREAM-INF:BANDWIDTH=4500000,RESOLUTION=1920x1080,CODECS="vp09.00.41.08"
+1080p_vp9_master.m3u8
+
+# 360p H.264 低碼率流
+#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360,CODECS="avc1.4d401f"
+360p_h264_master.m3u8
+```
+
+### 播放端的自適應碼率演算法（ABR Heuristics）
+
+用戶播放影片時，播放器會持續監控兩個指標：
+
+- **即時下載頻寬吞吐量（Throughput-Based）**
+- **本地緩衝區剩餘秒數（Buffer-Based）**
+
+當用戶走進電梯或訊號變差時，播放器在請求下一個 5 秒分塊時自動平滑切換至 360p 分塊清單；當重回 WiFi 時立即拉取 1080p/4K 分塊，全程無畫面中斷。
+
+---
+
+## YouTube 影音架構演進對比
+
+| 比較維度         | 早期單體轉碼架構 (Monolithic Transcoding) | 現代分散式 GOP 切片 DAG 架構           |
+| :--------------- | :---------------------------------------- | :------------------------------------- |
+| **轉碼單元**     | 整部影片單檔處理                          | 5 ~ 10 秒 GOP 獨立切片                 |
+| **轉碼耗時**     | 線性增長（2 小時影片需 1~2 小時）         | 萬核平行（2 小時影片在 5 分鐘內完成）  |
+| **故障恢復力**   | 崩潰需 100% 重跑                          | 僅需重跑失敗的 5 秒切片                |
+| **頻寬優化**     | 單一固定碼率                              | HLS / DASH 多碼率階梯 + AV1 自適應切換 |
+| **播放啟動延遲** | 需下載較大 Buffer                         | 首分塊極小化，首幀秒開（&lt;200ms）    |
+
+---
+
+## 系統架構師的 4 個核心啟示
+
+1. **不可變分塊是分散式計算的基石**：把大任務（數十 GB 的影片）拆解為不可變的小切片（GOP 塊），才能讓水平擴展、排程調度與故障重試變得極為廉價。
+2. **依頻寬與熱度動態分配算力**：高算力編碼器（如 AV1）轉碼成本極高，應配合業務熱度指標分級轉碼，避免為零播放量影片浪費珍貴 GPU/ASIC 算力。
+3. **客戶端自主決策（Client-Driven ABR）**：伺服器只負責提供靜態切片與 Manifest 清單，將碼率切換邏輯交給最了解當前硬體與網路狀態的客戶端播放器。
+4. **標準化 HTTP 基礎設施重用**：HLS / DASH 的切片就是普通的靜態 HTTP 檔案，可直接享受全球 Cloudflare / Google CDN 的快取加速與邊緣卸載，無需自建昂貴的專用串流協定伺服器（如 RTMP）。
+
+---
+
+### 參考資料與一手文獻
+
+- Google Cloud: [_Video Processing & Streaming Architecture Best Practices_](https://cloud.google.com/solutions/media-entertainment)
+- IETF RFC 8216: [_HTTP Live Streaming (HLS) Specification_](https://datatracker.ietf.org/doc/html/rfc8216)
+- ByteByteGo: [_System Design 101: YouTube Architecture Deep Dive_](https://github.com/ByteByteGoHq/system-design-101)

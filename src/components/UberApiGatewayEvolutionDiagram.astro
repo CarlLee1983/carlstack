@@ -1,0 +1,520 @@
+---
+// Uber API Gateway 4-Generation Evolution Architecture Diagram Component
+---
+
+<figure class="uber-gw-diagram" aria-labelledby="uber-gw-caption">
+  <svg
+    class="uber-gw-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="uber-gw-title uber-gw-desc"
+  >
+    <title id="uber-gw-title">Uber 全球 API 閘道四代架構演進</title>
+    <desc id="uber-gw-desc">
+      展示 Uber 從單體 Node.js RTAPI (第 1 代)、去中心化自營閘道 (第 2 代)、邊緣
+      gRPC 閘道 (第 3 代)，演進至現代宣告式、多區域主動路由與自動生成 BFF 的統一
+      API 閘道 (第 4 代)。
+    </desc>
+
+    <defs>
+      <marker
+        id="ugw-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="uber-gw-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="ugw-arrow-emerald"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="uber-gw-diagram__arrow-head--emerald"></path>
+      </marker>
+    </defs>
+
+    <!-- Gen 1: Monolith Edge -->
+    <g class="uber-gw-diagram__card" transform="translate(30, 40)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 1 (2014)</text>
+      <text class="uber-gw-diagram__title" x="16" y="52"
+        >單體 Node.js RTAPI</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="78"
+        >• 單體 Node.js 處理程序</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="98"
+        >• 負責所有客戶端請求路由</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="118"
+        >• 業務邏輯與轉發嚴重偶合</text
+      >
+      <text
+        class="uber-gw-diagram__tag uber-gw-diagram__tag--warn"
+        x="16"
+        y="152">⚠️ CPU 阻塞與部署單點故障</text
+      >
+    </g>
+
+    <!-- Gen 2: Decentralized Gateways -->
+    <g class="uber-gw-diagram__card" transform="translate(260, 40)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 2 (2016)</text>
+      <text class="uber-gw-diagram__title" x="16" y="52">去中心化領域閘道</text>
+      <text class="uber-gw-diagram__desc" x="16" y="78"
+        >• 各業務線自建 Gateway</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="98"
+        >• 鑑權、限流規則重複造輪</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="118"
+        >• 通訊協定與監控指標分歧</text
+      >
+      <text
+        class="uber-gw-diagram__tag uber-gw-diagram__tag--warn"
+        x="16"
+        y="152">⚠️ 維運成本與安全性碎片化</text
+      >
+    </g>
+
+    <!-- Gen 3: Edge gRPC Gateway -->
+    <g class="uber-gw-diagram__card" transform="translate(490, 40)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 3 (2019)</text>
+      <text class="uber-gw-diagram__title" x="16" y="52">邊緣 gRPC 閘道</text>
+      <text class="uber-gw-diagram__desc" x="16" y="78"
+        >• 引入 Envoy / Go 邊緣層</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="98"
+        >• JSON 轉 gRPC/Thrift 轉發</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="118"
+        >• 統一身份驗證與基礎限流</text
+      >
+      <text
+        class="uber-gw-diagram__tag uber-gw-diagram__tag--info"
+        x="16"
+        y="152">ℹ️ 跨區域流量排程仍受限</text
+      >
+    </g>
+
+    <!-- Gen 4: Modern Unified Declarative Gateway (Large Bottom Block) -->
+    <g
+      class="uber-gw-diagram__card uber-gw-diagram__card--emerald"
+      transform="translate(30, 240)"
+    >
+      <rect width="900" height="180" rx="12"></rect>
+      <text
+        class="uber-gw-diagram__badge uber-gw-diagram__badge--emerald"
+        x="20"
+        y="26">GEN 4 (CURRENT): UNIFIED DECLARATIVE API PLATFORM</text
+      >
+      <text
+        class="uber-gw-diagram__title uber-gw-diagram__title--emerald"
+        x="20"
+        y="56">現代宣告式統一 API 閘道生態系</text
+      >
+
+      <!-- Sub Column 1: Schema-first -->
+      <g transform="translate(20, 75)">
+        <rect width="265" height="85" rx="8" class="uber-gw-diagram__subcard"
+        ></rect>
+        <text class="uber-gw-diagram__subtitle" x="12" y="22"
+          >01. Schema-First 宣告定義</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="44"
+          >• Protobuf / Thrift 統一合約</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="64"
+          >• 自動生成 BFF 與型別防護</text
+        >
+      </g>
+
+      <!-- Sub Column 2: Traffic Engine -->
+      <g transform="translate(315, 75)">
+        <rect width="270" height="85" rx="8" class="uber-gw-diagram__subcard"
+        ></rect>
+        <text class="uber-gw-diagram__subtitle" x="12" y="22"
+          >02. 多區域動態流量排程</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="44"
+          >• Multi-Region Active-Active</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="64"
+          >• 跨區自動故障轉移 &amp; Sharding</text
+        >
+      </g>
+
+      <!-- Sub Column 3: Resilience & Security -->
+      <g transform="translate(615, 75)">
+        <rect width="265" height="85" rx="8" class="uber-gw-diagram__subcard"
+        ></rect>
+        <text class="uber-gw-diagram__subtitle" x="12" y="22"
+          >03. 自適應韌性與安全</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="44"
+          >• Token Bucket + 延遲感應限流</text
+        >
+        <text class="uber-gw-diagram__subdesc" x="12" y="64"
+          >• 全鏈路 mTLS 與分散式追蹤</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrows across Generations -->
+    <path
+      class="uber-gw-diagram__arrow"
+      d="M 230 125 H 255"
+      marker-end="url(#ugw-arrow)"></path>
+    <path
+      class="uber-gw-diagram__arrow"
+      d="M 460 125 H 485"
+      marker-end="url(#ugw-arrow)"></path>
+    <path
+      class="uber-gw-diagram__arrow uber-gw-diagram__arrow--emerald"
+      d="M 590 210 V 235"
+      marker-end="url(#ugw-arrow-emerald)"></path>
+
+    <!-- Arrow to Gen 4 from right side -->
+    <path
+      class="uber-gw-diagram__arrow uber-gw-diagram__arrow--emerald"
+      d="M 690 125 H 780 Q 820 125 820 180 V 235"
+      marker-end="url(#ugw-arrow-emerald)"></path>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="uber-gw-diagram__mobile">
+    <div class="uber-gw-diagram-mobile-card">
+      <span class="uber-gw-diagram-mobile-badge">第 1 代 (2014)</span>
+      <h4>單體 Node.js RTAPI</h4>
+      <p>
+        單一 Node 程序負責全域路由與轉發，業務邏輯強偶合，存在嚴重單點故障與 CPU
+        阻塞風險。
+      </p>
+    </div>
+
+    <div class="uber-gw-diagram-mobile-arrow">↓ 拆分領域閘道</div>
+
+    <div class="uber-gw-diagram-mobile-card">
+      <span class="uber-gw-diagram-mobile-badge">第 2 代 (2016)</span>
+      <h4>去中心化領域自建閘道</h4>
+      <p>
+        各業務團隊自建 API
+        Gateway，鑑權與限流重複造輪子，維運成本暴增且架構碎片化。
+      </p>
+    </div>
+
+    <div class="uber-gw-diagram-mobile-arrow">↓ 引入邊緣代理標準</div>
+
+    <div class="uber-gw-diagram-mobile-card">
+      <span class="uber-gw-diagram-mobile-badge">第 3 代 (2019)</span>
+      <h4>邊緣 gRPC 閘道 (Envoy)</h4>
+      <p>
+        集中邊緣認證、JSON/gRPC 轉發與基本限流，但跨區域流量排程與 BFF
+        生成仍未完全自動化。
+      </p>
+    </div>
+
+    <div class="uber-gw-diagram-mobile-arrow">↓ 現代宣告式架構升級</div>
+
+    <div
+      class="uber-gw-diagram-mobile-card uber-gw-diagram-mobile-card--emerald"
+    >
+      <span
+        class="uber-gw-diagram-mobile-badge uber-gw-diagram-mobile-badge--emerald"
+        >第 4 代 (現行)</span
+      >
+      <h4>現代宣告式統一 API 平台</h4>
+      <p>
+        Protobuf Schema-First 自動生成
+        BFF、多區域主動雙活路由（Active-Active）、自適應延遲感知限流與全鏈路
+        mTLS 安全防護。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="uber-gw-caption">
+    圖 1：Uber API 閘道架構四代演進：從單體 RTAPI、去中心化閘道、邊緣 gRPC
+    到現代宣告式多區域主動 API 平台。
+  </figcaption>
+</figure>
+
+<style>
+  .uber-gw-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .uber-gw-diagram {
+    background: #090e17;
+    border-color: #1e293b;
+  }
+
+  .uber-gw-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .uber-gw-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .uber-gw-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .uber-gw-diagram__card rect {
+    fill: #131b2e;
+    stroke: #25334d;
+  }
+
+  .uber-gw-diagram__card--emerald rect {
+    fill: #f0fdf4;
+    stroke: #10b981;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .uber-gw-diagram__card--emerald rect {
+    fill: #062e24;
+    stroke: #059669;
+  }
+
+  .uber-gw-diagram__subcard {
+    fill: #ffffff !important;
+    stroke: #a7f3d0 !important;
+    stroke-width: 1.2 !important;
+  }
+
+  :global(.dark) .uber-gw-diagram__subcard {
+    fill: #0d382f !important;
+    stroke: #047857 !important;
+  }
+
+  .uber-gw-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .uber-gw-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .uber-gw-diagram__badge--emerald {
+    fill: #059669;
+  }
+
+  :global(.dark) .uber-gw-diagram__badge--emerald {
+    fill: #34d399;
+  }
+
+  .uber-gw-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .uber-gw-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .uber-gw-diagram__title--emerald {
+    font-size: 16px;
+    fill: #047857;
+  }
+
+  :global(.dark) .uber-gw-diagram__title--emerald {
+    fill: #6ee7b7;
+  }
+
+  .uber-gw-diagram__subtitle {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #065f46;
+  }
+
+  :global(.dark) .uber-gw-diagram__subtitle {
+    fill: #a7f3d0;
+  }
+
+  .uber-gw-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .uber-gw-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .uber-gw-diagram__subdesc {
+    font-size: 10.5px;
+    fill: #047857;
+  }
+
+  :global(.dark) .uber-gw-diagram__subdesc {
+    fill: #d1fae5;
+  }
+
+  .uber-gw-diagram__tag {
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .uber-gw-diagram__tag--warn {
+    fill: #d97706;
+  }
+
+  :global(.dark) .uber-gw-diagram__tag--warn {
+    fill: #fbbf24;
+  }
+
+  .uber-gw-diagram__tag--info {
+    fill: #2563eb;
+  }
+
+  :global(.dark) .uber-gw-diagram__tag--info {
+    fill: #60a5fa;
+  }
+
+  .uber-gw-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+  }
+
+  :global(.dark) .uber-gw-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .uber-gw-diagram__arrow--emerald {
+    stroke: #10b981;
+    stroke-width: 2.2;
+  }
+
+  :global(.dark) .uber-gw-diagram__arrow--emerald {
+    stroke: #34d399;
+  }
+
+  .uber-gw-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .uber-gw-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .uber-gw-diagram__arrow-head--emerald {
+    fill: #10b981;
+  }
+
+  :global(.dark) .uber-gw-diagram__arrow-head--emerald {
+    fill: #34d399;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .uber-gw-diagram__desktop {
+      display: none;
+    }
+
+    .uber-gw-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .uber-gw-diagram-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .uber-gw-diagram-mobile-card {
+      background: #131b2e;
+      border-color: #25334d;
+    }
+
+    .uber-gw-diagram-mobile-card--emerald {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+    }
+
+    :global(.dark) .uber-gw-diagram-mobile-card--emerald {
+      background: #062e24;
+      border-color: #059669;
+    }
+
+    .uber-gw-diagram-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .uber-gw-diagram-mobile-badge--emerald {
+      color: #059669;
+    }
+
+    :global(.dark) .uber-gw-diagram-mobile-badge--emerald {
+      color: #34d399;
+    }
+
+    .uber-gw-diagram-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .uber-gw-diagram-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .uber-gw-diagram-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .uber-gw-diagram-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .uber-gw-diagram-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

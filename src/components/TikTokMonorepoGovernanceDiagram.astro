@@ -1,0 +1,613 @@
+---
+// TikTok 200k+ Files Massive MonoRepo Architecture & Governance Diagram Component
+---
+
+<figure class="tiktok-mono-diagram" aria-labelledby="tiktok-mono-caption">
+  <svg
+    class="tiktok-mono-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="tiktok-mono-title tiktok-mono-desc"
+  >
+    <title id="tiktok-mono-title">
+      TikTok 20 萬檔案超大型前端 MonoRepo 治理架構
+    </title>
+    <desc id="tiktok-mono-desc">
+      展示超大型前端 MonoRepo
+      的四大核心治理防線：領域套件邊界隔離、依賴圖譜影響範圍分析、雲端增量雜湊快取與分散式任務排程
+      (DTE)，以及微前端執行環境沙盒隔離。
+    </desc>
+
+    <defs>
+      <marker
+        id="ttm-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="tiktok-mono-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="ttm-arrow-pink"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="tiktok-mono-diagram__arrow-head--pink"></path>
+      </marker>
+    </defs>
+
+    <!-- Stage 1: Domain Package Boundary -->
+    <g
+      class="tiktok-mono-diagram__card tiktok-mono-diagram__card--pink"
+      transform="translate(30, 40)"
+    >
+      <rect width="200" height="160" rx="12"></rect>
+      <text
+        class="tiktok-mono-diagram__badge tiktok-mono-diagram__badge--pink"
+        x="16"
+        y="24">01. BOUNDARY DEFENSE</text
+      >
+      <text
+        class="tiktok-mono-diagram__title tiktok-mono-diagram__title--pink"
+        x="16"
+        y="52">領域套件邊界隔離</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="76"
+        >• 嚴格規範 Workspace 依賴</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="96"
+        >• 禁止跨領域私有深層 import</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="116"
+        >• ESLint 規則與 AST 靜態攔截</text
+      >
+      <text
+        class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--pink"
+        x="16"
+        y="142">Package Boundary Linting</text
+      >
+    </g>
+
+    <g class="tiktok-mono-diagram__card" transform="translate(30, 240)">
+      <rect width="200" height="160" rx="12"></rect>
+      <text class="tiktok-mono-diagram__badge" x="16" y="24">REPO SCALE</text>
+      <text class="tiktok-mono-diagram__title" x="16" y="52"
+        >200,000+ 檔案巨庫</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="76"
+        >• 數千名工程師每日提交</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="96"
+        >• 數百個獨立業務子 App</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="116"
+        >• Git 稀疏檢出 (Sparse Checkout)</text
+      >
+      <text class="tiktok-mono-diagram__tag" x="16" y="142"
+        >Eden / Turbo Monorepo</text
+      >
+    </g>
+
+    <!-- Arrows from Stage 1 to Graph Engine -->
+    <path
+      class="tiktok-mono-diagram__arrow"
+      d="M 230 120 H 285"
+      marker-end="url(#ttm-arrow)"></path>
+    <path
+      class="tiktok-mono-diagram__arrow"
+      d="M 230 320 H 285"
+      marker-end="url(#ttm-arrow)"></path>
+
+    <!-- Stage 2: Dependency Graph & Change Impact Analysis -->
+    <g
+      class="tiktok-mono-diagram__card tiktok-mono-diagram__card--teal"
+      transform="translate(290, 100)"
+    >
+      <rect width="200" height="220" rx="12"></rect>
+      <text
+        class="tiktok-mono-diagram__badge tiktok-mono-diagram__badge--teal"
+        x="16"
+        y="24">02. GRAPH ANALYSIS</text
+      >
+      <text
+        class="tiktok-mono-diagram__title tiktok-mono-diagram__title--teal"
+        x="16"
+        y="52">依賴圖譜與影響分析</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="78"
+        >• Git Diff 追蹤受影響檔案</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="98"
+        >• Affected Graph 精準定位</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="118"
+        >• 僅測試與建置受變更節點</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="138"
+        >• 阻斷無效的全庫重編譯</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="16" y="158"
+        >• 減少 80% CI 運算量</text
+      >
+      <text
+        class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--teal"
+        x="16"
+        y="196">Affected Scope Detection</text
+      >
+    </g>
+
+    <!-- Arrows from Stage 2 to Cloud Cache & DTE -->
+    <path
+      class="tiktok-mono-diagram__arrow tiktok-mono-diagram__arrow--pink"
+      d="M 490 160 H 540"
+      marker-end="url(#ttm-arrow-pink)"></path>
+    <path
+      class="tiktok-mono-diagram__arrow tiktok-mono-diagram__arrow--pink"
+      d="M 490 260 H 540"
+      marker-end="url(#ttm-arrow-pink)"></path>
+
+    <!-- Stage 3: Remote Cloud Cache & DTE Scheduler -->
+    <g class="tiktok-mono-diagram__card" transform="translate(545, 40)">
+      <rect width="200" height="160" rx="12"></rect>
+      <text class="tiktok-mono-diagram__badge" x="14" y="24"
+        >03. CLOUD CACHE</text
+      >
+      <text class="tiktok-mono-diagram__title" x="14" y="50">雲端增量快取</text>
+      <text class="tiktok-mono-diagram__desc" x="14" y="74"
+        >• 內容雜湊 (Content Hash)</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="94"
+        >• 輸入未變則秒級命中重用</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="114"
+        >• 全域跨開發者/CI 快取共享</text
+      >
+      <text class="tiktok-mono-diagram__tag" x="14" y="142"
+        >Zero-Compute Replay</text
+      >
+    </g>
+
+    <g
+      class="tiktok-mono-diagram__card tiktok-mono-diagram__card--pink"
+      transform="translate(545, 240)"
+    >
+      <rect width="200" height="160" rx="12"></rect>
+      <text
+        class="tiktok-mono-diagram__badge tiktok-mono-diagram__badge--pink"
+        x="14"
+        y="24">04. PARALLEL DTE</text
+      >
+      <text
+        class="tiktok-mono-diagram__title tiktok-mono-diagram__title--pink"
+        x="14"
+        y="50">分散式任務排程 (DTE)</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="74"
+        >• 任務圖動態切片分配</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="94"
+        >• 數十台 CI Agent 負載均衡</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="114"
+        >• CI 耗時從 60m 縮短至 5m</text
+      >
+      <text
+        class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--pink"
+        x="14"
+        y="142">Distributed Task Execution</text
+      >
+    </g>
+
+    <!-- Arrows from Stage 3 to Microfrontend Deployment -->
+    <path
+      class="tiktok-mono-diagram__arrow"
+      d="M 745 120 H 775"
+      marker-end="url(#ttm-arrow)"></path>
+    <path
+      class="tiktok-mono-diagram__arrow tiktok-mono-diagram__arrow--pink"
+      d="M 745 320 H 775"
+      marker-end="url(#ttm-arrow-pink)"></path>
+
+    <!-- Stage 4: Microfrontend Runtime Isolation -->
+    <g
+      class="tiktok-mono-diagram__card tiktok-mono-diagram__card--teal"
+      transform="translate(780, 110)"
+    >
+      <rect width="150" height="200" rx="12"></rect>
+      <text
+        class="tiktok-mono-diagram__badge tiktok-mono-diagram__badge--teal"
+        x="14"
+        y="24">RUNTIME</text
+      >
+      <text
+        class="tiktok-mono-diagram__title tiktok-mono-diagram__title--teal"
+        x="14"
+        y="52">微前端沙盒隔離</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="78">• Garfish 框架</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="100"
+        >• JS 沙盒與 CSS 隔離</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="122"
+        >• 模組聯邦 (Module Fed)</text
+      >
+      <text class="tiktok-mono-diagram__desc" x="14" y="144"
+        >• 獨立上線不撞車</text
+      >
+      <text
+        class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--teal"
+        x="14"
+        y="180">獨立解耦發布</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile Version -->
+  <div class="tiktok-mono-diagram__mobile">
+    <div
+      class="tiktok-mono-diagram-mobile-card tiktok-mono-diagram-mobile-card--pink"
+    >
+      <span
+        class="tiktok-mono-diagram-mobile-badge tiktok-mono-diagram-mobile-badge--pink"
+        >01. 邊界防禦</span
+      >
+      <h4>領域模組邊界隔離 (Boundary Defense)</h4>
+      <p>
+        規範 Workspace 邊界，透過 ESLint 與 AST 靜態攔截跨領域非法 private
+        import，防止巨庫架構腐化。
+      </p>
+    </div>
+
+    <div class="tiktok-mono-diagram-mobile-arrow">↓ 變更影響範圍識別</div>
+
+    <div
+      class="tiktok-mono-diagram-mobile-card tiktok-mono-diagram-mobile-card--teal"
+    >
+      <span
+        class="tiktok-mono-diagram-mobile-badge tiktok-mono-diagram-mobile-badge--teal"
+        >02. 依賴圖譜分析</span
+      >
+      <h4>Affected Graph 影響分析</h4>
+      <p>
+        精準比對 Git Diff，只對真正受影響的下游套件執行建置與測試，剔除 80%
+        無效運算負擔。
+      </p>
+    </div>
+
+    <div class="tiktok-mono-diagram-mobile-arrow">↓ 雲端快取與分散式排程</div>
+
+    <div
+      class="tiktok-mono-diagram-mobile-card tiktok-mono-diagram-mobile-card--pink"
+    >
+      <span
+        class="tiktok-mono-diagram-mobile-badge tiktok-mono-diagram-mobile-badge--pink"
+        >03. 增量快取與 DTE 排程</span
+      >
+      <h4>Content Hash 雲端快取與分散式執行</h4>
+      <p>
+        已建置產物全域共享秒級命中，未命中任務動態派發給數十台 CI Agent
+        平行執行，流水線時間由 60 分鐘壓縮至 5 分鐘。
+      </p>
+    </div>
+
+    <div class="tiktok-mono-diagram-mobile-arrow">↓ 獨立運行時沙盒</div>
+
+    <div
+      class="tiktok-mono-diagram-mobile-card tiktok-mono-diagram-mobile-card--teal"
+    >
+      <span
+        class="tiktok-mono-diagram-mobile-badge tiktok-mono-diagram-mobile-badge--teal"
+        >04. 運行時沙盒</span
+      >
+      <h4>微前端執行環境隔離 (Garfish / 沙盒)</h4>
+      <p>
+        各業務子應用獨立部署、動態載入，JS 與 CSS
+        嚴密隔離，保障巨型應用全域穩定。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="tiktok-mono-caption">
+    圖 1：TikTok 20 萬檔案超大型前端 MonoRepo
+    治理架構：邊界防禦、依賴影響分析、雲端快取與微前端運行隔離。
+  </figcaption>
+</figure>
+
+<style>
+  .tiktok-mono-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    background: var(--color-bg-card, #f8fafc);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 16px;
+  }
+
+  :global(.dark) .tiktok-mono-diagram {
+    background: #0f111a;
+    border-color: #1e2438;
+  }
+
+  .tiktok-mono-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .tiktok-mono-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .tiktok-mono-diagram__card rect {
+    fill: var(--color-bg-surface, #ffffff);
+    stroke: var(--color-border, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__card rect {
+    fill: #1a1e2e;
+    stroke: #2e384d;
+  }
+
+  .tiktok-mono-diagram__card--pink rect {
+    fill: #fdf2f8;
+    stroke: #ec4899;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__card--pink rect {
+    fill: #4c0519;
+    stroke: #f43f5e;
+  }
+
+  .tiktok-mono-diagram__card--teal rect {
+    fill: #f0fdfa;
+    stroke: #0d9488;
+    stroke-width: 2;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__card--teal rect {
+    fill: #042f2e;
+    stroke: #14b8a6;
+  }
+
+  .tiktok-mono-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__badge {
+    fill: #94a3b8;
+  }
+
+  .tiktok-mono-diagram__badge--pink {
+    fill: #db2777;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__badge--pink {
+    fill: #f472b6;
+  }
+
+  .tiktok-mono-diagram__badge--teal {
+    fill: #0d9488;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__badge--teal {
+    fill: #2dd4bf;
+  }
+
+  .tiktok-mono-diagram__title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #0f172a;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__title {
+    fill: #f8fafc;
+  }
+
+  .tiktok-mono-diagram__title--pink {
+    fill: #be185d;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__title--pink {
+    fill: #fda4af;
+  }
+
+  .tiktok-mono-diagram__title--teal {
+    fill: #0f766e;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__title--teal {
+    fill: #5eead4;
+  }
+
+  .tiktok-mono-diagram__desc {
+    font-size: 11px;
+    fill: #475569;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__desc {
+    fill: #cbd5e1;
+  }
+
+  .tiktok-mono-diagram__tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    fill: #64748b;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__tag {
+    fill: #94a3b8;
+  }
+
+  .tiktok-mono-diagram__tag--pink {
+    fill: #db2777;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__tag--pink {
+    fill: #f472b6;
+  }
+
+  .tiktok-mono-diagram__tag--teal {
+    fill: #0d9488;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__tag--teal {
+    fill: #2dd4bf;
+  }
+
+  .tiktok-mono-diagram__arrow {
+    fill: none;
+    stroke: #94a3b8;
+    stroke-width: 1.8;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__arrow {
+    stroke: #475569;
+  }
+
+  .tiktok-mono-diagram__arrow--pink {
+    stroke: #ec4899;
+    stroke-width: 2.2;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__arrow--pink {
+    stroke: #f43f5e;
+  }
+
+  .tiktok-mono-diagram__arrow-head {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__arrow-head {
+    fill: #475569;
+  }
+
+  .tiktok-mono-diagram__arrow-head--pink {
+    fill: #ec4899;
+  }
+
+  :global(.dark) .tiktok-mono-diagram__arrow-head--pink {
+    fill: #f43f5e;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+    text-align: center;
+  }
+
+  /* Responsive for mobile */
+  @media (max-width: 768px) {
+    .tiktok-mono-diagram__desktop {
+      display: none;
+    }
+
+    .tiktok-mono-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .tiktok-mono-diagram-mobile-card {
+      padding: 1rem;
+      background: var(--color-bg-surface, #ffffff);
+      border: 1px solid var(--color-border, #e2e8f0);
+      border-radius: 10px;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-card {
+      background: #1a1e2e;
+      border-color: #2e384d;
+    }
+
+    .tiktok-mono-diagram-mobile-card--pink {
+      border-left: 4px solid #ec4899;
+      background: #fdf2f8;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-card--pink {
+      background: #4c0519;
+      border-color: #f43f5e;
+    }
+
+    .tiktok-mono-diagram-mobile-card--teal {
+      border-left: 4px solid #0d9488;
+      background: #f0fdfa;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-card--teal {
+      background: #042f2e;
+      border-color: #14b8a6;
+    }
+
+    .tiktok-mono-diagram-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .tiktok-mono-diagram-mobile-badge--pink {
+      color: #ec4899;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-badge--pink {
+      color: #f472b6;
+    }
+
+    .tiktok-mono-diagram-mobile-badge--teal {
+      color: #0d9488;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-badge--teal {
+      color: #2dd4bf;
+    }
+
+    .tiktok-mono-diagram-mobile-card h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text-main, #0f172a);
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-card h4 {
+      color: #f8fafc;
+    }
+
+    .tiktok-mono-diagram-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--color-text-muted, #475569);
+      line-height: 1.4;
+    }
+
+    :global(.dark) .tiktok-mono-diagram-mobile-card p {
+      color: #cbd5e1;
+    }
+
+    .tiktok-mono-diagram-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.125rem 0;
+    }
+  }
+</style>

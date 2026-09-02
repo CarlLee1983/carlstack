@@ -1,0 +1,184 @@
+---
+title: "Twitter (X) 1.5 秒渲染「為你推薦」時間軸：Earlybird 檢索、Heavy Ranker 評分與重排管線"
+description: "深度拆解 X (Twitter) 開源推薦系統的端到端管線：如何從每日 5 億則推文中透過 Earlybird 與 GraphJet 檢索 1,500 則候選池，經 4800 萬參數 MaskNet 深度神經網路精準預測多目標互動，並在 1.5 秒內完成可見性過濾與多樣性重排。"
+publishDate: 2026-09-02T10:10:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 推薦系統
+  - 機器學習
+  - 高併發
+  - 後端架構
+repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+cover: ../../assets/covers/twitter-recommendation-pipeline.png
+coverAlt: "立體等距視角展示社群圖譜資料流進入多層漏斗管道，經過中央發光的類神經網路矩陣評分後，輸出為條理分明的推薦時間軸。"
+---
+
+import TwitterRecommendationPipelineDiagram from "../../components/TwitterRecommendationPipelineDiagram.astro";
+
+當使用者打開 X（原 Twitter）首頁時，系統必須在短短 **1.5 秒（1,500 毫秒）的端到端 SLA 限制** 下，從全球每天產生的 **5 億則推文** 中提煉出最精準、最吸引該使用者的數十則內容，並組裝為「為你推薦（For You）」時間軸。
+
+這項任務的挑戰在於：推薦系統不僅要處理極端巨大的搜尋空間，還必須在毫秒級延遲內結合即時社交圖譜、深度學習模型（Deep Learning Ranking）、內容安全策略與作者多樣性約束。
+
+2023 年 X 團隊將核心推薦演算法開源（[Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) 與 [X Engineering Blog](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)）。本文基於開源原始碼與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的架構解析，深度拆解這套工業級推薦管線的四個關鍵階段。
+
+<TwitterRecommendationPipelineDiagram />
+
+---
+
+## 階段 1：雙軌候選集檢索（500M ➔ 1,500 則候選推文）
+
+從 5 億則推文中直接跑深度神經網路評分在算力上是完全不可行的。推薦的第一步是**候選檢索（Candidate Sourcing）**，目標是透過極度輕量、低延遲的演算法將候選池縮減至 **1,500 則推文**。
+
+X 將候選池嚴格劃分為兩大等份來源：**50% 關注圈內（In-Network）** 與 **50% 網絡外探索（Out-of-Network）**。
+
+```
+全球 5 億則每日推文
+       │
+       ├─────────────────────────────────┐
+       ▼ (50%)                           ▼ (50%)
+[In-Network 關注圈內]            [Out-of-Network 網絡外探索]
+  Earlybird 倒排索引                GraphJet 即時圖運算 + SimClusters
+       │                                 │
+       └────────────────┬────────────────┘
+                        ▼
+            1,500 則高品質候選推文
+```
+
+### 1. In-Network 檢索：Earlybird 記憶體倒排索引
+
+In-Network 負責找出使用者已經關注之作者所發布的最新推文：
+
+- **底層架構**：基於客製化 Apache Lucene 構建的 **Earlybird** 分散式搜尋叢集。
+- **資料特徵**：所有近期推文的索引完全駐留在記憶體中，並按時間倒序維護。
+- **快取與截斷**：當用戶發起請求時，Earlybird 檢索該用戶關注列表（Following List）中所有作者在過去幾天內發布的推文，並依據互動基礎分值篩選出前幾百則相關度最高的候選推文。
+
+### 2. Out-of-Network 檢索：GraphJet 與 SimClusters
+
+Out-of-Network 負責發掘用戶尚未關注、但極可能感興趣的優質內容。主要仰賴兩大計算引擎：
+
+#### A. GraphJet 即時動態圖遍歷（Real-time Interaction Graph）
+
+GraphJet 維護記憶體中的二分圖（Bipartite Graph），即時記錄「用戶 ⇄ 推文」的互動邊（按讚、轉發、回覆）：
+
+1. 找出與目前用戶互動行為最相似的 **Top-K 相似用戶**。
+2. 遍歷這些相似用戶最近高頻點讚或轉發的推文。
+3. 統計推文在鄰近社交圖譜中的共現權重（Co-engagement Weight）。
+
+#### B. SimClusters 隱式興趣社群（Embedding Space）
+
+- 將全平台劃分為數千個基於矩陣分解（Matrix Factorization）的 **SimClusters 興趣社群**（例如「Rust 開發者」、「NBA 球迷」、「生成式 AI 研究員」）。
+- 每個用戶與每則推文都會被計算並投影至社群的向量空間中。
+- 當推文在其所屬社群內的熱度指數與用戶的興趣向量高度匹配時，該推文即被納入候選池。
+
+---
+
+## 階段 2：管線協調中心（Home Mixer）與特徵提取
+
+**Home Mixer** 是整個推薦系統的中央調度中樞（Orchestrator），其基於 Scala / Finagle 微服務框架建構，負責協調整個非同步管線：
+
+1. **候選池合併**：並行呼叫 Earlybird、GraphJet 與 SimClusters，收集 1,500 則候選推文。
+2. **即時特徵工程（Feature Hydration）**：
+   - 向 **Feature Store** 查詢數百個維度的特徵向量。
+   - **用戶特徵**：歷史互動偏好、活躍時段、語言設定、隱私過濾級別。
+   - **推文特徵**：發布時間衰減（Time Decay）、是否含媒體/影片/代碼連結、歷史讚轉比。
+   - **交互特徵**：當前用戶與該作者過往的互動頻率與回覆親密度。
+
+---
+
+## 階段 3：Heavy Ranker 4800 萬參數深度神經網路評分
+
+匯聚 1,500 則候選與完整特徵矩陣後，Home Mixer 將其派發給專用的機器學習推理叢集——**Heavy Ranker**。
+
+Heavy Ranker 採用 **MaskNet** 架構，擁有約 **4,800 萬個參數**，其核心任務是透過**多任務學習（Multi-Task Learning, MTL）** 同步預測使用者對該推文做出不同行為的條件機率 `P(Action)`。
+
+```
+                       候選推文特徵矩陣
+                             │
+                             ▼
+                 ┌───────────────────────┐
+                 │  Heavy Ranker 深度模型 │
+                 │   (MaskNet / 48M 參數) │
+                 └───────────┬───────────┘
+                             │
+       ┌─────────────┬───────┴─────┬─────────────┬─────────────┐
+       ▼             ▼             ▼             ▼             ▼
+    P(Like)     P(Retweet)      P(Reply)    P(AuthorEngage) P(Report/Block)
+```
+
+### 多目標預測與加權期望公式
+
+模型會輸出推文引發各類正向與負向行為的機率，系統再透過**動態權重打分公式**計算出該推文的最終排序得分（Score）：
+
+```
+Score = Σ [ w_i × P(Action_i) ]
+```
+
+在 X 開源的權重參數配置中，不同行為的權重（Weights）存在巨大差異：
+
+| 互動行為類型 (Action)                       | 模型預測目標     | 權重係數 (w_i) | 工程與產品意涵                                   |
+| :------------------------------------------ | :--------------- | :------------- | :----------------------------------------------- |
+| **點讚 (Like)**                             | `P(Like)`        | $+30.0$        | 基礎正向訊號                                     |
+| **轉發 (Retweet)**                          | `P(Retweet)`     | $+1.0$         | 內容傳播意圖                                     |
+| **作者回覆該互動 (Author Engage Reply)**    | `P(Reply)`       | $+75.0$        | **極高加權**：鼓勵能引發作者雙向深度交流的對話   |
+| **點擊查看對話串 (Conversation Click)**     | `P(Video/Media)` | $+11.0$        | 停留時間與沉浸度                                 |
+| **負向舉報 / 封鎖 (Report / Block / Mute)** | `P(Negative)`    | $-369.0$       | **極重懲罰**：預測到不良或騷擾內容立即予以極低分 |
+
+> [!TIP]
+> 權重矩陣清晰反映了演算法的優化目標：**引發深度社交互動（Author Engagement）的權重是普通點讚的 2.5 倍**；而單次舉報的負權重（-369）需要十幾個點讚才能抵消。
+
+---
+
+## 階段 4：可見性過濾、疲勞抑制與多樣性重排
+
+得分計算完成後，候選池並不能直接輸出給客戶端。推薦系統必須通過最後一道防線——**啟發式過濾與多樣性重排（Heuristics & Filtering）**：
+
+```
+[評分完成推文] ──► [可見性安全過濾] ──► [作者多樣性打散] ──► [廣告/社交穿插] ──► [最終時間軸]
+```
+
+### 1. 可見性安全過濾（Visibility Filtering）
+
+- **社交黑名單**：自動排除已被當前用戶 Block / Mute 的作者。
+- **重複與過期過濾**：排除用戶在過去 24 小時內已經瀏覽過（Impression Deduplication）的推文。
+- **安全與合規模型**：NSFW、垃圾訊息（Spam Bot）與侵權內容的即時下架過濾。
+
+### 2. 作者多樣性與疲勞抑制（Author Diversity & Fatigue）
+
+如果某個高熱度帳號（如新聞媒體或意見領袖）一口氣發布了 10 則熱門推文，即使得分極高，演算法也不允許其霸佔整個螢幕：
+
+- **相鄰作者懲罰（Consecutive Author Penalty）**：同一作者的推文在時間軸中必須間隔出現。
+- **領域分散（Topic Balance）**：平衡政治、科技、娛樂等各類標籤的比例，防止單一熱點造成使用者審美疲勞。
+
+### 3. 社交反饋與廣告注入（Social Injection & Ads）
+
+- 在適當的槽位（Slots）交錯插入關注推薦、熱門話題卡片與 Sponsored Ads。
+
+---
+
+## 推薦系統架構維度對比
+
+| 評估維度           | 傳統關注時間軸 (Reverse Chronological) | 機器學習「為你推薦」管線 (For You)           |
+| :----------------- | :------------------------------------- | :------------------------------------------- |
+| **候選空間**       | 僅限關注對象（In-Network）             | 全球 5 億推文（In-Network + Out-of-Network） |
+| **核心計算複雜度** | 讀寫擴散（Fan-out）、Redis List 操作   | 倒排索引 + 圖遍歷 + 48M 參數神經網路         |
+| **端到端延遲**     | &lt;50 ms                              | ~1,500 ms（SLA 硬性邊界）                    |
+| **冷啟動處理能力** | 弱（新用戶無關注則時間軸為空）         | 強（藉由社群 SimClusters 與熱度探索）        |
+| **內容可發現性**   | 依賴用戶主動社交關係                   | 高度依賴即時圖譜擴散與演算法推薦             |
+
+---
+
+## 系統架構師的關鍵思考
+
+1. **多階段漏斗是海量資料推薦的唯一解**：不可能在 5 億推文上直接跑複雜模型。必須遵守「粗篩（Earlybird/GraphJet 500M ➔ 1.5K）➔ 精排（MaskNet 1.5K ➔ Scored）➔ 業務重排（Diversity ➔ Top 50）」的漏斗架構。
+2. **負向訊號的權重必須遠大於正向訊號**：單次惡意體驗對用戶留存的傷害遠超多次普通互動，因此在打分公式中必須對 Report/Block 給予數百倍的負權重懲罰。
+3. **特徵工程的延遲決定了推薦的即時性**：採用分散式記憶體 Feature Store 與即時圖引擎（GraphJet），確保用戶一分鐘前的點讚行為能立即反映在下一秒的時間軸刷新中。
+
+---
+
+### 參考資料與一手文獻
+
+- X Engineering: [_Twitter's Recommendation Algorithm_](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)
+- GitHub: [_twitter/the-algorithm (Official Open Source Repository)_](https://github.com/twitter/the-algorithm)
+- ByteByteGo: [_System Design 101: Social Media Recommendation Architecture_](https://github.com/ByteByteGoHq/system-design-101)
