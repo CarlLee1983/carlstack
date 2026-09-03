@@ -78,6 +78,12 @@
 
 新文章內的流程、架構、資料流與狀態圖一律使用原生 SVG；需要樣式時以 Astro 元件封裝，不使用 Mermaid（見 [`docs/diagram-guide.md`](diagram-guide.md) 與 [ADR 0004](adr/0004-native-svg-over-mermaid.md)）。SVG 必須有 `title`／`desc`、可縮放的 `viewBox`，並在 320 px 寬度維持可讀性；窄螢幕需要不同編排時，提供專用 SVG 版面。
 
+## 數學符號
+
+站台沒有載入 remark-math 或 KaTeX，`$O(\log N)$` 這類寫法會原樣輸出成亂碼。用行內程式碼寫複雜度與算式（`` `O(log N)` ``、`` `P(A ∩ B) = P(A) × P(B)` ``），比較運算子與上下標改用 Unicode（`≥ 50%`、`2³²-1`、`RT1`），本來就是一般術語的符號寫成純文字（Z-index、座標 (X, Y)）。
+
+內容 policy 會擋下帶反斜線指令或上下標的 `$…$`；`$O(1)$`、`$N$` 這種無法與金額區分的形式擋不住，靠這條規範自律。真正需要排版引擎的算式目前沒有出現過，若哪天出現，先決定要不要引入 KaTeX，不要先寫了再說。
+
 ## draft 到發布
 
 尚未成文的題目先加入 [`article-queue.md`](article-queue.md)，依處理順序由上往下排。開始正式整理時，在 `src/content/blog` 建立 `draft: true` 的文章，並在同一次變更刪除對應的佇列項目；不要保留完成標記或另一份待辦清單。

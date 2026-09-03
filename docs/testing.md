@@ -2,11 +2,11 @@
 
 三道 gate，全部綠燈才能 commit：
 
-| 指令                            | 內容                                                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`                    | `prettier --check` → `astro check`（TypeScript strict + Astro 模板）→ `astro build`（含 content schema 驗證） |
-| `pnpm test`                     | `node --experimental-strip-types --test tests/*.test.ts`                                                      |
-| `pnpm content:policy -- <base>` | 比對 `<base>` 至工作目錄的文章 diff，擋下 Mermaid fence（[ADR 0004](adr/0004-native-svg-over-mermaid.md)）    |
+| 指令                            | 內容                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`                    | `prettier --check` → `astro check`（TypeScript strict + Astro 模板）→ `astro build`（含 content schema 驗證）                |
+| `pnpm test`                     | `node --experimental-strip-types --test tests/*.test.ts`                                                                     |
+| `pnpm content:policy -- <base>` | 比對 `<base>` 至工作目錄的文章 diff，擋下 Mermaid fence（[ADR 0004](adr/0004-native-svg-over-mermaid.md)）與無法渲染的 LaTeX |
 
 CI（`.github/workflows/ci.yml`）在 pull request 執行前兩者；`deploy.yml` 在 `main` 更新後先驗證再部署。內容 policy 不在 CI 而在本地 commit 前執行，因為它需要 diff base。
 
