@@ -1,0 +1,485 @@
+---
+// Sharding Algorithm Matrix Diagram
+---
+
+<figure class="sam-diagram" aria-labelledby="sam-caption">
+  <svg
+    class="sam-diagram__desktop"
+    viewBox="0 0 960 435"
+    role="img"
+    aria-labelledby="sam-title sam-desc"
+  >
+    <title id="sam-title">四大資料庫分片演算法的路由機制與權衡對照</title>
+    <desc id="sam-desc">
+      並排比較範圍分片、雜湊模分片、一致性雜湊與目錄查表分片四種演算法的路由公式、資料分佈特點與代表系統。
+    </desc>
+
+    <!-- Column 1: Range-Based -->
+    <g class="sam-diagram__card" transform="translate(15, 35)">
+      <rect width="220" height="380" rx="12"></rect>
+      <text class="sam-diagram__badge" x="14" y="26">1. RANGE-BASED</text>
+      <text class="sam-diagram__title" x="14" y="50">範圍分片</text>
+
+      <g transform="translate(14, 66)">
+        <rect
+          width="192"
+          height="95"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--blue"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--blue"
+          x="10"
+          y="20">路由公式</text
+        >
+        <text class="sam-diagram__mono" x="10" y="40">key ∈ [min, max]</text>
+        <text class="sam-diagram__desc" x="10" y="58">[1..1000] ➔ Shard 1</text>
+        <text class="sam-diagram__desc" x="10" y="76"
+          >[1001..2000] ➔ Shard 2</text
+        >
+      </g>
+
+      <g transform="translate(14, 171)">
+        <rect
+          width="192"
+          height="95"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--neutral"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--neutral"
+          x="10"
+          y="20">特點</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">• 範圍查詢極佳</text>
+        <text class="sam-diagram__desc" x="10" y="58">• 資料均勻度差</text>
+        <text class="sam-diagram__desc" x="10" y="76"
+          >• 擴容僅分裂單一過大分區</text
+        >
+      </g>
+
+      <g transform="translate(14, 276)">
+        <rect
+          width="192"
+          height="75"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--blue"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--blue"
+          x="10"
+          y="20">代表</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">Bigtable / HBase /</text>
+        <text class="sam-diagram__desc" x="10" y="58">CockroachDB</text>
+      </g>
+    </g>
+
+    <!-- Column 2: Hash % N -->
+    <g class="sam-diagram__card" transform="translate(250, 35)">
+      <rect width="220" height="380" rx="12"></rect>
+      <text class="sam-diagram__badge" x="14" y="26">2. HASH % N</text>
+      <text class="sam-diagram__title" x="14" y="50">雜湊模分片</text>
+
+      <g transform="translate(14, 66)">
+        <rect
+          width="192"
+          height="55"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--red"></rect>
+        <text class="sam-diagram__header sam-diagram__header--red" x="10" y="20"
+          >路由公式</text
+        >
+        <text class="sam-diagram__mono" x="10" y="40">crc32(key) % N</text>
+      </g>
+
+      <g transform="translate(14, 131)">
+        <rect
+          width="192"
+          height="95"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--neutral"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--neutral"
+          x="10"
+          y="20">特點</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">• 資料分佈極均勻</text>
+        <text class="sam-diagram__desc" x="10" y="58">• 範圍查詢差</text>
+        <text class="sam-diagram__desc" x="10" y="76"
+          >• N 變動時高比例資料需重分佈</text
+        >
+      </g>
+
+      <g transform="translate(14, 236)">
+        <rect
+          width="192"
+          height="50"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--red"></rect>
+        <text class="sam-diagram__header sam-diagram__header--red" x="10" y="20"
+          >代表</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">早期分庫分表方案</text>
+      </g>
+    </g>
+
+    <!-- Column 3: Consistent Hashing -->
+    <g class="sam-diagram__card" transform="translate(485, 35)">
+      <rect width="220" height="380" rx="12"></rect>
+      <text class="sam-diagram__badge" x="14" y="26">3. CONSISTENT HASHING</text
+      >
+      <text class="sam-diagram__title" x="14" y="50">一致性雜湊</text>
+
+      <g transform="translate(14, 66)">
+        <rect
+          width="192"
+          height="70"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--green"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--green"
+          x="10"
+          y="20">路由公式</text
+        >
+        <text class="sam-diagram__mono" x="10" y="40">Hash 環 0 ~ 2³²-1</text>
+        <text class="sam-diagram__desc" x="10" y="58"
+          >每節點 100~200 個虛擬節點</text
+        >
+      </g>
+
+      <g transform="translate(14, 146)">
+        <rect
+          width="192"
+          height="70"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--neutral"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--neutral"
+          x="10"
+          y="20">特點</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40"
+          >• 擴縮容僅遷移約 1/N 資料</text
+        >
+        <text class="sam-diagram__desc" x="10" y="58">• 範圍查詢差</text>
+      </g>
+
+      <g transform="translate(14, 226)">
+        <rect
+          width="192"
+          height="50"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--green"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--green"
+          x="10"
+          y="20">代表</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">DynamoDB / Cassandra</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Directory -->
+    <g class="sam-diagram__card" transform="translate(720, 35)">
+      <rect width="220" height="380" rx="12"></rect>
+      <text class="sam-diagram__badge" x="14" y="26">4. DIRECTORY</text>
+      <text class="sam-diagram__title" x="14" y="50">目錄查表分片</text>
+
+      <g transform="translate(14, 66)">
+        <rect
+          width="192"
+          height="70"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--purple"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--purple"
+          x="10"
+          y="20">路由公式</text
+        >
+        <text class="sam-diagram__mono" x="10" y="40"
+          >lookup(key) ➔ Shard ID</text
+        >
+        <text class="sam-diagram__desc" x="10" y="58"
+          >路由表存 etcd / Redis</text
+        >
+      </g>
+
+      <g transform="translate(14, 146)">
+        <rect
+          width="192"
+          height="106"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--neutral"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--neutral"
+          x="10"
+          y="20">特點</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">• 調度最靈活</text>
+        <text class="sam-diagram__desc" x="10" y="58"
+          >• 可為 VIP 租戶指定專屬分片</text
+        >
+        <text class="sam-diagram__desc" x="10" y="76">• 再平衡只改元數據</text>
+        <text class="sam-diagram__desc" x="10" y="94"
+          >• 路由表本身是熱點與單點</text
+        >
+      </g>
+
+      <g transform="translate(14, 262)">
+        <rect
+          width="192"
+          height="70"
+          rx="6"
+          class="sam-diagram__subcard sam-diagram__subcard--purple"></rect>
+        <text
+          class="sam-diagram__header sam-diagram__header--purple"
+          x="10"
+          y="20">代表</text
+        >
+        <text class="sam-diagram__desc" x="10" y="40">Vitess VSchema /</text>
+        <text class="sam-diagram__desc" x="10" y="58">自研路由服務</text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="sam-diagram__mobile"
+    viewBox="0 0 320 520"
+    role="img"
+    aria-labelledby="sam-mobile-title sam-mobile-desc"
+  >
+    <title id="sam-mobile-title">四大分片演算法對照簡圖</title>
+    <desc id="sam-mobile-desc">
+      桌面版四欄矩陣的直向堆疊版：範圍分片、雜湊模分片、一致性雜湊、目錄查表分片依序列出路由公式與權衡重點。
+    </desc>
+
+    <g class="sam-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="sam-diagram__badge" x="12" y="22"
+        >1. 範圍分片 Range-Based</text
+      >
+      <text class="sam-diagram__mono" x="12" y="45"
+        >路由公式：key ∈ [min, max]</text
+      >
+      <text class="sam-diagram__desc" x="12" y="65"
+        >• 範圍查詢極佳、資料均勻度差</text
+      >
+      <text class="sam-diagram__desc" x="12" y="85"
+        >• 擴容僅分裂單一過大分區</text
+      >
+      <text class="sam-diagram__desc" x="12" y="105"
+        >• 代表：Bigtable / HBase / CockroachDB</text
+      >
+    </g>
+
+    <g class="sam-diagram__card" transform="translate(10, 140)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="sam-diagram__badge" x="12" y="22"
+        >2. 雜湊模分片 Hash % N</text
+      >
+      <text class="sam-diagram__mono" x="12" y="45"
+        >路由公式：crc32(key) % N</text
+      >
+      <text class="sam-diagram__desc" x="12" y="65"
+        >• 資料分佈極均勻、範圍查詢差</text
+      >
+      <text class="sam-diagram__desc" x="12" y="85"
+        >• N 變動時高比例資料需重分佈</text
+      >
+      <text class="sam-diagram__desc" x="12" y="105"
+        >• 代表：早期分庫分表方案</text
+      >
+    </g>
+
+    <g class="sam-diagram__card" transform="translate(10, 270)">
+      <rect width="300" height="100" rx="8"></rect>
+      <text class="sam-diagram__badge" x="12" y="22"
+        >3. 一致性雜湊 Consistent Hashing</text
+      >
+      <text class="sam-diagram__mono" x="12" y="45"
+        >路由公式：Hash 環 0 ~ 2³²-1，每節點 100~200 虛擬節點</text
+      >
+      <text class="sam-diagram__desc" x="12" y="65"
+        >• 擴縮容僅遷移約 1/N 資料、範圍查詢差</text
+      >
+      <text class="sam-diagram__desc" x="12" y="85"
+        >• 代表：DynamoDB / Cassandra</text
+      >
+    </g>
+
+    <g class="sam-diagram__card" transform="translate(10, 390)">
+      <rect width="300" height="120" rx="8"></rect>
+      <text class="sam-diagram__badge" x="12" y="22"
+        >4. 目錄查表分片 Directory</text
+      >
+      <text class="sam-diagram__mono" x="12" y="45"
+        >路由公式：lookup(key) ➔ Shard ID（存 etcd / Redis）</text
+      >
+      <text class="sam-diagram__desc" x="12" y="65"
+        >• 調度最靈活，可為 VIP 租戶指定專屬分片</text
+      >
+      <text class="sam-diagram__desc" x="12" y="85"
+        >• 再平衡只改元數據；路由表本身是熱點與單點</text
+      >
+      <text class="sam-diagram__desc" x="12" y="105"
+        >• 代表：Vitess VSchema / 自研路由服務</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="sam-caption" class="sam-diagram__caption">
+    圖 1：四大資料庫分片演算法的路由機制與權衡對照
+  </figcaption>
+</figure>
+
+<style>
+  .sam-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sam-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .sam-diagram__desktop {
+    display: block;
+  }
+
+  .sam-diagram__mobile {
+    display: none;
+  }
+
+  .sam-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .sam-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .sam-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .sam-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .sam-diagram__mono {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--dg-ink);
+  }
+
+  .sam-diagram__desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  .sam-diagram__header {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .sam-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .sam-diagram__subcard--neutral {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+
+  .sam-diagram__header--neutral {
+    fill: var(--dg-ink-2);
+  }
+
+  .sam-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__subcard--blue {
+    fill: rgba(96, 165, 250, 0.12);
+    stroke: rgba(96, 165, 250, 0.35);
+  }
+  .sam-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .sam-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__subcard--red {
+    fill: rgba(248, 113, 113, 0.12);
+    stroke: rgba(248, 113, 113, 0.35);
+  }
+  .sam-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .sam-diagram__subcard--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: rgba(22, 163, 74, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__subcard--green {
+    fill: rgba(74, 222, 128, 0.12);
+    stroke: rgba(74, 222, 128, 0.35);
+  }
+  .sam-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__header--green {
+    fill: #4ade80;
+  }
+
+  .sam-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__subcard--purple {
+    fill: rgba(192, 132, 252, 0.12);
+    stroke: rgba(192, 132, 252, 0.35);
+  }
+  .sam-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .sam-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  @media (max-width: 48rem) {
+    .sam-diagram__desktop {
+      display: none !important;
+    }
+    .sam-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

@@ -1,0 +1,701 @@
+---
+// Shard Hotspot (Celebrity Key) Defense: Salting & Tiered Routing Diagram
+---
+
+<figure class="shs-diagram" aria-labelledby="shs-caption">
+  <svg
+    class="shs-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="shs-title shs-desc"
+  >
+    <title id="shs-title">熱點鍵防禦：鹽化與分級路由</title>
+    <desc id="shs-desc">
+      上半部呈現單一熱點鍵 user_123
+      把所有寫入集中打到單一分片、其餘分片閒置的問題；下半部左側是鹽化
+      Salting，把鍵加上隨機後綴後均勻分散到四個分片，換取寫入吞吐放大但需承擔讀取扇出的代價；下半部右側是分級路由
+      Tiered Routing，依租戶是否為 VIP 決定走共用雜湊分片池或專屬高規格節點。
+    </desc>
+
+    <defs>
+      <marker
+        id="shs-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="shs-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="shs-arrow-hot"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        markerUnits="userSpaceOnUse"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="shs-diagram__arrow-head shs-diagram__arrow-head--hot"></path>
+      </marker>
+      <marker
+        id="shs-arrow-salt"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        markerUnits="userSpaceOnUse"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="shs-diagram__arrow-head shs-diagram__arrow-head--salt"></path>
+      </marker>
+    </defs>
+
+    <!-- Section title: problem -->
+    <text
+      class="shs-diagram__section-title shs-diagram__section-title--problem"
+      x="20"
+      y="24">問題：單一熱點鍵打爆單一分片</text
+    >
+
+    <!-- Write source -->
+    <g class="shs-diagram__card" transform="translate(20, 40)">
+      <rect width="150" height="70" rx="8"></rect>
+      <text class="shs-diagram__card-header" x="12" y="28">寫入請求</text>
+      <text class="shs-diagram__card-mono" x="12" y="52">user_123</text>
+    </g>
+
+    <!-- Elbow connector: write source -> Shard 2 (hot) -->
+    <path
+      d="M 170 95 L 170 160 L 485 160 L 485 136"
+      class="shs-diagram__arrow--thick"
+      marker-end="url(#shs-arrow-hot)"></path>
+
+    <!-- Shard row -->
+    <g
+      class="shs-diagram__shard shs-diagram__shard--idle"
+      transform="translate(230, 40)"
+    >
+      <rect width="150" height="90" rx="8"></rect>
+      <text
+        class="shs-diagram__shard-header shs-diagram__shard-header--idle"
+        x="12"
+        y="28">Shard 1</text
+      >
+      <text class="shs-diagram__shard-detail" x="12" y="50">閒置</text>
+    </g>
+
+    <g
+      class="shs-diagram__shard shs-diagram__shard--hot"
+      transform="translate(410, 40)"
+    >
+      <rect width="150" height="90" rx="8"></rect>
+      <text
+        class="shs-diagram__shard-header shs-diagram__shard-header--hot"
+        x="12"
+        y="28">Shard 2</text
+      >
+      <text
+        class="shs-diagram__shard-detail shs-diagram__shard-detail--hot"
+        x="12"
+        y="50">100% 寫入集中</text
+      >
+      <text
+        class="shs-diagram__shard-detail shs-diagram__shard-detail--hot"
+        x="12"
+        y="68">CPU 飽和</text
+      >
+    </g>
+
+    <g
+      class="shs-diagram__shard shs-diagram__shard--idle"
+      transform="translate(590, 40)"
+    >
+      <rect width="150" height="90" rx="8"></rect>
+      <text
+        class="shs-diagram__shard-header shs-diagram__shard-header--idle"
+        x="12"
+        y="28">Shard 3</text
+      >
+      <text class="shs-diagram__shard-detail" x="12" y="50">閒置</text>
+    </g>
+
+    <g
+      class="shs-diagram__shard shs-diagram__shard--idle"
+      transform="translate(770, 40)"
+    >
+      <rect width="150" height="90" rx="8"></rect>
+      <text
+        class="shs-diagram__shard-header shs-diagram__shard-header--idle"
+        x="12"
+        y="28">Shard 4</text
+      >
+      <text class="shs-diagram__shard-detail" x="12" y="50">閒置</text>
+    </g>
+
+    <!-- Divider -->
+    <line x1="20" y1="205" x2="940" y2="205" class="shs-diagram__divider"
+    ></line>
+    <line x1="480" y1="215" x2="480" y2="450" class="shs-diagram__divider"
+    ></line>
+
+    <!-- Section title: salting -->
+    <text
+      class="shs-diagram__section-title shs-diagram__section-title--salt"
+      x="20"
+      y="230">解法一：鹽化（Salting）</text
+    >
+
+    <!-- Salt source box -->
+    <g class="shs-diagram__salt-box" transform="translate(20, 250)">
+      <rect width="150" height="80" rx="8"></rect>
+      <text class="shs-diagram__salt-header" x="12" y="24"
+        >user_123 + 隨機後綴</text
+      >
+      <text class="shs-diagram__salt-header" x="12" y="42">#0 ~ #9</text>
+      <text class="shs-diagram__salt-example" x="12" y="66">user_123#7</text>
+    </g>
+
+    <!-- Salted fan-out to shard targets -->
+    <path
+      d="M 170 290 L 248 250"
+      class="shs-diagram__arrow--salt"
+      marker-end="url(#shs-arrow-salt)"></path>
+    <path
+      d="M 170 290 L 313 250"
+      class="shs-diagram__arrow--salt"
+      marker-end="url(#shs-arrow-salt)"></path>
+    <path
+      d="M 170 290 L 378 250"
+      class="shs-diagram__arrow--salt"
+      marker-end="url(#shs-arrow-salt)"></path>
+    <path
+      d="M 170 290 L 443 250"
+      class="shs-diagram__arrow--salt"
+      marker-end="url(#shs-arrow-salt)"></path>
+
+    <g class="shs-diagram__mini-shard" transform="translate(220, 250)">
+      <rect width="55" height="80" rx="6"></rect>
+      <text class="shs-diagram__mini-shard-label" x="27" y="45">S1</text>
+    </g>
+    <g class="shs-diagram__mini-shard" transform="translate(285, 250)">
+      <rect width="55" height="80" rx="6"></rect>
+      <text class="shs-diagram__mini-shard-label" x="27" y="45">S2</text>
+    </g>
+    <g class="shs-diagram__mini-shard" transform="translate(350, 250)">
+      <rect width="55" height="80" rx="6"></rect>
+      <text class="shs-diagram__mini-shard-label" x="27" y="45">S3</text>
+    </g>
+    <g class="shs-diagram__mini-shard" transform="translate(415, 250)">
+      <rect width="55" height="80" rx="6"></rect>
+      <text class="shs-diagram__mini-shard-label" x="27" y="45">S4</text>
+    </g>
+
+    <text class="shs-diagram__note shs-diagram__note--positive" x="20" y="358"
+      >寫入吞吐放大 10 倍</text
+    >
+    <text class="shs-diagram__note shs-diagram__note--tradeoff" x="20" y="380"
+      >讀取需併發查 10 個桶再聚合，讀放大是代價</text
+    >
+
+    <!-- Section title: tiered routing -->
+    <text
+      class="shs-diagram__section-title shs-diagram__section-title--route"
+      x="500"
+      y="230">解法二：分級路由（Tiered Routing）</text
+    >
+
+    <!-- Decision box -->
+    <g class="shs-diagram__decision" transform="translate(650, 250)">
+      <rect width="180" height="50" rx="8"></rect>
+      <text
+        class="shs-diagram__decision-text"
+        x="90"
+        y="30"
+        text-anchor="middle">是否為 VIP 租戶？</text
+      >
+    </g>
+
+    <path
+      d="M 690 300 L 600 340"
+      class="shs-diagram__arrow"
+      marker-end="url(#shs-arrow)"></path>
+    <text class="shs-diagram__branch-label" x="622" y="320">否</text>
+
+    <path
+      d="M 790 300 L 860 340"
+      class="shs-diagram__arrow"
+      marker-end="url(#shs-arrow)"></path>
+    <text class="shs-diagram__branch-label" x="838" y="320">是</text>
+
+    <g class="shs-diagram__route-box" transform="translate(520, 340)">
+      <rect width="160" height="45" rx="6"></rect>
+      <text class="shs-diagram__route-label" x="80" y="27" text-anchor="middle"
+        >crc32(key) % 1024</text
+      >
+    </g>
+
+    <g class="shs-diagram__route-box" transform="translate(780, 340)">
+      <rect width="160" height="45" rx="6"></rect>
+      <text class="shs-diagram__route-label" x="80" y="27" text-anchor="middle"
+        >lookup(tenant_id)</text
+      >
+    </g>
+
+    <path
+      d="M 600 385 L 600 400"
+      class="shs-diagram__arrow"
+      marker-end="url(#shs-arrow)"></path>
+    <path
+      d="M 860 385 L 860 400"
+      class="shs-diagram__arrow"
+      marker-end="url(#shs-arrow)"></path>
+
+    <g
+      class="shs-diagram__route-box shs-diagram__route-box--target"
+      transform="translate(520, 400)"
+    >
+      <rect width="160" height="45" rx="6"></rect>
+      <text class="shs-diagram__route-label" x="80" y="20" text-anchor="middle"
+        >共用雜湊分片池</text
+      >
+      <text class="shs-diagram__route-label" x="80" y="38" text-anchor="middle"
+        >（長尾租戶）</text
+      >
+    </g>
+
+    <g
+      class="shs-diagram__route-box shs-diagram__route-box--target"
+      transform="translate(780, 400)"
+    >
+      <rect width="160" height="45" rx="6"></rect>
+      <text class="shs-diagram__route-label" x="80" y="20" text-anchor="middle"
+        >專屬高規格實體節點</text
+      >
+      <text class="shs-diagram__route-label" x="80" y="38" text-anchor="middle"
+        >（單一大租戶獨佔）</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="shs-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="shs-mobile-title shs-mobile-desc"
+  >
+    <title id="shs-mobile-title">熱點鍵防禦簡圖</title>
+    <desc id="shs-mobile-desc">
+      桌面版三個區塊改為直向排列：熱點集中的問題、鹽化打散寫入、分級路由隔離大租戶。
+    </desc>
+
+    <g class="shs-diagram__card" transform="translate(10, 10)">
+      <rect width="300" height="150" rx="8"></rect>
+      <text
+        class="shs-diagram__mobile-badge shs-diagram__mobile-badge--problem"
+        x="12"
+        y="24">問題：熱點集中</text
+      >
+      <text class="shs-diagram__card-mono" x="12" y="48">寫入 user_123</text>
+      <text class="shs-diagram__mobile-desc" x="12" y="72"
+        >• 100% 寫入全打到 Shard 2，CPU 飽和</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="92"
+        >• Shard 1 / 3 / 4 完全閒置</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="112"
+        >• 單一分片成為系統瓶頸與單點</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="132"
+        >• 需要打散鍵或改變路由策略</text
+      >
+    </g>
+
+    <g class="shs-diagram__card" transform="translate(10, 175)">
+      <rect width="300" height="150" rx="8"></rect>
+      <text
+        class="shs-diagram__mobile-badge shs-diagram__mobile-badge--salt"
+        x="12"
+        y="24">解法一：鹽化打散</text
+      >
+      <text class="shs-diagram__card-mono" x="12" y="48">user_123#7</text>
+      <text class="shs-diagram__mobile-desc" x="12" y="72"
+        >• 鍵加上隨機後綴 #0 ~ #9</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="92"
+        >• 均勻分散到四個分片</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="112"
+        >• 寫入吞吐放大 10 倍</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="132"
+        >• 讀取需併發查 10 桶再聚合，讀放大是代價</text
+      >
+    </g>
+
+    <g class="shs-diagram__card" transform="translate(10, 340)">
+      <rect width="300" height="230" rx="8"></rect>
+      <text
+        class="shs-diagram__mobile-badge shs-diagram__mobile-badge--route"
+        x="12"
+        y="24">解法二：分級路由</text
+      >
+      <text class="shs-diagram__card-mono" x="12" y="48">是否為 VIP 租戶？</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="72"
+        >• 否 ➔ crc32(key) % 1024</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="92"
+        >• 進入共用雜湊分片池（長尾租戶）</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="116"
+        >• 是 ➔ lookup(tenant_id)</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="136"
+        >• 導向專屬高規格實體節點</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="156"
+        >• 單一大租戶獨佔資源，隔離長尾干擾</text
+      >
+      <text class="shs-diagram__mobile-desc" x="12" y="176"
+        >• 兩種手段可並用：長尾鹽化、大戶隔離</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="shs-caption" class="shs-diagram__caption">
+    圖 5：熱點鍵的兩種防禦 — 鹽化打散寫入，分級路由隔離大租戶
+  </figcaption>
+</figure>
+
+<style>
+  .shs-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .shs-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .shs-diagram__desktop {
+    display: block;
+  }
+
+  .shs-diagram__mobile {
+    display: none;
+  }
+
+  .shs-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .shs-diagram__section-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .shs-diagram__section-title--problem {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__section-title--problem {
+    fill: #f87171;
+  }
+
+  .shs-diagram__section-title--salt {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__section-title--salt {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__section-title--route {
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__section-title--route {
+    fill: #c084fc;
+  }
+
+  .shs-diagram__divider {
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .shs-diagram__card rect,
+  .shs-diagram__mini-shard rect,
+  .shs-diagram__route-box rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .shs-diagram__card-header {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .shs-diagram__card-mono {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    fill: var(--dg-ink-2);
+  }
+
+  .shs-diagram__shard rect {
+    stroke-width: 1.5;
+  }
+
+  .shs-diagram__shard--idle rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+
+  .shs-diagram__shard--hot rect {
+    fill: rgba(220, 38, 38, 0.1);
+    stroke: rgba(220, 38, 38, 0.4);
+  }
+
+  :global(:root[data-theme="dark"]) .shs-diagram__shard--hot rect {
+    fill: rgba(248, 113, 113, 0.14);
+    stroke: rgba(248, 113, 113, 0.4);
+  }
+
+  .shs-diagram__shard-header {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .shs-diagram__shard-header--idle {
+    fill: var(--dg-muted);
+  }
+
+  .shs-diagram__shard-header--hot {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__shard-header--hot {
+    fill: #f87171;
+  }
+
+  .shs-diagram__shard-detail {
+    font-size: 11px;
+    fill: var(--dg-muted);
+  }
+
+  .shs-diagram__shard-detail--hot {
+    fill: #dc2626;
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__shard-detail--hot {
+    fill: #f87171;
+  }
+
+  .shs-diagram__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .shs-diagram__arrow--thick {
+    stroke: #dc2626;
+    stroke-width: 4;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__arrow--thick {
+    stroke: #f87171;
+  }
+
+  .shs-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .shs-diagram__arrow-head--hot {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__arrow-head--hot {
+    fill: #f87171;
+  }
+
+  .shs-diagram__arrow--salt {
+    stroke: #15803d;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__arrow--salt {
+    stroke: #4ade80;
+  }
+
+  .shs-diagram__arrow-head--salt {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__arrow-head--salt {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__salt-box rect {
+    fill: rgba(21, 128, 61, 0.08);
+    stroke: rgba(21, 128, 61, 0.3);
+    stroke-width: 1.5;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__salt-box rect {
+    fill: rgba(74, 222, 128, 0.12);
+    stroke: rgba(74, 222, 128, 0.35);
+  }
+
+  .shs-diagram__salt-header {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__salt-header {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__salt-example {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__salt-example {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__mini-shard rect {
+    fill: rgba(21, 128, 61, 0.06);
+    stroke: rgba(21, 128, 61, 0.25);
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__mini-shard rect {
+    fill: rgba(74, 222, 128, 0.1);
+    stroke: rgba(74, 222, 128, 0.3);
+  }
+
+  .shs-diagram__mini-shard-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+
+  .shs-diagram__note {
+    font-size: 12px;
+  }
+
+  .shs-diagram__note--positive {
+    fill: #15803d;
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__note--positive {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__note--tradeoff {
+    fill: var(--dg-ink-2);
+  }
+
+  .shs-diagram__decision rect {
+    fill: rgba(126, 34, 206, 0.1);
+    stroke: rgba(126, 34, 206, 0.35);
+    stroke-width: 1.5;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__decision rect {
+    fill: rgba(192, 132, 252, 0.14);
+    stroke: rgba(192, 132, 252, 0.4);
+  }
+
+  .shs-diagram__decision-text {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__decision-text {
+    fill: #c084fc;
+  }
+
+  .shs-diagram__branch-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+  }
+
+  .shs-diagram__route-box rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+
+  .shs-diagram__route-box--target rect {
+    fill: rgba(126, 34, 206, 0.06);
+    stroke: rgba(126, 34, 206, 0.25);
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__route-box--target rect {
+    fill: rgba(192, 132, 252, 0.1);
+    stroke: rgba(192, 132, 252, 0.3);
+  }
+
+  .shs-diagram__route-label {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .shs-diagram__mobile-badge {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .shs-diagram__mobile-badge--problem {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__mobile-badge--problem {
+    fill: #f87171;
+  }
+
+  .shs-diagram__mobile-badge--salt {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__mobile-badge--salt {
+    fill: #4ade80;
+  }
+
+  .shs-diagram__mobile-badge--route {
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .shs-diagram__mobile-badge--route {
+    fill: #c084fc;
+  }
+
+  .shs-diagram__mobile-desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  @media (max-width: 48rem) {
+    .shs-diagram__desktop {
+      display: none !important;
+    }
+    .shs-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

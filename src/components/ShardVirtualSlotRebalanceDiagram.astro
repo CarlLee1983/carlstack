@@ -1,0 +1,655 @@
+---
+// Shard Virtual Slot (Pre-Sharding) Rebalance Diagram
+---
+
+<figure class="svs-diagram" aria-labelledby="svs-caption">
+  <svg
+    class="svs-diagram__desktop"
+    viewBox="0 0 960 520"
+    role="img"
+    aria-labelledby="svs-title svs-desc"
+  >
+    <title id="svs-title">虛擬分片固定邏輯槽位與無痛再平衡</title>
+    <desc id="svs-desc">
+      路由層固定以 crc32(key) % 1024 算出 slot_id，模數永遠是 1024。擴容前 1024
+      個槽位平分給 4 台物理節點，擴容後同樣 1024 個槽位改分給 8
+      台節點，只需搬移一半槽位到新節點，路由公式與模數完全不變。
+    </desc>
+
+    <defs>
+      <marker
+        id="svs-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="svs-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Layer 1: 路由層（永不改變） -->
+    <g class="svs-diagram__layer1">
+      <rect
+        x="40"
+        y="30"
+        width="560"
+        height="110"
+        rx="10"
+        class="svs-diagram__box"></rect>
+      <text class="svs-diagram__layer-title" x="60" y="52"
+        >路由層（永不改變）</text
+      >
+
+      <rect
+        x="60"
+        y="75"
+        width="130"
+        height="30"
+        rx="15"
+        class="svs-diagram__pill"></rect>
+      <text class="svs-diagram__pill-text" x="125" y="95">shard_key</text>
+
+      <path
+        d="M 195 90 L 215 90"
+        class="svs-diagram__line"
+        marker-end="url(#svs-arrow)"></path>
+
+      <rect
+        x="220"
+        y="75"
+        width="190"
+        height="30"
+        rx="15"
+        class="svs-diagram__pill"></rect>
+      <text class="svs-diagram__pill-text" x="315" y="95"
+        >crc32(key) % 1024</text
+      >
+
+      <path
+        d="M 415 90 L 435 90"
+        class="svs-diagram__line"
+        marker-end="url(#svs-arrow)"></path>
+
+      <rect
+        x="440"
+        y="75"
+        width="110"
+        height="30"
+        rx="15"
+        class="svs-diagram__pill"></rect>
+      <text class="svs-diagram__pill-text" x="495" y="95">slot_id</text>
+
+      <rect
+        x="620"
+        y="30"
+        width="300"
+        height="110"
+        rx="10"
+        class="svs-diagram__note-box"></rect>
+      <text class="svs-diagram__note-text" x="770" y="70" text-anchor="middle"
+        >模數固定為槽位總數 1024，</text
+      >
+      <text class="svs-diagram__note-text" x="770" y="95" text-anchor="middle"
+        >不隨物理節點數變動</text
+      >
+    </g>
+
+    <!-- Layer 2: 擴容前 4 節點 -->
+    <text class="svs-diagram__layer-title" x="40" y="175"
+      >擴容前：1024 槽位 ➔ 4 台物理節點（每台 256 個 slot）</text
+    >
+
+    <g class="svs-diagram__bar2">
+      <rect
+        x="40"
+        y="195"
+        width="220"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--a"></rect>
+      <text class="svs-diagram__node-text" x="150" y="222" text-anchor="middle"
+        >Node A</text
+      >
+      <text class="svs-diagram__node-text" x="150" y="240" text-anchor="middle"
+        >slot 0–255</text
+      >
+
+      <rect
+        x="260"
+        y="195"
+        width="220"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--b"></rect>
+      <text class="svs-diagram__node-text" x="370" y="222" text-anchor="middle"
+        >Node B</text
+      >
+      <text class="svs-diagram__node-text" x="370" y="240" text-anchor="middle"
+        >slot 256–511</text
+      >
+
+      <rect
+        x="480"
+        y="195"
+        width="220"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--c"></rect>
+      <text class="svs-diagram__node-text" x="590" y="222" text-anchor="middle"
+        >Node C</text
+      >
+      <text class="svs-diagram__node-text" x="590" y="240" text-anchor="middle"
+        >slot 512–767</text
+      >
+
+      <rect
+        x="700"
+        y="195"
+        width="220"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--d"></rect>
+      <text class="svs-diagram__node-text" x="810" y="222" text-anchor="middle"
+        >Node D</text
+      >
+      <text class="svs-diagram__node-text" x="810" y="240" text-anchor="middle"
+        >slot 768–1023</text
+      >
+    </g>
+
+    <!-- Migration arrows: 每個節點的後半段槽位搬到新節點 -->
+    <path
+      d="M 205 255 L 205 345"
+      class="svs-diagram__migrate-line"
+      marker-end="url(#svs-arrow)"></path>
+    <path
+      d="M 425 255 L 425 345"
+      class="svs-diagram__migrate-line"
+      marker-end="url(#svs-arrow)"></path>
+    <path
+      d="M 645 255 L 645 345"
+      class="svs-diagram__migrate-line"
+      marker-end="url(#svs-arrow)"></path>
+    <path
+      d="M 865 255 L 865 345"
+      class="svs-diagram__migrate-line"
+      marker-end="url(#svs-arrow)"></path>
+
+    <rect
+      x="230"
+      y="285"
+      width="500"
+      height="45"
+      rx="6"
+      class="svs-diagram__mask"></rect>
+    <text class="svs-diagram__migrate-text" x="480" y="300" text-anchor="middle"
+      >只搬移一半槽位到 E/F/G/H，</text
+    >
+    <text class="svs-diagram__migrate-text" x="480" y="320" text-anchor="middle"
+      >路由公式與模數完全不變</text
+    >
+
+    <!-- Layer 3: 擴容後 8 節點 -->
+    <text class="svs-diagram__layer-title" x="40" y="365"
+      >擴容後：同樣 1024 槽位 ➔ 8 台物理節點</text
+    >
+
+    <g class="svs-diagram__bar3">
+      <rect
+        x="40"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--a"></rect>
+      <text class="svs-diagram__node-text" x="95" y="410" text-anchor="middle"
+        >A</text
+      >
+      <text class="svs-diagram__node-text" x="95" y="428" text-anchor="middle"
+        >0–127</text
+      >
+
+      <rect
+        x="150"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--new"></rect>
+      <text class="svs-diagram__node-text" x="205" y="410" text-anchor="middle"
+        >E</text
+      >
+      <text class="svs-diagram__node-text" x="205" y="428" text-anchor="middle"
+        >128–255</text
+      >
+
+      <rect
+        x="260"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--b"></rect>
+      <text class="svs-diagram__node-text" x="315" y="410" text-anchor="middle"
+        >B</text
+      >
+      <text class="svs-diagram__node-text" x="315" y="428" text-anchor="middle"
+        >256–383</text
+      >
+
+      <rect
+        x="370"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--new"></rect>
+      <text class="svs-diagram__node-text" x="425" y="410" text-anchor="middle"
+        >F</text
+      >
+      <text class="svs-diagram__node-text" x="425" y="428" text-anchor="middle"
+        >384–511</text
+      >
+
+      <rect
+        x="480"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--c"></rect>
+      <text class="svs-diagram__node-text" x="535" y="410" text-anchor="middle"
+        >C</text
+      >
+      <text class="svs-diagram__node-text" x="535" y="428" text-anchor="middle"
+        >512–639</text
+      >
+
+      <rect
+        x="590"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--new"></rect>
+      <text class="svs-diagram__node-text" x="645" y="410" text-anchor="middle"
+        >G</text
+      >
+      <text class="svs-diagram__node-text" x="645" y="428" text-anchor="middle"
+        >640–767</text
+      >
+
+      <rect
+        x="700"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--d"></rect>
+      <text class="svs-diagram__node-text" x="755" y="410" text-anchor="middle"
+        >D</text
+      >
+      <text class="svs-diagram__node-text" x="755" y="428" text-anchor="middle"
+        >768–895</text
+      >
+
+      <rect
+        x="810"
+        y="385"
+        width="110"
+        height="60"
+        class="svs-diagram__node svs-diagram__node--new"></rect>
+      <text class="svs-diagram__node-text" x="865" y="410" text-anchor="middle"
+        >H</text
+      >
+      <text class="svs-diagram__node-text" x="865" y="428" text-anchor="middle"
+        >896–1023</text
+      >
+    </g>
+
+    <text class="svs-diagram__compare" x="480" y="470" text-anchor="middle"
+      >相較 hash % N 由 4 台直接倍增到 8 台需搬遷約 50% 資料</text
+    >
+    <text class="svs-diagram__compare" x="480" y="490" text-anchor="middle"
+      >（非倍增的擴容如 4 ➔ 5 更高達 80%），槽位方案只搬移計畫內的 slot 區間</text
+    >
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="svs-diagram__mobile"
+    viewBox="0 0 320 620"
+    role="img"
+    aria-labelledby="svs-mobile-title svs-mobile-desc"
+  >
+    <title id="svs-mobile-title">虛擬分片固定邏輯槽位簡圖</title>
+    <desc id="svs-mobile-desc">
+      桌面版三層直向重排：路由層固定模數 1024 ➔ 擴容前 4 節點均分槽位 ➔ 擴容後 8
+      節點僅搬移一半槽位，模數不變。
+    </desc>
+
+    <g>
+      <rect
+        x="10"
+        y="10"
+        width="300"
+        height="130"
+        rx="8"
+        class="svs-diagram__box"></rect>
+      <text class="svs-diagram__mobile-title" x="24" y="32"
+        >路由層（永不改變）</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="54"
+        >shard_key → crc32(key) % 1024</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="74">→ slot_id</text>
+      <text class="svs-diagram__mobile-note" x="24" y="98"
+        >模數固定為槽位總數 1024，</text
+      >
+      <text class="svs-diagram__mobile-note" x="24" y="116"
+        >不隨物理節點數變動</text
+      >
+    </g>
+
+    <g>
+      <rect
+        x="10"
+        y="155"
+        width="300"
+        height="170"
+        rx="8"
+        class="svs-diagram__box"></rect>
+      <text class="svs-diagram__mobile-title" x="24" y="177"
+        >擴容前：1024 槽位 → 4 台節點</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="200"
+        >• Node A｜slot 0–255</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="220"
+        >• Node B｜slot 256–511</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="240"
+        >• Node C｜slot 512–767</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="260"
+        >• Node D｜slot 768–1023</text
+      >
+      <text class="svs-diagram__mobile-note" x="24" y="282"
+        >每台承載 256 個 slot</text
+      >
+    </g>
+
+    <g>
+      <rect
+        x="10"
+        y="340"
+        width="300"
+        height="270"
+        rx="8"
+        class="svs-diagram__box"></rect>
+      <text class="svs-diagram__mobile-title" x="24" y="362"
+        >擴容後：同樣 1024 槽位 → 8 台節點</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="384">• A 0–127</text>
+      <text
+        class="svs-diagram__mobile-text svs-diagram__mobile-text--new"
+        x="24"
+        y="402">• E 128–255</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="420">• B 256–383</text>
+      <text
+        class="svs-diagram__mobile-text svs-diagram__mobile-text--new"
+        x="24"
+        y="438">• F 384–511</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="456">• C 512–639</text>
+      <text
+        class="svs-diagram__mobile-text svs-diagram__mobile-text--new"
+        x="24"
+        y="474">• G 640–767</text
+      >
+      <text class="svs-diagram__mobile-text" x="24" y="492">• D 768–895</text>
+      <text
+        class="svs-diagram__mobile-text svs-diagram__mobile-text--new"
+        x="24"
+        y="510">• H 896–1023</text
+      >
+      <text
+        class="svs-diagram__mobile-note svs-diagram__mobile-note--rose"
+        x="24"
+        y="532">只搬移一半槽位到 E/F/G/H，模數不變</text
+      >
+      <text class="svs-diagram__mobile-compare" x="24" y="554"
+        >相較 hash % N 由 4 台直接倍增到 8 台</text
+      >
+      <text class="svs-diagram__mobile-compare" x="24" y="572"
+        >需搬遷約 50% 資料（非倍增擴容如 4→5</text
+      >
+      <text class="svs-diagram__mobile-compare" x="24" y="590"
+        >更高達 80%），槽位方案只搬移計畫內區間</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="svs-caption" class="svs-diagram__caption">
+    圖 3：固定邏輯槽位（Fixed Slots）讓叢集由 4 台擴容到 8 台時不必變更路由模數
+  </figcaption>
+</figure>
+
+<style>
+  .svs-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .svs-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .svs-diagram__desktop {
+    display: block;
+  }
+
+  .svs-diagram__mobile {
+    display: none;
+  }
+
+  .svs-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .svs-diagram__box {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .svs-diagram__layer-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .svs-diagram__pill {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .svs-diagram__pill-text {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+
+  .svs-diagram__line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .svs-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .svs-diagram__note-box {
+    fill: var(--dg-surface-2);
+    stroke: rgba(180, 83, 9, 0.4);
+    stroke-width: 1.5;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__note-box {
+    stroke: rgba(251, 191, 36, 0.4);
+  }
+
+  .svs-diagram__note-text {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #b45309;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__note-text {
+    fill: #fbbf24;
+  }
+
+  .svs-diagram__node {
+    stroke-width: 1.5;
+  }
+
+  .svs-diagram__node--a {
+    fill: rgba(13, 148, 136, 0.14);
+    stroke: rgba(13, 148, 136, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .svs-diagram__node--a {
+    fill: rgba(20, 184, 166, 0.18);
+    stroke: rgba(20, 184, 166, 0.4);
+  }
+
+  .svs-diagram__node--b {
+    fill: rgba(37, 99, 235, 0.14);
+    stroke: rgba(37, 99, 235, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .svs-diagram__node--b {
+    fill: rgba(59, 130, 246, 0.18);
+    stroke: rgba(59, 130, 246, 0.4);
+  }
+
+  .svs-diagram__node--c {
+    fill: rgba(217, 119, 6, 0.14);
+    stroke: rgba(217, 119, 6, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .svs-diagram__node--c {
+    fill: rgba(245, 158, 11, 0.18);
+    stroke: rgba(245, 158, 11, 0.4);
+  }
+
+  .svs-diagram__node--d {
+    fill: rgba(147, 51, 234, 0.14);
+    stroke: rgba(147, 51, 234, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .svs-diagram__node--d {
+    fill: rgba(168, 85, 247, 0.18);
+    stroke: rgba(168, 85, 247, 0.4);
+  }
+
+  .svs-diagram__node--new {
+    fill: rgba(225, 29, 72, 0.14);
+    stroke: rgba(225, 29, 72, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .svs-diagram__node--new {
+    fill: rgba(251, 113, 133, 0.18);
+    stroke: rgba(251, 113, 133, 0.4);
+  }
+
+  .svs-diagram__node-text {
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+  }
+
+  .svs-diagram__migrate-line {
+    stroke: #be123c;
+    stroke-width: 2;
+    fill: none;
+    stroke-dasharray: 4 3;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__migrate-line {
+    stroke: #fb7185;
+  }
+
+  .svs-diagram__mask {
+    fill: var(--dg-surface);
+  }
+
+  .svs-diagram__migrate-text {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #be123c;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__migrate-text {
+    fill: #fb7185;
+  }
+
+  .svs-diagram__compare {
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+  }
+
+  .svs-diagram__mobile-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .svs-diagram__mobile-text {
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+  }
+
+  .svs-diagram__mobile-text--new {
+    fill: #be123c;
+    font-weight: 700;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__mobile-text--new {
+    fill: #fb7185;
+  }
+
+  .svs-diagram__mobile-note {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #b45309;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__mobile-note {
+    fill: #fbbf24;
+  }
+
+  .svs-diagram__mobile-note--rose {
+    fill: #be123c;
+  }
+
+  :global(:root[data-theme="dark"]) .svs-diagram__mobile-note--rose {
+    fill: #fb7185;
+  }
+
+  .svs-diagram__mobile-compare {
+    font-size: 11px;
+    fill: var(--dg-muted);
+  }
+
+  @media (max-width: 48rem) {
+    .svs-diagram__desktop {
+      display: none !important;
+    }
+    .svs-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

@@ -1,0 +1,657 @@
+---
+// Zero-Downtime Shard Live Migration Diagram
+---
+
+<figure class="slm-diagram" aria-labelledby="slm-caption">
+  <svg
+    class="slm-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="slm-title slm-desc"
+  >
+    <title id="slm-title">零停機分片線上遷移四步法</title>
+    <desc id="slm-desc">
+      展示 Dual-Write 雙寫、Backfill 歷史回填、Verify
+      校驗與CDC追平、Cutover切換四個階段，每階段皆標示讀流量、寫流量與回滾方式，最後強調舊庫寫入是最後才關閉的回滾保險。
+    </desc>
+
+    <defs>
+      <marker
+        id="slm-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="slm-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Stage 1: Dual-Write -->
+    <g class="slm-diagram__card" transform="translate(15, 40)">
+      <rect width="205" height="360" rx="12" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="205"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--blue"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--blue" x="14" y="24"
+        >STEP 1</text
+      >
+      <text class="slm-diagram__title" x="14" y="48">Dual-Write 雙寫</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="177"
+          height="60"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--blue"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--blue"
+          x="10"
+          y="18">讀流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="38">• 舊分片</text>
+      </g>
+
+      <g transform="translate(14, 132)">
+        <rect
+          width="177"
+          height="110"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--blue"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--blue"
+          x="10"
+          y="18">寫流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 舊分片 + 新分片</text>
+        <text class="slm-diagram__desc" x="10" y="52"
+          >• 同步雙寫（雙邊寫入）</text
+        >
+        <text class="slm-diagram__desc" x="10" y="68">• 新庫寫入失敗僅告警</text
+        >
+        <text class="slm-diagram__desc" x="10" y="84">• 不阻斷主流程</text>
+      </g>
+
+      <g transform="translate(14, 250)">
+        <rect
+          width="177"
+          height="90"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--blue"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--blue"
+          x="10"
+          y="18">回滾方式</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 關閉新庫寫入即可</text>
+        <text class="slm-diagram__desc" x="10" y="52"
+          >• 舊庫仍是唯一真實來源</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      d="M 220 220 L 250 220"
+      class="slm-diagram__line"
+      marker-end="url(#slm-arrow)"></path>
+
+    <!-- Stage 2: Backfill -->
+    <g class="slm-diagram__card" transform="translate(250, 40)">
+      <rect width="205" height="360" rx="12" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="205"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--purple"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--purple" x="14" y="24"
+        >STEP 2</text
+      >
+      <text class="slm-diagram__title" x="14" y="48">Backfill 歷史回填</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="177"
+          height="60"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--purple"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--purple"
+          x="10"
+          y="18">讀流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="38">• 舊分片（不受影響）</text
+        >
+      </g>
+
+      <g transform="translate(14, 132)">
+        <rect
+          width="177"
+          height="110"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--purple"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--purple"
+          x="10"
+          y="18">寫流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 離線批次依主鍵掃描</text
+        >
+        <text class="slm-diagram__desc" x="10" y="52">• 舊庫資料寫入新庫</text>
+        <text class="slm-diagram__desc" x="10" y="68"
+          >• 以 updated_at/版本號比對</text
+        >
+        <text class="slm-diagram__desc" x="10" y="84">• 新庫版本較舊才覆蓋</text
+        >
+      </g>
+
+      <g transform="translate(14, 250)">
+        <rect
+          width="177"
+          height="90"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--purple"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--purple"
+          x="10"
+          y="18">回滾方式</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 清空新庫重跑</text>
+        <text class="slm-diagram__desc" x="10" y="52">• 不影響雙寫與線上讀</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 2 -> 3 -->
+    <path
+      d="M 455 220 L 485 220"
+      class="slm-diagram__line"
+      marker-end="url(#slm-arrow)"></path>
+
+    <!-- Stage 3: Verify -->
+    <g class="slm-diagram__card" transform="translate(485, 40)">
+      <rect width="205" height="360" rx="12" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="205"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--orange"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--orange" x="14" y="24"
+        >STEP 3</text
+      >
+      <text class="slm-diagram__title" x="14" y="48"
+        >Verify 校驗與 CDC 追平</text
+      >
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="177"
+          height="60"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--orange"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--orange"
+          x="10"
+          y="18">讀流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="38">• 舊分片（尚未切換）</text
+        >
+      </g>
+
+      <g transform="translate(14, 132)">
+        <rect
+          width="177"
+          height="110"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--orange"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--orange"
+          x="10"
+          y="18">寫流量／校驗</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36"
+          >• CDC (Debezium) 追齊</text
+        >
+        <text class="slm-diagram__desc" x="10" y="52">• 回填期間的增量落差</text
+        >
+        <text class="slm-diagram__desc" x="10" y="68">• 全量 checksum 比對</text
+        >
+        <text class="slm-diagram__desc" x="10" y="84"
+          >• 抽樣 diff，設差異率門檻</text
+        >
+      </g>
+
+      <g transform="translate(14, 250)">
+        <rect
+          width="177"
+          height="90"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--orange"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--orange"
+          x="10"
+          y="18">回滾方式</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 修正後重跑校驗</text>
+        <text class="slm-diagram__desc" x="10" y="52">• 尚未影響線上讀</text>
+      </g>
+    </g>
+
+    <!-- Arrow 3 -> 4 -->
+    <path
+      d="M 690 220 L 720 220"
+      class="slm-diagram__line"
+      marker-end="url(#slm-arrow)"></path>
+
+    <!-- Stage 4: Cutover -->
+    <g class="slm-diagram__card" transform="translate(720, 40)">
+      <rect width="205" height="360" rx="12" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="205"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--green"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--green" x="14" y="24"
+        >STEP 4</text
+      >
+      <text class="slm-diagram__title" x="14" y="48">Cutover 切換</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="177"
+          height="60"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--green"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--green"
+          x="10"
+          y="18">讀流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 灰度切至新分片</text>
+        <text class="slm-diagram__desc" x="10" y="52">• 1% → 10% → 100%</text>
+      </g>
+
+      <g transform="translate(14, 132)">
+        <rect
+          width="177"
+          height="110"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--green"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--green"
+          x="10"
+          y="18">寫流量</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 觀察期通過後</text>
+        <text class="slm-diagram__desc" x="10" y="52">• 停用舊庫寫入</text>
+        <text class="slm-diagram__desc" x="10" y="68">• 雙寫降級為單寫</text>
+      </g>
+
+      <g transform="translate(14, 250)">
+        <rect
+          width="177"
+          height="90"
+          rx="6"
+          class="slm-diagram__subcard slm-diagram__subcard--green"></rect>
+        <text
+          class="slm-diagram__header slm-diagram__header--green"
+          x="10"
+          y="18">回滾方式</text
+        >
+        <text class="slm-diagram__desc" x="10" y="36">• 讀流量切回舊分片</text>
+        <text class="slm-diagram__desc" x="10" y="52"
+          >• 雙寫未關閉前皆可秒回</text
+        >
+      </g>
+    </g>
+
+    <!-- Emphasis banner -->
+    <rect
+      x="15"
+      y="410"
+      width="930"
+      height="36"
+      rx="8"
+      class="slm-diagram__banner"></rect>
+    <text class="slm-diagram__banner-text" x="480" y="433" text-anchor="middle"
+      >舊庫的寫入是最後才關的，它是整段遷移唯一的回滾保險</text
+    >
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="slm-diagram__mobile"
+    viewBox="0 0 320 850"
+    role="img"
+    aria-labelledby="slm-mobile-title slm-mobile-desc"
+  >
+    <title id="slm-mobile-title">零停機分片線上遷移四步法簡圖</title>
+    <desc id="slm-mobile-desc">
+      桌面版四階段時間軸的直向排列：Dual-Write 雙寫 ➔ Backfill 歷史回填 ➔ Verify
+      校驗與 CDC 追平 ➔ Cutover 切換，各階段皆標示讀流量、寫流量與回滾方式。
+    </desc>
+
+    <g class="slm-diagram__card" transform="translate(10, 12)">
+      <rect width="300" height="175" rx="10" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="300"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--blue"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--blue" x="14" y="26"
+        >STEP 1 · Dual-Write 雙寫</text
+      >
+      <text class="slm-diagram__desc" x="14" y="50">讀：舊分片</text>
+      <text class="slm-diagram__desc" x="14" y="70"
+        >寫：舊分片 + 新分片，同步雙寫</text
+      >
+      <text class="slm-diagram__desc" x="14" y="88">
+        （新庫寫入失敗僅告警，不阻斷）</text
+      >
+      <text class="slm-diagram__desc" x="14" y="112"
+        >回滾：關閉新庫寫入即可</text
+      >
+    </g>
+
+    <g class="slm-diagram__card" transform="translate(10, 201)">
+      <rect width="300" height="175" rx="10" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="300"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--purple"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--purple" x="14" y="26"
+        >STEP 2 · Backfill 歷史回填</text
+      >
+      <text class="slm-diagram__desc" x="14" y="50">讀：舊分片（不受影響）</text
+      >
+      <text class="slm-diagram__desc" x="14" y="70"
+        >寫：離線批次依主鍵回填新庫</text
+      >
+      <text class="slm-diagram__desc" x="14" y="88">
+        以 updated_at/版本號比對，</text
+      >
+      <text class="slm-diagram__desc" x="14" y="106"> 新庫版本較舊才覆蓋</text>
+      <text class="slm-diagram__desc" x="14" y="130">回滾：清空新庫重跑</text>
+    </g>
+
+    <g class="slm-diagram__card" transform="translate(10, 390)">
+      <rect width="300" height="175" rx="10" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="300"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--orange"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--orange" x="14" y="26"
+        >STEP 3 · Verify 校驗與 CDC 追平</text
+      >
+      <text class="slm-diagram__desc" x="14" y="50">讀：舊分片（尚未切換）</text
+      >
+      <text class="slm-diagram__desc" x="14" y="70"
+        >寫：CDC (Debezium) 追齊增量落差</text
+      >
+      <text class="slm-diagram__desc" x="14" y="88">
+        全量 checksum + 抽樣 diff，</text
+      >
+      <text class="slm-diagram__desc" x="14" y="106"> 設定允許差異率門檻</text>
+      <text class="slm-diagram__desc" x="14" y="130"
+        >回滾：修正後重跑校驗，尚未影響線上讀</text
+      >
+    </g>
+
+    <g class="slm-diagram__card" transform="translate(10, 579)">
+      <rect width="300" height="175" rx="10" class="slm-diagram__card-bg"
+      ></rect>
+      <rect
+        width="300"
+        height="6"
+        rx="3"
+        class="slm-diagram__accent-bar slm-diagram__accent-bar--green"></rect>
+      <text class="slm-diagram__badge slm-diagram__badge--green" x="14" y="26"
+        >STEP 4 · Cutover 切換</text
+      >
+      <text class="slm-diagram__desc" x="14" y="50"
+        >讀：灰度切新分片 1% → 10% → 100%</text
+      >
+      <text class="slm-diagram__desc" x="14" y="70"
+        >寫：觀察期通過後停用舊庫寫入，</text
+      >
+      <text class="slm-diagram__desc" x="14" y="88"> 雙寫降級為單寫</text>
+      <text class="slm-diagram__desc" x="14" y="112"
+        >回滾：讀流量切回舊分片</text
+      >
+      <text class="slm-diagram__desc" x="14" y="130">
+        （雙寫未關閉前皆可秒回）</text
+      >
+    </g>
+
+    <rect
+      x="10"
+      y="768"
+      width="300"
+      height="52"
+      rx="8"
+      class="slm-diagram__banner"></rect>
+    <text class="slm-diagram__banner-text" x="160" y="790" text-anchor="middle"
+      >舊庫的寫入是最後才關的，</text
+    >
+    <text class="slm-diagram__banner-text" x="160" y="808" text-anchor="middle"
+      >它是整段遷移唯一的回滾保險</text
+    >
+  </svg>
+
+  <figcaption id="slm-caption" class="slm-diagram__caption">
+    圖 6：零停機分片遷移四步法 — 每一階段都保留可秒回的回滾路徑
+  </figcaption>
+</figure>
+
+<style>
+  .slm-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .slm-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .slm-diagram__desktop {
+    display: block;
+  }
+
+  .slm-diagram__mobile {
+    display: none;
+  }
+
+  .slm-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .slm-diagram__card-bg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .slm-diagram__badge {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .slm-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .slm-diagram__subcard {
+    stroke-width: 1;
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+
+  .slm-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .slm-diagram__desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  .slm-diagram__line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .slm-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Blue: Dual-Write */
+  .slm-diagram__accent-bar--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__accent-bar--blue {
+    fill: #60a5fa;
+  }
+  .slm-diagram__badge--blue,
+  .slm-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__badge--blue,
+  :global(:root[data-theme="dark"]) .slm-diagram__header--blue {
+    fill: #60a5fa;
+  }
+  .slm-diagram__subcard--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  /* Purple: Backfill */
+  .slm-diagram__accent-bar--purple {
+    fill: #9333ea;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__accent-bar--purple {
+    fill: #c084fc;
+  }
+  .slm-diagram__badge--purple,
+  .slm-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__badge--purple,
+  :global(:root[data-theme="dark"]) .slm-diagram__header--purple {
+    fill: #c084fc;
+  }
+  .slm-diagram__subcard--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__subcard--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  /* Orange: Verify */
+  .slm-diagram__accent-bar--orange {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__accent-bar--orange {
+    fill: #fbbf24;
+  }
+  .slm-diagram__badge--orange,
+  .slm-diagram__header--orange {
+    fill: #b45309;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__badge--orange,
+  :global(:root[data-theme="dark"]) .slm-diagram__header--orange {
+    fill: #fbbf24;
+  }
+  .slm-diagram__subcard--orange {
+    fill: rgba(217, 119, 6, 0.08);
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__subcard--orange {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+
+  /* Green: Cutover */
+  .slm-diagram__accent-bar--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__accent-bar--green {
+    fill: #4ade80;
+  }
+  .slm-diagram__badge--green,
+  .slm-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__badge--green,
+  :global(:root[data-theme="dark"]) .slm-diagram__header--green {
+    fill: #4ade80;
+  }
+  .slm-diagram__subcard--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: rgba(22, 163, 74, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__subcard--green {
+    fill: rgba(34, 197, 94, 0.12);
+    stroke: rgba(34, 197, 94, 0.35);
+  }
+
+  /* Rollback insurance banner */
+  .slm-diagram__banner {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .slm-diagram__banner-text {
+    font-size: 14px;
+    font-weight: 700;
+    fill: #be123c;
+  }
+  :global(:root[data-theme="dark"]) .slm-diagram__banner-text {
+    fill: #fb7185;
+  }
+
+  @media (max-width: 48rem) {
+    .slm-diagram__desktop {
+      display: none !important;
+    }
+    .slm-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

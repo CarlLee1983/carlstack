@@ -1,0 +1,623 @@
+---
+// Shard Scatter-Gather Query Diagram
+---
+
+<figure class="ssg-diagram" aria-labelledby="ssg-caption">
+  <svg
+    class="ssg-diagram__desktop"
+    viewBox="0 0 900 600"
+    role="img"
+    aria-labelledby="ssg-title ssg-desc"
+  >
+    <title id="ssg-title">跨分片 Scatter-Gather 查詢執行路徑</title>
+    <desc id="ssg-desc">
+      說明無 Sharding Key
+      查詢時，分散式中介軟體向所有分片並行散發查詢，各分片各自回傳結果，最終在協調層記憶體中聚合、排序與分頁的流程與延遲風險。
+    </desc>
+
+    <defs>
+      <marker
+        id="ssg-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ssg-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="ssg-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="ssg-diagram__arrow-head ssg-diagram__arrow-head--blue"></path>
+      </marker>
+      <marker
+        id="ssg-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="ssg-diagram__arrow-head ssg-diagram__arrow-head--green"></path>
+      </marker>
+    </defs>
+
+    <!-- Query -->
+    <g class="ssg-diagram__card">
+      <rect x="250" y="20" width="400" height="70" rx="10"></rect>
+      <text class="ssg-diagram__query" x="450" y="52" text-anchor="middle"
+        >SELECT * FROM orders WHERE status = 'PAID'</text
+      >
+      <text class="ssg-diagram__subtitle" x="450" y="74" text-anchor="middle"
+        >查詢未攜帶 Sharding Key</text
+      >
+    </g>
+
+    <path
+      d="M 450 90 L 450 138"
+      class="ssg-diagram__line"
+      marker-end="url(#ssg-arrow)"></path>
+
+    <!-- Middleware -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="150"
+        y="140"
+        width="600"
+        height="70"
+        rx="10"
+        class="ssg-diagram__box ssg-diagram__box--purple"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--purple"
+        x="450"
+        y="172"
+        text-anchor="middle"
+        >分散式中介軟體（Vitess / ShardingSphere / DBProxy）</text
+      >
+      <text class="ssg-diagram__subtitle" x="450" y="194" text-anchor="middle"
+        >向所有分片並行散發查詢（Scatter）</text
+      >
+    </g>
+
+    <!-- Scatter arrows -->
+    <path
+      d="M 450 210 L 90 288"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue)"></path>
+    <path
+      d="M 450 210 L 330 288"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue)"></path>
+    <path
+      d="M 450 210 L 570 288"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue)"></path>
+    <path
+      d="M 450 210 L 810 288"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue)"></path>
+
+    <!-- Shards -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="20"
+        y="290"
+        width="140"
+        height="70"
+        rx="8"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="90"
+        y="322"
+        text-anchor="middle">Shard 1</text
+      >
+      <text class="ssg-diagram__desc" x="90" y="342" text-anchor="middle"
+        >全量掃描</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="260"
+        y="290"
+        width="140"
+        height="70"
+        rx="8"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="330"
+        y="322"
+        text-anchor="middle">Shard 2</text
+      >
+      <text class="ssg-diagram__desc" x="330" y="342" text-anchor="middle"
+        >全量掃描</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="500"
+        y="290"
+        width="140"
+        height="70"
+        rx="8"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="570"
+        y="322"
+        text-anchor="middle">Shard 3</text
+      >
+      <text class="ssg-diagram__desc" x="570" y="342" text-anchor="middle"
+        >全量掃描</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="740"
+        y="290"
+        width="140"
+        height="70"
+        rx="8"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="810"
+        y="322"
+        text-anchor="middle">Shard 4</text
+      >
+      <text class="ssg-diagram__desc" x="810" y="342" text-anchor="middle"
+        >全量掃描</text
+      >
+    </g>
+
+    <!-- Gather arrows -->
+    <path
+      d="M 90 360 L 400 438"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green)"></path>
+    <path
+      d="M 330 360 L 430 438"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green)"></path>
+    <path
+      d="M 570 360 L 470 438"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green)"></path>
+    <path
+      d="M 810 360 L 500 438"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green)"></path>
+
+    <!-- Gather -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="200"
+        y="440"
+        width="500"
+        height="70"
+        rx="10"
+        class="ssg-diagram__box ssg-diagram__box--green"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--green"
+        x="450"
+        y="472"
+        text-anchor="middle">記憶體聚合、排序與分頁（Gather）➔ 回傳客戶端</text
+      >
+    </g>
+
+    <text class="ssg-diagram__warn" x="450" y="548" text-anchor="middle"
+      >⚠ 延遲取決於最慢分片；LIMIT/OFFSET 需在協調層全量重排</text
+    >
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="ssg-diagram__mobile"
+    viewBox="0 0 320 460"
+    role="img"
+    aria-labelledby="ssg-mobile-title ssg-mobile-desc"
+  >
+    <title id="ssg-mobile-title">跨分片 Scatter-Gather 查詢執行路徑簡圖</title>
+    <desc id="ssg-mobile-desc">
+      桌面版的直向排列：查詢 ➔ 中介軟體 ➔ 四個分片並行 ➔
+      記憶體聚合並回傳，並附延遲代價警語。
+    </desc>
+
+    <defs>
+      <marker
+        id="ssg-arrow-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ssg-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="ssg-arrow-blue-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="ssg-diagram__arrow-head ssg-diagram__arrow-head--blue"></path>
+      </marker>
+      <marker
+        id="ssg-arrow-green-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="ssg-diagram__arrow-head ssg-diagram__arrow-head--green"></path>
+      </marker>
+    </defs>
+
+    <!-- Query -->
+    <g class="ssg-diagram__card">
+      <rect x="10" y="10" width="300" height="60" rx="10"></rect>
+      <text class="ssg-diagram__query" x="160" y="38" text-anchor="middle"
+        >SELECT * FROM orders WHERE status = 'PAID'</text
+      >
+      <text class="ssg-diagram__subtitle" x="160" y="58" text-anchor="middle"
+        >查詢未攜帶 Sharding Key</text
+      >
+    </g>
+
+    <path
+      d="M 160 70 L 160 108"
+      class="ssg-diagram__line"
+      marker-end="url(#ssg-arrow-mobile)"></path>
+
+    <!-- Middleware -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="10"
+        y="110"
+        width="300"
+        height="70"
+        rx="10"
+        class="ssg-diagram__box ssg-diagram__box--purple"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--purple"
+        x="160"
+        y="138"
+        text-anchor="middle">分散式中介軟體</text
+      >
+      <text class="ssg-diagram__subtitle" x="160" y="156" text-anchor="middle"
+        >(Vitess / ShardingSphere / DBProxy)</text
+      >
+      <text class="ssg-diagram__subtitle" x="160" y="174" text-anchor="middle"
+        >向所有分片並行散發查詢（Scatter）</text
+      >
+    </g>
+
+    <!-- Scatter arrows -->
+    <path
+      d="M 160 180 L 47 203"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue-mobile)"></path>
+    <path
+      d="M 160 180 L 122 203"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue-mobile)"></path>
+    <path
+      d="M 160 180 L 197 203"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue-mobile)"></path>
+    <path
+      d="M 160 180 L 272 203"
+      class="ssg-diagram__line ssg-diagram__line--blue"
+      marker-end="url(#ssg-arrow-blue-mobile)"></path>
+
+    <!-- Shards -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="15"
+        y="205"
+        width="65"
+        height="60"
+        rx="6"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="47"
+        y="240"
+        text-anchor="middle">Shard 1</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="90"
+        y="205"
+        width="65"
+        height="60"
+        rx="6"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="122"
+        y="240"
+        text-anchor="middle">Shard 2</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="165"
+        y="205"
+        width="65"
+        height="60"
+        rx="6"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="197"
+        y="240"
+        text-anchor="middle">Shard 3</text
+      >
+    </g>
+    <g class="ssg-diagram__card">
+      <rect
+        x="240"
+        y="205"
+        width="65"
+        height="60"
+        rx="6"
+        class="ssg-diagram__box ssg-diagram__box--blue"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--blue"
+        x="272"
+        y="240"
+        text-anchor="middle">Shard 4</text
+      >
+    </g>
+
+    <!-- Gather arrows -->
+    <path
+      d="M 47 265 L 130 318"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green-mobile)"></path>
+    <path
+      d="M 122 265 L 150 318"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green-mobile)"></path>
+    <path
+      d="M 197 265 L 170 318"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green-mobile)"></path>
+    <path
+      d="M 272 265 L 190 318"
+      class="ssg-diagram__line ssg-diagram__line--green"
+      marker-end="url(#ssg-arrow-green-mobile)"></path>
+
+    <!-- Gather -->
+    <g class="ssg-diagram__card">
+      <rect
+        x="10"
+        y="320"
+        width="300"
+        height="70"
+        rx="10"
+        class="ssg-diagram__box ssg-diagram__box--green"></rect>
+      <text
+        class="ssg-diagram__header ssg-diagram__header--green"
+        x="160"
+        y="350"
+        text-anchor="middle">記憶體聚合、排序與分頁（Gather）</text
+      >
+      <text class="ssg-diagram__subtitle" x="160" y="370" text-anchor="middle"
+        >➔ 回傳客戶端</text
+      >
+    </g>
+
+    <text class="ssg-diagram__warn" x="160" y="420" text-anchor="middle"
+      >⚠ 延遲取決於最慢分片</text
+    >
+    <text class="ssg-diagram__warn" x="160" y="438" text-anchor="middle"
+      >LIMIT/OFFSET 需在協調層全量重排</text
+    >
+  </svg>
+
+  <figcaption id="ssg-caption" class="ssg-diagram__caption">
+    圖 2：無分片鍵查詢時的 Scatter-Gather 執行路徑與延遲代價
+  </figcaption>
+</figure>
+
+<style>
+  .ssg-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ssg-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 900px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .ssg-diagram__desktop {
+    display: block;
+  }
+
+  .ssg-diagram__mobile {
+    display: none;
+  }
+
+  .ssg-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .ssg-diagram__card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .ssg-diagram__query {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .ssg-diagram__subtitle {
+    font-size: 12px;
+    fill: var(--dg-muted);
+  }
+
+  .ssg-diagram__desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  .ssg-diagram__box {
+    stroke-width: 1;
+  }
+
+  .ssg-diagram__box--purple {
+    fill: rgba(147, 51, 234, 0.08);
+    stroke: rgba(147, 51, 234, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .ssg-diagram__box--purple {
+    fill: rgba(168, 85, 247, 0.12);
+    stroke: rgba(168, 85, 247, 0.35);
+  }
+
+  .ssg-diagram__box--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: rgba(37, 99, 235, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .ssg-diagram__box--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: rgba(59, 130, 246, 0.35);
+  }
+
+  .ssg-diagram__box--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: rgba(22, 163, 74, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .ssg-diagram__box--green {
+    fill: rgba(74, 222, 128, 0.12);
+    stroke: rgba(74, 222, 128, 0.35);
+  }
+
+  .ssg-diagram__header {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .ssg-diagram__header--purple {
+    fill: #7e22ce;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__header--purple {
+    fill: #c084fc;
+  }
+
+  .ssg-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .ssg-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__header--green {
+    fill: #4ade80;
+  }
+
+  .ssg-diagram__line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .ssg-diagram__line--blue {
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__line--blue {
+    stroke: #60a5fa;
+  }
+
+  .ssg-diagram__line--green {
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__line--green {
+    stroke: #4ade80;
+  }
+
+  .ssg-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .ssg-diagram__arrow-head--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__arrow-head--blue {
+    fill: #60a5fa;
+  }
+
+  .ssg-diagram__arrow-head--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .ssg-diagram__arrow-head--green {
+    fill: #4ade80;
+  }
+
+  .ssg-diagram__warn {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #b91c1c;
+  }
+
+  :global(:root[data-theme="dark"]) .ssg-diagram__warn {
+    fill: #f87171;
+  }
+
+  @media (max-width: 48rem) {
+    .ssg-diagram__desktop {
+      display: none !important;
+    }
+    .ssg-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

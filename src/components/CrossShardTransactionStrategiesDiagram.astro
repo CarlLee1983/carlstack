@@ -1,0 +1,558 @@
+---
+// Cross-Shard Transaction Strategies Diagram
+---
+
+<figure class="cst-diagram" aria-labelledby="cst-caption">
+  <svg
+    class="cst-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="cst-title cst-desc"
+  >
+    <title id="cst-title">跨分片交易的四種方案對決架構圖</title>
+    <desc id="cst-desc">
+      並列比較 2PC/XA、TCC、Saga 與 Outbox Pattern + CDC
+      四種跨分片交易方案的執行流程、一致性等級與工程代價。
+    </desc>
+
+    <!-- Column 1: 2PC / XA -->
+    <g class="cst-diagram__card" transform="translate(15, 30)">
+      <rect width="210" height="380" rx="12"></rect>
+      <text class="cst-diagram__badge" x="14" y="24">1 · 2PC / XA</text>
+      <text class="cst-diagram__title" x="14" y="48">兩階段提交</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--red"></rect>
+        <text class="cst-diagram__header cst-diagram__header--red" x="10" y="18"
+          >執行流程</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">1. 協調者發起交易</text>
+        <text class="cst-diagram__desc" x="10" y="53"
+          >2. Prepare：各分片上鎖</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70">3. 各分片投票 Yes</text>
+        <text class="cst-diagram__desc" x="10" y="87">4. Commit 全部提交</text>
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="182"
+          height="46"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--red"></rect>
+        <text class="cst-diagram__header cst-diagram__header--red" x="10" y="16"
+          >一致性等級</text
+        >
+        <text class="cst-diagram__desc" x="10" y="34">強一致（Strict）</text>
+      </g>
+
+      <g transform="translate(14, 234)">
+        <rect
+          width="182"
+          height="130"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--red"></rect>
+        <text class="cst-diagram__header cst-diagram__header--red" x="10" y="18"
+          >代價 / Trade-off</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">• 協調者是單點故障</text>
+        <text class="cst-diagram__desc" x="10" y="53"
+          >• 持鎖時間 = 網路 RTT</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70"
+          >• 慢分片拖累 Tail Latency</text
+        >
+        <text class="cst-diagram__desc" x="10" y="87"
+          >• 崩潰時參與者卡 In-Doubt</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: TCC -->
+    <g class="cst-diagram__card" transform="translate(255, 30)">
+      <rect width="210" height="380" rx="12"></rect>
+      <text class="cst-diagram__badge" x="14" y="24">2 · TCC</text>
+      <text class="cst-diagram__title" x="14" y="48">Try-Confirm-Cancel</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--orange"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--orange"
+          x="10"
+          y="18">執行流程</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">1. Try：預留資源</text>
+        <text class="cst-diagram__desc" x="10" y="53"
+          >2. 全部成功 ➔ Confirm</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70"
+          >3. 任一失敗 ➔ Cancel 釋放</text
+        >
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="182"
+          height="46"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--orange"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--orange"
+          x="10"
+          y="16">一致性等級</text
+        >
+        <text class="cst-diagram__desc" x="10" y="34"
+          >最終一致（預留期不可見）</text
+        >
+      </g>
+
+      <g transform="translate(14, 234)">
+        <rect
+          width="182"
+          height="130"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--orange"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--orange"
+          x="10"
+          y="18">代價 / Trade-off</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36"
+          >• 三介面需業務自行實作</text
+        >
+        <text class="cst-diagram__desc" x="10" y="53"
+          >• 需處理空回滾 (Empty)</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70"
+          >• 需處理懸掛 (Suspension)</text
+        >
+        <text class="cst-diagram__desc" x="10" y="87">• 需自行保證冪等</text>
+      </g>
+    </g>
+
+    <!-- Column 3: Saga -->
+    <g class="cst-diagram__card" transform="translate(495, 30)">
+      <rect width="210" height="380" rx="12"></rect>
+      <text class="cst-diagram__badge" x="14" y="24">3 · Saga</text>
+      <text class="cst-diagram__title" x="14" y="48">長活事務</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--blue"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--blue"
+          x="10"
+          y="18">執行流程</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">正向：T1 ➔ T2 ➔ T3</text>
+        <text class="cst-diagram__desc" x="10" y="53">失敗時反向補償</text>
+        <text class="cst-diagram__desc" x="10" y="70">補償：C3 ➔ C2 ➔ C1</text>
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="182"
+          height="46"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--blue"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--blue"
+          x="10"
+          y="16">一致性等級</text
+        >
+        <text class="cst-diagram__desc" x="10" y="34"
+          >最終一致，中間狀態可見</text
+        >
+      </g>
+
+      <g transform="translate(14, 234)">
+        <rect
+          width="182"
+          height="130"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--blue"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--blue"
+          x="10"
+          y="18">代價 / Trade-off</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">• 需設計語意補償動作</text
+        >
+        <text class="cst-diagram__desc" x="10" y="53">• 例如退款而非回滾</text>
+        <text class="cst-diagram__desc" x="10" y="70"
+          >• 無隔離性 (No Isolation)</text
+        >
+        <text class="cst-diagram__desc" x="10" y="87">• 業務層需自行防髒讀</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 4: Outbox Pattern + CDC -->
+    <g class="cst-diagram__card" transform="translate(735, 30)">
+      <rect width="210" height="380" rx="12"></rect>
+      <text class="cst-diagram__badge" x="14" y="24">4 · Outbox + CDC</text>
+      <text class="cst-diagram__title" x="14" y="48">Outbox Pattern</text>
+
+      <g transform="translate(14, 64)">
+        <rect
+          width="182"
+          height="100"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--green"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--green"
+          x="10"
+          y="18">執行流程</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36"
+          >1. 本地交易寫業務表+Outbox</text
+        >
+        <text class="cst-diagram__desc" x="10" y="53"
+          >2. Debezium 讀取 Binlog</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70">3. 發布至 Kafka</text>
+        <text class="cst-diagram__desc" x="10" y="87">4. 更新全域索引/讀庫</text
+        >
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="182"
+          height="46"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--green"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--green"
+          x="10"
+          y="16">一致性等級</text
+        >
+        <text class="cst-diagram__desc" x="10" y="34"
+          >最終一致，至少投遞一次</text
+        >
+      </g>
+
+      <g transform="translate(14, 234)">
+        <rect
+          width="182"
+          height="130"
+          rx="6"
+          class="cst-diagram__subcard cst-diagram__subcard--green"></rect>
+        <text
+          class="cst-diagram__header cst-diagram__header--green"
+          x="10"
+          y="18">代價 / Trade-off</text
+        >
+        <text class="cst-diagram__desc" x="10" y="36">• 消費端須實作冪等</text>
+        <text class="cst-diagram__desc" x="10" y="53"
+          >• 存在複製延遲 (Repl. Lag)</text
+        >
+        <text class="cst-diagram__desc" x="10" y="70">• 需維運 CDC 管線</text>
+      </g>
+    </g>
+
+    <!-- Conclusion band -->
+    <g class="cst-diagram__conclusion">
+      <rect
+        x="15"
+        y="425"
+        width="930"
+        height="40"
+        rx="8"
+        class="cst-diagram__conclusion-bar"></rect>
+      <text
+        class="cst-diagram__conclusion-text"
+        x="480"
+        y="450"
+        text-anchor="middle"
+        >高併發線上路徑優先選 Saga / TCC；2PC 留給低頻、強一致的後台作業</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <svg
+    class="cst-diagram__mobile"
+    viewBox="0 0 320 610"
+    role="img"
+    aria-labelledby="cst-mobile-title cst-mobile-desc"
+  >
+    <title id="cst-mobile-title">跨分片交易四種方案簡圖</title>
+    <desc id="cst-mobile-desc">
+      以直向卡片依序呈現 2PC/XA、TCC、Saga、Outbox Pattern + CDC
+      的流程、一致性等級與代價，為桌面版四欄比較圖的重新編排。
+    </desc>
+
+    <g class="cst-diagram__card" transform="translate(10, 15)">
+      <rect
+        width="300"
+        height="125"
+        rx="8"
+        class="cst-diagram__subcard cst-diagram__subcard--red"></rect>
+      <text class="cst-diagram__header cst-diagram__header--red" x="12" y="24"
+        >1 · 2PC / XA（兩階段提交）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="47"
+        >流程：協調者➔Prepare上鎖➔全數Yes➔Commit</text
+      >
+      <text class="cst-diagram__desc" x="12" y="67"
+        >一致性：強一致（Strict）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="89"
+        >代價：協調者單點，持鎖= RTT</text
+      >
+      <text class="cst-diagram__desc" x="12" y="107"
+        >拖慢 Tail Latency，崩潰卡 In-Doubt</text
+      >
+    </g>
+
+    <g class="cst-diagram__card" transform="translate(10, 160)">
+      <rect
+        width="300"
+        height="125"
+        rx="8"
+        class="cst-diagram__subcard cst-diagram__subcard--orange"></rect>
+      <text
+        class="cst-diagram__header cst-diagram__header--orange"
+        x="12"
+        y="24">2 · TCC（Try-Confirm-Cancel）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="47"
+        >流程：Try預留➔全成功Confirm/失敗Cancel</text
+      >
+      <text class="cst-diagram__desc" x="12" y="67"
+        >一致性：最終一致（預留期不可見）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="89"
+        >代價：三介面需業務自行實作</text
+      >
+      <text class="cst-diagram__desc" x="12" y="107"
+        >須處理空回滾、懸掛與冪等</text
+      >
+    </g>
+
+    <g class="cst-diagram__card" transform="translate(10, 305)">
+      <rect
+        width="300"
+        height="125"
+        rx="8"
+        class="cst-diagram__subcard cst-diagram__subcard--blue"></rect>
+      <text class="cst-diagram__header cst-diagram__header--blue" x="12" y="24"
+        >3 · Saga（長活事務）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="47"
+        >流程：T1➔T2➔T3，失敗反向 C3➔C2➔C1 補償</text
+      >
+      <text class="cst-diagram__desc" x="12" y="67"
+        >一致性：最終一致，中間狀態可見</text
+      >
+      <text class="cst-diagram__desc" x="12" y="89"
+        >代價：需設計語意補償（退款非回滾）</text
+      >
+      <text class="cst-diagram__desc" x="12" y="107"
+        >無隔離性，業務層需自行防髒讀</text
+      >
+    </g>
+
+    <g class="cst-diagram__card" transform="translate(10, 450)">
+      <rect
+        width="300"
+        height="140"
+        rx="8"
+        class="cst-diagram__subcard cst-diagram__subcard--green"></rect>
+      <text class="cst-diagram__header cst-diagram__header--green" x="12" y="24"
+        >4 · Outbox Pattern + CDC</text
+      >
+      <text class="cst-diagram__desc" x="12" y="47"
+        >流程：本地交易寫業務表+Outbox➔CDC➔更新讀庫</text
+      >
+      <text class="cst-diagram__desc" x="12" y="67"
+        >一致性：最終一致，至少投遞一次</text
+      >
+      <text class="cst-diagram__desc" x="12" y="89"
+        >代價：消費端須冪等，有複製延遲</text
+      >
+      <text class="cst-diagram__desc" x="12" y="107">需維運 CDC 管線</text>
+    </g>
+  </svg>
+
+  <figcaption id="cst-caption" class="cst-diagram__caption">
+    圖 4：跨分片交易的四種方案 — 一致性強度與工程代價的取捨
+  </figcaption>
+</figure>
+
+<style>
+  .cst-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cst-diagram svg {
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+  }
+
+  .cst-diagram__desktop {
+    display: block;
+  }
+
+  .cst-diagram__mobile {
+    display: none;
+  }
+
+  .cst-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  .cst-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .cst-diagram__badge {
+    font-size: 10px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .cst-diagram__title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .cst-diagram__subcard {
+    stroke-width: 1;
+  }
+
+  .cst-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(220, 38, 38, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__subcard--red {
+    fill: rgba(248, 113, 113, 0.12);
+    stroke: rgba(248, 113, 113, 0.35);
+  }
+
+  .cst-diagram__subcard--orange {
+    fill: rgba(194, 65, 12, 0.08);
+    stroke: rgba(194, 65, 12, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__subcard--orange {
+    fill: rgba(251, 146, 60, 0.12);
+    stroke: rgba(251, 146, 60, 0.35);
+  }
+
+  .cst-diagram__subcard--blue {
+    fill: rgba(29, 78, 216, 0.08);
+    stroke: rgba(29, 78, 216, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__subcard--blue {
+    fill: rgba(96, 165, 250, 0.12);
+    stroke: rgba(96, 165, 250, 0.35);
+  }
+
+  .cst-diagram__subcard--green {
+    fill: rgba(21, 128, 61, 0.08);
+    stroke: rgba(21, 128, 61, 0.3);
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__subcard--green {
+    fill: rgba(74, 222, 128, 0.12);
+    stroke: rgba(74, 222, 128, 0.35);
+  }
+
+  .cst-diagram__header {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .cst-diagram__header--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .cst-diagram__header--red {
+    fill: #f87171;
+  }
+
+  .cst-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(:root[data-theme="dark"]) .cst-diagram__header--orange {
+    fill: #fb923c;
+  }
+
+  .cst-diagram__header--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .cst-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .cst-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .cst-diagram__header--green {
+    fill: #4ade80;
+  }
+
+  .cst-diagram__desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  .cst-diagram__conclusion-bar {
+    fill: rgba(79, 70, 229, 0.08);
+    stroke: rgba(79, 70, 229, 0.3);
+    stroke-width: 1.5;
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__conclusion-bar {
+    fill: rgba(129, 140, 248, 0.12);
+    stroke: rgba(129, 140, 248, 0.35);
+  }
+
+  .cst-diagram__conclusion-text {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #4338ca;
+  }
+
+  :global(:root[data-theme="dark"]) .cst-diagram__conclusion-text {
+    fill: #818cf8;
+  }
+
+  @media (max-width: 48rem) {
+    .cst-diagram__desktop {
+      display: none !important;
+    }
+    .cst-diagram__mobile {
+      display: block !important;
+      max-width: 320px;
+    }
+  }
+</style>

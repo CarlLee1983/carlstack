@@ -1,7 +1,8 @@
 ---
 title: "分散式資料庫分片演算法全景對決：範圍分片、雜湊分片、一致性雜湊與目錄分片深度對比"
-description: "深度剖析分散式資料庫與海量資料儲存的核心擴展策略：為什麼單一分片演算法無法適應所有業務？4 大主流分片演算法（Range-based Sharding / Hash Sharding / Consistent Hashing / Directory-based Lookup）深度對決、資料傾斜（Data Skew）與動態擴容再平衡（Rebalancing）實戰。"
+description: "深度剖析分散式資料庫的核心擴展策略：4 大分片演算法（Range / Hash / Consistent Hashing / Directory）深度對決，並延伸到固定邏輯槽位再平衡、分片鍵與分散式 ID 設計、跨分片交易（2PC / TCC / Saga / Outbox+CDC）、熱點鍵鹽化與分級路由，以及零停機線上遷移四步法。"
 publishDate: 2026-09-02T17:50:00+08:00
+updatedDate: 2026-09-03T14:30:00+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/distributed-database-sharding-algorithms-comparison.png
@@ -15,6 +16,13 @@ tags:
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
+import ShardingAlgorithmMatrixDiagram from "../../components/ShardingAlgorithmMatrixDiagram.astro";
+import ShardScatterGatherDiagram from "../../components/ShardScatterGatherDiagram.astro";
+import ShardVirtualSlotRebalanceDiagram from "../../components/ShardVirtualSlotRebalanceDiagram.astro";
+import CrossShardTransactionStrategiesDiagram from "../../components/CrossShardTransactionStrategiesDiagram.astro";
+import ShardHotspotSaltingDiagram from "../../components/ShardHotspotSaltingDiagram.astro";
+import ShardLiveMigrationDiagram from "../../components/ShardLiveMigrationDiagram.astro";
+
 當單台關係型資料庫的資料量突破數十 TB、寫入 QPS 突破數萬時，單機硬體垂直擴展（Scale-Up）將迅速觸及物理與成本天花板。
 
 此時，系統架構必須走向水平分片——**資料庫分片（Database Sharding）**：將一個邏輯大表拆分為多個物理分片（Shards），分散存儲在不同的資料庫伺服器節點上。
@@ -25,54 +33,18 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 - 每次叢集擴容時需要搬遷全量資料；
 - 或者導致跨分片 JOIN 與分散式交易的延遲暴增。
 
-本文將為你深入對比 4 大主流資料庫分片演算法的底層機制與選型權衡。
+本文先對比 4 大主流分片演算法的底層機制與選型權衡，再往下走到真正決定專案成敗的四件工程落地細節：固定邏輯槽位的再平衡策略、分片鍵與分散式 ID 設計、跨分片交易的補償方案，以及零停機的線上遷移流程。
 
 ---
 
 ## 1. 四大分片演算法核心架構矩陣
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="shard-matrix-title shard-matrix-desc">
-    <title id="shard-matrix-title">四大資料庫分片演算法機制示意圖</title>
-    <desc id="shard-matrix-desc">展示範圍分片、雜湊模分片、一致性雜湊環與目錄查表分片的路由原理與特點。</desc>
-    
-    
-    <rect x="20" y="20" width="175" height="140" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
-    <text x="107" y="46" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">1. 範圍分片 (Range)</text>
-    <rect x="30" y="58" width="155" height="46" rx="6" fill="#1f242c" stroke="#30363d" stroke-width="1"/>
-    <text x="107" y="78" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">[1..1000] ➔ Shard 1</text>
-    <text x="107" y="94" fill="#c9d1d9" font-size="10" font-family="monospace" text-anchor="middle">[1001..2000] ➔ Shard 2</text>
-    <text x="107" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">支援連續範圍・易生熱點</text>
-
-    <rect x="210" y="20" width="175" height="140" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
-    <text x="297" y="46" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">2. 雜湊模分片 (Hash % N)</text>
-    <rect x="220" y="58" width="155" height="46" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
-    <text x="297" y="86" fill="#f85149" font-size="11" font-family="monospace" text-anchor="middle">hash(key) % N</text>
-    <text x="297" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">極致均勻・擴容需全搬遷</text>
-
-
-    <rect x="400" y="20" width="185" height="140" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.2"/>
-    <text x="492" y="46" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">3. 一致性雜湊環</text>
-    <rect x="410" y="58" width="165" height="46" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
-    <text x="492" y="78" fill="#3fb950" font-size="10" font-family="monospace" text-anchor="middle">Hash 環 0 ~ 2^32-1</text>
-    <text x="492" y="94" fill="#56d364" font-size="10" font-family="monospace" text-anchor="middle">+ 100~200 虛擬節點</text>
-    <text x="492" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">擴容僅遷移 1/N 數據</text>
-
-
-    <rect x="600" y="20" width="180" height="140" rx="10" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
-    <text x="690" y="46" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">4. 目錄查表 (Directory)</text>
-    <rect x="610" y="58" width="160" height="46" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1"/>
-    <text x="690" y="78" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">lookup_table[key]</text>
-    <text x="690" y="94" fill="#d2a8ff" font-size="10" font-family="monospace" text-anchor="middle">➔ 指定 Shard ID</text>
-    <text x="690" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">自定義調度・靈活性最高</text>
-
-  </svg>
-</div>
+<ShardingAlgorithmMatrixDiagram />
 
 | 分片演算法                       | 核心路由公式                 | 範圍查詢支援 (Range Queries)    | 資料均勻度 (Data Distribution)             | 節點擴容再平衡成本 (Resharding)            |
 | :------------------------------- | :--------------------------- | :------------------------------ | :----------------------------------------- | :----------------------------------------- |
 | **範圍分片 (Range)**             | `key in [min, max]`          | **極佳 (天然支援連續區間掃描)** | 差 (極易產生寫入熱點與傾斜)                | 較低 (僅需分裂單個過大分區)                |
-| **雜湊模分片 (Hash % N)**        | `crc32(key) % N`             | 差 (跨多分片發散查詢)           | **極佳 (均勻散列於各節點)**                | **災難級 (N 變 N+1 時全量資料需重分佈)**   |
+| **雜湊模分片 (Hash % N)**        | `crc32(key) % N`             | 差 (跨多分片發散查詢)           | **極佳 (均勻散列於各節點)**                | **災難級 (N 變動時大量資料需重分佈)**      |
 | **一致性雜湊 (Consistent Hash)** | 虛擬節點 Hash 環尋址         | 差                              | **極佳 (透過 100~200 個虛擬節點均勻分攤)** | **極低 (僅相鄰節點受影響，搬遷 1/N 數據)** |
 | **目錄查表分片 (Directory)**     | 查詢中心配置表 `lookup(key)` | 取決於目錄配置                  | **最靈活 (可手動按租戶/地域分配)**         | **最低 (僅需修改元數據路由記錄)**          |
 
@@ -90,11 +62,11 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 - **機制**：`ShardIndex = hash(user_id) % NodeCount`。
 - **優勢**：資料被極其均勻地打散到所有節點上。
-- **致命缺陷**：一旦從 4 台節點擴容至 5 台節點，`% 4` 變成 `% 5`，**高達 80% 的歷史資料必須重新跨節點搬遷（Resharding）**！
+- **致命缺陷**：模數 `N` 就是物理節點數，**一旦擴容，絕大多數 key 的歸屬都會改變**。從 4 台擴到 5 台時，只有 `hash % 20` 落在同餘區間的 key 留在原地，約 80% 的歷史資料必須跨節點搬遷；即使是最友善的倍增擴容（4 台變 8 台），因為 `hash % 8` 對 4 取模恆等於 `hash % 4`，仍有整整 50% 的資料要搬。第 4 節的固定槽位方案就是為了拆開「模數」與「物理節點數」這層綁定。
 
 ### 2.3 一致性雜湊（Consistent Hashing with Virtual Nodes）
 
-- **機制**：將哈希空間組織為 $0 \sim 2^{32}-1$ 的閉合圓環，每個物理節點在環上映射 100~200 個虛擬節點（Virtual Nodes）。
+- **機制**：將哈希空間組織為 `0 ~ 2³²-1` 的閉合圓環，每個物理節點在環上映射 100~200 個虛擬節點（Virtual Nodes）。
 - **優勢**：新增或移除節點時，只有相鄰的數據需要遷移，其餘節點完全不受影響。
 - **代表系統**：Amazon DynamoDB、Apache Cassandra、Redis Cluster。
 
@@ -102,6 +74,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 - **機制**：維護一個中心化的路由表（通常存放在高可用 etcd 或 Redis 中），記錄 `Account_ID ➔ Shard_12` 的顯式映射。
 - **優勢**：支援業務層級的客製化調度（例如將 VIP 企業大客戶分配給專屬獨立的高效能分片）。
+- **代價**：路由表本身變成每次查詢都要碰的熱路徑與單點，必須有本地快取與變更推送機制；快取失效視窗內的舊路由會把請求打到錯誤分片，因此路由變更通常要搭配版本號與雙讀。
 
 ---
 
@@ -109,69 +82,184 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 當查詢條件未攜帶 Sharding Key 時（例如 `SELECT * FROM orders WHERE status = 'PAID'`）：
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 320" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scatter-gather-title scatter-gather-desc">
-    <title id="scatter-gather-title">分散式資料庫跨分片 Scatter-Gather 查詢架構圖</title>
-    <desc id="scatter-gather-title">展示無分片鍵查詢時，分散式中介軟體向所有底層分片平行發起 Scatter 查詢，並在記憶體中執行 Gather 聚合後返回。</desc>
-    
-    <defs>
-      <marker id="scat-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
-      </marker>
-      <marker id="scat-arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#3fb950"/>
-      </marker>
-    </defs>
-
-    <rect x="200" y="15" width="400" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="400" y="41" fill="#f0f6fc" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">SELECT * FROM orders WHERE status = 'PAID'; (無 Sharding Key)</text>
-
-
-    <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#scat-arrow)"/>
-
-
-    <rect x="150" y="90" width="500" height="50" rx="8" fill="#1f242c" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="400" y="114" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">分散式中介軟體 (Vitess / DBProxy / ShardingSphere)</text>
-    <text x="400" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">向所有分片並行散發查詢 (Scatter)</text>
-
-
-    <path d="M 230 140 L 100 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
-    <path d="M 340 140 L 300 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
-    <path d="M 460 140 L 500 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
-    <path d="M 570 140 L 700 180" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#scat-arrow)"/>
-
-
-    <rect x="20" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="100" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 1</text>
-    <rect x="220" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="300" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 2</text>
-    <rect x="420" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="500" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 3</text>
-    <rect x="620" y="185" width="160" height="42" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="700" y="211" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Shard 4</text>
-
-
-    <path d="M 100 227 L 300 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
-    <path d="M 300 227 L 360 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
-    <path d="M 500 227 L 440 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
-    <path d="M 700 227 L 500 265" stroke="#3fb950" stroke-width="1.5" marker-end="url(#scat-arrow-green)"/>
-
-
-    <rect x="200" y="270" width="400" height="40" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="400" y="295" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">記憶體聚合與排序 (Gather) ➔ 彙整結果回傳客戶端</text>
-
-  </svg>
-</div>
+<ShardScatterGatherDiagram />
 
 ### 治理原則
 
 1. **建立全局二級索引（Global Secondary Index, GSI）**：非同步將 `status ➔ order_id` 映射儲存在獨立的索引分片中。
 2. **雙分片維度設計（Dual-Write Sharding）**：例如買家維度與賣家維度透過 CDC 各自存一份分片庫，杜絕低效的 Scatter-Gather。
 
+> [!WARNING]
+> Scatter-Gather 的延遲是所有分片中最慢那個決定的，不是平均值。分片數愈多，命中長尾延遲的機率愈高；`ORDER BY ... LIMIT 20 OFFSET 10000` 更會逼迫協調層把每個分片的前 10020 筆全撈回記憶體重排。分頁請盡量改用 seek 分頁（`WHERE id > :last_id`），不要用 OFFSET。
+
 ---
 
-## 4. 總結
+## 4. 虛擬分片（Pre-Sharding）：固定邏輯槽位與無痛再平衡
+
+第 2.2 節的問題本質不是雜湊不好，而是**把路由模數綁死在物理節點數上**。虛擬分片的做法只有一句話：路由算到「邏輯槽位」為止，槽位再由一張小小的元數據表映射到物理節點。
+
+<ShardVirtualSlotRebalanceDiagram />
+
+### 4.1 槽位數要開多少
+
+Redis Cluster 的答案是 16,384 個 slot（`CRC16(key) mod 16384`）。這個數字不是隨便挑的：叢集節點間的心跳訊息要攜帶自己負責的 slot bitmap，16,384 bits 就是 2 KB，換成 65,536 個 slot 直接膨脹到 8 KB（bitmap 稀疏時壓縮也幫不上忙），而 Redis 官方認為叢集節點數實務上不會超過 1,000 台，16K 已經綽綽有餘。
+
+自建分庫分表時，同一組取捨可以歸納成三條：
+
+- **槽位數就是物理節點數的上限**。開 1,024 個 slot 代表這套架構最多只能擴到 1,024 台；一旦要突破就得重來一次全量遷移，這正是虛擬分片想避免的事。
+- **每台節點至少要拿到數十個 slot**，均分才有意義。4 台機器配 1,024 個 slot（每台 256 個）是舒服的起點；4 台配 8 個 slot 則失去彈性。
+- **槽位數建議取 2 的冪**，讓 `% 1024` 能退化成位元遮罩，同時未來倍增擴容剛好對半切區間。
+
+### 4.2 路由與再平衡
+
+```sql
+-- 路由元數據：只有槽位數量這麼多列，可以整張常駐應用層記憶體
+CREATE TABLE shard_slot_map (
+  slot_id     SMALLINT UNSIGNED NOT NULL,  -- 0 ~ 1023
+  node_id     VARCHAR(32)       NOT NULL,  -- 目前負責這個槽位的物理節點
+  state       ENUM('stable', 'migrating') NOT NULL DEFAULT 'stable',
+  target_node VARCHAR(32)       NULL,      -- 搬遷中的目的節點
+  version     BIGINT UNSIGNED   NOT NULL,  -- 每次變更遞增，供客戶端快取比對
+  PRIMARY KEY (slot_id)
+);
+```
+
+```python
+# 概念片段：應用層路由。模數永遠是 SLOT_COUNT，與物理節點數無關
+SLOT_COUNT = 1024
+
+def route(shard_key: str, slot_map: dict[int, dict]) -> str:
+    slot_id = zlib.crc32(shard_key.encode()) % SLOT_COUNT
+    slot = slot_map[slot_id]
+    # 搬遷中的槽位讀取要能容忍資料在兩邊：先問來源，miss 再問目的節點
+    return slot["node_id"] if slot["state"] == "stable" else slot["target_node"]
+```
+
+擴容時要做的事只有：挑出要搬的 slot 區間、把 `state` 改成 `migrating`、逐 slot 複製資料、驗證後把 `node_id` 指向新節點。**`% 1024` 這行程式碼從頭到尾沒有改過**，這才是「無痛」的真正來源。
+
+> [!IMPORTANT]
+> 虛擬分片解決的是再平衡成本，不解決範圍查詢。`slot_id` 是雜湊出來的亂序，時間區間掃描依然會打到所有槽位，該建全域二級索引還是要建。
+
+---
+
+## 5. 分片鍵與分散式 ID：把路由資訊寫進主鍵的代價
+
+### 5.1 Snowflake 變體與嵌入 Shard ID
+
+標準 Snowflake 的 64-bit 佈局是：1 bit 保留正負號 + 41 bit 毫秒時間戳（自訂紀元起約可用 69 年）+ 10 bit 機器識別（常拆成 5 bit 資料中心 + 5 bit 工作節點）+ 12 bit 序列號（單機單毫秒 4,096 個 ID）。
+
+常見的變體是把中間那 10 bit 改成 Shard ID 或 Tenant ID，讓「以主鍵查單筆」的請求可以直接從 ID 位元解出目標分片，完全跳過中心化查表。這在讀多寫少、以主鍵為主要存取路徑的系統上省下的是每次查詢一趟網路往返。
+
+> [!CAUTION]
+> 代價很硬：**ID 一旦嵌入物理分片編號，這筆資料就再也不能換分片**——搬過去以後 ID 會說謊。要嵌就嵌邏輯槽位（`slot_id`）而不是物理節點編號，因為 slot 與節點的映射是可以改的，slot 本身不變。這是第 4 節的槽位層在分片鍵設計上的第二個紅利。
+
+另一個容易被忽略的坑是**時鐘回撥**：NTP 校時把系統時間往回調時，同一毫秒可能重新發出已用過的序列號。生產級實作必須在偵測到 `now < last_timestamp` 時直接拒絕發號並告警，或保留備用 bit 切換到另一個邏輯時鐘序列，絕不能默默繼續發。
+
+### 5.2 複合分片鍵
+
+`tenant_id:created_at` 這類複合鍵同時處理兩個維度：`tenant_id` 保證同一租戶的資料落在同一分片（跨租戶查詢本來就不該存在），`created_at` 則讓冷熱資料能按時間階梯歸檔、舊分區直接掛到廉價儲存或整段刪除。
+
+它換來的問題是：**租戶大小天生不均**。一個佔全站 30% 流量的大客戶會把它所在的那個分片打爆，這正是下一節要處理的事。
+
+---
+
+## 6. 跨分片交易：2PC、TCC、Saga 與 Outbox
+
+分庫分表之後，「扣 A 分片的餘額、加 B 分片的餘額」不再是一個本地交易。
+
+<CrossShardTransactionStrategiesDiagram />
+
+### 6.1 為什麼高併發場景放棄 2PC
+
+XA / 兩階段提交在語意上最乾淨，但代價集中在一個地方：**鎖的持有時間從「本地交易時長」變成「網路往返時長」**。Prepare 階段各分片就已經上鎖，要一直握到協調者收齊全部投票並廣播 Commit 為止。只要有一個分片 GC 停頓或網路抖動，所有參與者的鎖都跟著延長，Tail Latency 直接被最慢的那個節點決定。更糟的是協調者在 Prepare 之後、Commit 之前崩潰，參與者會卡在 in-doubt 狀態，鎖不釋放也不能自行決定——這時候只能等協調者恢復或人工介入。
+
+結論很直接：2PC 適合低頻、強一致、可以接受高延遲的後台作業（對帳、批次結算），不適合放在線上交易路徑。
+
+### 6.2 TCC 與 Saga 的分工
+
+**TCC（Try-Confirm-Cancel）** 用業務層的「預留」取代資料庫層的鎖：Try 階段凍結庫存或凍結額度（資料寫進去但對外不可見），全部成功才 Confirm 轉正，任一失敗就 Cancel 釋放。它比 Saga 多一層隔離性，代價是每個參與方都要實作三個介面，而且必須自己處理三個經典異常——**空回滾**（Try 還沒到就先收到 Cancel）、**懸掛**（Cancel 先於 Try 抵達，Try 之後不能再執行）、**重複請求的冪等**。
+
+**Saga** 更輕：正向交易一路做下去，失敗時反向執行語意補償。要注意補償不是回滾——退款不是「撤銷扣款」，它是一筆新的、會被對帳系統看見的業務事實。Saga 沒有隔離性，中間狀態對外可見，訂單可能短暫出現「已付款但庫存未扣」，這要靠業務層的狀態機與前端展示規則吸收。
+
+### 6.3 Outbox Pattern + CDC
+
+前兩者處理的是「多個分片的業務動作」；Outbox 處理的是另一個問題：**寫資料庫和發訊息不能放在同一個交易裡**。直接在本地交易後面呼叫 `kafka.send()`，交易提交成功而訊息發送失敗（或反過來）就產生了不一致。
+
+```sql
+-- 業務表與事件表在同一個分片、同一個本地交易內寫入
+BEGIN;
+  UPDATE orders SET status = 'PAID' WHERE order_id = 10086;
+  INSERT INTO outbox (event_id, aggregate_id, event_type, payload, created_at)
+  VALUES (UUID(), 10086, 'OrderPaid', '{"order_id":10086}', NOW(6));
+COMMIT;
+-- 之後由 Debezium 讀 binlog，把 outbox 的新增列投遞到 Kafka
+```
+
+因為兩張表在同一個分片內，本地交易的原子性就足夠保證「業務改了，事件一定也在」。Debezium 讀取 binlog 把 outbox 的新增列投遞到 Kafka，下游再去更新全域二級索引或異構讀庫。代價是投遞語意為「至少一次」，**消費端必須冪等**（用 `event_id` 建去重表），以及要多維運一條 CDC 管線與它的複製延遲。
+
+---
+
+## 7. 資料傾斜與熱點鍵（Celebrity Key）防禦
+
+雜湊分片保證的是**鍵的數量**均勻，不保證**每個鍵的流量**均勻。一個百萬粉絲的帳號、一場大促銷的活動 ID，都是單一 key 打爆單一分片的典型。
+
+<ShardHotspotSaltingDiagram />
+
+### 7.1 先量測，再加鹽
+
+鹽化（Salting）是在分片鍵後追加隨機後綴，把 `user_123` 拆成 `user_123#0` ~ `user_123#9`，寫入均勻打散到 10 個桶，讀取時併發查全部 10 個桶再聚合：
+
+```python
+# 寫入：隨機挑一個桶，寫入吞吐放大 SALT_BUCKETS 倍
+SALT_BUCKETS = 10
+write(f"{user_id}#{random.randrange(SALT_BUCKETS)}", event)
+
+# 讀取：扇出查詢所有桶再合併，讀放大也是 SALT_BUCKETS 倍
+rows = merge(read(f"{user_id}#{i}") for i in range(SALT_BUCKETS))
+```
+
+這筆交易的方向很明確：**用讀放大換寫入吞吐**。它適合寫多讀少、且讀取可以接受聚合的場景（計數器、流水、時間線寫入）；不適合需要以單鍵做強一致讀或條件更新的場景，因為跨桶已經沒有原子性可言。
+
+真正的前提是**要先知道誰是熱點**。沒有 proxy 層或中介軟體的 per-key QPS 取樣，加鹽只是憑感覺對某幾個 key 動手；而熱點會隨活動與時間漂移，靜態寫死的鹽化清單很快就會過期。務實的做法是把熱點名單放進可熱更新的配置，由監控觸發而不是寫死在程式碼裡。
+
+### 7.2 分級路由（Tiered Routing）
+
+另一條路是承認租戶天生不平等，直接分層調度：長尾租戶走 `crc32(key) % 1024` 進共用雜湊分片池，簽了 SLA 的大型 VIP 租戶走目錄查表導向專屬的高規格實體節點。
+
+這其實是第 1 節「雜湊」與「目錄」兩種演算法的混用，而不是二選一。它的好處不只是效能隔離，還有維運上的：大租戶的備份、升級、故障影響範圍都被關在自己的節點裡，不會波及其他人。代價是路由邏輯多一個分支，而且「什麼時候把一個租戶從共用池升級成專屬節點」變成一個需要有人負責的營運決策。
+
+---
+
+## 8. 零停機線上遷移（Live Migration）四步法
+
+不論是換分片演算法、槽位再平衡，還是把大租戶搬去專屬節點，實際執行的流程都是同一套。
+
+<ShardLiveMigrationDiagram />
+
+**步驟一 · 雙寫（Dual-Write）**：應用層或 Proxy 對新舊分片同時寫入。新庫的寫入失敗只告警不阻斷主流程——這個階段新庫還沒有任何流量依賴它，讓它拖垮線上寫入是本末倒置。
+
+**步驟二 · 回填（Backfill）**：離線批次依主鍵分批掃描舊庫寫入新庫。**唯一的關鍵是不能蓋掉雙寫寫進去的新資料**：以 `updated_at` 或版本號比對，只在新庫該列版本較舊時才覆蓋。分批大小要控制在不影響線上讀的範圍，通常搭配限速。
+
+**步驟三 · 校驗與 CDC 追平（Verify）**：回填期間累積的增量落差由 CDC 追齊，再執行全量 checksum 分批比對加抽樣逐欄 diff。這個階段可以另外開一條**影子讀**：線上讀仍以舊庫結果回應，同時非同步讀新庫比對，把差異記成指標——它比離線 checksum 更能反映真實查詢路徑上的問題。
+
+**步驟四 · 切換（Cutover）**：讀流量灰度切至新分片，1% ➔ 10% ➔ 100%，每一級都留觀察期。全量讀切換後再觀察一段時間，最後才停用舊庫寫入，把雙寫降級為單寫。
+
+> [!IMPORTANT]
+> 這四步的順序有一個不能動的原則：**舊庫的寫入是最後才關的**。在關掉它之前，任何一級灰度出問題都只要把讀流量切回舊庫就能秒回，因為舊庫的資料一直是完整的。一旦提前關掉雙寫，回滾就變成一次反向資料遷移——那是事故，不是回滾。
+
+---
+
+## 9. 總結
+
+**先選演算法**：
 
 - **時間序列日誌與時序數據**：採用 **Range 分片**（搭配生命週期自動歸檔刪除）。
 - **大規模分散式 NoSQL KV**：採用 **一致性雜湊（Consistent Hashing）**。
-- **傳統大型電商/SaaS 業務分庫分表**：採用 **Hash 分片（預先分配 1024 邏輯分片）** 或 **目錄查表**，從根本上避免擴容搬遷之苦。
+- **傳統大型電商/SaaS 業務分庫分表**：採用 **雜湊分片搭配 1,024 個固定邏輯槽位**，並為大租戶保留目錄查表的分級路由旁路。
+
+**再處理落地細節**，這四件事決定專案會不會在上線半年後翻車：
+
+1. **路由模數綁定的是槽位數，不是物理節點數**——否則每次擴容都是一場全量遷移。
+2. **要嵌進主鍵的是邏輯槽位，不是物理分片編號**——嵌了物理編號等於宣告這筆資料永遠不能搬。
+3. **線上路徑用 Saga / TCC / Outbox，2PC 留給低頻後台作業**——鎖持有時間從本地交易長度變成網路 RTT 是高併發承受不起的。
+4. **遷移時舊庫的寫入最後才關**——它是整段流程唯一的回滾保險。
