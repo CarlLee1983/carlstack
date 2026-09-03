@@ -151,7 +151,7 @@ Calico 將叢集中的**每一個 Worker Node 都視為一台標準的 BGP 路�
 
 在大規模 Kubernetes 叢集中（例如包含 5,000 個 Service 與 20,000 個 Pod），傳統基於 `kube-proxy + iptables` 的網路面臨毀滅性效能瓶頸：
 
-- iptables 本質是一條**單向線性鏈表**，每次資料包到達都需要進行 $O(N)$ 線性遍歷；
+- iptables 本質是一條**單向線性鏈表**，每次資料包到達都需要進行 `O(N)` 線性遍歷；
 - 規則更新時需要全量刷新鎖，引發頻繁的 CPU 內核態飆升。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
@@ -190,7 +190,7 @@ Calico 將叢集中的**每一個 Worker Node 都視為一台標準的 BGP 路�
 
 ### Cilium 的顛覆性價值
 
-1. **$O(1)$ 查找複雜度**：透過 eBPF Map 實現微秒級轉發，即便叢集有 10 萬個 Service，效能依然平穩如一。
+1. **`O(1)` 查找複雜度**：透過 eBPF Map 實現微秒級轉發，即便叢集有 10 萬個 Service，效能依然平穩如一。
 2. **無 Sidecar 服務網格（Ambient Mesh / Service Mesh without Sidecars）**：直接在節點內核層透過 eBPF 攔截 HTTP/gRPC 流量並提供 mTLS 加密與 L7 可觀測性，徹底省去每個 Pod 注入 Envoy Sidecar 所消耗的巨量記憶體！
 
 ---

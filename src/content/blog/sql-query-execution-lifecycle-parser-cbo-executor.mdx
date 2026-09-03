@@ -104,7 +104,7 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 1. **System-R 演算法與動態規劃（Bottom-Up DP）**：
    - 由 IBM System-R（Selinger et al., 1979）奠基，確立了關聯式代價估算與動態規劃演算法。
-   - 採用**由下而上（Bottom-Up）**搜尋：先評估單表的最佳存取路徑（Access Path，如 Seq Scan vs. Index Scan），再計算兩表連接的最優解，逐步擴展至 $N$ 表連接。
+   - 採用**由下而上（Bottom-Up）**搜尋：先評估單表的最佳存取路徑（Access Path，如 Seq Scan vs. Index Scan），再計算兩表連接的最優解，逐步擴展至 `N` 表連接。
    - 透過維護**有趣順序（Interesting Orders）**（例如 ORDER BY 或 GROUP BY 依賴的排序狀態），避免過早淘汰雖然代價略高但輸出帶有排序的計畫分支。
 2. **Volcano / Cascades 框架（Top-Down Rule-Driven）**：
    - 由 Goetz Graefe 等人提出的 Volcano 與 Cascades 框架，成為現代分散式與開源資料庫（如 Apache Calcite、CockroachDB、Greenplum）的架構基石。
@@ -115,7 +115,7 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 CBO 的估算準確度完全取決於統計資訊。傳統代價模型建立在一個基礎假設上：
 
-> **屬性值獨立性假設（Attribute Value Independence, AVI）**：假設資料表內不同欄位之間的取值機率互相獨立。即 $P(A \cap B) = P(A) \times P(B)$。
+> **屬性值獨立性假設（Attribute Value Independence, AVI）**：假設資料表內不同欄位之間的取值機率互相獨立。即 `P(A ∩ B) = P(A) × P(B)`。
 
 然而在現實業務場景中，欄位間往往存在強烈關聯性：
 
@@ -124,7 +124,7 @@ CBO 的估算準確度完全取決於統計資訊。傳統代價模型建立在�
 SELECT * FROM cars WHERE make = 'Audi' AND model = 'A4';
 ```
 
-若資料表中 Audi 佔 2%（$P = 0.02$），A4 也佔 2%（$P = 0.02$），在 AVI 假設下，優化器估算出的選擇率為 $0.02 \times 0.02 = 0.0004$（0.04%），預估回傳極少資料列，因而激進地選擇了 **Nested Loop Join** 或 **Index Scan**。但實際上所有 A4 全是 Audi，實際選擇率依然接近 2%，導致預估值嚴重低估 50 倍，引發災難性的效能倒退。
+若資料表中 Audi 佔 2%（`P = 0.02`），A4 也佔 2%（`P = 0.02`），在 AVI 假設下，優化器估算出的選擇率為 `0.02 × 0.02 = 0.0004`（0.04%），預估回傳極少資料列，因而激進地選擇了 **Nested Loop Join** 或 **Index Scan**。但實際上所有 A4 全是 Audi，實際選擇率依然接近 2%，導致預估值嚴重低估 50 倍，引發災難性的效能倒退。
 
 **解決方案：多欄位擴充統計資訊（Extended Statistics）**
 現代資料庫（如 PostgreSQL）支援建立多欄位聯合統計，捕捉跨欄位依賴性與多欄位頻次分佈：
@@ -137,7 +137,7 @@ ON make, model FROM cars;
 ANALYZE cars;
 ```
 
-透過顯式收集跨欄位函數相依性（Functional Dependencies）與多欄位相異值計數（$N$-Distinct），修正 AVI 誤差。
+透過顯式收集跨欄位函數相依性（Functional Dependencies）與多欄位相異值計數（`N`-Distinct），修正 AVI 誤差。
 
 ### 3.4 經典邏輯與物理優化技術
 

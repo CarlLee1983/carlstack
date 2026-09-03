@@ -74,7 +74,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 2.1 實作架構
 
-1. **二叉最大堆（Binary Max-Heap）/ 跳躍表**：在記憶體中維護優先級堆，時間複雜度為 $O(\log N)$。
+1. **二叉最大堆（Binary Max-Heap）/ 跳躍表**：在記憶體中維護優先級堆，時間複雜度為 `O(log N)`。
 2. **多優先級物理桶分流（Multi-bucket Routing - 推薦）**：建立 3 個獨立的物理佇列（`queue_high`, `queue_med`, `queue_low`），消費者採用加權輪詢（例如以 7:2:1 的比例從三個佇列拉取任務）。
 
 ### 2.2 防飢餓機制（Starvation Prevention / Aging）
@@ -129,7 +129,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
   </svg>
 </div>
 
-- **添加任務**：計算目標 Slot 與輪數（`Round = delay / 60`），將任務掛入對應 Slot 的雙向鏈表，時間複雜度為 **$O(1)$**！
+- **添加任務**：計算目標 Slot 與輪數（`Round = delay / 60`），將任務掛入對應 Slot 的雙向鏈表，時間複雜度為 **`O(1)`**！
 - **執行任務**：指針每走一格，檢查當前 Slot 的鏈表，將 `Round == 0` 的任務取出執行，其餘任務 `Round -= 1`。
 
 ### 3.2 Redis Sorted Set（ZSet）延時佇列實作

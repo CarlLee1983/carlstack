@@ -57,7 +57,7 @@ Transformer 模型在生成文本時，每個 Request 都必須經歷兩個截�
 Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V
 ```
 
-在自回歸解碼（Autoregressive Decoding）過程中，每生成一個新 Token，模型需要與歷史上所有的 Token 計算注意力。為了避免重複計算歷史 Token 的 Key 和 Value 向量，系統會將歷史各層的 $K$ 與 $V$ 矩陣快取在顯存中——這就是 **KV Cache**。
+在自回歸解碼（Autoregressive Decoding）過程中，每生成一個新 Token，模型需要與歷史上所有的 Token 計算注意力。為了避免重複計算歷史 Token 的 Key 和 Value 向量，系統會將歷史各層的 `K` 與 `V` 矩陣快取在顯存中——這就是 **KV Cache**。
 
 ### 1.2 KV Cache 顯存容量估算公式
 

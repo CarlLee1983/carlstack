@@ -112,7 +112,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ## 3. 一致性雜湊（Consistent Hashing）與虛擬節點
 
-在快取系統（Memcached / Redis）或分庫分表路由中，傳統的模數雜湊 `hash(key) % N` 存在致命缺陷：**當節點數量 $N$ 發生增減時，幾乎 100% 的快取鍵都需要重新映射**，引發毀滅性的快取雪崩。
+在快取系統（Memcached / Redis）或分庫分表路由中，傳統的模數雜湊 `hash(key) % N` 存在致命缺陷：**當節點數量 `N` 發生增減時，幾乎 100% 的快取鍵都需要重新映射**，引發毀滅性的快取雪崩。
 
 ### 3.1 一致性雜湊環原理
 

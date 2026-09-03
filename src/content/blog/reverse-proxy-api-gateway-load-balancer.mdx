@@ -155,7 +155,7 @@ API Gateway 專門為解決微服務生態中的複雜通訊而生：
 
 ### 1. 權杖桶演算法（Token Bucket）
 
-- **原理**：系統以固定速率 $r$ 向容量為 $b$ 的桶中放入 Token。每個請求必須獲取 1 個 Token 才能被處理；桶滿時 Token 溢出丟棄。
+- **原理**：系統以固定速率 `r` 向容量為 `b` 的桶中放入 Token。每個請求必須獲取 1 個 Token 才能被處理；桶滿時 Token 溢出丟棄。
 - **特點**：**允許一定程度的突發流量（Traffic Burst）**。只要桶內有累積 Token，突發請求可以立即被放行。
 - **應用**：Envoy、Guava RateLimiter、AWS API Gateway 主力演算法。
 

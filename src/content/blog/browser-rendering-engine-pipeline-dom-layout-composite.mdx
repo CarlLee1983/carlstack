@@ -97,7 +97,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 2.4 階段四：版面配置與排版（Layout / Reflow 重排）
 
-- 根據可視區域（Viewport）尺寸，精確計算 Render Tree 中每個幾何節點在螢幕上的**確切物理座標（$X, Y$）與寬高尺寸（Width, Height）**。
+- 根據可視區域（Viewport）尺寸，精確計算 Render Tree 中每個幾何節點在螢幕上的**確切物理座標（X, Y）與寬高尺寸（Width, Height）**。
 - **重排（Reflow）觸發條件**：增加/刪除 DOM 節點、修改元素幾何屬性（`width`、`height`、`padding`、`margin`、`font-size`）、調整視窗大小（Resize）、或呼叫讀取幾何屬性的 API（如 `offsetWidth`、`getBoundingClientRect`）。
 
 ### 2.5 階段五：繪製列表與光柵化（Paint & Raster）
@@ -108,7 +108,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ### 2.6 階段六：圖層合成（Layer Compositing）
 
 - 將整個頁面拆分為多個獨立的**圖層（Compositing Layers / RenderLayers）**。
-- 專屬合成執行緒（Compositor Thread）協同 GPU，將不同圖層按照正確的層疊順序（$Z$-index）在 GPU 顯存中合成，最終輸出到螢幕顯示器上。
+- 專屬合成執行緒（Compositor Thread）協同 GPU，將不同圖層按照正確的層疊順序（Z-index）在 GPU 顯存中合成，最終輸出到螢幕顯示器上。
 
 ---
 

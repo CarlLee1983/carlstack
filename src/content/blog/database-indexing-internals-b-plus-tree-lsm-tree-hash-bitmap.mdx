@@ -168,13 +168,13 @@ B+ Tree 是一種多路平衡搜尋樹，專為磁碟與區塊儲存設備而設
 
 ### 4.1 Hash 索引
 
-- **原理**：透過雜湊表以 $O(1)$ 時間複雜度直接定位資料指標。
+- **原理**：透過雜湊表以 `O(1)` 時間複雜度直接定位資料指標。
 - **極限**：**完全不支援任何範圍查詢、排序（`ORDER BY`）或模糊查詢（`LIKE 'abc%'`）**。僅適用於 Memory 儲存引擎或 Redis 鍵值查找。
 
 ### 4.2 Bitmap（位圖）索引與 Roaring Bitmap
 
 - **適用場景**：**低基數（Low Cardinality）欄位**（如性別、是否付費、國家代碼、商品類別）。
-- **運作原理**：為每個枚舉值建立一個位元陣列（Bit Array），第 $i$ 個位元為 1 表示第 $i$ 行滿足條件。
+- **運作原理**：為每個枚舉值建立一個位元陣列（Bit Array），第 `i` 個位元為 1 表示第 `i` 行滿足條件。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg

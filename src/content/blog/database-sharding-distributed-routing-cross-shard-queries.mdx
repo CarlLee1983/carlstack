@@ -80,7 +80,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 2.2 雜湊分片（Hash-based Sharding）
 
-- **機制**：透過 `hash(sharding_key) % N` 將資料均勻散列至 $N$ 個分片庫中（例如 `user_id % 16`）。
+- **機制**：透過 `hash(sharding_key) % N` 將資料均勻散列至 `N` 個分片庫中（例如 `user_id % 16`）。
 - **優點**：寫入流量與資料容量在各分片間**絕對均勻分佈**，完全消除單點熱點。
 - **缺點**：當未來需要由 16 個庫擴容至 32 個庫時，必須進行大規模的資料重新雜湊與遷移（通常採用翻倍擴容法加平滑雙寫減少衝擊）。
 
@@ -129,10 +129,10 @@ Sharding Key（分片鍵）的選擇直接決定了系統的生死存亡：
 
 ### 5.1 散彈廣播與歸併排序（Scatter-Gather Merge）
 
-1. 中介軟體向所有 $N$ 個分片庫並行發送查詢：
+1. 中介軟體向所有 `N` 個分片庫並行發送查詢：
    `SELECT * FROM orders ORDER BY score DESC LIMIT 0, 1010;`
    （每個分片都必須取出前 1010 筆資料）。
-2. 中介軟體在記憶體中收集 $N \times 1010$ 筆資料，進行全域**多路歸併排序（Merge Sort）**。
+2. 中介軟體在記憶體中收集 `N × 1010` 筆資料，進行全域**多路歸併排序（Merge Sort）**。
 3. 丟棄前面的 1000 筆，僅回傳最後 10 筆。
 
 > [!WARNING]

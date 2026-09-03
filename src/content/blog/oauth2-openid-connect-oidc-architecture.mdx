@@ -159,13 +159,13 @@ Access Token 為了安全通常設定極短的存活時間（例如 10~15 分鐘
 
 然而，若 Refresh Token 不慎在傳輸中被中間人竊取，攻擊者便能在過期前無限制獲取權限。**Refresh Token Rotation（RTR, RFC 6819）** 是防禦此類攻擊的核心機制：
 
-1. **每次使用即作廢（One-Time Use）**：每次客戶端發送 Refresh Token $RT_1$ 換取新 Access Token 時，授權伺服器會**同時註銷 $RT_1$ 並核發全新的 $RT_2$**。
-2. **家族關聯鏈（Token Family Tree）**：授權伺服器維護同一登入會話的 Token 演進鏈條（$RT_1 \to RT_2 \to RT_3$）。
+1. **每次使用即作廢（One-Time Use）**：每次客戶端發送 Refresh Token `RT1` 換取新 Access Token 時，授權伺服器會**同時註銷 `RT1` 並核發全新的 `RT2`**。
+2. **家族關聯鏈（Token Family Tree）**：授權伺服器維護同一登入會話的 Token 演進鏈條（`RT1 → RT2 → RT3`）。
 3. **重放攻擊檢測與全量撤銷（Automatic Invalidation）**：
-   - 假設攻擊者竊取了 $RT_1$。
-   - 正當客戶端先使用了 $RT_1$ 換取了 $RT_2$。
-   - 隨後攻擊者嘗試再次使用已作廢的 $RT_1$ 進行請求。
-   - 授權伺服器一旦偵測到**已失效的 Token 被重複提交**，立即觸發安全警報，將該家族鏈條下的**所有 Token（包含合法使用者手中的 $RT_2$）全數撤銷並強制重新登入**。
+   - 假設攻擊者竊取了 `RT1`。
+   - 正當客戶端先使用了 `RT1` 換取了 `RT2`。
+   - 隨後攻擊者嘗試再次使用已作廢的 `RT1` 進行請求。
+   - 授權伺服器一旦偵測到**已失效的 Token 被重複提交**，立即觸發安全警報，將該家族鏈條下的**所有 Token（包含合法使用者手中的 `RT2`）全數撤銷並強制重新登入**。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 200" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rtr-diag-title rtr-diag-desc">

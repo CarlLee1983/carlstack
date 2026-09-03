@@ -76,7 +76,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 1. **關閉狀態（CLOSED - 正常流通）**：
    - 所有業務請求正常發送至下游服務。
    - 斷路器內部維護一個**滑動視窗（Sliding Window）**，持續統計過去一段時間內的請求總數、失敗率與慢呼叫比例。
-   - 若失敗率超過預設閾值（例如過去 100 次呼叫中失敗率 $\ge 50\%$），狀態機立即切換至 **OPEN**。
+   - 若失敗率超過預設閾值（例如過去 100 次呼叫中失敗率 `≥ 50%`），狀態機立即切換至 **OPEN**。
 2. **開啟狀態（OPEN - 熔斷阻斷）**：
    - 所有後續請求**完全不會發往遠端下游服務**。
    - 斷路器直接在本地拋出 `CallNotPermittedException` 或執行預設的降級邏輯（Fallback），耗時幾乎為 0 毫秒。
@@ -92,8 +92,8 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 現代斷路器（如 **Resilience4j**）淘汰了 Netflix Hystrix 早期的執行緒池隔離與 1 秒桶滾動計數，改為基於環形緩衝區（Ring Bit Buffer）的滑動視窗統計：
 
-- **基於計數的滑動視窗（Count-based Sliding Window）**：記錄最近 $N$ 次請求的結果（例如 100 次）。記憶體固定，不受請求頻率影響。
-- **基於時間的滑動視窗（Time-based Sliding Window）**：記錄最近 $T$ 秒內（例如 60 秒）的請求結果，劃分為多個小時間桶進行滑動衰減。
+- **基於計數的滑動視窗（Count-based Sliding Window）**：記錄最近 `N` 次請求的結果（例如 100 次）。記憶體固定，不受請求頻率影響。
+- **基於時間的滑動視窗（Time-based Sliding Window）**：記錄最近 `T` 秒內（例如 60 秒）的請求結果，劃分為多個小時間桶進行滑動衰減。
 
 ---
 
@@ -103,10 +103,10 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 3.1 流量放大效應
 
-假設調用鏈長度為 3 層（$A \to B \to C$），每層預設重試 3 次。當底層服務 $C$ 出現抖動時：
+假設調用鏈長度為 3 層（`A → B → C`），每層預設重試 3 次。當底層服務 `C` 出現抖動時：
 
-- 服務 $B$ 對 $C$ 重試 3 次；
-- 服務 $A$ 對 $B$ 也重試 3 次，進一步觸發 $3 \times 3 = 9$ 次對 $C$ 的呼叫。
+- 服務 `B` 對 `C` 重試 3 次；
+- 服務 `A` 對 `B` 也重試 3 次，進一步觸發 `3 × 3 = 9` 次對 `C` 的呼叫。
 
 若所有請求在同一秒內同時發起重試，**下游承載的 QPS 將被瞬間放大 3~10 倍**，將原先只是輕微抖動的資料庫徹底打死，永無自癒可能！
 

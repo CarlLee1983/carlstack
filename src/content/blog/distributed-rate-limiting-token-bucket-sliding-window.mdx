@@ -44,7 +44,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 ### 2.2 滑動視窗計數器（Sliding Window Counter）
 
-為了在維持 $O(1)$ 極低記憶體開銷的同時解決邊界突刺問題，Cloudflare 提出了滑動視窗權重近似演算法：
+為了在維持 `O(1)` 極低記憶體開銷的同時解決邊界突刺問題，Cloudflare 提出了滑動視窗權重近似演算法：
 
 - **當前滑動 1 分鐘內的估計請求總數**：
   `Requests = C_prev * (1 - 0.3) + C_curr`
@@ -111,7 +111,7 @@ end
 
 > [!TIP]
 > **惰性補償機制（Lazy Replenishment）**  
-> 程式不需要在背景跑定時器去持續加 Token，而是在每次請求進來時，透過 `(now - last_updated) * rate` 算式動態補齊 Token，將時間與空間複雜度完美壓低至 $O(1)$！
+> 程式不需要在背景跑定時器去持續加 Token，而是在每次請求進來時，透過 `(now - last_updated) * rate` 算式動態補齊 Token，將時間與空間複雜度完美壓低至 `O(1)`！
 
 ---
 

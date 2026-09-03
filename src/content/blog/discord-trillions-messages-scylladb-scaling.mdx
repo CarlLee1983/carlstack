@@ -133,7 +133,7 @@ async fn get_messages(&self, channel_id: ChannelId, bucket: BucketId) -> Result<
 - **查詢完成時**：Leader 獲取資料並同時廣播給所有等待中的協程，隨後更新本地短效快取。
 
 > [!TIP]
-> **削峰成果**：Request Coalescing 成功將極端熱點場景下的資料庫負載從 $O(N)$ 降至 $O(1)$，消除了 99% 以上的重複查詢與 I/O 爭用。
+> **削峰成果**：Request Coalescing 成功將極端熱點場景下的資料庫負載從 `O(N)` 降至 `O(1)`，消除了 99% 以上的重複查詢與 I/O 爭用。
 
 ---
 
@@ -159,7 +159,7 @@ async fn get_messages(&self, channel_id: ChannelId, bucket: BucketId) -> Result<
 | **節點數量**        | 177 台大規模節點                      | 72 台（後續縮減至更少）                        |
 | **運行環境**        | Java JVM（受 Stop-the-world GC 影響） | C++ Seastar（零 GC、Thread-per-core）          |
 | **P99 讀取延遲**    | 偶發飆升至數秒至數十秒                | 穩定低於 **15ms**                              |
-| **熱點防護能力**    | 無，極端流量直接衝擊底層磁碟          | **Request Coalescing** 將重複查詢壓制至 $O(1)$ |
+| **熱點防護能力**    | 無，極端流量直接衝擊底層磁碟          | **Request Coalescing** 將重複查詢壓制至 `O(1)` |
 | **維運成本 (Toil)** | 極高（修復慢、節點重平衡耗時長）      | 低（硬體利用率高、無 JVM 調優負擔）            |
 
 ### 給高併發分散式架構師的 3 個核心法則

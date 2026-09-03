@@ -83,8 +83,8 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 Flink 引入了 **Watermark（水位線）** 機制：
 
-- 水位線是一種特殊的控制事件，攜帶時間戳 $t$。
-- 當 Watermark($t$) 到達時，代表引擎判定：**所有 Event Time $\le t$ 的資料均已被接收完畢，可以安全觸發視窗計算！**
+- 水位線是一種特殊的控制事件，攜帶時間戳 `t`。
+- 當 Watermark(`t`) 到達時，代表引擎判定：**所有 Event Time `≤ t` 的資料均已被接收完畢，可以安全觸發視窗計算！**
 - **延遲容忍（Allowed Lateness）**：若在 Watermark 推進後仍有極端遲到的資料到達，Flink 支援透過側輸出流（Side Output）將其捕獲至死信隊列，避免資料丟失。
 
 ---

@@ -33,7 +33,7 @@ HTTP/1.1 是純文字（ASCII-based）協定，雖然引入了 `Keep-Alive` 機�
 
 ### 什麼是應用層隊頭阻塞（Application HoL Blocking）？
 
-在單一 TCP 連線上，客戶端發送請求 $A$ 後，必須等待伺服器完整回傳回應 $A$，才能發送請求 $B$。如果請求 $A$ 是一個耗時 2 秒的複雜資料庫查詢，後續所有只需 5 毫秒的靜態 CSS/JS 請求都會被硬生生卡在隊伍後方。
+在單一 TCP 連線上，客戶端發送請求 `A` 後，必須等待伺服器完整回傳回應 `A`，才能發送請求 `B`。如果請求 `A` 是一個耗時 2 秒的複雜資料庫查詢，後續所有只需 5 毫秒的靜態 CSS/JS 請求都會被硬生生卡在隊伍後方。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="h1-hol-title h1-hol-desc">

@@ -36,7 +36,7 @@ Pinterest 的工程團隊就曾面臨極其嚴峻的 CI/CD 瓶頸：每當自動
 整體優化可以分為四個維度：
 
 1. **問題根因定位**：發現耗時並非卡在網路頻寬下載，而是卡在 Git 伺服器與客戶端在「物件協商」階段的拓撲遍歷計算。
-2. **Commit-Graph 二進位加速**：利用二進位表與生成序號（Generation Numbers）將拓撲遍歷的複雜度從 $O(N)$ 降至 $O(\log N)$。
+2. **Commit-Graph 二進位加速**：利用二進位表與生成序號（Generation Numbers）將拓撲遍歷的複雜度從 `O(N)` 降至 `O(log N)`。
 3. **單行自動寫入配置**：在客戶端與 CI Runner 開啟 `fetch.writeCommitGraph = true`。
 4. **現代物件過濾組合拳**：結合 Blobless (`--filter=blob:none`) 與 Treeless (`--filter=tree:0`) Clone 進一步削減網路傳輸。
 
