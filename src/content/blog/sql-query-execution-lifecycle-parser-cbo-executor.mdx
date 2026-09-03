@@ -2,6 +2,7 @@
 title: "SQL 語句底層執行之旅：Parser 抽象語法樹、CBO/RBO 查詢優化器到火山模型執行器"
 description: "深度拆解關係型資料庫（PostgreSQL / MySQL）內核引擎核心：當你向資料庫發送一條 SQL 查詢，底層究竟經歷了什麼？詞法語法解析（Lexer & Parser）、抽象語法樹（AST）、基於成本的查詢優化器（CBO vs. RBO）、火山模型執行器（Volcano Iterator Model）與向量化執行全景實戰。"
 publishDate: 2026-09-02T17:40:00+08:00
+updatedDate: 2026-09-03T11:00:00+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/sql-query-execution-lifecycle-parser-cbo-executor.png
@@ -21,7 +22,7 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 為什麼有時候資料庫會「選錯索引」？為什麼同樣的 JOIN 順序不同，執行耗時相差 1000 倍？
 
-本文將帶你沿著一條 SQL 語句的完整生命週期，由淺入深拆解資料庫內核四大核心模組：**解析器（Parser）**、**重寫器（Rewriter）**、**優化器（Optimizer）** 與 **執行器（Executor）**。
+本文將帶你沿著一條 SQL 語句的完整生命週期，由淺入深拆解資料庫內核四大核心模組：**解析器（Parser）**、**重寫器（Rewriter）**、**優化器（Optimizer）** 與 **執行器（Executor）**，並延伸探討優化器框架演進、統計資訊失真陷阱與現代硬體導向的執行模型。
 
 ---
 
@@ -97,17 +98,65 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
 
 `Cost = (磁碟頁數 × page_io_cost) + (資料列數 × cpu_tuple_cost)`
 
-### 3.2 經典優化技術
+### 3.2 查詢優化器演進：從 System-R 到 Volcano / Cascades
+
+現代資料庫優化器的設計並非一蹴可幾，經歷了數十年架構演進：
+
+1. **System-R 演算法與動態規劃（Bottom-Up DP）**：
+   - 由 IBM System-R（Selinger et al., 1979）奠基，確立了關聯式代價估算與動態規劃演算法。
+   - 採用**由下而上（Bottom-Up）**搜尋：先評估單表的最佳存取路徑（Access Path，如 Seq Scan vs. Index Scan），再計算兩表連接的最優解，逐步擴展至 $N$ 表連接。
+   - 透過維護**有趣順序（Interesting Orders）**（例如 ORDER BY 或 GROUP BY 依賴的排序狀態），避免過早淘汰雖然代價略高但輸出帶有排序的計畫分支。
+2. **Volcano / Cascades 框架（Top-Down Rule-Driven）**：
+   - 由 Goetz Graefe 等人提出的 Volcano 與 Cascades 框架，成為現代分散式與開源資料庫（如 Apache Calcite、CockroachDB、Greenplum）的架構基石。
+   - 採用**由上而下（Top-Down）**目標驅動搜尋，並引入關鍵的 **Memo 資料結構**：將查詢計畫劃分為多個等價組（Equivalence Class / Group），每個 Group 代表產出相同邏輯結果的計畫集合，群組內包含多個等價的邏輯或物理 Group Expression。
+   - 結合 **分枝界限法（Branch-and-Bound Pruning）**：在搜尋過程中動態維護已知最低成本（Current Best Cost）；一旦某個子樹分支的下限代價超過該閾值，立即進行剪枝，極大收斂搜索空間。
+
+### 3.3 統計資訊失真與獨立性假設陷阱
+
+CBO 的估算準確度完全取決於統計資訊。傳統代價模型建立在一個基礎假設上：
+
+> **屬性值獨立性假設（Attribute Value Independence, AVI）**：假設資料表內不同欄位之間的取值機率互相獨立。即 $P(A \cap B) = P(A) \times P(B)$。
+
+然而在現實業務場景中，欄位間往往存在強烈關聯性：
+
+```sql
+-- 汽車製造商與車型存在強相依性
+SELECT * FROM cars WHERE make = 'Audi' AND model = 'A4';
+```
+
+若資料表中 Audi 佔 2%（$P = 0.02$），A4 也佔 2%（$P = 0.02$），在 AVI 假設下，優化器估算出的選擇率為 $0.02 \times 0.02 = 0.0004$（0.04%），預估回傳極少資料列，因而激進地選擇了 **Nested Loop Join** 或 **Index Scan**。但實際上所有 A4 全是 Audi，實際選擇率依然接近 2%，導致預估值嚴重低估 50 倍，引發災難性的效能倒退。
+
+**解決方案：多欄位擴充統計資訊（Extended Statistics）**
+現代資料庫（如 PostgreSQL）支援建立多欄位聯合統計，捕捉跨欄位依賴性與多欄位頻次分佈：
+
+```sql
+-- 在 PostgreSQL 中建立針對強關聯欄位的擴充統計
+CREATE STATISTICS stats_cars_make_model (dependencies, ndistinct)
+ON make, model FROM cars;
+
+ANALYZE cars;
+```
+
+透過顯式收集跨欄位函數相依性（Functional Dependencies）與多欄位相異值計數（$N$-Distinct），修正 AVI 誤差。
+
+### 3.4 經典邏輯與物理優化技術
 
 1. **謂詞下推（Predicate Pushdown）**：將 `WHERE age > 30` 盡可能推到掃描底層執行，減少後續 JOIN 的資料量。
-2. **JOIN 演算法選型**：
-   - **Nested Loop Join**：適合驅動表極小、被驅動表有高選擇性索引；
-   - **Hash Join**：適合無索引的大表等值連接；
-   - **Sort-Merge Join**：適合兩表已排序的大數據量連接。
+2. **投影列裁剪（Projection Pruning）**：只讀取查詢所需的欄位，大幅減少記憶體與 I/O 負載。
+3. **JOIN 演算法深度選型與硬體特性**：
+   - **Nested Loop Join**：
+     - **特性**：外表驅動、逐列檢索內表。
+     - **硬體層面**：高度依賴隨機存取。若內表能完全命中 Buffer Cache，效能極高；若引發大量隨機磁碟 I/O，效能則急遽惡化。
+   - **Hash Join**：
+     - **特性**：分 Build 構建與 Probe 探測兩階段，適合無索引的大表等值連接。
+     - **硬體與記憶體溢出機制**：當 Build 端的哈希表超過工作記憶體（如 PostgreSQL 的 `work_mem`）時，無法維持單次記憶體 Hash Join，必須降級為 **Grace Hash Join**（或 Hybrid Hash Join）。透過哈希函數將兩表分割寫入多個磁碟分區（Partitions / Batches），再逐批將對應分區加載回記憶體連接，會伴隨可觀的磁碟 I/O 寫入與回讀懲罰。
+   - **Sort-Merge Join**：
+     - **特性**：兩表均按連接鍵排序後進行雙指標線性歸併。
+     - **硬體層面**：極高比例的循序讀取（Sequential Access），對作業系統預讀（Read-ahead）與硬體快取極度友善；適合叢集索引鍵或已預先排序的大規模串流數據。
 
 ---
 
-## 4. 執行器（Executor）：經典火山模型（Volcano Iterator Model）
+## 4. 執行器（Executor）：從火山模型到編譯執行
 
 物理計畫生成後，交由執行器驅動運算。經典資料庫採用 **火山模型（迭代器模型）**：
 
@@ -144,13 +193,42 @@ SQL（結構化查詢語言）是宣告式語言的極致代表：**使用者只
   </svg>
 </div>
 
+### 4.1 火山模型的運作機制與瓶頸
+
 - 每個算子實作三個標準介面：`open()`、`next()`、`close()`。
-- **一列一拉取（Tuple-at-a-time）**：記憶體佔用極小，但虛擬函數調用與 CPU 分支預測失敗開銷較大。
-- **現代進化：向量化執行（Vectorized Execution）**：如 DuckDB、ClickHouse 一次處理一批（1024 列）二進位陣列，極大提升 CPU 快取與 SIMD 平行計算效率。
+- **一列一拉取（Tuple-at-a-time, Pull-based）**：記憶體佔用極小、具備良好的管線流動能力；但隨著 OLAP 分析型查詢資料量激增，其瓶頸日益顯著：
+  1. **虛擬函數呼叫開銷**：每一列的每次運算都要經歷深層函數呼叫棧；
+  2. **CPU 快取未命中與分支預測失敗**：資料列以行存格式流經算子，無法充分利用 L1/L2 快取的局部性（Data Locality）。
+
+### 4.2 現代執行模型的兩大革新演進
+
+面對現代記憶體容量擴增與多核心 CPU 性能，執行引擎分化出兩條現代化路徑：
+
+| 維度         | 向量化執行（Vectorized Execution）                                                       | 動態編譯執行（JIT / Code Generation）                                |
+| :----------- | :--------------------------------------------------------------------------------------- | :------------------------------------------------------------------- |
+| **代表系統** | DuckDB、ClickHouse、MonetDB/X100                                                         | HyPer、PostgreSQL (LLVM JIT)、Spark Tungsten                         |
+| **核心機制** | 維持 Pull 迭代結構，但將單次 `next()` 返回單位擴大為向量區塊（Vector Batch，如 1024 列） | 採用 Push-based 數據流，利用 LLVM 將物理執行計畫直接編譯成原生機器碼 |
+| **硬體優勢** | 善用 CPU SIMD 指令集平行計算、攤平虛擬函數呼叫開銷                                       | 完全消除虛擬函數呼叫、資料存放在 CPU 暫存器不溢出到記憶體            |
+| **適用場景** | 寬表掃描、大規模 OLAP 列存分析                                                           | 計算密集型複合算子運算、緊密管線處理                                 |
 
 ---
 
-## 5. 總結
+## 5. 經典核心論文與文獻
 
-- **優化器依賴精確的統計數據**：定期執行 `ANALYZE` 保持統計資訊更新，是防止 CBO 選錯索引的關鍵維運守則。
-- **善用 `EXPLAIN ANALYZE`**：學會解讀物理執行計畫中的算子類型、實際行數與預估 Cost，是排查慢查詢的必備內功。
+深入研究資料庫查詢優化與執行內核的必讀里程碑文獻：
+
+- **CBO 與動態規劃奠基之作**：
+  _Selinger, P. G., Astrahan, M. M., Chamberlin, D. D., Lorie, R. A., & Price, T. G. (1979)._ [Access Path Selection in a Relational Database Management System](https://doi.org/10.1145/582095.582099). _Proceedings of the 1979 ACM SIGMOD international conference on Management of data_, 23–34.
+- **火山模型與擴展優化器架構**：
+  _Graefe, G., & McKenna, W. J. (1993)._ [The Volcano Optimizer Generator: Extensibility and Efficient Search](https://doi.org/10.1109/ICDE.1993.344061). _Proceedings of Ninth International Conference on Data Engineering_, 209–218.
+- **向量化執行開山之作**：
+  _Boncz, P. A., Zukowski, M., & Nes, N. (2005)._ [MonetDB/X100: Hyper-Pipelining Query Execution](https://www.cidrdb.org/cidr2005/papers/P19.pdf). _Conference on Innovative Data Systems Research (CIDR)_.
+
+---
+
+## 6. 總結
+
+- **優化器依賴精確的統計數據**：定期執行 `ANALYZE` 保持統計資訊更新；若遇複合條件失真，務必考慮建立擴充統計資訊（Extended Statistics）。
+- **善用 `EXPLAIN (ANALYZE, BUFFERS)`**：學會解讀物理計畫中的算子類型、實際行數與預估 Cost，觀察記憶體溢出（如外存 Hash Batches 或 Sort spill to disk），是排查慢查詢與調校 `work_mem` 的必備內功。
+
+深入理解從 SQL 到 AST、邏輯等價轉換、CBO 剪枝搜尋，再到底層執行器與硬體快取的協同運作，才能真正跳脫「只會盲目加索引」的初階調優，精準駕馭任何複雜系統的效能瓶頸。
