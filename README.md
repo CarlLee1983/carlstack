@@ -16,6 +16,18 @@
 
 發布管線：`src/content` → schema 驗證 → Astro static build → Pagefind 索引 → `dist` → Cloudflare Workers。
 
+## 文件
+
+| 文件                                             | 內容                                             |
+| ------------------------------------------------ | ------------------------------------------------ |
+| [`docs/architecture.md`](docs/architecture.md)   | 建置管線與邊界清單——改動前先看哪些檔案有對外契約 |
+| [`docs/adr/`](docs/adr/)                         | 架構決策記錄與其權衡                             |
+| [`docs/content-guide.md`](docs/content-guide.md) | 文章寫作與發布規範                               |
+| [`docs/diagram-guide.md`](docs/diagram-guide.md) | 圖解元件的結構、色彩契約與驗收                   |
+| [`docs/testing.md`](docs/testing.md)             | 三道 gate 與測試對應的規則                       |
+| [`DESIGN.md`](DESIGN.md)                         | 設計系統與 design tokens                         |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)             | 變更流程                                         |
+
 ## 系統需求
 
 - Node.js 22.13 以上（CI 固定 22.17.1）

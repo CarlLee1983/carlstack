@@ -76,7 +76,7 @@
 
 ## 圖解
 
-新文章內的流程、架構、資料流與狀態圖一律使用原生 SVG；需要樣式時以 Astro 元件封裝，不使用 Mermaid。SVG 必須有 `title`／`desc`、可縮放的 `viewBox`，並在 320 px 寬度維持可讀性；窄螢幕需要不同編排時，提供專用 SVG 版面。
+新文章內的流程、架構、資料流與狀態圖一律使用原生 SVG；需要樣式時以 Astro 元件封裝，不使用 Mermaid（見 [`docs/diagram-guide.md`](diagram-guide.md) 與 [ADR 0004](adr/0004-native-svg-over-mermaid.md)）。SVG 必須有 `title`／`desc`、可縮放的 `viewBox`，並在 320 px 寬度維持可讀性；窄螢幕需要不同編排時，提供專用 SVG 版面。
 
 ## draft 到發布
 
