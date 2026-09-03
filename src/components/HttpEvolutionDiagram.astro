@@ -277,12 +277,12 @@
   .http-evo-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .http-evo-diagram {
+  :global(:root[data-theme="dark"]) .http-evo-diagram {
     background: #0b1120;
     border-color: #1e293b;
   }
@@ -299,12 +299,12 @@
 
   /* SVG Styles */
   .http-evo-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .http-evo-diagram__card rect {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__card rect {
     fill: #131b2e;
     stroke: #25334d;
   }
@@ -315,7 +315,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .http-evo-diagram__card--blue rect {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__card--blue rect {
     fill: #172554;
     stroke: #2563eb;
   }
@@ -326,7 +326,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .http-evo-diagram__card--quic rect {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__card--quic rect {
     fill: #042f2e;
     stroke: #14b8a6;
   }
@@ -337,7 +337,7 @@
     stroke-width: 1 !important;
   }
 
-  :global(.dark) .http-evo-diagram__subcard {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subcard {
     fill: #1e293b !important;
     stroke: #334155 !important;
   }
@@ -347,7 +347,7 @@
     stroke: #99f6e4 !important;
   }
 
-  :global(.dark) .http-evo-diagram__subcard--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subcard--quic {
     fill: #0d382f !important;
     stroke: #0f766e !important;
   }
@@ -356,10 +356,10 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .http-evo-diagram__badge {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -367,7 +367,7 @@
     fill: #2563eb;
   }
 
-  :global(.dark) .http-evo-diagram__badge--blue {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__badge--blue {
     fill: #60a5fa;
   }
 
@@ -375,7 +375,7 @@
     fill: #0d9488;
   }
 
-  :global(.dark) .http-evo-diagram__badge--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__badge--quic {
     fill: #2dd4bf;
   }
 
@@ -385,7 +385,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .http-evo-diagram__title {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__title {
     fill: #f8fafc;
   }
 
@@ -393,7 +393,7 @@
     fill: #1d4ed8;
   }
 
-  :global(.dark) .http-evo-diagram__title--blue {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__title--blue {
     fill: #93c5fd;
   }
 
@@ -401,7 +401,7 @@
     fill: #0f766e;
   }
 
-  :global(.dark) .http-evo-diagram__title--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__title--quic {
     fill: #5eead4;
   }
 
@@ -411,7 +411,7 @@
     fill: #b45309;
   }
 
-  :global(.dark) .http-evo-diagram__subtitle {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subtitle {
     fill: #fde68a;
   }
 
@@ -419,7 +419,7 @@
     fill: #c2410c;
   }
 
-  :global(.dark) .http-evo-diagram__subtitle--blue {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subtitle--blue {
     fill: #fdba74;
   }
 
@@ -427,7 +427,7 @@
     fill: #047857;
   }
 
-  :global(.dark) .http-evo-diagram__subtitle--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subtitle--quic {
     fill: #a7f3d0;
   }
 
@@ -436,16 +436,16 @@
     fill: #475569;
   }
 
-  :global(.dark) .http-evo-diagram__desc {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__desc {
     fill: #cbd5e1;
   }
 
   .http-evo-diagram__subdesc {
     font-size: 10px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .http-evo-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subdesc {
     fill: #94a3b8;
   }
 
@@ -453,7 +453,7 @@
     fill: #047857;
   }
 
-  :global(.dark) .http-evo-diagram__subdesc--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__subdesc--quic {
     fill: #d1fae5;
   }
 
@@ -466,7 +466,7 @@
     fill: #dc2626;
   }
 
-  :global(.dark) .http-evo-diagram__tag--warn {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__tag--warn {
     fill: #f87171;
   }
 
@@ -474,7 +474,7 @@
     fill: #0d9488;
   }
 
-  :global(.dark) .http-evo-diagram__tag--quic {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__tag--quic {
     fill: #2dd4bf;
   }
 
@@ -484,7 +484,7 @@
     stroke-width: 1.8;
   }
 
-  :global(.dark) .http-evo-diagram__arrow {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__arrow {
     stroke: #475569;
   }
 
@@ -493,7 +493,7 @@
     stroke-width: 2.2;
   }
 
-  :global(.dark) .http-evo-diagram__arrow--accent {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__arrow--accent {
     stroke: #14b8a6;
   }
 
@@ -501,7 +501,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .http-evo-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__arrow-head {
     fill: #475569;
   }
 
@@ -509,14 +509,14 @@
     fill: #0d9488;
   }
 
-  :global(.dark) .http-evo-diagram__arrow-head--accent {
+  :global(:root[data-theme="dark"]) .http-evo-diagram__arrow-head--accent {
     fill: #14b8a6;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -534,12 +534,12 @@
 
     .http-evo-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .http-evo-mobile-card {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-card {
       background: #131b2e;
       border-color: #25334d;
     }
@@ -549,7 +549,7 @@
       background: #eff6ff;
     }
 
-    :global(.dark) .http-evo-mobile-card--blue {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-card--blue {
       background: #172554;
       border-color: #2563eb;
     }
@@ -559,7 +559,7 @@
       background: #f0fdfa;
     }
 
-    :global(.dark) .http-evo-mobile-card--quic {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-card--quic {
       background: #042f2e;
       border-color: #14b8a6;
     }
@@ -567,7 +567,7 @@
     .http-evo-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -576,7 +576,7 @@
       color: #2563eb;
     }
 
-    :global(.dark) .http-evo-mobile-badge--blue {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-badge--blue {
       color: #60a5fa;
     }
 
@@ -584,7 +584,7 @@
       color: #0d9488;
     }
 
-    :global(.dark) .http-evo-mobile-badge--quic {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-badge--quic {
       color: #2dd4bf;
     }
 
@@ -592,21 +592,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .http-evo-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-card h4 {
       color: #f8fafc;
     }
 
     .http-evo-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .http-evo-mobile-card p {
+    :global(:root[data-theme="dark"]) .http-evo-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -614,7 +614,7 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
   }

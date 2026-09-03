@@ -350,16 +350,16 @@
     margin-top: 0.75rem;
     font-size: 0.875rem;
     text-align: center;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
   }
 
   .stack-diagram__card rect {
-    fill: var(--color-bg-surface, #f8fafc);
-    stroke: var(--color-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .stack-diagram__card rect {
+  :global(:root[data-theme="dark"]) .stack-diagram__card rect {
     fill: #0f172a;
     stroke: #1e293b;
   }
@@ -369,28 +369,28 @@
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 10px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
-  :global(.dark) .stack-diagram__badge {
+  :global(:root[data-theme="dark"]) .stack-diagram__badge {
     fill: #94a3b8;
   }
 
   .stack-diagram__title {
     font-size: 14px;
     font-weight: 700;
-    fill: var(--color-text-main, #0f172a);
+    fill: var(--dg-ink);
   }
-  :global(.dark) .stack-diagram__title {
+  :global(:root[data-theme="dark"]) .stack-diagram__title {
     fill: #f8fafc;
   }
 
   .stack-diagram__subcard {
     fill: #ffffff;
-    stroke: var(--color-border, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
-  :global(.dark) .stack-diagram__subcard {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -399,7 +399,7 @@
     stroke: #818cf8;
     fill: #eef2ff;
   }
-  :global(.dark) .stack-diagram__subcard--indigo {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--indigo {
     stroke: #4f46e5;
     fill: #1e1b4b;
   }
@@ -408,7 +408,7 @@
     stroke: #38bdf8;
     fill: #f0f9ff;
   }
-  :global(.dark) .stack-diagram__subcard--blue {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--blue {
     stroke: #0284c7;
     fill: #0c4a6e;
   }
@@ -417,7 +417,7 @@
     stroke: #f472b6;
     fill: #fdf2f8;
   }
-  :global(.dark) .stack-diagram__subcard--pink {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--pink {
     stroke: #db2777;
     fill: #311042;
   }
@@ -426,7 +426,7 @@
     stroke: #c084fc;
     fill: #faf5ff;
   }
-  :global(.dark) .stack-diagram__subcard--purple {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--purple {
     stroke: #9333ea;
     fill: #3b0764;
   }
@@ -435,7 +435,7 @@
     stroke: #22d3ee;
     fill: #ecfeff;
   }
-  :global(.dark) .stack-diagram__subcard--cyan {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--cyan {
     stroke: #0891b2;
     fill: #083344;
   }
@@ -444,7 +444,7 @@
     stroke: #14b8a6;
     fill: #f0fdfa;
   }
-  :global(.dark) .stack-diagram__subcard--teal {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--teal {
     stroke: #0f766e;
     fill: #042f2e;
   }
@@ -453,7 +453,7 @@
     stroke: #fbbf24;
     fill: #fefce8;
   }
-  :global(.dark) .stack-diagram__subcard--gold {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--gold {
     stroke: #d97706;
     fill: #451a03;
   }
@@ -462,7 +462,7 @@
     stroke: #10b981;
     fill: #f0fdf4;
   }
-  :global(.dark) .stack-diagram__subcard--green {
+  :global(:root[data-theme="dark"]) .stack-diagram__subcard--green {
     stroke: #059669;
     fill: #064e3b;
   }
@@ -472,71 +472,71 @@
     font-weight: 700;
     fill: #0f172a;
   }
-  :global(.dark) .stack-diagram__header {
+  :global(:root[data-theme="dark"]) .stack-diagram__header {
     fill: #f8fafc;
   }
 
   .stack-diagram__header--indigo {
     fill: #4338ca;
   }
-  :global(.dark) .stack-diagram__header--indigo {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--indigo {
     fill: #818cf8;
   }
 
   .stack-diagram__header--blue {
     fill: #0284c7;
   }
-  :global(.dark) .stack-diagram__header--blue {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--blue {
     fill: #38bdf8;
   }
 
   .stack-diagram__header--pink {
     fill: #be185d;
   }
-  :global(.dark) .stack-diagram__header--pink {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--pink {
     fill: #f472b6;
   }
 
   .stack-diagram__header--purple {
     fill: #7e22ce;
   }
-  :global(.dark) .stack-diagram__header--purple {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--purple {
     fill: #c084fc;
   }
 
   .stack-diagram__header--cyan {
     fill: #0e7490;
   }
-  :global(.dark) .stack-diagram__header--cyan {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--cyan {
     fill: #22d3ee;
   }
 
   .stack-diagram__header--teal {
     fill: #0f766e;
   }
-  :global(.dark) .stack-diagram__header--teal {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--teal {
     fill: #2dd4bf;
   }
 
   .stack-diagram__header--gold {
     fill: #b45309;
   }
-  :global(.dark) .stack-diagram__header--gold {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--gold {
     fill: #fbbf24;
   }
 
   .stack-diagram__header--green {
     fill: #047857;
   }
-  :global(.dark) .stack-diagram__header--green {
+  :global(:root[data-theme="dark"]) .stack-diagram__header--green {
     fill: #34d399;
   }
 
   .stack-diagram__desc {
     font-size: 11px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
-  :global(.dark) .stack-diagram__desc {
+  :global(:root[data-theme="dark"]) .stack-diagram__desc {
     fill: #94a3b8;
   }
 
@@ -553,11 +553,11 @@
 
     .stack-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
-    :global(.dark) .stack-mobile-card {
+    :global(:root[data-theme="dark"]) .stack-mobile-card {
       background: #0f172a;
       border-color: #1e293b;
     }
@@ -566,7 +566,7 @@
       border-left: 4px solid #6366f1;
       background: #eef2ff;
     }
-    :global(.dark) .stack-mobile-card--indigo {
+    :global(:root[data-theme="dark"]) .stack-mobile-card--indigo {
       background: #1e1b4b;
       border-color: #818cf8;
     }
@@ -575,7 +575,7 @@
       border-left: 4px solid #db2777;
       background: #fdf2f8;
     }
-    :global(.dark) .stack-mobile-card--pink {
+    :global(:root[data-theme="dark"]) .stack-mobile-card--pink {
       background: #311042;
       border-color: #f472b6;
     }
@@ -584,7 +584,7 @@
       border-left: 4px solid #0891b2;
       background: #ecfeff;
     }
-    :global(.dark) .stack-mobile-card--cyan {
+    :global(:root[data-theme="dark"]) .stack-mobile-card--cyan {
       background: #083344;
       border-color: #22d3ee;
     }
@@ -593,7 +593,7 @@
       border-left: 4px solid #d97706;
       background: #fefce8;
     }
-    :global(.dark) .stack-mobile-card--gold {
+    :global(:root[data-theme="dark"]) .stack-mobile-card--gold {
       background: #451a03;
       border-color: #fbbf24;
     }
@@ -608,28 +608,28 @@
     .stack-mobile-badge--indigo {
       color: #4338ca;
     }
-    :global(.dark) .stack-mobile-badge--indigo {
+    :global(:root[data-theme="dark"]) .stack-mobile-badge--indigo {
       color: #818cf8;
     }
 
     .stack-mobile-badge--pink {
       color: #be185d;
     }
-    :global(.dark) .stack-mobile-badge--pink {
+    :global(:root[data-theme="dark"]) .stack-mobile-badge--pink {
       color: #f472b6;
     }
 
     .stack-mobile-badge--cyan {
       color: #0891b2;
     }
-    :global(.dark) .stack-mobile-badge--cyan {
+    :global(:root[data-theme="dark"]) .stack-mobile-badge--cyan {
       color: #22d3ee;
     }
 
     .stack-mobile-badge--gold {
       color: #b45309;
     }
-    :global(.dark) .stack-mobile-badge--gold {
+    :global(:root[data-theme="dark"]) .stack-mobile-badge--gold {
       color: #fbbf24;
     }
 
@@ -637,19 +637,19 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
-    :global(.dark) .stack-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .stack-mobile-card h4 {
       color: #f8fafc;
     }
 
     .stack-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
-    :global(.dark) .stack-mobile-card p {
+    :global(:root[data-theme="dark"]) .stack-mobile-card p {
       color: #cbd5e1;
     }
   }

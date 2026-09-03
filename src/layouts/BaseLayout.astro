@@ -100,9 +100,24 @@ const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
       ))
     }
     <script is:inline>
+      // localStorage 保存的是使用者的明確選擇（沒有值代表跟隨系統）；
+      // data-theme 一律寫入解析後的結果，讓元件只需要判斷 [data-theme="dark"]。
+      const systemDark = matchMedia("(prefers-color-scheme: dark)");
       const savedTheme = localStorage.getItem("carlstack-theme");
-      if (savedTheme === "light" || savedTheme === "dark")
-        document.documentElement.dataset.theme = savedTheme;
+      const resolveTheme = () =>
+        savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : systemDark.matches
+            ? "dark"
+            : "light";
+      document.documentElement.dataset.theme = resolveTheme();
+      if (savedTheme !== "light" && savedTheme !== "dark") {
+        systemDark.addEventListener("change", (event) => {
+          document.documentElement.dataset.theme = event.matches
+            ? "dark"
+            : "light";
+        });
+      }
 
       const savedFontScale = localStorage.getItem("carlstack-font-scale");
       if (savedFontScale) {

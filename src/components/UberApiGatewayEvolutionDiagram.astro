@@ -254,12 +254,12 @@
   .uber-gw-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .uber-gw-diagram {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram {
     background: #090e17;
     border-color: #1e293b;
   }
@@ -276,12 +276,12 @@
 
   /* SVG Styles */
   .uber-gw-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .uber-gw-diagram__card rect {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__card rect {
     fill: #131b2e;
     stroke: #25334d;
   }
@@ -292,7 +292,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .uber-gw-diagram__card--emerald rect {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__card--emerald rect {
     fill: #062e24;
     stroke: #059669;
   }
@@ -303,7 +303,7 @@
     stroke-width: 1.2 !important;
   }
 
-  :global(.dark) .uber-gw-diagram__subcard {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__subcard {
     fill: #0d382f !important;
     stroke: #047857 !important;
   }
@@ -312,10 +312,10 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .uber-gw-diagram__badge {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -323,7 +323,7 @@
     fill: #059669;
   }
 
-  :global(.dark) .uber-gw-diagram__badge--emerald {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__badge--emerald {
     fill: #34d399;
   }
 
@@ -333,7 +333,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .uber-gw-diagram__title {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__title {
     fill: #f8fafc;
   }
 
@@ -342,7 +342,7 @@
     fill: #047857;
   }
 
-  :global(.dark) .uber-gw-diagram__title--emerald {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__title--emerald {
     fill: #6ee7b7;
   }
 
@@ -352,7 +352,7 @@
     fill: #065f46;
   }
 
-  :global(.dark) .uber-gw-diagram__subtitle {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__subtitle {
     fill: #a7f3d0;
   }
 
@@ -361,7 +361,7 @@
     fill: #475569;
   }
 
-  :global(.dark) .uber-gw-diagram__desc {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__desc {
     fill: #cbd5e1;
   }
 
@@ -370,7 +370,7 @@
     fill: #047857;
   }
 
-  :global(.dark) .uber-gw-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__subdesc {
     fill: #d1fae5;
   }
 
@@ -383,7 +383,7 @@
     fill: #d97706;
   }
 
-  :global(.dark) .uber-gw-diagram__tag--warn {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__tag--warn {
     fill: #fbbf24;
   }
 
@@ -391,7 +391,7 @@
     fill: #2563eb;
   }
 
-  :global(.dark) .uber-gw-diagram__tag--info {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__tag--info {
     fill: #60a5fa;
   }
 
@@ -401,7 +401,7 @@
     stroke-width: 1.8;
   }
 
-  :global(.dark) .uber-gw-diagram__arrow {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__arrow {
     stroke: #475569;
   }
 
@@ -410,7 +410,7 @@
     stroke-width: 2.2;
   }
 
-  :global(.dark) .uber-gw-diagram__arrow--emerald {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__arrow--emerald {
     stroke: #34d399;
   }
 
@@ -418,7 +418,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .uber-gw-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__arrow-head {
     fill: #475569;
   }
 
@@ -426,14 +426,14 @@
     fill: #10b981;
   }
 
-  :global(.dark) .uber-gw-diagram__arrow-head--emerald {
+  :global(:root[data-theme="dark"]) .uber-gw-diagram__arrow-head--emerald {
     fill: #34d399;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -451,12 +451,12 @@
 
     .uber-gw-diagram-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .uber-gw-diagram-mobile-card {
+    :global(:root[data-theme="dark"]) .uber-gw-diagram-mobile-card {
       background: #131b2e;
       border-color: #25334d;
     }
@@ -466,7 +466,7 @@
       background: #f0fdf4;
     }
 
-    :global(.dark) .uber-gw-diagram-mobile-card--emerald {
+    :global(:root[data-theme="dark"]) .uber-gw-diagram-mobile-card--emerald {
       background: #062e24;
       border-color: #059669;
     }
@@ -474,7 +474,7 @@
     .uber-gw-diagram-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -483,7 +483,7 @@
       color: #059669;
     }
 
-    :global(.dark) .uber-gw-diagram-mobile-badge--emerald {
+    :global(:root[data-theme="dark"]) .uber-gw-diagram-mobile-badge--emerald {
       color: #34d399;
     }
 
@@ -491,21 +491,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .uber-gw-diagram-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .uber-gw-diagram-mobile-card h4 {
       color: #f8fafc;
     }
 
     .uber-gw-diagram-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .uber-gw-diagram-mobile-card p {
+    :global(:root[data-theme="dark"]) .uber-gw-diagram-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -513,7 +513,7 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
   }

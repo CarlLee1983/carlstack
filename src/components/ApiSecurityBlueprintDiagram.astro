@@ -324,12 +324,12 @@
   .apisec-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .apisec-diagram {
+  :global(:root[data-theme="dark"]) .apisec-diagram {
     background: #090e17;
     border-color: #1e293b;
   }
@@ -346,12 +346,12 @@
 
   /* SVG Styles */
   .apisec-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .apisec-diagram__card rect {
+  :global(:root[data-theme="dark"]) .apisec-diagram__card rect {
     fill: #131b2e;
     stroke: #25334d;
   }
@@ -362,7 +362,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .apisec-diagram__card--gold rect {
+  :global(:root[data-theme="dark"]) .apisec-diagram__card--gold rect {
     fill: #422006;
     stroke: #eab308;
   }
@@ -373,7 +373,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .apisec-diagram__card--green rect {
+  :global(:root[data-theme="dark"]) .apisec-diagram__card--green rect {
     fill: #052e16;
     stroke: #22c55e;
   }
@@ -384,7 +384,7 @@
     stroke-width: 1 !important;
   }
 
-  :global(.dark) .apisec-diagram__subcard {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subcard {
     fill: #1e293b !important;
     stroke: #334155 !important;
   }
@@ -394,7 +394,7 @@
     stroke: #fef08a !important;
   }
 
-  :global(.dark) .apisec-diagram__subcard--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subcard--gold {
     fill: #2e1805 !important;
     stroke: #854d0e !important;
   }
@@ -404,7 +404,7 @@
     stroke: #bbf7d0 !important;
   }
 
-  :global(.dark) .apisec-diagram__subcard--green {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subcard--green {
     fill: #082813 !important;
     stroke: #15803d !important;
   }
@@ -413,10 +413,10 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .apisec-diagram__badge {
+  :global(:root[data-theme="dark"]) .apisec-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -424,7 +424,7 @@
     fill: #ca8a04;
   }
 
-  :global(.dark) .apisec-diagram__badge--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__badge--gold {
     fill: #facc15;
   }
 
@@ -432,7 +432,7 @@
     fill: #16a34a;
   }
 
-  :global(.dark) .apisec-diagram__badge--green {
+  :global(:root[data-theme="dark"]) .apisec-diagram__badge--green {
     fill: #4ade80;
   }
 
@@ -442,7 +442,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .apisec-diagram__title {
+  :global(:root[data-theme="dark"]) .apisec-diagram__title {
     fill: #f8fafc;
   }
 
@@ -450,7 +450,7 @@
     fill: #a16207;
   }
 
-  :global(.dark) .apisec-diagram__title--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__title--gold {
     fill: #fef08a;
   }
 
@@ -458,7 +458,7 @@
     fill: #15803d;
   }
 
-  :global(.dark) .apisec-diagram__title--green {
+  :global(:root[data-theme="dark"]) .apisec-diagram__title--green {
     fill: #86efac;
   }
 
@@ -468,7 +468,7 @@
     fill: #334155;
   }
 
-  :global(.dark) .apisec-diagram__subtitle {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subtitle {
     fill: #cbd5e1;
   }
 
@@ -476,7 +476,7 @@
     fill: #854d0e;
   }
 
-  :global(.dark) .apisec-diagram__subtitle--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subtitle--gold {
     fill: #fde047;
   }
 
@@ -484,7 +484,7 @@
     fill: #166534;
   }
 
-  :global(.dark) .apisec-diagram__subtitle--green {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subtitle--green {
     fill: #4ade80;
   }
 
@@ -493,16 +493,16 @@
     fill: #475569;
   }
 
-  :global(.dark) .apisec-diagram__desc {
+  :global(:root[data-theme="dark"]) .apisec-diagram__desc {
     fill: #cbd5e1;
   }
 
   .apisec-diagram__subdesc {
     font-size: 10px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .apisec-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .apisec-diagram__subdesc {
     fill: #94a3b8;
   }
 
@@ -512,7 +512,7 @@
     fill: #0284c7;
   }
 
-  :global(.dark) .apisec-diagram__tag {
+  :global(:root[data-theme="dark"]) .apisec-diagram__tag {
     fill: #38bdf8;
   }
 
@@ -520,7 +520,7 @@
     fill: #dc2626;
   }
 
-  :global(.dark) .apisec-diagram__tag--warn {
+  :global(:root[data-theme="dark"]) .apisec-diagram__tag--warn {
     fill: #f87171;
   }
 
@@ -528,7 +528,7 @@
     fill: #ca8a04;
   }
 
-  :global(.dark) .apisec-diagram__tag--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__tag--gold {
     fill: #facc15;
   }
 
@@ -536,7 +536,7 @@
     fill: #16a34a;
   }
 
-  :global(.dark) .apisec-diagram__tag--green {
+  :global(:root[data-theme="dark"]) .apisec-diagram__tag--green {
     fill: #4ade80;
   }
 
@@ -546,7 +546,7 @@
     stroke-width: 1.8;
   }
 
-  :global(.dark) .apisec-diagram__arrow {
+  :global(:root[data-theme="dark"]) .apisec-diagram__arrow {
     stroke: #475569;
   }
 
@@ -555,7 +555,7 @@
     stroke-width: 2.2;
   }
 
-  :global(.dark) .apisec-diagram__arrow--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__arrow--gold {
     stroke: #facc15;
   }
 
@@ -563,7 +563,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .apisec-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .apisec-diagram__arrow-head {
     fill: #475569;
   }
 
@@ -571,14 +571,14 @@
     fill: #ca8a04;
   }
 
-  :global(.dark) .apisec-diagram__arrow-head--gold {
+  :global(:root[data-theme="dark"]) .apisec-diagram__arrow-head--gold {
     fill: #facc15;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -596,12 +596,12 @@
 
     .apisec-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .apisec-mobile-card {
+    :global(:root[data-theme="dark"]) .apisec-mobile-card {
       background: #131b2e;
       border-color: #25334d;
     }
@@ -611,7 +611,7 @@
       background: #fefce8;
     }
 
-    :global(.dark) .apisec-mobile-card--gold {
+    :global(:root[data-theme="dark"]) .apisec-mobile-card--gold {
       background: #422006;
       border-color: #eab308;
     }
@@ -621,7 +621,7 @@
       background: #f0fdf4;
     }
 
-    :global(.dark) .apisec-mobile-card--green {
+    :global(:root[data-theme="dark"]) .apisec-mobile-card--green {
       background: #052e16;
       border-color: #22c55e;
     }
@@ -629,7 +629,7 @@
     .apisec-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -638,7 +638,7 @@
       color: #ca8a04;
     }
 
-    :global(.dark) .apisec-mobile-badge--gold {
+    :global(:root[data-theme="dark"]) .apisec-mobile-badge--gold {
       color: #facc15;
     }
 
@@ -646,7 +646,7 @@
       color: #16a34a;
     }
 
-    :global(.dark) .apisec-mobile-badge--green {
+    :global(:root[data-theme="dark"]) .apisec-mobile-badge--green {
       color: #4ade80;
     }
 
@@ -654,21 +654,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .apisec-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .apisec-mobile-card h4 {
       color: #f8fafc;
     }
 
     .apisec-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .apisec-mobile-card p {
+    :global(:root[data-theme="dark"]) .apisec-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -676,7 +676,7 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
   }

@@ -408,18 +408,18 @@
   .pt-diagram__caption {
     margin-top: 0.75rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
   /* Theme variables */
   .pt-diagram__card rect {
-    fill: var(--color-bg-subtle, #f8fafc);
-    stroke: var(--color-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .pt-diagram__card rect {
+  :global(:root[data-theme="dark"]) .pt-diagram__card rect {
     fill: #0f172a;
     stroke: #1e293b;
   }
@@ -427,11 +427,11 @@
   .pt-diagram__badge {
     font-size: 10px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
 
-  :global(.dark) .pt-diagram__badge {
+  :global(:root[data-theme="dark"]) .pt-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -441,7 +441,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .pt-diagram__title {
+  :global(:root[data-theme="dark"]) .pt-diagram__title {
     fill: #f8fafc;
   }
 
@@ -454,7 +454,7 @@
     stroke: rgba(13, 148, 136, 0.3);
   }
 
-  :global(.dark) .pt-diagram__subcard--teal {
+  :global(:root[data-theme="dark"]) .pt-diagram__subcard--teal {
     fill: rgba(20, 184, 166, 0.12);
     stroke: rgba(20, 184, 166, 0.35);
   }
@@ -464,7 +464,7 @@
     stroke: rgba(37, 99, 235, 0.3);
   }
 
-  :global(.dark) .pt-diagram__subcard--blue {
+  :global(:root[data-theme="dark"]) .pt-diagram__subcard--blue {
     fill: rgba(59, 130, 246, 0.12);
     stroke: rgba(59, 130, 246, 0.35);
   }
@@ -474,7 +474,7 @@
     stroke: rgba(217, 119, 6, 0.3);
   }
 
-  :global(.dark) .pt-diagram__subcard--gold {
+  :global(:root[data-theme="dark"]) .pt-diagram__subcard--gold {
     fill: rgba(245, 158, 11, 0.12);
     stroke: rgba(245, 158, 11, 0.35);
   }
@@ -487,21 +487,21 @@
   .pt-diagram__header--teal {
     fill: #0f766e;
   }
-  :global(.dark) .pt-diagram__header--teal {
+  :global(:root[data-theme="dark"]) .pt-diagram__header--teal {
     fill: #2dd4bf;
   }
 
   .pt-diagram__header--blue {
     fill: #1d4ed8;
   }
-  :global(.dark) .pt-diagram__header--blue {
+  :global(:root[data-theme="dark"]) .pt-diagram__header--blue {
     fill: #60a5fa;
   }
 
   .pt-diagram__header--gold {
     fill: #b45309;
   }
-  :global(.dark) .pt-diagram__header--gold {
+  :global(:root[data-theme="dark"]) .pt-diagram__header--gold {
     fill: #fbbf24;
   }
 
@@ -510,7 +510,7 @@
     fill: #475569;
   }
 
-  :global(.dark) .pt-diagram__desc {
+  :global(:root[data-theme="dark"]) .pt-diagram__desc {
     fill: #94a3b8;
   }
 
@@ -520,7 +520,7 @@
     fill: none;
   }
 
-  :global(.dark) .pt-diagram__line {
+  :global(:root[data-theme="dark"]) .pt-diagram__line {
     stroke: #475569;
   }
 
@@ -528,7 +528,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .pt-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .pt-diagram__arrow-head {
     fill: #475569;
   }
 

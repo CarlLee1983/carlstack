@@ -273,12 +273,12 @@
   .figma-pg-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .figma-pg-diagram {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram {
     background: #0f172a;
     border-color: #1e293b;
   }
@@ -295,12 +295,12 @@
 
   /* SVG Styles */
   .figma-pg-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .figma-pg-diagram__card rect {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__card rect {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -310,7 +310,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .figma-pg-diagram__card--focus rect {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__card--focus rect {
     stroke: #60a5fa;
   }
 
@@ -320,7 +320,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .figma-pg-diagram__card--proxy rect {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__card--proxy rect {
     fill: #172554;
     stroke: #3b82f6;
   }
@@ -329,10 +329,10 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .figma-pg-diagram__badge {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -340,7 +340,7 @@
     fill: #2563eb;
   }
 
-  :global(.dark) .figma-pg-diagram__badge--accent {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__badge--accent {
     fill: #60a5fa;
   }
 
@@ -350,7 +350,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .figma-pg-diagram__title {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__title {
     fill: #f8fafc;
   }
 
@@ -358,7 +358,7 @@
     fill: #1d4ed8;
   }
 
-  :global(.dark) .figma-pg-diagram__title--focus {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__title--focus {
     fill: #93c5fd;
   }
 
@@ -367,17 +367,17 @@
     fill: #475569;
   }
 
-  :global(.dark) .figma-pg-diagram__desc {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__desc {
     fill: #cbd5e1;
   }
 
   .figma-pg-diagram__tag {
     font-size: 11px;
     font-weight: 600;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .figma-pg-diagram__tag {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__tag {
     fill: #94a3b8;
   }
 
@@ -387,7 +387,7 @@
     fill: #0284c7;
   }
 
-  :global(.dark) .figma-pg-diagram__tag--accent {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__tag--accent {
     fill: #38bdf8;
   }
 
@@ -397,7 +397,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .figma-pg-diagram__arrow {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__arrow {
     stroke: #475569;
   }
 
@@ -406,7 +406,7 @@
     stroke-width: 2.5;
   }
 
-  :global(.dark) .figma-pg-diagram__arrow--accent {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__arrow--accent {
     stroke: #60a5fa;
   }
 
@@ -418,7 +418,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .figma-pg-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__arrow-head {
     fill: #475569;
   }
 
@@ -426,24 +426,24 @@
     fill: #3b82f6;
   }
 
-  :global(.dark) .figma-pg-diagram__arrow-head--accent {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__arrow-head--accent {
     fill: #60a5fa;
   }
 
   .figma-pg-diagram__wire-label {
     font-size: 11px;
     font-weight: 600;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .figma-pg-diagram__wire-label {
+  :global(:root[data-theme="dark"]) .figma-pg-diagram__wire-label {
     fill: #94a3b8;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -461,12 +461,12 @@
 
     .figma-pg-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .figma-pg-mobile-card {
+    :global(:root[data-theme="dark"]) .figma-pg-mobile-card {
       background: #1e293b;
       border-color: #334155;
     }
@@ -476,7 +476,7 @@
       border-color: #3b82f6;
     }
 
-    :global(.dark) .figma-pg-mobile-card--proxy {
+    :global(:root[data-theme="dark"]) .figma-pg-mobile-card--proxy {
       background: #172554;
       border-color: #2563eb;
     }
@@ -488,7 +488,7 @@
     .figma-pg-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -497,7 +497,7 @@
       color: #2563eb;
     }
 
-    :global(.dark) .figma-pg-mobile-badge--accent {
+    :global(:root[data-theme="dark"]) .figma-pg-mobile-badge--accent {
       color: #60a5fa;
     }
 
@@ -505,21 +505,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 1rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .figma-pg-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .figma-pg-mobile-card h4 {
       color: #f8fafc;
     }
 
     .figma-pg-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .figma-pg-mobile-card p {
+    :global(:root[data-theme="dark"]) .figma-pg-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -527,8 +527,12 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
+  }
+
+  :global(:root[data-theme="dark"]) .figma-pg-mobile-card--shard {
+    border-left: 4px solid #60a5fa;
   }
 </style>

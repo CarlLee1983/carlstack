@@ -297,16 +297,16 @@
     margin-top: 0.75rem;
     font-size: 0.875rem;
     text-align: center;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
   }
 
   .llm-diagram__card rect {
-    fill: var(--color-bg-surface, #f8fafc);
-    stroke: var(--color-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .llm-diagram__card rect {
+  :global(:root[data-theme="dark"]) .llm-diagram__card rect {
     fill: #0f172a;
     stroke: #1e293b;
   }
@@ -316,28 +316,28 @@
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 10.5px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
-  :global(.dark) .llm-diagram__badge {
+  :global(:root[data-theme="dark"]) .llm-diagram__badge {
     fill: #94a3b8;
   }
 
   .llm-diagram__title {
     font-size: 15px;
     font-weight: 700;
-    fill: var(--color-text-main, #0f172a);
+    fill: var(--dg-ink);
   }
-  :global(.dark) .llm-diagram__title {
+  :global(:root[data-theme="dark"]) .llm-diagram__title {
     fill: #f8fafc;
   }
 
   .llm-diagram__subcard {
     fill: #ffffff;
-    stroke: var(--color-border, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
-  :global(.dark) .llm-diagram__subcard {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -346,7 +346,7 @@
     stroke: #38bdf8;
     fill: #f0f9ff;
   }
-  :global(.dark) .llm-diagram__subcard--blue {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--blue {
     stroke: #0284c7;
     fill: #0c4a6e;
   }
@@ -355,7 +355,7 @@
     stroke: #ef4444;
     fill: #fef2f2;
   }
-  :global(.dark) .llm-diagram__subcard--alert {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--alert {
     stroke: #dc2626;
     fill: #450a0a;
   }
@@ -364,7 +364,7 @@
     stroke: #c084fc;
     fill: #faf5ff;
   }
-  :global(.dark) .llm-diagram__subcard--purple {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--purple {
     stroke: #9333ea;
     fill: #3b0764;
   }
@@ -373,7 +373,7 @@
     stroke: #22d3ee;
     fill: #ecfeff;
   }
-  :global(.dark) .llm-diagram__subcard--cyan {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--cyan {
     stroke: #0891b2;
     fill: #083344;
   }
@@ -382,7 +382,7 @@
     stroke: #10b981;
     fill: #f0fdf4;
   }
-  :global(.dark) .llm-diagram__subcard--green {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--green {
     stroke: #059669;
     fill: #064e3b;
   }
@@ -391,7 +391,7 @@
     stroke: #fbbf24;
     fill: #fefce8;
   }
-  :global(.dark) .llm-diagram__subcard--gold {
+  :global(:root[data-theme="dark"]) .llm-diagram__subcard--gold {
     stroke: #d97706;
     fill: #451a03;
   }
@@ -401,57 +401,57 @@
     font-weight: 700;
     fill: #0f172a;
   }
-  :global(.dark) .llm-diagram__header {
+  :global(:root[data-theme="dark"]) .llm-diagram__header {
     fill: #f8fafc;
   }
 
   .llm-diagram__header--blue {
     fill: #0284c7;
   }
-  :global(.dark) .llm-diagram__header--blue {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--blue {
     fill: #38bdf8;
   }
 
   .llm-diagram__header--alert {
     fill: #b91c1c;
   }
-  :global(.dark) .llm-diagram__header--alert {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--alert {
     fill: #f87171;
   }
 
   .llm-diagram__header--purple {
     fill: #7e22ce;
   }
-  :global(.dark) .llm-diagram__header--purple {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--purple {
     fill: #c084fc;
   }
 
   .llm-diagram__header--cyan {
     fill: #0e7490;
   }
-  :global(.dark) .llm-diagram__header--cyan {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--cyan {
     fill: #22d3ee;
   }
 
   .llm-diagram__header--green {
     fill: #047857;
   }
-  :global(.dark) .llm-diagram__header--green {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--green {
     fill: #34d399;
   }
 
   .llm-diagram__header--gold {
     fill: #b45309;
   }
-  :global(.dark) .llm-diagram__header--gold {
+  :global(:root[data-theme="dark"]) .llm-diagram__header--gold {
     fill: #fbbf24;
   }
 
   .llm-diagram__subdesc {
     font-size: 11px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
-  :global(.dark) .llm-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .llm-diagram__subdesc {
     fill: #94a3b8;
   }
 
@@ -461,7 +461,7 @@
     font-size: 10.5px;
     fill: #0369a1;
   }
-  :global(.dark) .llm-diagram__code {
+  :global(:root[data-theme="dark"]) .llm-diagram__code {
     fill: #7dd3fc;
   }
 
@@ -489,11 +489,11 @@
 
     .llm-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
-    :global(.dark) .llm-mobile-card {
+    :global(:root[data-theme="dark"]) .llm-mobile-card {
       background: #0f172a;
       border-color: #1e293b;
     }
@@ -502,7 +502,7 @@
       border-left: 4px solid #0284c7;
       background: #f0f9ff;
     }
-    :global(.dark) .llm-mobile-card--blue {
+    :global(:root[data-theme="dark"]) .llm-mobile-card--blue {
       background: #0c4a6e;
       border-color: #38bdf8;
     }
@@ -511,7 +511,7 @@
       border-left: 4px solid #7e22ce;
       background: #faf5ff;
     }
-    :global(.dark) .llm-mobile-card--purple {
+    :global(:root[data-theme="dark"]) .llm-mobile-card--purple {
       background: #3b0764;
       border-color: #a855f7;
     }
@@ -520,7 +520,7 @@
       border-left: 4px solid #d97706;
       background: #fefce8;
     }
-    :global(.dark) .llm-mobile-card--gold {
+    :global(:root[data-theme="dark"]) .llm-mobile-card--gold {
       background: #451a03;
       border-color: #fbbf24;
     }
@@ -535,21 +535,21 @@
     .llm-mobile-badge--blue {
       color: #0284c7;
     }
-    :global(.dark) .llm-mobile-badge--blue {
+    :global(:root[data-theme="dark"]) .llm-mobile-badge--blue {
       color: #38bdf8;
     }
 
     .llm-mobile-badge--purple {
       color: #7e22ce;
     }
-    :global(.dark) .llm-mobile-badge--purple {
+    :global(:root[data-theme="dark"]) .llm-mobile-badge--purple {
       color: #c084fc;
     }
 
     .llm-mobile-badge--gold {
       color: #b45309;
     }
-    :global(.dark) .llm-mobile-badge--gold {
+    :global(:root[data-theme="dark"]) .llm-mobile-badge--gold {
       color: #fbbf24;
     }
 
@@ -557,19 +557,19 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
-    :global(.dark) .llm-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .llm-mobile-card h4 {
       color: #f8fafc;
     }
 
     .llm-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
-    :global(.dark) .llm-mobile-card p {
+    :global(:root[data-theme="dark"]) .llm-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -577,8 +577,15 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
+  }
+
+  :global(:root[data-theme="dark"]) .llm-diagram__flow-line {
+    stroke: #4bb3e8;
+  }
+  :global(:root[data-theme="dark"]) .llm-diagram__arrow-head {
+    fill: #4bb3e8;
   }
 </style>

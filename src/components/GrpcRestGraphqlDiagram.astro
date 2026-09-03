@@ -239,12 +239,12 @@
   .grg-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .grg-diagram {
+  :global(:root[data-theme="dark"]) .grg-diagram {
     background: #090e17;
     border-color: #1e293b;
   }
@@ -261,12 +261,12 @@
 
   /* SVG Styles */
   .grg-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .grg-diagram__card rect {
+  :global(:root[data-theme="dark"]) .grg-diagram__card rect {
     fill: #131b2e;
     stroke: #25334d;
   }
@@ -277,7 +277,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .grg-diagram__card--grpc rect {
+  :global(:root[data-theme="dark"]) .grg-diagram__card--grpc rect {
     fill: #4c0519;
     stroke: #f43f5e;
   }
@@ -288,7 +288,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .grg-diagram__card--rest rect {
+  :global(:root[data-theme="dark"]) .grg-diagram__card--rest rect {
     fill: #083344;
     stroke: #06b6d4;
   }
@@ -299,7 +299,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .grg-diagram__card--graphql rect {
+  :global(:root[data-theme="dark"]) .grg-diagram__card--graphql rect {
     fill: #3b0764;
     stroke: #a855f7;
   }
@@ -310,7 +310,7 @@
     stroke-width: 1 !important;
   }
 
-  :global(.dark) .grg-diagram__subcard {
+  :global(:root[data-theme="dark"]) .grg-diagram__subcard {
     fill: #1e293b !important;
     stroke: #334155 !important;
   }
@@ -320,7 +320,7 @@
     stroke: #fecdd3 !important;
   }
 
-  :global(.dark) .grg-diagram__subcard--grpc {
+  :global(:root[data-theme="dark"]) .grg-diagram__subcard--grpc {
     fill: #2d0611 !important;
     stroke: #881337 !important;
   }
@@ -330,7 +330,7 @@
     stroke: #a5f3fc !important;
   }
 
-  :global(.dark) .grg-diagram__subcard--rest {
+  :global(:root[data-theme="dark"]) .grg-diagram__subcard--rest {
     fill: #06242e !important;
     stroke: #155e75 !important;
   }
@@ -340,7 +340,7 @@
     stroke: #e9d5ff !important;
   }
 
-  :global(.dark) .grg-diagram__subcard--graphql {
+  :global(:root[data-theme="dark"]) .grg-diagram__subcard--graphql {
     fill: #24043d !important;
     stroke: #6b21a8 !important;
   }
@@ -355,7 +355,7 @@
     fill: #e11d48;
   }
 
-  :global(.dark) .grg-diagram__badge--grpc {
+  :global(:root[data-theme="dark"]) .grg-diagram__badge--grpc {
     fill: #fb7185;
   }
 
@@ -363,7 +363,7 @@
     fill: #0891b2;
   }
 
-  :global(.dark) .grg-diagram__badge--rest {
+  :global(:root[data-theme="dark"]) .grg-diagram__badge--rest {
     fill: #22d3ee;
   }
 
@@ -371,7 +371,7 @@
     fill: #9333ea;
   }
 
-  :global(.dark) .grg-diagram__badge--graphql {
+  :global(:root[data-theme="dark"]) .grg-diagram__badge--graphql {
     fill: #c084fc;
   }
 
@@ -384,7 +384,7 @@
     fill: #be123c;
   }
 
-  :global(.dark) .grg-diagram__title--grpc {
+  :global(:root[data-theme="dark"]) .grg-diagram__title--grpc {
     fill: #fda4af;
   }
 
@@ -392,7 +392,7 @@
     fill: #0e7490;
   }
 
-  :global(.dark) .grg-diagram__title--rest {
+  :global(:root[data-theme="dark"]) .grg-diagram__title--rest {
     fill: #67e8f9;
   }
 
@@ -400,7 +400,7 @@
     fill: #7e22ce;
   }
 
-  :global(.dark) .grg-diagram__title--graphql {
+  :global(:root[data-theme="dark"]) .grg-diagram__title--graphql {
     fill: #d8b4fe;
   }
 
@@ -413,7 +413,7 @@
     fill: #9f1239;
   }
 
-  :global(.dark) .grg-diagram__subtitle--grpc {
+  :global(:root[data-theme="dark"]) .grg-diagram__subtitle--grpc {
     fill: #fecdd3;
   }
 
@@ -421,7 +421,7 @@
     fill: #155e75;
   }
 
-  :global(.dark) .grg-diagram__subtitle--rest {
+  :global(:root[data-theme="dark"]) .grg-diagram__subtitle--rest {
     fill: #a5f3fc;
   }
 
@@ -429,7 +429,7 @@
     fill: #6b21a8;
   }
 
-  :global(.dark) .grg-diagram__subtitle--graphql {
+  :global(:root[data-theme="dark"]) .grg-diagram__subtitle--graphql {
     fill: #e9d5ff;
   }
 
@@ -438,16 +438,16 @@
     fill: #475569;
   }
 
-  :global(.dark) .grg-diagram__desc {
+  :global(:root[data-theme="dark"]) .grg-diagram__desc {
     fill: #cbd5e1;
   }
 
   .grg-diagram__subdesc {
     font-size: 10px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .grg-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .grg-diagram__subdesc {
     fill: #94a3b8;
   }
 
@@ -460,7 +460,7 @@
     fill: #e11d48;
   }
 
-  :global(.dark) .grg-diagram__tag--grpc {
+  :global(:root[data-theme="dark"]) .grg-diagram__tag--grpc {
     fill: #fb7185;
   }
 
@@ -468,7 +468,7 @@
     fill: #0891b2;
   }
 
-  :global(.dark) .grg-diagram__tag--rest {
+  :global(:root[data-theme="dark"]) .grg-diagram__tag--rest {
     fill: #22d3ee;
   }
 
@@ -476,14 +476,14 @@
     fill: #9333ea;
   }
 
-  :global(.dark) .grg-diagram__tag--graphql {
+  :global(:root[data-theme="dark"]) .grg-diagram__tag--graphql {
     fill: #c084fc;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -501,12 +501,12 @@
 
     .grg-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .grg-mobile-card {
+    :global(:root[data-theme="dark"]) .grg-mobile-card {
       background: #131b2e;
       border-color: #25334d;
     }
@@ -516,7 +516,7 @@
       background: #fff1f2;
     }
 
-    :global(.dark) .grg-mobile-card--grpc {
+    :global(:root[data-theme="dark"]) .grg-mobile-card--grpc {
       background: #4c0519;
       border-color: #f43f5e;
     }
@@ -526,7 +526,7 @@
       background: #ecfeff;
     }
 
-    :global(.dark) .grg-mobile-card--rest {
+    :global(:root[data-theme="dark"]) .grg-mobile-card--rest {
       background: #083344;
       border-color: #06b6d4;
     }
@@ -536,7 +536,7 @@
       background: #faf5ff;
     }
 
-    :global(.dark) .grg-mobile-card--graphql {
+    :global(:root[data-theme="dark"]) .grg-mobile-card--graphql {
       background: #3b0764;
       border-color: #a855f7;
     }
@@ -552,7 +552,7 @@
       color: #e11d48;
     }
 
-    :global(.dark) .grg-mobile-badge--grpc {
+    :global(:root[data-theme="dark"]) .grg-mobile-badge--grpc {
       color: #fb7185;
     }
 
@@ -560,7 +560,7 @@
       color: #0891b2;
     }
 
-    :global(.dark) .grg-mobile-badge--rest {
+    :global(:root[data-theme="dark"]) .grg-mobile-badge--rest {
       color: #22d3ee;
     }
 
@@ -568,7 +568,7 @@
       color: #9333ea;
     }
 
-    :global(.dark) .grg-mobile-badge--graphql {
+    :global(:root[data-theme="dark"]) .grg-mobile-badge--graphql {
       color: #c084fc;
     }
 
@@ -576,21 +576,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .grg-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .grg-mobile-card h4 {
       color: #f8fafc;
     }
 
     .grg-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .grg-mobile-card p {
+    :global(:root[data-theme="dark"]) .grg-mobile-card p {
       color: #cbd5e1;
     }
   }

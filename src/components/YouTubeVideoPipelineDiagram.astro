@@ -332,12 +332,12 @@
   .yt-pipe-diagram {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .yt-pipe-diagram {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram {
     background: #0f172a;
     border-color: #1e293b;
   }
@@ -354,12 +354,12 @@
 
   /* SVG Styles */
   .yt-pipe-diagram__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .yt-pipe-diagram__card rect {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__card rect {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -370,7 +370,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .yt-pipe-diagram__card--red rect {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__card--red rect {
     fill: #450a0a;
     stroke: #ef4444;
   }
@@ -381,7 +381,7 @@
     stroke-width: 1.5;
   }
 
-  :global(.dark) .yt-pipe-diagram__card--storage rect {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__card--storage rect {
     fill: #451a03;
     stroke: #f59e0b;
   }
@@ -391,7 +391,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .yt-pipe-diagram__card--focus rect {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__card--focus rect {
     stroke: #f87171;
   }
 
@@ -399,10 +399,10 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .yt-pipe-diagram__badge {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__badge {
     fill: #94a3b8;
   }
 
@@ -410,7 +410,7 @@
     fill: #dc2626;
   }
 
-  :global(.dark) .yt-pipe-diagram__badge--red {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__badge--red {
     fill: #f87171;
   }
 
@@ -418,7 +418,7 @@
     fill: #d97706;
   }
 
-  :global(.dark) .yt-pipe-diagram__badge--storage {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__badge--storage {
     fill: #fbbf24;
   }
 
@@ -428,7 +428,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .yt-pipe-diagram__title {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__title {
     fill: #f8fafc;
   }
 
@@ -436,7 +436,7 @@
     fill: #b91c1c;
   }
 
-  :global(.dark) .yt-pipe-diagram__title--red {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__title--red {
     fill: #fca5a5;
   }
 
@@ -444,7 +444,7 @@
     fill: #b45309;
   }
 
-  :global(.dark) .yt-pipe-diagram__title--storage {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__title--storage {
     fill: #fde68a;
   }
 
@@ -453,17 +453,17 @@
     fill: #475569;
   }
 
-  :global(.dark) .yt-pipe-diagram__desc {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__desc {
     fill: #cbd5e1;
   }
 
   .yt-pipe-diagram__tag {
     font-size: 10.5px;
     font-weight: 600;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .yt-pipe-diagram__tag {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__tag {
     fill: #94a3b8;
   }
 
@@ -471,7 +471,7 @@
     fill: #dc2626;
   }
 
-  :global(.dark) .yt-pipe-diagram__tag--red {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__tag--red {
     fill: #f87171;
   }
 
@@ -479,7 +479,7 @@
     fill: #d97706;
   }
 
-  :global(.dark) .yt-pipe-diagram__tag--storage {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__tag--storage {
     fill: #fbbf24;
   }
 
@@ -489,7 +489,7 @@
     stroke-width: 1.8;
   }
 
-  :global(.dark) .yt-pipe-diagram__arrow {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__arrow {
     stroke: #475569;
   }
 
@@ -498,7 +498,7 @@
     stroke-width: 2.2;
   }
 
-  :global(.dark) .yt-pipe-diagram__arrow--red {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__arrow--red {
     stroke: #ef4444;
   }
 
@@ -506,7 +506,7 @@
     fill: #94a3b8;
   }
 
-  :global(.dark) .yt-pipe-diagram__arrow-head {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__arrow-head {
     fill: #475569;
   }
 
@@ -514,14 +514,14 @@
     fill: #dc2626;
   }
 
-  :global(.dark) .yt-pipe-diagram__arrow-head--red {
+  :global(:root[data-theme="dark"]) .yt-pipe-diagram__arrow-head--red {
     fill: #ef4444;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -539,12 +539,12 @@
 
     .yt-pipe-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .yt-pipe-mobile-card {
+    :global(:root[data-theme="dark"]) .yt-pipe-mobile-card {
       background: #1e293b;
       border-color: #334155;
     }
@@ -554,7 +554,7 @@
       background: #fef2f2;
     }
 
-    :global(.dark) .yt-pipe-mobile-card--red {
+    :global(:root[data-theme="dark"]) .yt-pipe-mobile-card--red {
       background: #450a0a;
       border-color: #ef4444;
     }
@@ -562,7 +562,7 @@
     .yt-pipe-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -571,7 +571,7 @@
       color: #dc2626;
     }
 
-    :global(.dark) .yt-pipe-mobile-badge--red {
+    :global(:root[data-theme="dark"]) .yt-pipe-mobile-badge--red {
       color: #f87171;
     }
 
@@ -579,21 +579,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .yt-pipe-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .yt-pipe-mobile-card h4 {
       color: #f8fafc;
     }
 
     .yt-pipe-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .yt-pipe-mobile-card p {
+    :global(:root[data-theme="dark"]) .yt-pipe-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -601,7 +601,7 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
   }

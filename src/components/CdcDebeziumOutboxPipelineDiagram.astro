@@ -305,16 +305,16 @@
     margin-top: 0.75rem;
     font-size: 0.875rem;
     text-align: center;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
   }
 
   .cdc-diagram__card rect {
-    fill: var(--color-bg-surface, #f8fafc);
-    stroke: var(--color-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .cdc-diagram__card rect {
+  :global(:root[data-theme="dark"]) .cdc-diagram__card rect {
     fill: #0f172a;
     stroke: #1e293b;
   }
@@ -324,31 +324,31 @@
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 11px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
 
-  :global(.dark) .cdc-diagram__badge {
+  :global(:root[data-theme="dark"]) .cdc-diagram__badge {
     fill: #94a3b8;
   }
 
   .cdc-diagram__title {
     font-size: 15px;
     font-weight: 700;
-    fill: var(--color-text-main, #0f172a);
+    fill: var(--dg-ink);
   }
 
-  :global(.dark) .cdc-diagram__title {
+  :global(:root[data-theme="dark"]) .cdc-diagram__title {
     fill: #f8fafc;
   }
 
   .cdc-diagram__subcard {
     fill: #ffffff;
-    stroke: var(--color-border, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
 
-  :global(.dark) .cdc-diagram__subcard {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -357,7 +357,7 @@
     stroke: #38bdf8;
     fill: #f0f9ff;
   }
-  :global(.dark) .cdc-diagram__subcard--blue {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--blue {
     stroke: #0284c7;
     fill: #0c4a6e;
   }
@@ -366,7 +366,7 @@
     stroke: #f97316;
     fill: #fff7ed;
   }
-  :global(.dark) .cdc-diagram__subcard--orange {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--orange {
     stroke: #ea580c;
     fill: #431407;
   }
@@ -375,7 +375,7 @@
     stroke: #f43f5e;
     fill: #fff1f2;
   }
-  :global(.dark) .cdc-diagram__subcard--red {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--red {
     stroke: #be123c;
     fill: #4c0519;
   }
@@ -384,7 +384,7 @@
     stroke: #a855f7;
     fill: #faf5ff;
   }
-  :global(.dark) .cdc-diagram__subcard--purple {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--purple {
     stroke: #7e22ce;
     fill: #3b0764;
   }
@@ -393,7 +393,7 @@
     stroke: #fbbf24;
     fill: #fefce8;
   }
-  :global(.dark) .cdc-diagram__subcard--gold {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--gold {
     stroke: #d97706;
     fill: #451a03;
   }
@@ -402,7 +402,7 @@
     stroke: #14b8a6;
     fill: #f0fdfa;
   }
-  :global(.dark) .cdc-diagram__subcard--teal {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subcard--teal {
     stroke: #0f766e;
     fill: #042f2e;
   }
@@ -412,57 +412,57 @@
     font-weight: 700;
     fill: #0f172a;
   }
-  :global(.dark) .cdc-diagram__header {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header {
     fill: #f8fafc;
   }
 
   .cdc-diagram__header--blue {
     fill: #0284c7;
   }
-  :global(.dark) .cdc-diagram__header--blue {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--blue {
     fill: #38bdf8;
   }
 
   .cdc-diagram__header--orange {
     fill: #c2410c;
   }
-  :global(.dark) .cdc-diagram__header--orange {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--orange {
     fill: #fb923c;
   }
 
   .cdc-diagram__header--red {
     fill: #be123c;
   }
-  :global(.dark) .cdc-diagram__header--red {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--red {
     fill: #fb7185;
   }
 
   .cdc-diagram__header--purple {
     fill: #7e22ce;
   }
-  :global(.dark) .cdc-diagram__header--purple {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--purple {
     fill: #c084fc;
   }
 
   .cdc-diagram__header--gold {
     fill: #b45309;
   }
-  :global(.dark) .cdc-diagram__header--gold {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--gold {
     fill: #fbbf24;
   }
 
   .cdc-diagram__header--teal {
     fill: #0f766e;
   }
-  :global(.dark) .cdc-diagram__header--teal {
+  :global(:root[data-theme="dark"]) .cdc-diagram__header--teal {
     fill: #2dd4bf;
   }
 
   .cdc-diagram__subdesc {
     font-size: 11px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
-  :global(.dark) .cdc-diagram__subdesc {
+  :global(:root[data-theme="dark"]) .cdc-diagram__subdesc {
     fill: #94a3b8;
   }
 
@@ -472,7 +472,7 @@
     font-size: 11px;
     fill: #0369a1;
   }
-  :global(.dark) .cdc-diagram__code {
+  :global(:root[data-theme="dark"]) .cdc-diagram__code {
     fill: #7dd3fc;
   }
 
@@ -500,12 +500,12 @@
 
     .cdc-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .cdc-mobile-card {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card {
       background: #0f172a;
       border-color: #1e293b;
     }
@@ -514,7 +514,7 @@
       border-left: 4px solid #f97316;
       background: #fff7ed;
     }
-    :global(.dark) .cdc-mobile-card--orange {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card--orange {
       background: #431407;
       border-color: #f97316;
     }
@@ -523,7 +523,7 @@
       border-left: 4px solid #f43f5e;
       background: #fff1f2;
     }
-    :global(.dark) .cdc-mobile-card--red {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card--red {
       background: #4c0519;
       border-color: #fb7185;
     }
@@ -532,7 +532,7 @@
       border-left: 4px solid #14b8a6;
       background: #f0fdfa;
     }
-    :global(.dark) .cdc-mobile-card--teal {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card--teal {
       background: #042f2e;
       border-color: #2dd4bf;
     }
@@ -547,21 +547,21 @@
     .cdc-mobile-badge--orange {
       color: #ea580c;
     }
-    :global(.dark) .cdc-mobile-badge--orange {
+    :global(:root[data-theme="dark"]) .cdc-mobile-badge--orange {
       color: #fb923c;
     }
 
     .cdc-mobile-badge--red {
       color: #be123c;
     }
-    :global(.dark) .cdc-mobile-badge--red {
+    :global(:root[data-theme="dark"]) .cdc-mobile-badge--red {
       color: #fb7185;
     }
 
     .cdc-mobile-badge--teal {
       color: #0f766e;
     }
-    :global(.dark) .cdc-mobile-badge--teal {
+    :global(:root[data-theme="dark"]) .cdc-mobile-badge--teal {
       color: #2dd4bf;
     }
 
@@ -569,19 +569,19 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
-    :global(.dark) .cdc-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card h4 {
       color: #f8fafc;
     }
 
     .cdc-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
-    :global(.dark) .cdc-mobile-card p {
+    :global(:root[data-theme="dark"]) .cdc-mobile-card p {
       color: #cbd5e1;
     }
 
@@ -589,8 +589,15 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
+  }
+
+  :global(:root[data-theme="dark"]) .cdc-diagram__flow-line {
+    stroke: #fb7185;
+  }
+  :global(:root[data-theme="dark"]) .cdc-diagram__arrow-head {
+    fill: #fb7185;
   }
 </style>

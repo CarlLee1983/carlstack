@@ -222,12 +222,12 @@
   .kafka-diag {
     margin: 2.5rem 0;
     padding: 1.5rem;
-    background: var(--color-bg-card, #f8fafc);
-    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
     border-radius: 16px;
   }
 
-  :global(.dark) .kafka-diag {
+  :global(:root[data-theme="dark"]) .kafka-diag {
     background: #091410;
     border-color: #1e293b;
   }
@@ -244,12 +244,12 @@
 
   /* SVG Styles */
   .kafka-diag__card rect {
-    fill: var(--color-bg-surface, #ffffff);
-    stroke: var(--color-border, #cbd5e1);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .kafka-diag__card rect {
+  :global(:root[data-theme="dark"]) .kafka-diag__card rect {
     fill: #12201b;
     stroke: #1f362e;
   }
@@ -260,7 +260,7 @@
     stroke-width: 2;
   }
 
-  :global(.dark) .kafka-diag__card--emerald rect {
+  :global(:root[data-theme="dark"]) .kafka-diag__card--emerald rect {
     fill: #064e3b;
     stroke: #10b981;
   }
@@ -271,7 +271,7 @@
     stroke-width: 1 !important;
   }
 
-  :global(.dark) .kafka-diag__subcard {
+  :global(:root[data-theme="dark"]) .kafka-diag__subcard {
     fill: #192b24 !important;
     stroke: #2b453b !important;
   }
@@ -282,7 +282,7 @@
     stroke-width: 1.5 !important;
   }
 
-  :global(.dark) .kafka-diag__subcard--focus {
+  :global(:root[data-theme="dark"]) .kafka-diag__subcard--focus {
     fill: #022c22 !important;
     stroke: #34d399 !important;
   }
@@ -291,10 +291,10 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .kafka-diag__badge {
+  :global(:root[data-theme="dark"]) .kafka-diag__badge {
     fill: #9ca3af;
   }
 
@@ -302,7 +302,7 @@
     fill: #047857;
   }
 
-  :global(.dark) .kafka-diag__badge--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__badge--emerald {
     fill: #a7f3d0;
   }
 
@@ -312,7 +312,7 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .kafka-diag__title {
+  :global(:root[data-theme="dark"]) .kafka-diag__title {
     fill: #f9fafb;
   }
 
@@ -320,7 +320,7 @@
     fill: #065f46;
   }
 
-  :global(.dark) .kafka-diag__title--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__title--emerald {
     fill: #d1fae5;
   }
 
@@ -329,7 +329,7 @@
     fill: #475569;
   }
 
-  :global(.dark) .kafka-diag__desc {
+  :global(:root[data-theme="dark"]) .kafka-diag__desc {
     fill: #9ca3af;
   }
 
@@ -339,7 +339,7 @@
     fill: #1e293b;
   }
 
-  :global(.dark) .kafka-diag__subhead {
+  :global(:root[data-theme="dark"]) .kafka-diag__subhead {
     fill: #e5e7eb;
   }
 
@@ -347,7 +347,7 @@
     fill: #065f46;
   }
 
-  :global(.dark) .kafka-diag__subhead--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__subhead--emerald {
     fill: #6ee7b7;
   }
 
@@ -356,7 +356,7 @@
     fill: #4b5563;
   }
 
-  :global(.dark) .kafka-diag__subdesc {
+  :global(:root[data-theme="dark"]) .kafka-diag__subdesc {
     fill: #d1d5db;
   }
 
@@ -368,17 +368,17 @@
     fill: #047857;
   }
 
-  :global(.dark) .kafka-diag__code {
+  :global(:root[data-theme="dark"]) .kafka-diag__code {
     fill: #34d399;
   }
 
   .kafka-diag__tag {
     font-size: 10px;
     font-weight: 700;
-    fill: #6b7280;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .kafka-diag__tag {
+  :global(:root[data-theme="dark"]) .kafka-diag__tag {
     fill: #9ca3af;
   }
 
@@ -386,7 +386,7 @@
     fill: #059669;
   }
 
-  :global(.dark) .kafka-diag__tag--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__tag--emerald {
     fill: #34d399;
   }
 
@@ -395,7 +395,7 @@
     stroke-width: 1;
   }
 
-  :global(.dark) .kafka-diag__divider {
+  :global(:root[data-theme="dark"]) .kafka-diag__divider {
     stroke: #064e3b;
   }
 
@@ -409,7 +409,7 @@
     stroke-width: 2.5;
   }
 
-  :global(.dark) .kafka-diag__arrow--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__arrow--emerald {
     stroke: #10b981;
   }
 
@@ -417,7 +417,7 @@
     fill: #059669;
   }
 
-  :global(.dark) .kafka-diag__arrow-head--emerald {
+  :global(:root[data-theme="dark"]) .kafka-diag__arrow-head--emerald {
     fill: #10b981;
   }
 
@@ -427,14 +427,14 @@
     fill: #047857;
   }
 
-  :global(.dark) .kafka-diag__wire-label {
+  :global(:root[data-theme="dark"]) .kafka-diag__wire-label {
     fill: #6ee7b7;
   }
 
   figcaption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 
@@ -452,12 +452,12 @@
 
     .kafka-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .kafka-mobile-card {
+    :global(:root[data-theme="dark"]) .kafka-mobile-card {
       background: #12201b;
       border-color: #1f362e;
     }
@@ -468,7 +468,7 @@
       border-left: 4px solid #047857;
     }
 
-    :global(.dark) .kafka-mobile-card--emerald {
+    :global(:root[data-theme="dark"]) .kafka-mobile-card--emerald {
       background: #064e3b;
       border-color: #10b981;
     }
@@ -476,7 +476,7 @@
     .kafka-mobile-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
     }
@@ -485,7 +485,7 @@
       color: #059669;
     }
 
-    :global(.dark) .kafka-mobile-badge--emerald {
+    :global(:root[data-theme="dark"]) .kafka-mobile-badge--emerald {
       color: #6ee7b7;
     }
 
@@ -493,21 +493,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 1rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .kafka-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .kafka-mobile-card h4 {
       color: #f9fafb;
     }
 
     .kafka-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .kafka-mobile-card p {
+    :global(:root[data-theme="dark"]) .kafka-mobile-card p {
       color: #9ca3af;
     }
 
@@ -515,7 +515,7 @@
       text-align: center;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #6b7280;
+      color: var(--dg-muted);
       padding: 0.125rem 0;
     }
   }

@@ -344,16 +344,16 @@
     margin-top: 0.75rem;
     font-size: 0.875rem;
     text-align: center;
-    color: var(--color-text-muted, #64748b);
+    color: var(--dg-muted);
   }
 
   .lock-diagram__card rect {
-    fill: var(--color-bg-surface, #f8fafc);
-    stroke: var(--color-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :global(.dark) .lock-diagram__card rect {
+  :global(:root[data-theme="dark"]) .lock-diagram__card rect {
     fill: #0f172a;
     stroke: #1e293b;
   }
@@ -363,31 +363,31 @@
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 10px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
 
-  :global(.dark) .lock-diagram__badge {
+  :global(:root[data-theme="dark"]) .lock-diagram__badge {
     fill: #94a3b8;
   }
 
   .lock-diagram__title {
     font-size: 14px;
     font-weight: 700;
-    fill: var(--color-text-main, #0f172a);
+    fill: var(--dg-ink);
   }
 
-  :global(.dark) .lock-diagram__title {
+  :global(:root[data-theme="dark"]) .lock-diagram__title {
     fill: #f8fafc;
   }
 
   .lock-diagram__subcard {
     fill: #ffffff;
-    stroke: var(--color-border, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
 
-  :global(.dark) .lock-diagram__subcard {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard {
     fill: #1e293b;
     stroke: #334155;
   }
@@ -397,7 +397,7 @@
     fill: #fff7ed;
   }
 
-  :global(.dark) .lock-diagram__subcard--orange {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard--orange {
     stroke: #ea580c;
     fill: #431407;
   }
@@ -407,7 +407,7 @@
     fill: #f0f9ff;
   }
 
-  :global(.dark) .lock-diagram__subcard--blue {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard--blue {
     stroke: #0284c7;
     fill: #0c4a6e;
   }
@@ -417,7 +417,7 @@
     fill: #faf5ff;
   }
 
-  :global(.dark) .lock-diagram__subcard--purple {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard--purple {
     stroke: #7e22ce;
     fill: #3b0764;
   }
@@ -427,7 +427,7 @@
     fill: #f0fdf4;
   }
 
-  :global(.dark) .lock-diagram__subcard--green {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard--green {
     stroke: #059669;
     fill: #064e3b;
   }
@@ -437,7 +437,7 @@
     fill: #fef2f2;
   }
 
-  :global(.dark) .lock-diagram__subcard--alert {
+  :global(:root[data-theme="dark"]) .lock-diagram__subcard--alert {
     stroke: #dc2626;
     fill: #450a0a;
   }
@@ -448,51 +448,51 @@
     fill: #0f172a;
   }
 
-  :global(.dark) .lock-diagram__header {
+  :global(:root[data-theme="dark"]) .lock-diagram__header {
     fill: #f8fafc;
   }
 
   .lock-diagram__header--orange {
     fill: #c2410c;
   }
-  :global(.dark) .lock-diagram__header--orange {
+  :global(:root[data-theme="dark"]) .lock-diagram__header--orange {
     fill: #fb923c;
   }
 
   .lock-diagram__header--blue {
     fill: #0284c7;
   }
-  :global(.dark) .lock-diagram__header--blue {
+  :global(:root[data-theme="dark"]) .lock-diagram__header--blue {
     fill: #38bdf8;
   }
 
   .lock-diagram__header--purple {
     fill: #7e22ce;
   }
-  :global(.dark) .lock-diagram__header--purple {
+  :global(:root[data-theme="dark"]) .lock-diagram__header--purple {
     fill: #c084fc;
   }
 
   .lock-diagram__header--green {
     fill: #047857;
   }
-  :global(.dark) .lock-diagram__header--green {
+  :global(:root[data-theme="dark"]) .lock-diagram__header--green {
     fill: #34d399;
   }
 
   .lock-diagram__header--alert {
     fill: #b91c1c;
   }
-  :global(.dark) .lock-diagram__header--alert {
+  :global(:root[data-theme="dark"]) .lock-diagram__header--alert {
     fill: #f87171;
   }
 
   .lock-diagram__desc {
     font-size: 11px;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
-  :global(.dark) .lock-diagram__desc {
+  :global(:root[data-theme="dark"]) .lock-diagram__desc {
     fill: #94a3b8;
   }
 
@@ -503,12 +503,12 @@
     fill: #0369a1;
   }
 
-  :global(.dark) .lock-diagram__code {
+  :global(:root[data-theme="dark"]) .lock-diagram__code {
     fill: #7dd3fc;
   }
 
   .lock-diagram__arrow-head {
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   @media (max-width: 768px) {
@@ -524,12 +524,12 @@
 
     .lock-mobile-card {
       padding: 1rem;
-      background: var(--color-bg-surface, #ffffff);
-      border: 1px solid var(--color-border, #e2e8f0);
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
       border-radius: 10px;
     }
 
-    :global(.dark) .lock-mobile-card {
+    :global(:root[data-theme="dark"]) .lock-mobile-card {
       background: #0f172a;
       border-color: #1e293b;
     }
@@ -538,7 +538,7 @@
       border-left: 4px solid #f97316;
       background: #fff7ed;
     }
-    :global(.dark) .lock-mobile-card--orange {
+    :global(:root[data-theme="dark"]) .lock-mobile-card--orange {
       background: #431407;
       border-color: #f97316;
     }
@@ -547,7 +547,7 @@
       border-left: 4px solid #0284c7;
       background: #f0f9ff;
     }
-    :global(.dark) .lock-mobile-card--blue {
+    :global(:root[data-theme="dark"]) .lock-mobile-card--blue {
       background: #0c4a6e;
       border-color: #38bdf8;
     }
@@ -556,7 +556,7 @@
       border-left: 4px solid #7e22ce;
       background: #faf5ff;
     }
-    :global(.dark) .lock-mobile-card--purple {
+    :global(:root[data-theme="dark"]) .lock-mobile-card--purple {
       background: #3b0764;
       border-color: #a855f7;
     }
@@ -565,7 +565,7 @@
       border-left: 4px solid #10b981;
       background: #f0fdf4;
     }
-    :global(.dark) .lock-mobile-card--green {
+    :global(:root[data-theme="dark"]) .lock-mobile-card--green {
       background: #064e3b;
       border-color: #34d399;
     }
@@ -580,28 +580,28 @@
     .lock-mobile-badge--orange {
       color: #ea580c;
     }
-    :global(.dark) .lock-mobile-badge--orange {
+    :global(:root[data-theme="dark"]) .lock-mobile-badge--orange {
       color: #fb923c;
     }
 
     .lock-mobile-badge--blue {
       color: #0284c7;
     }
-    :global(.dark) .lock-mobile-badge--blue {
+    :global(:root[data-theme="dark"]) .lock-mobile-badge--blue {
       color: #38bdf8;
     }
 
     .lock-mobile-badge--purple {
       color: #7e22ce;
     }
-    :global(.dark) .lock-mobile-badge--purple {
+    :global(:root[data-theme="dark"]) .lock-mobile-badge--purple {
       color: #c084fc;
     }
 
     .lock-mobile-badge--green {
       color: #047857;
     }
-    :global(.dark) .lock-mobile-badge--green {
+    :global(:root[data-theme="dark"]) .lock-mobile-badge--green {
       color: #34d399;
     }
 
@@ -609,21 +609,21 @@
       margin: 0 0 0.25rem 0;
       font-size: 0.95rem;
       font-weight: 700;
-      color: var(--color-text-main, #0f172a);
+      color: var(--dg-ink);
     }
 
-    :global(.dark) .lock-mobile-card h4 {
+    :global(:root[data-theme="dark"]) .lock-mobile-card h4 {
       color: #f8fafc;
     }
 
     .lock-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
-      color: var(--color-text-muted, #475569);
+      color: var(--dg-ink-2);
       line-height: 1.4;
     }
 
-    :global(.dark) .lock-mobile-card p {
+    :global(:root[data-theme="dark"]) .lock-mobile-card p {
       color: #cbd5e1;
     }
   }
