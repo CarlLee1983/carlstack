@@ -1,0 +1,661 @@
+---
+// ForgeFlow Protocol Pipeline Diagram (Desktop SVG + Mobile Cards)
+---
+
+<figure class="forgeflow-diagram" aria-labelledby="forgeflow-diagram-caption">
+  <svg
+    class="forgeflow-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="forgeflow-diagram-title forgeflow-diagram-desc"
+  >
+    <title id="forgeflow-diagram-title">
+      ForgeFlow 責任分離與確定性驗證迴圈架構
+    </title>
+    <desc id="forgeflow-diagram-desc">
+      展示人類意圖經有界 Story 契約轉交 Agent 實作，由儲存庫原生 make verify
+      執行唯一確定性判決。若驗證失敗則由 Agent
+      原地修復，通過後方可交由人類進行架構審查與合併。
+    </desc>
+
+    <defs>
+      <marker
+        id="forgeflow-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="forgeflow-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="forgeflow-arrow-orange"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="forgeflow-diagram__arrow-head--orange"></path>
+      </marker>
+      <marker
+        id="forgeflow-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="forgeflow-diagram__arrow-head--green"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Human Intent Boundary -->
+    <g class="forgeflow-diagram__card" transform="translate(30, 30)">
+      <rect width="260" height="340" rx="12"></rect>
+      <text
+        class="forgeflow-diagram__badge forgeflow-diagram__badge--blue"
+        x="18"
+        y="28">HUMAN INTENT</text
+      >
+      <text class="forgeflow-diagram__title" x="18" y="56"
+        >有界規格契約 (Story)</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="224"
+          height="72"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--blue"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--blue"
+          x="12"
+          y="22">story.md</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• 目標 (Goal) 與嚴格範圍邊界</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• 業務規則、預期錯誤與約束</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="224"
+          height="84"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--blue"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--blue"
+          x="12"
+          y="22">acceptance.md</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• 可驗收準則 (Checkable AC)</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• 安全性矩陣 (Fixture Matrix)</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="78"
+          >• 基準覆寫宣告 (Superseded)</text
+        >
+      </g>
+
+      <g transform="translate(18, 256)">
+        <rect
+          width="224"
+          height="64"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--blue"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--blue"
+          x="12"
+          y="22">靜態合約防護</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• scripts/story-check (零依賴)</text
+        >
+      </g>
+    </g>
+
+    <!-- Arrow 1 -> 2 -->
+    <path
+      class="forgeflow-diagram__arrow"
+      d="M290 190 H350"
+      marker-end="url(#forgeflow-arrow)"></path>
+    <rect
+      x="302"
+      y="165"
+      width="36"
+      height="20"
+      rx="4"
+      class="forgeflow-diagram__label-pill"></rect>
+    <text class="forgeflow-diagram__arrow-label" x="320" y="179">派工</text>
+
+    <!-- Column 2: Agent Implementation & Repair Loop -->
+    <g class="forgeflow-diagram__card" transform="translate(350, 30)">
+      <rect width="260" height="340" rx="12"></rect>
+      <text
+        class="forgeflow-diagram__badge forgeflow-diagram__badge--orange"
+        x="18"
+        y="28">AGENT COGNITIVE WORK</text
+      >
+      <text class="forgeflow-diagram__title" x="18" y="56"
+        >最小凝聚實作與修復</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="224"
+          height="72"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--orange"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--orange"
+          x="12"
+          y="22">編碼與測試實作</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• 依循 Story 嚴格實作最小變更</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• 同步新增／更新對應測試案例</text
+        >
+      </g>
+
+      <g transform="translate(18, 160)">
+        <rect
+          width="224"
+          height="84"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--orange"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--orange"
+          x="12"
+          y="22">原地修復 (Repair Loop)</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• 驗證失敗時定位報錯根因</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• 禁止擅自弱化測試與驗收規格</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="78"
+          >• 規格衝突時標記 SPEC_BLOCKED</text
+        >
+      </g>
+
+      <g transform="translate(18, 256)">
+        <rect
+          width="224"
+          height="64"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--orange"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--orange"
+          x="12"
+          y="22">無狀態交接 (Handoff)</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• specs/handoff.md (結構化 YAML)</text
+        >
+      </g>
+    </g>
+
+    <!-- Forward Arrow 2 -> 3 -->
+    <path
+      class="forgeflow-diagram__arrow"
+      d="M610 190 H670"
+      marker-end="url(#forgeflow-arrow)"></path>
+    <rect
+      x="622"
+      y="165"
+      width="36"
+      height="20"
+      rx="4"
+      class="forgeflow-diagram__label-pill"></rect>
+    <text class="forgeflow-diagram__arrow-label" x="640" y="179">觸發</text>
+
+    <!-- Column 3: Repository Authority & Review -->
+    <g class="forgeflow-diagram__card" transform="translate(670, 30)">
+      <rect width="260" height="340" rx="12"></rect>
+      <text
+        class="forgeflow-diagram__badge forgeflow-diagram__badge--green"
+        x="18"
+        y="28">DETERMINISTIC GATE</text
+      >
+      <text class="forgeflow-diagram__title" x="18" y="56"
+        >儲存庫原生驗收權威</text
+      >
+
+      <g transform="translate(18, 75)">
+        <rect
+          width="224"
+          height="106"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--green"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--green"
+          x="12"
+          y="22">make verify</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• Format & Lint 格式風格檢查</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• Typecheck 靜態型別與架構合約</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="80"
+          >• Unit / Integration 測試與追蹤</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="98"
+          >• Exit 0 = PASS, Non-zero = FAIL</text
+        >
+      </g>
+
+      <g transform="translate(18, 194)">
+        <rect
+          width="224"
+          height="74"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--green"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--green"
+          x="12"
+          y="22">人類審查門檻 (Review)</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="44"
+          >• 僅 PASS 成果具備審查資格</text
+        >
+        <text class="forgeflow-diagram__desc" x="12" y="62"
+          >• 審核架構取捨與授權合併 (Merge)</text
+        >
+      </g>
+
+      <g transform="translate(18, 280)">
+        <rect
+          width="224"
+          height="40"
+          rx="6"
+          class="forgeflow-diagram__subcard forgeflow-diagram__subcard--green"
+        ></rect>
+        <text
+          class="forgeflow-diagram__header forgeflow-diagram__header--green"
+          x="12"
+          y="25">CI / 本地雙軌同源驗收</text
+        >
+      </g>
+    </g>
+
+    <!-- Feedback Arrow: Verification FAIL -> Agent Repair Loop -->
+    <path
+      class="forgeflow-diagram__arrow forgeflow-diagram__arrow--feedback"
+      d="M782 370 V425 H480 V370"
+      marker-end="url(#forgeflow-arrow-orange)"></path>
+    <rect
+      x="520"
+      y="413"
+      width="220"
+      height="24"
+      rx="4"
+      class="forgeflow-diagram__label-pill forgeflow-diagram__label-pill--fail"
+    ></rect>
+    <text
+      class="forgeflow-diagram__arrow-label forgeflow-diagram__arrow-label--fail"
+      x="630"
+      y="429"
+    >
+      FAIL (Exit != 0)：拒絕審查，原地修復
+    </text>
+  </svg>
+
+  <!-- Mobile View: Semantic Card Stack (Max-width: 48rem) -->
+  <div class="forgeflow-diagram__mobile">
+    <div class="forgeflow-mobile-card forgeflow-mobile-card--blue">
+      <span class="forgeflow-mobile-badge forgeflow-mobile-badge--blue"
+        >01. 人類意圖邊界 (HUMAN INTENT)</span
+      >
+      <h4>有界規格契約 (Story Contract)</h4>
+      <p>
+        <strong>story.md</strong
+        >：收斂目標、範圍、業務規則、預期錯誤與硬性技術約束。
+      </p>
+      <p>
+        <strong>acceptance.md</strong
+        >：將意圖轉換為可測試驗收準則，提供明確安全性 Fixture
+        矩陣與基準覆寫宣告。
+      </p>
+      <p>
+        <strong>scripts/story-check</strong>：純 Shell Builtins
+        靜態檢查，杜絕規格欄位缺漏。
+      </p>
+    </div>
+
+    <div class="forgeflow-mobile-arrow">↓ 派工實作</div>
+
+    <div class="forgeflow-mobile-card forgeflow-mobile-card--orange">
+      <span class="forgeflow-mobile-badge forgeflow-mobile-badge--orange"
+        >02. 執行實作與修復 (AGENT IMPLEMENTATION)</span
+      >
+      <h4>最小凝聚實作與修復迴圈</h4>
+      <p>
+        <strong>嚴格限縮範圍</strong>：只修改當前 Story
+        宣告邊界內的程式碼與測試，禁止越界變更。
+      </p>
+      <p>
+        <strong>原地修復迴圈 (Repair Loop)</strong
+        >：驗證失敗時解析報錯並修正根因，嚴禁弱化測試假裝通過。
+      </p>
+      <p>
+        <strong>無狀態交接 (Handoff)</strong>：上下文耗盡時於 <code
+          >specs/handoff.md</code
+        > 留下機器可讀的基準狀態與路徑歸屬。
+      </p>
+    </div>
+
+    <div class="forgeflow-mobile-arrow">↓ 觸發驗證</div>
+
+    <div class="forgeflow-mobile-card forgeflow-mobile-card--green">
+      <span class="forgeflow-mobile-badge forgeflow-mobile-badge--green"
+        >03. 儲存庫權威判決 (DETERMINISTIC GATE)</span
+      >
+      <h4>原生 <code>make verify</code> 驗證權威</h4>
+      <p>
+        <strong>唯一客觀真理</strong>：涵蓋 Lint、Typecheck、Unit/Integration
+        Tests 與架構檢查。Exit 0 判定 PASS，其餘皆為 FAIL。
+      </p>
+      <p>
+        <strong>門檻防禦</strong>：只有 PASS 的變更才具備人類 Review 資格；FAIL
+        直接回退 Agent 修復。
+      </p>
+      <p>
+        <strong>人類最終仲裁</strong>：自動化 PASS
+        僅代表合約滿足，人類工程師保留架構取捨與 Merge 最終決定權。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="forgeflow-diagram-caption">
+    ForgeFlow 核心工作流：人類定義有界 Story，Agent 在儲存庫原生 <code
+      >make verify</code
+    > 嚴格把關下完成修復迴圈，唯有綠燈才進入人類架構審查。
+  </figcaption>
+</figure>
+
+<style>
+  .forgeflow-diagram {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .forgeflow-diagram__desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .forgeflow-diagram__mobile {
+    display: none;
+  }
+
+  .forgeflow-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .forgeflow-diagram__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .forgeflow-diagram__badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .forgeflow-diagram__badge--blue {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__badge--blue {
+    fill: #38bdf8;
+  }
+
+  .forgeflow-diagram__badge--orange {
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__badge--orange {
+    fill: #fb923c;
+  }
+
+  .forgeflow-diagram__badge--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__badge--green {
+    fill: #4ade80;
+  }
+
+  .forgeflow-diagram__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .forgeflow-diagram__header {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .forgeflow-diagram__header--blue {
+    fill: #0369a1;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__header--blue {
+    fill: #7dd3fc;
+  }
+
+  .forgeflow-diagram__header--orange {
+    fill: #c2410c;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__header--orange {
+    fill: #fdba74;
+  }
+
+  .forgeflow-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__header--green {
+    fill: #86efac;
+  }
+
+  .forgeflow-diagram__desc {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 11px;
+  }
+
+  .forgeflow-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .forgeflow-diagram__arrow--feedback {
+    stroke: #ea580c;
+    stroke-width: 2.2;
+    stroke-dasharray: 6 6;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__arrow--feedback {
+    stroke: #fb923c;
+  }
+
+  .forgeflow-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .forgeflow-diagram__arrow-head--orange {
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__arrow-head--orange {
+    fill: #fb923c;
+  }
+
+  .forgeflow-diagram__arrow-head--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__arrow-head--green {
+    fill: #4ade80;
+  }
+
+  .forgeflow-diagram__label-pill {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .forgeflow-diagram__label-pill--fail {
+    fill: #fff7ed;
+    stroke: #fdba74;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__label-pill--fail {
+    fill: #431407;
+    stroke: #ea580c;
+  }
+
+  .forgeflow-diagram__arrow-label {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .forgeflow-diagram__arrow-label--fail {
+    fill: #c2410c;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .forgeflow-diagram__arrow-label--fail {
+    fill: #fdba74;
+  }
+
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  /* Mobile Responsive Styles */
+  @media (max-width: 48rem) {
+    .forgeflow-diagram__desktop {
+      display: none !important;
+    }
+
+    .forgeflow-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .forgeflow-mobile-card {
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--dg-rule);
+      background: var(--dg-surface);
+    }
+
+    .forgeflow-mobile-card--blue {
+      border-left: 4px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-card--blue {
+      border-left-color: #38bdf8;
+    }
+
+    .forgeflow-mobile-card--orange {
+      border-left: 4px solid #ea580c;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-card--orange {
+      border-left-color: #fb923c;
+    }
+
+    .forgeflow-mobile-card--green {
+      border-left: 4px solid #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-card--green {
+      border-left-color: #4ade80;
+    }
+
+    .forgeflow-mobile-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+    .forgeflow-mobile-badge--blue {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-badge--blue {
+      color: #38bdf8;
+    }
+    .forgeflow-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-badge--orange {
+      color: #fb923c;
+    }
+    .forgeflow-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .forgeflow-mobile-badge--green {
+      color: #4ade80;
+    }
+
+    .forgeflow-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .forgeflow-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.8125rem;
+      color: var(--dg-ink-2);
+      line-height: 1.45;
+    }
+
+    .forgeflow-mobile-arrow {
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+    }
+  }
+</style>

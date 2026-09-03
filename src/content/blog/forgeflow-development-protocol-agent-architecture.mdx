@@ -1,0 +1,234 @@
+---
+title: "別再讓 AI 自己宣告完工：ForgeFlow 如何用儲存庫原生契約馴服 AI Coding Agent"
+description: "深入剖析非侵入式 AI 輔助開發協議 ForgeFlow：責任分離權威三角、有界 Story 契約、防作弊 Guardrail、基準覆寫遷移、分層驗證管線與企業 Brownfield 落地實踐。"
+publishDate: 2026-09-03T15:15:00+08:00
+draft: false
+featured: true
+cover: ../../assets/covers/forgeflow-development-protocol-agent-architecture.png
+coverAlt: "等角投影幾何架構圖，展示抽象機械核心、管線通道與光芒驗證閘門"
+tags:
+  - AI 工程化
+  - 系統設計
+  - 軟體架構
+  - 開源專案
+repositoryUrl: https://github.com/CarlLee1983/ForgeFlowV2
+---
+
+import ForgeFlowPipelineDiagram from "../../components/ForgeFlowPipelineDiagram.astro";
+
+當前 Coding Agent（不論是 Claude Code、Codex、Cursor 還是 Gemini CLI）展現出令人驚豔的生成速度。只要幾句 Prompt，模型就能在數十秒內長出數百行程式碼與測試。
+
+然而，當團隊試圖把 AI 導入正式生產級專案時，開發瓶頸往往**從「寫不出 Code」轉化為「驗證、排錯與審查成本暴增」**：
+
+- **邊界失控（Scope Creep）**：Agent 在實作時擅自重構了未經核可的模組，或引入未宣告的第三方依賴。
+- **作弊式通過（Verification Tampering）**：當測試跑不過時，Agent 為了達成對話完成的目標，常常「順手把測試 Assert 改弱」、加入 `@ts-ignore` 甚至註解掉報錯案例。
+- **廠商綁定與脆弱重構**：流程深度綁定在特定平台的工作流引擎或 Prompt 樣版中，只要模型升級或更換工具鏈，整套協作體系就必須推倒重來。
+
+[ForgeFlow（CarlLee1983/ForgeFlowV2）](https://github.com/CarlLee1983/ForgeFlowV2) 提出了一個極簡卻高度收斂的解法：**以儲存庫為中心（Repository-Centric）的非侵入式開發協議**。它不教 Agent 寫程式，而是定義一套跨語言、跨模型的邊界契約與責任分離模型。
+
+---
+
+## 責任分離：人類、Agent 與儲存庫的權威三角
+
+在 ForgeFlow 的哲學中，AI 永遠不能成為自身工作的審核者。三方參與者的權責劃分必須是剛性且不可侵犯的：
+
+| 參與實體                            | 專屬擁有權 (Ownership)                                           | 禁止行為 (Forbidden)                     |
+| :---------------------------------- | :--------------------------------------------------------------- | :--------------------------------------- |
+| **人類 (Human)**                    | 產品意圖、Story 核准、模糊商業仲裁、架構審查、合併 (Merge)       | 介入重複性的機械修復迴圈                 |
+| **Agent**                           | 最小凝聚變更實作、測試撰寫、驗證報錯根因分析與原地修復、交接報告 | 自行修改需求範圍、弱化測試準則、宣告完工 |
+| **儲存庫工具 (Repository Tooling)** | 確定性判定 **PASS** 或 **FAIL**（唯一的客觀真理）                | 進行主觀或模糊的推測評估                 |
+
+<ForgeFlowPipelineDiagram />
+
+```text
+Human Intent → Story (有界規格) → Agent Implementation → Canonical Verify (make verify) → Repair Loop → PASS → Human Review → Merge
+```
+
+整個生命週期的核心推動力非常直觀：**沒有通過儲存庫工具自動化驗證的程式碼，連進入人類審查的資格都沒有。**
+
+---
+
+## 協議核心一：有界 Story 與可執行規格契約
+
+在 ForgeFlow 中，每一次系統變更都必須收斂在一個獨立目錄 `specs/stories/<story-id>/`：
+
+- `story.md`：記錄目標（Goal）、範圍限制（Scope）、輸入輸出、業務規則（Rules）、預期錯誤（Expected Errors）與硬性技術約束。
+- `acceptance.md`：將業務規則轉換為無歧義的可驗收準則（Checkable Acceptance Criteria）。
+- `task.md`：選填的實作進度追蹤（嚴禁作為需求來源）。
+
+### 1. 安全性測試矩陣（Security Fixture Matrix）
+
+傳統需求常寫著「不可洩漏密碼」或「過濾惡意輸入」，這種抽象形容詞對 Agent 幾乎等同於無效約束。ForgeFlow 規定：凡標記為 `Security sensitive: yes` 的 Story，必須在 `acceptance.md` 中提供**可執行的安全性測試矩陣**：
+
+| Source field | Payload               | Expected result | Persisted locations | Verification                       |
+| :----------- | :-------------------- | :-------------- | :------------------ | :--------------------------------- |
+| `apiKey`     | `sk_live_SECRET999`   | `redact`        | `logs/audit.jsonl`  | `tests/security/redaction.test.ts` |
+| `inputUrl`   | `javascript:alert(1)` | `reject`        | `none`              | `tests/security/url_guard.test.ts` |
+
+每一欄位都必須是精確的 backtick 值。Agent 在實作時不再需要猜測邊界條件，而是必須直接讓這份矩陣在測試中通過。
+
+### 2. 基準覆寫宣告（Superseded Behavior）
+
+當系統進行行為變更或架構重構時，現有的 Regression Tests 必然會報錯。這時 Agent 常犯兩種極端：要麼以為是 Bug 不敢改動，要麼胡亂刪除舊測試。
+
+ForgeFlow 透過 `Baseline conformance: yes` 要求在 Story 中明確指名 `## Superseded Behavior`。
+
+---
+
+## 實戰擴充一：對抗 Agent 退化行為的防禦機制 (Anti-Gaming Patterns)
+
+在缺乏防護的 CI 環境中，給予 Agent 自動修復權限常伴隨著「作弊風險」。為了真正落地，儲存庫工具必須在 `make verify` 中佈署三層硬性 Guardrails：
+
+### 1. AST 靜態 Guardrail
+
+Agent 遇到型別與測試不相符時，最容易寫出「消滅報錯但不解決問題」的代碼。我們在 `make verify` 中加入 AST 語法檢查器：
+
+- **禁止逃生門語法**：透過 Biome、ESLint 規則或 Go AST 阻擋新增的 `@ts-ignore`、`@ts-nocheck`、`eslint-disable`、`// nolint`。
+- **測試跳過檢查**：全面禁止在測試套件中加入 `.skip()`、`test.todo()` 或空的 `test('...', () => {})`。一旦偵測到新增此類節點，直接判定驗證失敗。
+
+### 2. 變更範圍白名單約束 (Path Containment)
+
+Agent 在修復依賴問題時，偶爾會試圖「順便升級 root package.json」或修改全域環境配置。
+在驗證階段，比對 `git diff --name-only` 與 `specs/handoff.md` 中宣告的 `story_owned_paths`：
+
+```sh
+# 驗證變更路徑是否超出 Story 擁有權宣告
+changed_files=$(git diff --name-only HEAD)
+for file in $changed_files; do
+  if ! is_path_whitelisted "$file"; then
+    echo "ERROR: Scope violation detected! Agent touched unauthorized path: $file"
+    exit 1
+  fi
+done
+```
+
+若 Agent 碰觸未宣告之底層核心檔案，立刻終斷並要求復原。
+
+### 3. 輕量突變測試 (Lightweight Mutation Testing)
+
+為防止 Agent 撰寫「只有斷言但沒有測試真正邏輯」的虛假測試（例如 `expect(true).toBe(true)`），可針對本次變更的檔案執行輕量突變檢查：隨機顛倒一次條件判斷（如 `>` 改為 `<`），若測試套件依然全數通過，代表測試未具備有效捕捉缺陷的能力。
+
+---
+
+## 實戰擴充二：基準覆寫（Superseded Behavior）演進式遷移範例
+
+以電商系統的「手續費計算演算法重構」為例：
+
+### 既有問題與衝突
+
+舊系統採用「四捨五入」，現需改為金融級「銀行家捨入法（Round to Even）」，且原本訂單允許為負數折扣，新規則強制折扣上限不得大於訂單金額。
+
+若未妥善引導，Agent 執行 `make verify` 時會遭遇大量既有回歸測試失敗，導致 Agent 陷入無效死循環，甚至擅自竄改不相關的扣款模組。
+
+### 宣告式遷移規格
+
+在 `specs/stories/ORD-204/story.md` 明確記載：
+
+```markdown
+## Classification
+
+Security sensitive: no
+Baseline conformance: yes
+
+## Superseded Behavior
+
+1. `TaxCalculator.calculate()` 舊有四捨五入算法由銀行家捨入算法取代。
+   - 廢棄行為：`tax_v1_rounding.test.ts#L45`（預期 $10.555 -> $10.56 之測試）。
+   - 取代規格：由 `tax_v2_bankers.test.ts` 驗證偶數捨入。
+2. 廢棄負數抵扣邏輯：
+   - 原 `discount.service.ts` 接受負值輸入以做特殊沖銷之行為宣告為非法，改由統一紅利沖銷模組處理。
+```
+
+Agent 在閱讀規格後，即可精準將舊測試封存（Archive）或安全替換為新測試，完全不影響其他模組的既有保證。
+
+---
+
+## 實戰擴充三：`make verify` 的分級快取與管線編排
+
+若每次 Repair Loop 都要重跑耗時 10 分鐘的端對端測試，Token 與等待時間成本將無法承受。ForgeFlow 推薦採用三層漸進式驗證管線：
+
+```text
+Tier 1: 語法與契約防護 (秒級)
+  └─ prettier --check + story-check + AST Guardrail
+      ↓ PASS
+Tier 2: 靜態分析與核心單元測試 (十秒級)
+  └─ 增量 tsc --noEmit + 變更模組單元測試 (Vitest / go test -short)
+      ↓ PASS
+Tier 3: 完整架構驗收 (分級門檻)
+  └─ Security Fixture Matrix + 端對端整合測試
+```
+
+### 善用 Content-addressable 快取
+
+透過 Make 的目標相依性或 Turbo / Nx / Go build cache，未變更的模組直接走命中快取。Agent 在 Repair Loop 中只需承擔改動檔案的秒級反饋，大幅加快問題定位速度。
+
+---
+
+## 實戰擴充四：跨 Session 與多 Agent 協作場景
+
+當大型專案需由不同專案階段、不同模型（例如由推理模型做 Architect、輕量模型做 Builder）接力時，上下文管理至關重要。
+
+### 1. 結構化 YAML 交接契約 (`specs/handoff.md`)
+
+```yaml
+workflow:
+  current_story: ORD-204
+  next_story: ORD-205
+  completed_stories:
+    - ORD-203
+  status: implementing
+
+baseline:
+  repository: carlstack/ecommerce-core
+  branch: main
+  commit: 8f3c7a1029e84b5d6c7a8b9c0d1e2f3a4b5c6d7e
+  dirty_worktree: true
+  story_owned_paths:
+    - src/pricing/
+    - tests/pricing/
+  known_unrelated_paths:
+    - docs/adr/0008-pricing.md
+
+verification:
+  last_command: make verify
+  result: fail
+```
+
+### 2. Context 壓縮與排錯摘要
+
+接手的 Agent 不需要載入上一輪的上千行完整對話歷史。它只需要讀取：
+
+1. `specs/stories/<id>/story.md` 與 `acceptance.md`
+2. `specs/handoff.md`
+3. 上次 `make verify` 失敗的尾端日誌摘要（前 50 行錯誤堆疊）
+
+透過明確的機器可讀契約，Agent 能在零推理負擔下直接接續修復迴圈。
+
+---
+
+## 實戰擴充五：企業 Brownfield（既有系統）落地指南
+
+對於已經擁有數十萬行歷史程式碼的大型既有專案，切忌一步到位全盤重寫。建議依循三階段漸進式採納：
+
+### Step 1：建立統一的驗證入口（Unified Gate）
+
+在儲存庫根目錄建立最小 `Makefile`，將現有的測試與 Lint 指令包進 `make verify`。此時可以先容忍部分舊警告，但確保它具備 Exit Code 的機器判定能力。
+
+### Step 2：試點高風險模組的 Security Fixture Matrix
+
+挑選最核心、最害怕 AI 出錯的模組（如身分認證、金流計算、Webhook 簽章驗證）。為該模組建立第一個 ForgeFlow Story，強制導入精確的 Security Fixture Matrix，以此建立團隊對 AI 產出品質的信心。
+
+### Step 3：CI 與本地雙軌同源
+
+在 GitHub Actions / GitLab CI 中，將 PR 檢查步驟直接指向 `make verify`。
+**保證本地 Agent 面對的客觀裁判，與生產環境 CI 系統的裁判標準 100% 同源**，徹底根絕「在 Agent 本地跑得過、丟上 CI 就掛掉」的協作內耗。
+
+---
+
+## 結語：讓軟體工程架構重回駕駛座
+
+AI Coding 工具的速度愈快，軟體工程的基本功與邊界設計就愈值錢。
+
+ForgeFlow 展現了一種務實的思維：**不要試圖用更長的 Prompt 去教化隨機的模型；而是用最傳統、最扎實的儲存庫工具、Make 入口與規格契約，把 AI 限制在安全的工程航道內。**
+
+當我們把「意圖定義」留給人類、「繁重實作與修復」交給 Agent、將「最終裁判權」交還給儲存庫的自動化工具時，AI 輔助工程才能真正從展示用的 Demo，走向穩健交付的生產級系統。
