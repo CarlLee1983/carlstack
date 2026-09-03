@@ -1,9 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { changedArticlePolicyViolations } from "../src/utils/content-policy.mjs";
+import {
+  changedArticlePolicyViolations,
+  resolvePolicyBase,
+} from "../src/utils/content-policy.mjs";
 
-const base = process.argv[2] ?? "HEAD";
+const base = resolvePolicyBase(process.argv.slice(2));
 
 let changedFiles;
 try {
