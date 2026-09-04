@@ -3,10 +3,10 @@
 ---
 
 <figure class="cap-diagram" aria-labelledby="cap-diagram-caption">
-  <!-- Desktop SVG layout (ViewBox 840x360, spacious layout, large text, generous padding) -->
+  <!-- Desktop SVG layout (ViewBox 840x380, spacious layout, large text, generous padding) -->
   <svg
     class="cap-diagram__desktop"
-    viewBox="0 0 840 360"
+    viewBox="0 0 840 380"
     role="img"
     aria-labelledby="cap-diagram-title cap-diagram-desc"
   >
@@ -17,66 +17,66 @@
       Consistency 一致性間取捨。
     </desc>
 
-    <!-- Left Box: CAP Triangle & Network Reality (X: 20, Y: 25, Width: 385, Height: 300) -->
-    <g transform="translate(20, 25)">
-      <rect width="385" height="300" rx="12" class="cap-diagram__card"></rect>
-      <text class="cap-diagram__badge" x="20" y="28">01. CAP THEOREM</text>
-      <text class="cap-diagram__title" x="20" y="52">CAP 物理分區約束三角</text>
+    <!-- Left Box: CAP Triangle & Network Reality (X: 20, Y: 20, Width: 385, Height: 335) -->
+    <g transform="translate(20, 20)">
+      <rect width="385" height="335" rx="12" class="cap-diagram__card"></rect>
+      <text class="cap-diagram__badge" x="24" y="30">01. CAP THEOREM</text>
+      <text class="cap-diagram__title" x="24" y="56">CAP 物理分區約束三角</text>
 
-      <!-- Triangle Visual -->
-      <polygon points="192,85 70,205 315,205" class="cap-diagram__tri-poly"
+      <!-- Triangle Visual (Vertices: (192, 126), (72, 226), (312, 226)) -->
+      <polygon points="192,126 72,226 312,226" class="cap-diagram__tri-poly"
       ></polygon>
 
       <!-- Node C: Consistency -->
-      <g transform="translate(192, 85)">
+      <g transform="translate(192, 126)">
         <circle r="24" class="cap-diagram__circle cap-diagram__circle--blue"
         ></circle>
         <text
           class="cap-diagram__circle-text cap-diagram__circle-text--blue"
-          y="6"
+          y="7"
           text-anchor="middle">C</text
         >
-        <text class="cap-diagram__node-label" y="-30" text-anchor="middle"
+        <text class="cap-diagram__node-label" y="-34" text-anchor="middle"
           >Consistency (強一致)</text
         >
       </g>
 
       <!-- Node A: Availability -->
-      <g transform="translate(70, 205)">
+      <g transform="translate(72, 226)">
         <circle r="24" class="cap-diagram__circle cap-diagram__circle--green"
         ></circle>
         <text
           class="cap-diagram__circle-text cap-diagram__circle-text--green"
-          y="6"
+          y="7"
           text-anchor="middle">A</text
         >
-        <text class="cap-diagram__node-label" y="40" text-anchor="middle"
+        <text class="cap-diagram__node-label" y="44" text-anchor="middle"
           >Availability (高可用)</text
         >
       </g>
 
       <!-- Node P: Partition Tolerance -->
-      <g transform="translate(315, 205)">
+      <g transform="translate(312, 226)">
         <circle r="24" class="cap-diagram__circle cap-diagram__circle--purple"
         ></circle>
         <text
           class="cap-diagram__circle-text cap-diagram__circle-text--purple"
-          y="6"
+          y="7"
           text-anchor="middle">P</text
         >
-        <text class="cap-diagram__node-label" y="40" text-anchor="middle"
+        <text class="cap-diagram__node-label" y="44" text-anchor="middle"
           >Partition (分區容忍)</text
         >
       </g>
 
       <!-- Reality Callout at bottom -->
-      <g transform="translate(20, 255)">
-        <rect width="345" height="32" rx="6" class="cap-diagram__alert-box"
+      <g transform="translate(20, 286)">
+        <rect width="345" height="34" rx="6" class="cap-diagram__alert-box"
         ></rect>
         <text
           class="cap-diagram__alert-text"
           x="172"
-          y="20"
+          y="22"
           text-anchor="middle"
         >
           實體網路：P 為必選項 ➔ 實為 CP vs. AP 二選一！
@@ -84,48 +84,48 @@
       </g>
     </g>
 
-    <!-- Right Box: PACELC Extended Model (X: 435, Y: 25, Width: 385, Height: 300) -->
-    <g transform="translate(435, 25)">
-      <rect width="385" height="300" rx="12" class="cap-diagram__card"></rect>
-      <text class="cap-diagram__badge" x="20" y="28">02. PACELC MODEL</text>
-      <text class="cap-diagram__title" x="20" y="52"
+    <!-- Right Box: PACELC Extended Model (X: 435, Y: 20, Width: 385, Height: 335) -->
+    <g transform="translate(435, 20)">
+      <rect width="385" height="335" rx="12" class="cap-diagram__card"></rect>
+      <text class="cap-diagram__badge" x="24" y="30">02. PACELC MODEL</text>
+      <text class="cap-diagram__title" x="24" y="56"
         >PACELC 延遲與一致性取捨</text
       >
 
       <!-- If Partition (P) Card -->
-      <g transform="translate(18, 75)">
+      <g transform="translate(20, 78)">
         <rect
-          width="349"
-          height="95"
+          width="345"
+          height="110"
           rx="8"
           class="cap-diagram__subcard cap-diagram__subcard--red"></rect>
-        <text class="cap-diagram__header cap-diagram__header--red" x="14" y="24"
+        <text class="cap-diagram__header cap-diagram__header--red" x="16" y="26"
           >若發生網路分區 (If Partition - P)：</text
         >
-        <text class="cap-diagram__desc" x="14" y="48"
+        <text class="cap-diagram__desc" x="16" y="54"
           >• 系統必須在【可用性 A】與【強一致性 C】間抉擇</text
         >
-        <text class="cap-diagram__tag cap-diagram__tag--red" x="14" y="74"
+        <text class="cap-diagram__tag cap-diagram__tag--red" x="16" y="84"
           >CP (如 Spanner, etcd) vs. AP (如 DynamoDB)</text
         >
       </g>
 
       <!-- Else (E) Card -->
-      <g transform="translate(18, 185)">
+      <g transform="translate(20, 204)">
         <rect
-          width="349"
-          height="95"
+          width="345"
+          height="110"
           rx="8"
           class="cap-diagram__subcard cap-diagram__subcard--blue"></rect>
         <text
           class="cap-diagram__header cap-diagram__header--blue"
-          x="14"
-          y="24">若系統正常無分區 (Else - E)：</text
+          x="16"
+          y="26">若系統正常無分區 (Else - E)：</text
         >
-        <text class="cap-diagram__desc" x="14" y="48"
+        <text class="cap-diagram__desc" x="16" y="54"
           >• 系統必須在【極低延遲 L】與【強一致性 C】間取捨</text
         >
-        <text class="cap-diagram__tag cap-diagram__tag--blue" x="14" y="74"
+        <text class="cap-diagram__tag cap-diagram__tag--blue" x="16" y="84"
           >EL (極低讀寫延遲) vs. EC (等待多副本同步)</text
         >
       </g>
