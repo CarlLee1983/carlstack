@@ -1,0 +1,568 @@
+---
+// Realtime Risk Engine Shadow Pipeline Evaluation Diagram Component
+---
+
+<figure class="rsp-diag" aria-labelledby="rsp-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="rsp-diag__desktop"
+    viewBox="0 0 880 340"
+    role="img"
+    aria-labelledby="rsp-diag-title rsp-diag-desc"
+  >
+    <title id="rsp-diag-title">
+      風控模型影子模式（Shadow Pipeline）雙軌驗收架構圖
+    </title>
+    <desc id="rsp-diag-desc">
+      展示生產即時請求鏡像分流，線上模型 v1 實際執行阻斷與扣款，影子模型 v2
+      僅非同步評分打日誌並由離線自動比對準確率與召回率。
+    </desc>
+
+    <defs>
+      <marker
+        id="rsp-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rsp-diag__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="rsp-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rsp-diag__arrow-head--purple"
+        ></path>
+      </marker>
+      <marker
+        id="rsp-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rsp-diag__arrow-head--blue"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="310"
+      rx="12"
+      class="rsp-diag__card-bg"></rect>
+
+    <!-- Top Ingress: Live Request (x: 270, width: 340) -->
+    <g transform="translate(270, 30)">
+      <rect
+        width="340"
+        height="42"
+        rx="8"
+        class="rsp-diag__box rsp-diag__box--blue"></rect>
+      <text
+        x="170"
+        y="26"
+        class="rsp-diag__title rsp-diag__title--blue"
+        text-anchor="middle"
+      >
+        生產即時交易請求 (Live Production Request)
+      </text>
+    </g>
+
+    <!-- Split Arrows: Live path vs Shadow mirror path -->
+    <path
+      d="M 370 72 L 220 115"
+      class="rsp-diag__path rsp-diag__path--green"
+      marker-end="url(#rsp-arrow-green)"></path>
+    <text x="260" y="90" class="rsp-diag__tag-text rsp-diag__tag-text--green"
+      >線上主鏈路 (100%)</text
+    >
+
+    <path
+      d="M 510 72 L 660 115"
+      class="rsp-diag__path rsp-diag__path--purple rsp-diag__path--dashed"
+      marker-end="url(#rsp-arrow-purple)"></path>
+    <text x="610" y="90" class="rsp-diag__tag-text rsp-diag__tag-text--purple"
+      >非同步鏡像 (Mirror)</text
+    >
+
+    <!-- Left Box: Production Model v1 (x: 50, y: 120, width: 355) -->
+    <g transform="translate(50, 120)">
+      <rect
+        width="355"
+        height="95"
+        rx="8"
+        class="rsp-diag__box rsp-diag__box--green"></rect>
+      <text
+        x="177"
+        y="26"
+        class="rsp-diag__title rsp-diag__title--green"
+        text-anchor="middle"
+      >
+        生產在線風控模型 (Model v1 - Active)
+      </text>
+      <text x="177" y="52" class="rsp-diag__sub-text" text-anchor="middle">
+        • 實際判定決策：放行 / 阻斷 / 挑戰
+      </text>
+      <rect
+        x="50"
+        y="65"
+        width="255"
+        height="22"
+        rx="4"
+        class="rsp-diag__pill rsp-diag__pill--green"></rect>
+      <text
+        x="177"
+        y="80"
+        class="rsp-diag__pill-text rsp-diag__pill-text--green"
+        text-anchor="middle"
+      >
+        ➔ 決定線上真實扣款，零防護真空
+      </text>
+    </g>
+
+    <!-- Right Box: Shadow Model v2 (x: 475, y: 120, width: 355) -->
+    <g transform="translate(475, 120)">
+      <rect
+        width="355"
+        height="95"
+        rx="8"
+        class="rsp-diag__box rsp-diag__box--purple"></rect>
+      <text
+        x="177"
+        y="26"
+        class="rsp-diag__title rsp-diag__title--purple"
+        text-anchor="middle"
+      >
+        實驗中新模型 (Model v2 - Shadow Mode)
+      </text>
+      <text x="177" y="52" class="rsp-diag__sub-text" text-anchor="middle">
+        • 僅在背景評分打標、記錄推論日誌
+      </text>
+      <rect
+        x="50"
+        y="65"
+        width="255"
+        height="22"
+        rx="4"
+        class="rsp-diag__pill rsp-diag__pill--purple"></rect>
+      <text
+        x="177"
+        y="80"
+        class="rsp-diag__pill-text rsp-diag__pill-text--purple"
+        text-anchor="middle"
+      >
+        ➔ 決策結果絕不阻斷，零業務誤傷風險
+      </text>
+    </g>
+
+    <!-- Converging Arrows to Offline Evaluation -->
+    <path
+      d="M 227 215 L 370 252"
+      class="rsp-diag__path rsp-diag__path--blue"
+      marker-end="url(#rsp-arrow-blue)"></path>
+    <path
+      d="M 652 215 L 510 252"
+      class="rsp-diag__path rsp-diag__path--blue"
+      marker-end="url(#rsp-arrow-blue)"></path>
+
+    <!-- Bottom Box: Offline Evaluation (x: 180, y: 255, width: 520) -->
+    <g transform="translate(180, 255)">
+      <rect
+        width="520"
+        height="50"
+        rx="8"
+        class="rsp-diag__box rsp-diag__box--blue"></rect>
+      <text
+        x="260"
+        y="24"
+        class="rsp-diag__title rsp-diag__title--blue"
+        text-anchor="middle"
+      >
+        離線準確率 / 召回率 / 混淆矩陣自動回歸比對
+      </text>
+      <text x="260" y="40" class="rsp-diag__sub-text" text-anchor="middle">
+        比對 v1 與 v2 決策差異 ➔ 驗證 Precision/Recall 滿意 ➔ 平滑灰度切換線上
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="rsp-diag__mobile">
+    <div class="rsp-diag__mobile-card rsp-diag__mobile-card--blue">
+      <span class="rsp-diag__mobile-badge rsp-diag__mobile-badge--blue"
+        >TRAFFIC INGRESS</span
+      >
+      <h4>1. 生產流量分發</h4>
+      <p>即時支付請求到達，網關同時觸發同步在線鏈路與非同步鏡像鏈路。</p>
+    </div>
+
+    <div class="rsp-diag__mobile-card rsp-diag__mobile-card--green">
+      <span class="rsp-diag__mobile-badge rsp-diag__mobile-badge--green"
+        >ACTIVE MODEL</span
+      >
+      <h4>2. 線上生產模型 (v1)</h4>
+      <p>
+        擁有唯一真實決策權：執行放行、阻斷或挑戰，確保交易即時處理並保護業務資產。
+      </p>
+    </div>
+
+    <div class="rsp-diag__mobile-card rsp-diag__mobile-card--purple">
+      <span class="rsp-diag__mobile-badge rsp-diag__mobile-badge--purple"
+        >SHADOW EVALUATION</span
+      >
+      <h4>3. 影子模型 (v2)</h4>
+      <p>
+        接收真實鏡像流量進行推論並記錄日誌，其決策結果絕不干預實際扣款，達成零業務誤傷風險。
+      </p>
+    </div>
+
+    <div class="rsp-diag__mobile-card rsp-diag__mobile-card--blue">
+      <span class="rsp-diag__mobile-badge rsp-diag__mobile-badge--blue"
+        >AUTOMATED AUDIT</span
+      >
+      <h4>4. 離線自動化混淆矩陣比對</h4>
+      <p>
+        離線數據平台自動比對 v1 與 v2 決策差異，檢視 Precision 與 Recall
+        指標，達標後方可進入線上灰度權重調升。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="rsp-diag-caption" class="rsp-diag__caption">
+    圖二：風控模型影子模式（Shadow Pipeline）雙軌驗收與離線指標比對架構
+  </figcaption>
+</figure>
+
+<style>
+  .rsp-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .rsp-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .rsp-diag__mobile {
+    display: none;
+  }
+
+  .rsp-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .rsp-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .rsp-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .rsp-diag__box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .rsp-diag__box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .rsp-diag__box--purple {
+    fill: var(--dg-surface-2, #241b35);
+    stroke: #bc8cff;
+  }
+
+  .rsp-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .rsp-diag__title--blue {
+    fill: #58a6ff;
+  }
+
+  .rsp-diag__title--green {
+    fill: #3fb950;
+  }
+
+  .rsp-diag__title--purple {
+    fill: #d2a8ff;
+  }
+
+  .rsp-diag__sub-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .rsp-diag__tag-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .rsp-diag__tag-text--green {
+    fill: #3fb950;
+  }
+
+  .rsp-diag__tag-text--purple {
+    fill: #d2a8ff;
+  }
+
+  .rsp-diag__pill {
+    stroke-width: 1px;
+  }
+
+  .rsp-diag__pill--green {
+    fill: rgba(35, 134, 54, 0.2);
+    stroke: #238636;
+  }
+
+  .rsp-diag__pill--purple {
+    fill: rgba(188, 140, 255, 0.15);
+    stroke: #bc8cff;
+  }
+
+  .rsp-diag__pill-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .rsp-diag__pill-text--green {
+    fill: #56d364;
+  }
+
+  .rsp-diag__pill-text--purple {
+    fill: #d2a8ff;
+  }
+
+  .rsp-diag__path {
+    fill: none;
+    stroke-width: 2px;
+  }
+
+  .rsp-diag__path--blue {
+    stroke: #388bfd;
+  }
+
+  .rsp-diag__path--green {
+    stroke: #238636;
+  }
+
+  .rsp-diag__path--purple {
+    stroke: #bc8cff;
+  }
+
+  .rsp-diag__path--dashed {
+    stroke-dasharray: 4 3;
+  }
+
+  .rsp-diag__arrow-head--blue {
+    fill: #388bfd;
+  }
+
+  .rsp-diag__arrow-head--green {
+    fill: #238636;
+  }
+
+  .rsp-diag__arrow-head--purple {
+    fill: #bc8cff;
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .rsp-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__box--purple {
+    fill: #fbefff;
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__title--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__title--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__title--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__tag-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__tag-text--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__pill--green {
+    fill: #dcfce7;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__pill--purple {
+    fill: #f3e8ff;
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__pill-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__pill-text--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__path--blue {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__path--green {
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__path--purple {
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__arrow-head--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__arrow-head--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .rsp-diag__arrow-head--purple {
+    fill: #8250df;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .rsp-diag__desktop {
+      display: none !important;
+    }
+
+    .rsp-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .rsp-diag__mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .rsp-diag__mobile-card--blue {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.05);
+    }
+
+    .rsp-diag__mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .rsp-diag__mobile-card--purple {
+      border-color: #bc8cff;
+      background: rgba(188, 140, 255, 0.05);
+    }
+
+    .rsp-diag__mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .rsp-diag__mobile-badge--blue {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .rsp-diag__mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .rsp-diag__mobile-badge--purple {
+      background: rgba(188, 140, 255, 0.2);
+      color: #d2a8ff;
+    }
+
+    .rsp-diag__mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .rsp-diag__mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+  }
+</style>

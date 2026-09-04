@@ -1,0 +1,724 @@
+---
+// Realtime Risk Engine Dual Path: Synchronous Decision vs Asynchronous Feature Pipeline Diagram Component
+---
+
+<figure class="redp-diag" aria-labelledby="redp-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="redp-diag__desktop"
+    viewBox="0 0 880 390"
+    role="img"
+    aria-labelledby="redp-diag-title redp-diag-desc"
+  >
+    <title id="redp-diag-title">
+      現代即時風控引擎同步決策與非同步特徵沉澱雙鏈路架構圖
+    </title>
+    <desc id="redp-diag-desc">
+      展示支付請求發起經 50ms 內同步鏈路執行設備指紋、Redis
+      滑動視窗、規則引擎與輕量 ML 評分進行放行、挑戰或阻斷；同時非同步發送 Kafka
+      由 Flink 與圖資料庫沉澱社群特徵。
+    </desc>
+
+    <defs>
+      <marker
+        id="redp-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="redp-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="redp-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="redp-diag__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="redp-arrow-amber"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="redp-diag__arrow-head--amber"
+        ></path>
+      </marker>
+      <marker
+        id="redp-arrow-red"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="redp-diag__arrow-head--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="360"
+      rx="12"
+      class="redp-diag__card-bg"></rect>
+
+    <!-- Step 1: Payment Request Ingress (x: 270, width: 340) -->
+    <g transform="translate(270, 30)">
+      <rect
+        width="340"
+        height="42"
+        rx="8"
+        class="redp-diag__box redp-diag__box--blue"></rect>
+      <text
+        x="170"
+        y="26"
+        class="redp-diag__title redp-diag__title--blue"
+        text-anchor="middle"
+      >
+        支付請求發起 (Payment Request Ingress)
+      </text>
+    </g>
+
+    <!-- Downward Arrow with 50ms constraint badge -->
+    <path
+      d="M 440 72 L 440 108"
+      class="redp-diag__path redp-diag__path--blue"
+      marker-end="url(#redp-arrow-blue)"></path>
+    <rect
+      x="455"
+      y="78"
+      width="130"
+      height="22"
+      rx="4"
+      class="redp-diag__badge-rect"></rect>
+    <text x="520" y="93" class="redp-diag__badge-text" text-anchor="middle"
+      >⚡ &lt; 50ms 同步約束</text
+    >
+
+    <!-- Step 2: Risk Decision Center Core (x: 50, y: 110, width: 780) -->
+    <g transform="translate(50, 110)">
+      <rect
+        width="780"
+        height="96"
+        rx="8"
+        class="redp-diag__box redp-diag__box--purple"></rect>
+      <text
+        x="390"
+        y="26"
+        class="redp-diag__title redp-diag__title--purple"
+        text-anchor="middle"
+      >
+        【 API 閘道 ＋ 風控決策中台 (Real-Time Decision Core) 】
+      </text>
+      <rect
+        x="25"
+        y="38"
+        width="730"
+        height="46"
+        rx="6"
+        class="redp-diag__inner-box"></rect>
+      <text x="390" y="56" class="redp-diag__desc-text" text-anchor="middle">
+        • 設備指紋 (Canvas / WebGL Fingerprint) ｜ IP 威脅畫像 ｜ 帳號關聯歷史
+      </text>
+      <text x="390" y="74" class="redp-diag__desc-text" text-anchor="middle">
+        • Redis 即時滑動視窗聚合特徵 ｜ Drools 動態規則引擎 ｜ XGBoost
+        輕量評分模型
+      </text>
+    </g>
+
+    <!-- 3 Action Decision Branches -->
+    <path
+      d="M 180 206 L 180 236"
+      class="redp-diag__path redp-diag__path--green"
+      marker-end="url(#redp-arrow-green)"></path>
+    <path
+      d="M 440 206 L 440 236"
+      class="redp-diag__path redp-diag__path--amber"
+      marker-end="url(#redp-arrow-amber)"></path>
+    <path
+      d="M 700 206 L 700 236"
+      class="redp-diag__path redp-diag__path--red"
+      marker-end="url(#redp-arrow-red)"></path>
+
+    <!-- Action 1: PASS (x: 50, width: 250) -->
+    <g transform="translate(50, 238)">
+      <rect
+        width="250"
+        height="50"
+        rx="8"
+        class="redp-diag__box redp-diag__box--green"></rect>
+      <text
+        x="125"
+        y="24"
+        class="redp-diag__act-title redp-diag__act-title--green"
+        text-anchor="middle"
+      >
+        ✅ 放行 (PASS)
+      </text>
+      <text x="125" y="40" class="redp-diag__act-sub" text-anchor="middle"
+        >低風險 ➔ 直接放行扣款</text
+      >
+    </g>
+
+    <!-- Action 2: CHALLENGE (x: 315, width: 250) -->
+    <g transform="translate(315, 238)">
+      <rect
+        width="250"
+        height="50"
+        rx="8"
+        class="redp-diag__box redp-diag__box--amber"></rect>
+      <text
+        x="125"
+        y="24"
+        class="redp-diag__act-title redp-diag__act-title--amber"
+        text-anchor="middle"
+      >
+        ⚠️ 挑戰 (CHALLENGE)
+      </text>
+      <text x="125" y="40" class="redp-diag__act-sub" text-anchor="middle"
+        >中風險 ➔ 3DS / 簡訊 OTP 驗證</text
+      >
+    </g>
+
+    <!-- Action 3: BLOCK (x: 580, width: 250) -->
+    <g transform="translate(580, 238)">
+      <rect
+        width="250"
+        height="50"
+        rx="8"
+        class="redp-diag__box redp-diag__box--red"></rect>
+      <text
+        x="125"
+        y="24"
+        class="redp-diag__act-title redp-diag__act-title--red"
+        text-anchor="middle"
+      >
+        ❌ 阻斷 (BLOCK)
+      </text>
+      <text x="125" y="40" class="redp-diag__act-sub" text-anchor="middle"
+        >高風險 ➔ 拒絕交易並告警</text
+      >
+    </g>
+
+    <!-- Asynchronous Feature Pipeline (x: 50, y: 304, width: 780) -->
+    <g transform="translate(50, 306)">
+      <rect
+        width="780"
+        height="48"
+        rx="8"
+        class="redp-diag__box redp-diag__box--async"></rect>
+      <text x="390" y="22" class="redp-diag__async-title" text-anchor="middle">
+        非同步特徵沉澱鏈路（Asynchronous Feature &amp; Graph Pipeline）
+      </text>
+      <text x="390" y="38" class="redp-diag__async-desc" text-anchor="middle">
+        Kafka 事件匯流排 ➔ Flink 滑動視窗流聚合 ➔ Neo4j / GNN
+        圖神經網路黑產團夥挖掘 ➔ 回寫 Redis 離線特徵
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="redp-diag__mobile">
+    <div class="redp-mobile-card redp-mobile-card--blue">
+      <span class="redp-mobile-badge redp-mobile-badge--blue"
+        >REQUEST INGRESS</span
+      >
+      <h4>1. 支付請求進入 API 閘道</h4>
+      <p>
+        交易發起，API 閘道必須在 <strong>50ms 內</strong> 同步完成全流程風控，絕不拖垮線上支付轉化率。
+      </p>
+    </div>
+
+    <div class="redp-mobile-card redp-mobile-card--purple">
+      <span class="redp-mobile-badge redp-mobile-badge--purple"
+        >SYNC DECISION</span
+      >
+      <h4>2. 即時風控中台決策引擎</h4>
+      <p>
+        • <strong>設備指紋：</strong>Canvas / WebGL / AudioContext
+        逆向生成穩定設備 ID。
+      </p>
+      <p>
+        • <strong>動態規則：</strong>Drools
+        引擎毫秒級比對單日交易筆數、金額上限與黑名單。
+      </p>
+      <p>• <strong>輕量模型：</strong>XGBoost 模型預測欺詐機率評分。</p>
+    </div>
+
+    <div class="redp-mobile-card redp-mobile-card--green">
+      <span class="redp-mobile-badge redp-mobile-badge--green"
+        >DECISION: PASS</span
+      >
+      <h4>3A. 放行 (PASS) ➔ 正常扣款</h4>
+      <p>評分低於安全閾值，即時放行呼叫銀行支付渠道。</p>
+    </div>
+
+    <div class="redp-mobile-card redp-mobile-card--amber">
+      <span class="redp-mobile-badge redp-mobile-badge--amber"
+        >DECISION: CHALLENGE</span
+      >
+      <h4>3B. 挑戰 (CHALLENGE) ➔ 二次驗證</h4>
+      <p>觸發 3D-Secure、動態簡訊 OTP、人臉辨識或生物驗證。</p>
+    </div>
+
+    <div class="redp-mobile-card redp-mobile-card--red">
+      <span class="redp-mobile-badge redp-mobile-badge--red"
+        >DECISION: BLOCK</span
+      >
+      <h4>3C. 阻斷 (BLOCK) ➔ 拒絕交易</h4>
+      <p>命中致命洗錢或盜刷規則，立即中斷交易並寫入黑名單。</p>
+    </div>
+
+    <div class="redp-mobile-card redp-mobile-card--async">
+      <span class="redp-mobile-badge redp-mobile-badge--async"
+        >ASYNC PIPELINE</span
+      >
+      <h4>4. 非同步特徵與圖神經網路沉澱</h4>
+      <p>
+        非同步將全量事件投遞 Kafka，透過 Flink 滑動視窗計算近 1h/24h
+        頻次，並送入 Neo4j / GNN 圖譜挖掘黑產關聯團夥。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="redp-diag-caption" class="redp-diag__caption">
+    圖一：現代即時風控引擎同步決策與非同步特徵沉澱雙鏈路架構
+  </figcaption>
+</figure>
+
+<style>
+  .redp-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .redp-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .redp-diag__mobile {
+    display: none;
+  }
+
+  .redp-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .redp-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .redp-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .redp-diag__box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .redp-diag__box--purple {
+    fill: var(--dg-surface-2, #241b35);
+    stroke: #bc8cff;
+  }
+
+  .redp-diag__box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .redp-diag__box--amber {
+    fill: var(--dg-surface-2, #292316);
+    stroke: #d29922;
+  }
+
+  .redp-diag__box--red {
+    fill: var(--dg-surface-2, #2d1d24);
+    stroke: #da3633;
+  }
+
+  .redp-diag__box--async {
+    fill: var(--dg-surface-2, #151d28);
+    stroke: #388bfd;
+    stroke-dasharray: 4 2;
+  }
+
+  .redp-diag__inner-box {
+    fill: var(--dg-surface, #10141a);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1px;
+  }
+
+  .redp-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .redp-diag__title--blue {
+    fill: #58a6ff;
+  }
+
+  .redp-diag__title--purple {
+    fill: #d2a8ff;
+  }
+
+  .redp-diag__act-title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .redp-diag__act-title--green {
+    fill: #3fb950;
+  }
+
+  .redp-diag__act-title--amber {
+    fill: #e3b341;
+  }
+
+  .redp-diag__act-title--red {
+    fill: #f85149;
+  }
+
+  .redp-diag__act-sub {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .redp-diag__desc-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    fill: var(--dg-ink, #c9d1d9);
+  }
+
+  .redp-diag__async-title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    fill: #58a6ff;
+  }
+
+  .redp-diag__async-desc {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .redp-diag__badge-rect {
+    fill: #1b2e23;
+    stroke: #238636;
+    stroke-width: 1px;
+  }
+
+  .redp-diag__badge-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    fill: #3fb950;
+  }
+
+  .redp-diag__path {
+    fill: none;
+    stroke-width: 2px;
+  }
+
+  .redp-diag__path--blue {
+    stroke: #58a6ff;
+  }
+
+  .redp-diag__path--green {
+    stroke: #3fb950;
+  }
+
+  .redp-diag__path--amber {
+    stroke: #d29922;
+  }
+
+  .redp-diag__path--red {
+    stroke: #da3633;
+  }
+
+  .redp-diag__arrow-head--blue {
+    fill: #58a6ff;
+  }
+
+  .redp-diag__arrow-head--green {
+    fill: #3fb950;
+  }
+
+  .redp-diag__arrow-head--amber {
+    fill: #d29922;
+  }
+
+  .redp-diag__arrow-head--red {
+    fill: #da3633;
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .redp-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--purple {
+    fill: #fbefff;
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--amber {
+    fill: #fff8c5;
+    stroke: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--red {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__box--async {
+    fill: #f6f8fa;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__inner-box {
+    fill: #ffffff;
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__title--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__title--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__act-title--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__act-title--amber {
+    fill: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__act-title--red {
+    fill: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__desc-text {
+    fill: var(--dg-ink, #24292f);
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__async-title {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__badge-rect {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__badge-text {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__path--blue {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__path--green {
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__path--amber {
+    stroke: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__path--red {
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__arrow-head--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__arrow-head--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__arrow-head--amber {
+    fill: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .redp-diag__arrow-head--red {
+    fill: #cf222e;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .redp-diag__desktop {
+      display: none !important;
+    }
+
+    .redp-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .redp-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .redp-mobile-card--blue {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.05);
+    }
+
+    .redp-mobile-card--purple {
+      border-color: #bc8cff;
+      background: rgba(188, 140, 255, 0.05);
+    }
+
+    .redp-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .redp-mobile-card--amber {
+      border-color: #d29922;
+      background: rgba(210, 153, 34, 0.05);
+    }
+
+    .redp-mobile-card--red {
+      border-color: #da3633;
+      background: rgba(218, 54, 51, 0.05);
+    }
+
+    .redp-mobile-card--async {
+      border-color: #388bfd;
+      border-style: dashed;
+      background: rgba(56, 139, 253, 0.04);
+    }
+
+    .redp-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .redp-mobile-badge--blue {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .redp-mobile-badge--purple {
+      background: rgba(188, 140, 255, 0.2);
+      color: #d2a8ff;
+    }
+
+    .redp-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .redp-mobile-badge--amber {
+      background: rgba(210, 153, 34, 0.2);
+      color: #e3b341;
+    }
+
+    .redp-mobile-badge--red {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f85149;
+    }
+
+    .redp-mobile-badge--async {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .redp-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .redp-mobile-card p {
+      margin: 0 0 0.25rem;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+
+    .redp-mobile-card p:last-child {
+      margin-bottom: 0;
+    }
+  }
+</style>
