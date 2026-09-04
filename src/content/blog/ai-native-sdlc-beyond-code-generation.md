@@ -2,7 +2,8 @@
 title: "當程式碼不再是瓶頸：AI Native SDLC 真正要重構什麼"
 description: "交叉比較 Google、OpenAI、Anthropic 與 LangChain 的軟體開發方法，拆解意圖、驗證、治理與生產回饋如何接手程式碼生成後的新瓶頸。"
 publishDate: 2026-08-31
-draft: true
+updatedDate: 2026-09-04
+draft: false
 featured: false
 tags:
   - AI 工程化
@@ -54,6 +55,19 @@ LangChain 的 [Agent Development Lifecycle](https://www.langchain.com/blog/the-a
 - 什麼證據能證明結果可接受。
 
 接下來的 spec 與 plan 不是為了增加文件，而是要在大量程式碼產生前，先暴露依賴、架構衝突、安全邊界與驗證方式。此時修正方向通常比 review 一個巨大 diff 便宜。
+
+[@shao__meng 的原始貼文](https://x.com/shao__meng/status/2095034431614677320)以 Anthropic 的 AI-Native SDLC 為線索，將這個轉換整理成一條 artifact chain。把它落到 repository 時，可先收斂成六個可追溯階段，而不是為每個階段另建一套 Agent：
+
+| 階段    | 下一階段必須接收到的制品         | 最小驗證                                         |
+| ------- | -------------------------------- | ------------------------------------------------ |
+| Intent  | 目標、非目標、風險與接受條件     | 需求擁有者確認問題沒有被改義                     |
+| Spec    | 可觀察行為、介面與邊界條件       | 以案例或 acceptance criteria 消除歧義            |
+| Plan    | 受影響模組、依賴、遷移與驗證命令 | 在動工前檢查範圍與高風險決策                     |
+| Build   | 最小 diff、測試與變更說明        | 靜態檢查與單元／整合測試通過                     |
+| Review  | 意圖、計畫、diff 與證據的對照    | 獨立 reviewer 核對偏離是否被說明                 |
+| Operate | 部署紀錄、指標、事故與使用者回饋 | production 訊號回寫成 issue、測試或下一輪 Intent |
+
+六階段不是 Anthropic 產品的固定 API，也不是每個小改動都要填滿六份文件；它是一個責任檢查表。文件或結構化資料的具體名稱可沿用團隊既有慣例。重點是任何人或 Agent 都能回答：這個 diff 要解決什麼、憑什麼通過、上線後由什麼訊號證明它仍然正確。這與 Anthropic 對長時間 Agent harness 的建議一致：讓新 session 從明確進度、版本歷史與可執行驗證接手，而不是只依賴上一段對話。[Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sdlc-chain-title sdlc-chain-desc">
