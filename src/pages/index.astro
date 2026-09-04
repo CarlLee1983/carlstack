@@ -93,7 +93,7 @@ const projects = (await getCollection("projects"))
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
             <div>
@@ -114,7 +114,7 @@ const projects = (await getCollection("projects"))
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
             <div>
@@ -135,7 +135,7 @@ const projects = (await getCollection("projects"))
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
             <div>
@@ -346,11 +346,34 @@ const projects = (await getCollection("projects"))
 
   /* Hero Section */
   .home-hero {
+    position: relative;
+    isolation: isolate;
     display: grid;
     gap: var(--space-2xl);
     align-items: center;
     padding-block: var(--space-2xl) var(--space-3xl);
     border-block-end: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .home-hero::before {
+    position: absolute;
+    z-index: -1;
+    inset: 8% -4% 12% 42%;
+    background:
+      radial-gradient(
+        circle at 70% 20%,
+        var(--color-accent-soft),
+        transparent 52%
+      ),
+      radial-gradient(
+        circle at 26% 78%,
+        var(--color-secondary-soft),
+        transparent 46%
+      );
+    content: "";
+    filter: blur(24px);
+    opacity: 0.75;
+    pointer-events: none;
   }
 
   .home-hero__copy {
@@ -424,6 +447,11 @@ const projects = (await getCollection("projects"))
     background: var(--color-accent-hover);
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(217, 93, 57, 0.35);
+  }
+
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: translateY(0) scale(0.98);
   }
 
   .btn-secondary {
@@ -532,6 +560,24 @@ const projects = (await getCollection("projects"))
     color: var(--color-muted);
   }
 
+  .spec-icon-box polyline {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw-check 520ms var(--ease-out) forwards;
+  }
+
+  .hero-spec-card__list li:nth-child(1) polyline {
+    animation-delay: 720ms;
+  }
+
+  .hero-spec-card__list li:nth-child(2) polyline {
+    animation-delay: 840ms;
+  }
+
+  .hero-spec-card__list li:nth-child(3) polyline {
+    animation-delay: 960ms;
+  }
+
   /* Sections */
   .home .section {
     border-block-start: 0;
@@ -582,6 +628,80 @@ const projects = (await getCollection("projects"))
     gap: var(--space-sm);
   }
 
+  .hero-eyebrow,
+  .home-hero h1,
+  .home-hero__lede,
+  .home-hero__actions {
+    animation: hero-rise 720ms var(--ease-out) both;
+  }
+
+  .home-hero h1 {
+    animation-delay: 80ms;
+  }
+
+  .home-hero__lede {
+    animation-delay: 160ms;
+  }
+
+  .home-hero__actions {
+    animation-delay: 240ms;
+  }
+
+  .hero-spec-card {
+    animation: hero-card-in 880ms var(--ease-out) 160ms both;
+  }
+
+  .hero-spec-card::before {
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: accent-line-in 680ms var(--ease-out) 520ms forwards;
+  }
+
+  @keyframes hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+  }
+
+  @keyframes hero-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem) scale(0.985);
+    }
+  }
+
+  @keyframes accent-line-in {
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes draw-check {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes section-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+  }
+
+  @supports (animation-timeline: view()) {
+    .home-latest,
+    .home-pair,
+    .home-projects,
+    .home-connect {
+      animation: section-reveal both;
+      animation-duration: 1ms;
+      animation-timeline: view();
+      animation-range: entry 8% cover 28%;
+    }
+  }
+
   @media (min-width: 54rem) {
     .home-hero {
       grid-template-columns: minmax(0, 1.25fr) minmax(22rem, 0.85fr);
@@ -593,6 +713,34 @@ const projects = (await getCollection("projects"))
       grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 0.75fr);
       gap: var(--space-2xl);
       align-items: start;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-eyebrow,
+    .home-hero h1,
+    .home-hero__lede,
+    .home-hero__actions,
+    .hero-spec-card,
+    .hero-spec-card::before,
+    .spec-icon-box polyline,
+    .home-latest,
+    .home-pair,
+    .home-projects,
+    .home-connect {
+      animation: none;
+    }
+
+    .hero-spec-card::before,
+    .btn-primary:hover,
+    .btn-primary:active,
+    .btn-secondary:hover,
+    .btn-secondary:active {
+      transform: none;
+    }
+
+    .spec-icon-box polyline {
+      stroke-dashoffset: 0;
     }
   }
 </style>
