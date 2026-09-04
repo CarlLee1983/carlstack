@@ -79,7 +79,7 @@ const descriptionId = `${detailId}-description`;
           project.data.cover && (
             <Image
               src={project.data.cover}
-              alt=""
+              alt={project.data.coverAlt ?? ""}
               widths={[480, 720]}
               sizes="(min-width: 48rem) 19rem, 100vw"
               loading="lazy"
@@ -164,9 +164,19 @@ const descriptionId = `${detailId}-description`;
         "[data-project-dialog]",
       );
 
-      openButton?.addEventListener("click", () => dialog?.showModal());
-      dialog?.addEventListener("click", (event) => {
-        if (event.target === dialog) dialog.close();
+      openButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        dialog?.showModal();
+      });
+      document.addEventListener("click", (event) => {
+        if (!dialog?.open || !(event instanceof MouseEvent)) return;
+        const bounds = dialog.getBoundingClientRect();
+        const outside =
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom;
+        if (outside) dialog.close();
       });
       dialog?.addEventListener("close", () => openButton?.focus());
     });
@@ -530,9 +540,35 @@ const descriptionId = `${detailId}-description`;
       color var(--dur-micro) var(--ease-out);
   }
 
+  .project-card-item:focus-within {
+    border-color: color-mix(
+      in srgb,
+      var(--color-accent) 72%,
+      var(--color-rule)
+    );
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-card) 76%, transparent),
+      0 0.42rem 0 color-mix(in srgb, var(--color-ink) 18%, var(--color-paper-3)),
+      0 1.7rem 3rem color-mix(in srgb, var(--color-ink) 20%, transparent);
+    transform: translateY(-0.5rem) rotate(0.35deg);
+  }
+
+  .project-card-item:focus-within::after {
+    transform: translateX(135%);
+  }
+
+  .project-card-item:focus-within .project-card-item__cover {
+    transform: scale(1.045);
+  }
+
+  .project-card-item:focus-within .project-card-item__reveal {
+    max-height: 9rem;
+    opacity: 1;
+    transform: none;
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    .project-card-item:hover,
-    .project-card-item:focus-within {
+    .project-card-item:hover {
       border-color: color-mix(
         in srgb,
         var(--color-accent) 72%,
@@ -546,18 +582,15 @@ const descriptionId = `${detailId}-description`;
       transform: translateY(-0.5rem) rotate(0.35deg);
     }
 
-    .project-card-item:hover::after,
-    .project-card-item:focus-within::after {
+    .project-card-item:hover::after {
       transform: translateX(135%);
     }
 
-    .project-card-item:hover .project-card-item__cover,
-    .project-card-item:focus-within .project-card-item__cover {
+    .project-card-item:hover .project-card-item__cover {
       transform: scale(1.045);
     }
 
-    .project-card-item:hover .project-card-item__reveal,
-    .project-card-item:focus-within .project-card-item__reveal {
+    .project-card-item:hover .project-card-item__reveal {
       max-height: 9rem;
       opacity: 1;
       transform: none;

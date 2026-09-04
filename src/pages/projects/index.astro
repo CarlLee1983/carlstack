@@ -51,15 +51,21 @@ const projects = (await getCollection("projects")).sort((left, right) => {
       animation: project-card-enter 520ms both var(--ease-out);
     }
 
-    .project-grid :global(.project-card-item:nth-child(2)) {
+    .project-grid
+      :global(.project-card-shell:nth-child(2))
+      :global(.project-card-item) {
       animation-delay: 70ms;
     }
 
-    .project-grid :global(.project-card-item:nth-child(3)) {
+    .project-grid
+      :global(.project-card-shell:nth-child(3))
+      :global(.project-card-item) {
       animation-delay: 140ms;
     }
 
-    .project-grid :global(.project-card-item:nth-child(4)) {
+    .project-grid
+      :global(.project-card-shell:nth-child(4))
+      :global(.project-card-item) {
       animation-delay: 210ms;
     }
   }
