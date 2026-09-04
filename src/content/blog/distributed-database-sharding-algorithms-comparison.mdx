@@ -2,7 +2,7 @@
 title: "分散式資料庫分片演算法全景對決：範圍分片、雜湊分片、一致性雜湊與目錄分片深度對比"
 description: "深度剖析分散式資料庫的核心擴展策略：4 大分片演算法（Range / Hash / Consistent Hashing / Directory）深度對決，並延伸到固定邏輯槽位再平衡、分片鍵與分散式 ID 設計、跨分片交易（2PC / TCC / Saga / Outbox+CDC）、熱點鍵鹽化與分級路由，以及零停機線上遷移四步法。"
 publishDate: 2026-09-02T17:50:00+08:00
-updatedDate: 2026-09-03T14:30:00+08:00
+updatedDate: 2026-09-05T00:49:35+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/distributed-database-sharding-algorithms-comparison.png
@@ -34,6 +34,36 @@ import ShardLiveMigrationDiagram from "../../components/ShardLiveMigrationDiagra
 - 或者導致跨分片 JOIN 與分散式交易的延遲暴增。
 
 本文先對比 4 大主流分片演算法的底層機制與選型權衡，再往下走到真正決定專案成敗的四件工程落地細節：固定邏輯槽位的再平衡策略、分片鍵與分散式 ID 設計、跨分片交易的補償方案，以及零停機的線上遷移流程。
+
+## 影片拆解：從一張 User 表走到分庫分表
+
+本文整理自 [小白debug〈玩原神學程式設計資料庫分庫是啥？〉](https://www.youtube.com/watch?v=DpGZGkeaSq0)。影片把「原神全球同服」當成假想案例，不是米哈遊內部架構披露；以下保留影片的教學順序，再用官方文件補上適用邊界。
+
+影片開場用一個工程師式的失敗笑話：團隊預估全球同服會有巨大玩家量，先把 User 表拆成四張，結果上線最高在線只有 58 人，其中 7 人還是專案成員。笑點不是預估錯，而是提醒「先知道要解決哪個瓶頸，再選分片」。影片接著從 MySQL 的資料頁與 I/O 講起；MySQL 官方文件說明 InnoDB 索引採用 B-tree，索引記錄放在頁面中，預設索引頁大小為 16 KiB，[InnoDB physical structure](https://dev.mysql.com/doc/refman/8.4/en/innodb-physical-structure.html)。
+
+### 垂直分表先處理列寬
+
+假設有 `user(id, name, age, equipment, ...)`。垂直分表把低頻或較寬的欄位移到另一張表，讓常用欄位的 row 變窄；同一個 16 KiB page 可以放更多 row，查詢只需要載入較少頁面。這個收益只對不需要被移出欄位的查詢成立；若每次都要 JOIN 回去，I/O 不會憑空消失。它解的是「一列太寬、熱查詢攜帶太多資料」，不是把容量分到多台機器。
+
+### 水平分表再處理列數
+
+水平分表保留相同欄位，把 rows 分到 `user_0 ... user_N`。影片以每表約 500 萬～2,000 萬列作示例，不是 MySQL 的硬性上限；實際界線要用 row size、索引、工作負載與壓測決定。這也解釋了「分表」與「分庫」的差別：前者仍可在一個資料庫實例內拆表，後者再把不同表群放到不同資料庫與機器。
+
+### 三種路由取捨
+
+1. `id % N`：簡單且通常均勻，但 N 一改就要重算大量 key，擴容牽涉搬遷。
+2. ID range：`floor(id / RANGE_SIZE)` 可隨資料成長增加新表，卻會讓自增 ID 的最新區間成為寫入熱點。
+3. 先 range、再在區間內取模：保留可成長的邊界，又把單一熱區的寫入拆到多張表；實務上仍需處理路由元資料、擴容與遷移。
+
+### 非分片鍵查詢為什麼會讀擴散
+
+分片鍵若是 `id`，`WHERE id = ...` 能直接決定目的表；但影片的 `SELECT * FROM user WHERE name = '小白'` 沒有 `id`，路由層只能對所有實體表發查詢再合併結果。Apache ShardingSphere 的 route engine 也把「帶 shard key」與「不帶 shard key 的 broadcast route」分開描述，[Route Engine](https://shardingsphere.apache.org/document/5.5.3/en/reference/sharding/route/)。
+
+影片提出的折衷是維護一張以 `name` 為路由鍵的輕量索引表，只保存 `name` 與原表 primary key。先查索引表拿到 ID 清單，再依 `id` 查原分片，把無目的的全表扇出縮成只查必要分片；代價是雙表一致性、更新與額外維運。這是全域二級索引的具體化，不是免費優化。
+
+### 中間層是邊界，不是魔法
+
+把路由放在 ORM／JDBC 函式庫或獨立 Proxy，都能讓業務程式只面對邏輯表。Apache ShardingSphere 的 [ShardingSphere-Proxy](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-proxy/) 以資料庫協定提供透明接入，因此上游語言不必各自內建分片路由；代價是多一個高可用、觀測、連線池與故障切換邊界。MongoDB 官方也提醒：當單機仍能承擔資料與流量時，不要為了「看起來可擴展」先上 sharding，因為它會增加基礎設施與維運複雜度，[Sharding FAQ](https://www.mongodb.com/docs/manual/faq/sharding/)。
 
 ---
 
