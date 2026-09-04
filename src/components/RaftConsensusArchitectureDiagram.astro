@@ -1,0 +1,577 @@
+---
+// Raft Consensus FSM & Log Replication Architecture Diagram Component
+---
+
+<figure class="raft-diagram" aria-labelledby="raft-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 840x440, generous bottom padding, 18px+ titles, 13px+ texts) -->
+  <svg
+    class="raft-diagram__desktop"
+    viewBox="0 0 840 440"
+    role="img"
+    aria-labelledby="raft-diagram-title raft-diagram-desc"
+  >
+    <title id="raft-diagram-title">
+      Raft 分散式共識架構：三角色狀態機躍遷與兩階段日誌複製
+    </title>
+    <desc id="raft-diagram-desc">
+      展示 Follower 心跳逾時轉為 Candidate，獲得過半 Quorum 投票勝選為
+      Leader；Leader 接收 Client 請求後將日誌複製至 Followers，過半寫入後推進
+      Commit Index 並回覆客戶端。
+    </desc>
+
+    <defs>
+      <marker
+        id="rf-arrow"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="rf-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-diagram__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="rf-arrow-red"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-diagram__arrow-head--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Part 1: Top Role FSM (Y: 30, Height: 155, Bottom margin: 25px) -->
+    <g class="raft-diagram__card" transform="translate(20, 25)">
+      <rect width="800" height="165" rx="12"></rect>
+      <text class="raft-diagram__badge" x="20" y="28">SECTION 01: ROLE FSM</text
+      >
+      <text class="raft-diagram__title" x="20" y="52"
+        >三角色狀態機躍遷 (State Transitions)</text
+      >
+
+      <!-- Follower Node -->
+      <g transform="translate(20, 70)">
+        <rect width="210" height="72" rx="8" class="raft-diagram__subbox"
+        ></rect>
+        <text class="raft-diagram__header" x="105" y="30" text-anchor="middle"
+          >FOLLOWER (跟隨者)</text
+        >
+        <text class="raft-diagram__desc" x="105" y="52" text-anchor="middle"
+          >被動接收日誌與心跳</text
+        >
+      </g>
+
+      <!-- Arrow 1: Follower -> Candidate -->
+      <path
+        d="M 230 106 H 280"
+        class="raft-diagram__connector"
+        marker-end="url(#rf-arrow)"></path>
+      <text class="raft-diagram__arrow-text" x="255" y="98" text-anchor="middle"
+        >逾時</text
+      >
+
+      <!-- Candidate Node -->
+      <g transform="translate(285, 70)">
+        <rect
+          width="225"
+          height="72"
+          rx="8"
+          class="raft-diagram__subbox raft-diagram__subbox--orange"></rect>
+        <text
+          class="raft-diagram__header raft-diagram__header--orange"
+          x="112"
+          y="30"
+          text-anchor="middle">CANDIDATE (候選人)</text
+        >
+        <text class="raft-diagram__desc" x="112" y="52" text-anchor="middle"
+          >Term 自增・廣播拉票</text
+        >
+      </g>
+
+      <!-- Arrow 2: Candidate -> Leader -->
+      <path
+        d="M 510 106 H 560"
+        class="raft-diagram__connector raft-diagram__connector--green"
+        marker-end="url(#rf-arrow-green)"></path>
+      <text
+        class="raft-diagram__arrow-text raft-diagram__arrow-text--green"
+        x="535"
+        y="98"
+        text-anchor="middle">多數票</text
+      >
+
+      <!-- Leader Node -->
+      <g transform="translate(565, 70)">
+        <rect
+          width="215"
+          height="72"
+          rx="8"
+          class="raft-diagram__subbox raft-diagram__subbox--green"></rect>
+        <text
+          class="raft-diagram__header raft-diagram__header--green"
+          x="107"
+          y="30"
+          text-anchor="middle">LEADER (領導者)</text
+        >
+        <text class="raft-diagram__desc" x="107" y="52" text-anchor="middle"
+          >全權處理請求・同步日誌</text
+        >
+      </g>
+
+      <!-- Fallback Arrow: Leader -> Follower -->
+      <path
+        d="M 672 70 C 672 32, 125 32, 125 65"
+        class="raft-diagram__connector raft-diagram__connector--red"
+        marker-end="url(#rf-arrow-red)"></path>
+      <text
+        class="raft-diagram__arrow-text raft-diagram__arrow-text--red"
+        x="400"
+        y="34"
+        text-anchor="middle"
+      >
+        發現更高 Term 任期號或重啟 ➔ 降級為 Follower
+      </text>
+    </g>
+
+    <!-- Part 2: Log Replication Pipeline (Y: 210, Height: 200, Bottom margin: 30px) -->
+    <g class="raft-diagram__card" transform="translate(20, 210)">
+      <rect width="800" height="200" rx="12"></rect>
+      <text class="raft-diagram__badge" x="20" y="28"
+        >SECTION 02: REPLICATION</text
+      >
+      <text class="raft-diagram__title" x="20" y="52"
+        >日誌兩階段複製與 Quorum 提交保證</text
+      >
+
+      <!-- Client & Leader Block (Left Column) -->
+      <g transform="translate(20, 70)">
+        <!-- Client Box -->
+        <rect
+          width="180"
+          height="42"
+          rx="6"
+          class="raft-diagram__subbox raft-diagram__subbox--blue"></rect>
+        <text
+          class="raft-diagram__header raft-diagram__header--blue"
+          x="90"
+          y="26"
+          text-anchor="middle"
+        >
+          Client: Set x=5
+        </text>
+
+        <!-- Arrow to Leader -->
+        <path
+          d="M 180 21 H 220"
+          class="raft-diagram__connector raft-diagram__connector--blue"
+          marker-end="url(#rf-arrow)"></path>
+
+        <!-- Leader Box -->
+        <g transform="translate(225, 0)">
+          <rect width="490" height="42" rx="6" class="raft-diagram__subbox"
+          ></rect>
+          <text
+            class="raft-diagram__mono-text"
+            x="245"
+            y="26"
+            text-anchor="middle"
+          >
+            Leader Log: [ Index: 1, Term: 1, Command: Set x=5 (Uncommitted) ]
+          </text>
+        </g>
+      </g>
+
+      <!-- AppendEntries to Followers -->
+      <g transform="translate(20, 126)">
+        <!-- Follower A -->
+        <g transform="translate(140, 0)">
+          <rect
+            width="250"
+            height="50"
+            rx="6"
+            class="raft-diagram__subbox raft-diagram__subbox--purple"></rect>
+          <text
+            class="raft-diagram__header raft-diagram__header--purple"
+            x="125"
+            y="24"
+            text-anchor="middle"
+          >
+            Follower A (寫入本地磁碟)
+          </text>
+          <text class="raft-diagram__desc" x="125" y="40" text-anchor="middle"
+            >AppendEntries RPC 成功</text
+          >
+        </g>
+
+        <!-- Follower B -->
+        <g transform="translate(420, 0)">
+          <rect
+            width="250"
+            height="50"
+            rx="6"
+            class="raft-diagram__subbox raft-diagram__subbox--purple"></rect>
+          <text
+            class="raft-diagram__header raft-diagram__header--purple"
+            x="125"
+            y="24"
+            text-anchor="middle"
+          >
+            Follower B (寫入本地磁碟)
+          </text>
+          <text class="raft-diagram__desc" x="125" y="40" text-anchor="middle"
+            >AppendEntries RPC 成功</text
+          >
+        </g>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="raft-diagram__mobile">
+    <div class="raft-mobile-card">
+      <span class="raft-mobile-badge">01. FOLLOWER</span>
+      <h4>跟隨者 (被動監聽)</h4>
+      <p>
+        完全被動接收來自 Leader
+        的心跳與日誌追加；當隨機化選舉逾時（150ms~300ms）觸發時，率先自增 Term
+        並躍遷為候選人。
+      </p>
+    </div>
+
+    <div class="raft-mobile-arrow">↓ 隨機化逾時觸發拉票</div>
+
+    <div class="raft-mobile-card raft-mobile-card--orange">
+      <span class="raft-mobile-badge raft-mobile-badge--orange"
+        >02. CANDIDATE</span
+      >
+      <h4>候選人 (廣播徵集選票)</h4>
+      <p>
+        向叢集所有節點廣播 RequestVote
+        RPC；在先到先得與日誌完備性限制下，爭取過半數（Quorum: ⌊N/2⌋ +
+        1）信任票。
+      </p>
+    </div>
+
+    <div class="raft-mobile-arrow">↓ 獲得多數 Quorum 票數</div>
+
+    <div class="raft-mobile-card raft-mobile-card--green">
+      <span class="raft-mobile-badge raft-mobile-badge--green">03. LEADER</span>
+      <h4>領導者 (權限中樞)</h4>
+      <p>
+        成為叢集唯一寫入入口，序列化客戶端指令並廣播 AppendEntries RPC；過半數
+        Follower 寫入成功即推進 Commit Index 並回覆 Client。
+      </p>
+    </div>
+
+    <div class="raft-mobile-arrow">↓ 兩階段提交日誌安全保證</div>
+
+    <div class="raft-mobile-card raft-mobile-card--blue">
+      <span class="raft-mobile-badge raft-mobile-badge--blue"
+        >04. COMMIT SAFETY</span
+      >
+      <h4>日誌安全性保證 (Leader Completeness)</h4>
+      <p>
+        落後或舊日誌的 Candidate 絕無法勝選，保證新當選 Leader
+        必包含歷史已提交的全部資料，徹底杜絕日誌覆蓋回退。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="raft-diagram-caption">
+    圖：Raft 共識協定核心架構 —— 隨機化逾時選舉、狀態機躍遷與兩階段日誌複製
+  </figcaption>
+</figure>
+
+<style>
+  .raft-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .raft-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .raft-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .raft-diagram__card > rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .raft-diagram__badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    fill: var(--dg-muted);
+  }
+
+  .raft-diagram__title {
+    font-size: 16.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .raft-diagram__subbox {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.2;
+  }
+
+  .raft-diagram__header {
+    font-size: 14px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .raft-diagram__desc {
+    font-size: 12px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .raft-diagram__mono-text {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .raft-diagram__arrow-text {
+    font-size: 11px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: var(--dg-muted);
+  }
+
+  .raft-diagram__connector {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .raft-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Color Variations */
+  .raft-diagram__subbox--orange {
+    stroke: #f97316;
+    fill: rgba(249, 115, 22, 0.06);
+  }
+  .raft-diagram__header--orange {
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__subbox--orange {
+    stroke: #fb923c;
+    fill: rgba(249, 115, 22, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__header--orange {
+    fill: #fdba74;
+  }
+
+  .raft-diagram__subbox--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.06);
+  }
+  .raft-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__subbox--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__header--green {
+    fill: #86efac;
+  }
+
+  .raft-diagram__subbox--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.06);
+  }
+  .raft-diagram__header--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__subbox--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__header--blue {
+    fill: #93c5fd;
+  }
+
+  .raft-diagram__subbox--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.06);
+  }
+  .raft-diagram__header--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__subbox--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__header--purple {
+    fill: #c4b5fd;
+  }
+
+  .raft-diagram__connector--green {
+    stroke: #16a34a;
+  }
+  .raft-diagram__arrow-head--green {
+    fill: #16a34a;
+  }
+  .raft-diagram__arrow-text--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__connector--green {
+    stroke: #4ade80;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__arrow-head--green {
+    fill: #4ade80;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__arrow-text--green {
+    fill: #86efac;
+  }
+
+  .raft-diagram__connector--red {
+    stroke: #dc2626;
+    stroke-dasharray: 4, 3;
+  }
+  .raft-diagram__arrow-head--red {
+    fill: #dc2626;
+  }
+  .raft-diagram__arrow-text--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__connector--red {
+    stroke: #f87171;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__arrow-head--red {
+    fill: #f87171;
+  }
+  :global(:root[data-theme="dark"]) .raft-diagram__arrow-text--red {
+    fill: #fca5a5;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .raft-diagram__desktop {
+      display: none !important;
+    }
+
+    .raft-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .raft-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .raft-mobile-card--orange {
+      border-left: 4px solid #f97316;
+    }
+    .raft-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    .raft-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+
+    :global(:root[data-theme="dark"]) .raft-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    .raft-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .raft-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(:root[data-theme="dark"]) .raft-mobile-badge--orange {
+      color: #fdba74;
+    }
+
+    .raft-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .raft-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .raft-mobile-badge--blue {
+      color: #3b82f6;
+    }
+    :global(:root[data-theme="dark"]) .raft-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .raft-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .raft-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .raft-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>

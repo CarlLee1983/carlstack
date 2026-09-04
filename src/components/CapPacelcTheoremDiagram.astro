@@ -1,0 +1,479 @@
+---
+// CAP Theorem Triangle & PACELC Latency Tradeoff Diagram Component
+---
+
+<figure class="cap-diagram" aria-labelledby="cap-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 840x360, spacious layout, large text, generous padding) -->
+  <svg
+    class="cap-diagram__desktop"
+    viewBox="0 0 840 360"
+    role="img"
+    aria-labelledby="cap-diagram-title cap-diagram-desc"
+  >
+    <title id="cap-diagram-title">CAP 定理權衡三角與 PACELC 延遲模型</title>
+    <desc id="cap-diagram-desc">
+      展示在物理分區 P 不可避免的前提下，系統面臨 CP (強一致) 與 AP (高可用)
+      權衡；以及 PACELC 模型：分區時選 A 或 C，無分區時在 Latency 延遲與
+      Consistency 一致性間取捨。
+    </desc>
+
+    <!-- Left Box: CAP Triangle & Network Reality (X: 20, Y: 25, Width: 385, Height: 300) -->
+    <g transform="translate(20, 25)">
+      <rect width="385" height="300" rx="12" class="cap-diagram__card"></rect>
+      <text class="cap-diagram__badge" x="20" y="28">01. CAP THEOREM</text>
+      <text class="cap-diagram__title" x="20" y="52">CAP 物理分區約束三角</text>
+
+      <!-- Triangle Visual -->
+      <polygon points="192,85 70,205 315,205" class="cap-diagram__tri-poly"
+      ></polygon>
+
+      <!-- Node C: Consistency -->
+      <g transform="translate(192, 85)">
+        <circle r="24" class="cap-diagram__circle cap-diagram__circle--blue"
+        ></circle>
+        <text
+          class="cap-diagram__circle-text cap-diagram__circle-text--blue"
+          y="6"
+          text-anchor="middle">C</text
+        >
+        <text class="cap-diagram__node-label" y="-30" text-anchor="middle"
+          >Consistency (強一致)</text
+        >
+      </g>
+
+      <!-- Node A: Availability -->
+      <g transform="translate(70, 205)">
+        <circle r="24" class="cap-diagram__circle cap-diagram__circle--green"
+        ></circle>
+        <text
+          class="cap-diagram__circle-text cap-diagram__circle-text--green"
+          y="6"
+          text-anchor="middle">A</text
+        >
+        <text class="cap-diagram__node-label" y="40" text-anchor="middle"
+          >Availability (高可用)</text
+        >
+      </g>
+
+      <!-- Node P: Partition Tolerance -->
+      <g transform="translate(315, 205)">
+        <circle r="24" class="cap-diagram__circle cap-diagram__circle--purple"
+        ></circle>
+        <text
+          class="cap-diagram__circle-text cap-diagram__circle-text--purple"
+          y="6"
+          text-anchor="middle">P</text
+        >
+        <text class="cap-diagram__node-label" y="40" text-anchor="middle"
+          >Partition (分區容忍)</text
+        >
+      </g>
+
+      <!-- Reality Callout at bottom -->
+      <g transform="translate(20, 255)">
+        <rect width="345" height="32" rx="6" class="cap-diagram__alert-box"
+        ></rect>
+        <text
+          class="cap-diagram__alert-text"
+          x="172"
+          y="20"
+          text-anchor="middle"
+        >
+          實體網路：P 為必選項 ➔ 實為 CP vs. AP 二選一！
+        </text>
+      </g>
+    </g>
+
+    <!-- Right Box: PACELC Extended Model (X: 435, Y: 25, Width: 385, Height: 300) -->
+    <g transform="translate(435, 25)">
+      <rect width="385" height="300" rx="12" class="cap-diagram__card"></rect>
+      <text class="cap-diagram__badge" x="20" y="28">02. PACELC MODEL</text>
+      <text class="cap-diagram__title" x="20" y="52"
+        >PACELC 延遲與一致性取捨</text
+      >
+
+      <!-- If Partition (P) Card -->
+      <g transform="translate(18, 75)">
+        <rect
+          width="349"
+          height="95"
+          rx="8"
+          class="cap-diagram__subcard cap-diagram__subcard--red"></rect>
+        <text class="cap-diagram__header cap-diagram__header--red" x="14" y="24"
+          >若發生網路分區 (If Partition - P)：</text
+        >
+        <text class="cap-diagram__desc" x="14" y="48"
+          >• 系統必須在【可用性 A】與【強一致性 C】間抉擇</text
+        >
+        <text class="cap-diagram__tag cap-diagram__tag--red" x="14" y="74"
+          >CP (如 Spanner, etcd) vs. AP (如 DynamoDB)</text
+        >
+      </g>
+
+      <!-- Else (E) Card -->
+      <g transform="translate(18, 185)">
+        <rect
+          width="349"
+          height="95"
+          rx="8"
+          class="cap-diagram__subcard cap-diagram__subcard--blue"></rect>
+        <text
+          class="cap-diagram__header cap-diagram__header--blue"
+          x="14"
+          y="24">若系統正常無分區 (Else - E)：</text
+        >
+        <text class="cap-diagram__desc" x="14" y="48"
+          >• 系統必須在【極低延遲 L】與【強一致性 C】間取捨</text
+        >
+        <text class="cap-diagram__tag cap-diagram__tag--blue" x="14" y="74"
+          >EL (極低讀寫延遲) vs. EC (等待多副本同步)</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="cap-diagram__mobile">
+    <div class="cap-mobile-card cap-mobile-card--purple">
+      <span class="cap-mobile-badge cap-mobile-badge--purple"
+        >CAP THEOREM IN REALITY</span
+      >
+      <h4>網路分區 P 是客觀物理現實</h4>
+      <p>
+        實體網路的光纖損壞、交換機故障必然發生；因此架構師的真實決策不是「三選二」，而是在分區發生時選擇保證強一致（CP）或維持高可用（AP）。
+      </p>
+    </div>
+
+    <div class="cap-mobile-arrow">↓ 深入延遲代價評估</div>
+
+    <div class="cap-mobile-card cap-mobile-card--red">
+      <span class="cap-mobile-badge cap-mobile-badge--red"
+        >PACELC: IF PARTITION (P)</span
+      >
+      <h4>分區發生時：A 與 C 的取捨</h4>
+      <p>
+        <strong>PC 模式</strong>：拒絕非多數派節點讀寫，防止髒讀（如
+        etcd、ZooKeeper）。<br />
+        <strong>PA 模式</strong>：允許分區孤島繼續回覆，容忍暫時不一致（如
+        Cassandra）。
+      </p>
+    </div>
+
+    <div class="cap-mobile-arrow">↓ 系統平穩運行時</div>
+
+    <div class="cap-mobile-card cap-mobile-card--blue">
+      <span class="cap-mobile-badge cap-mobile-badge--blue"
+        >PACELC: ELSE (E)</span
+      >
+      <h4>平穩無分區時：Latency (L) vs. Consistency (C)</h4>
+      <p>
+        <strong>EL 模式</strong>：非同步複製，追求個位數毫秒極致低延遲。<br />
+        <strong>EC 模式</strong>：強制多副本 Raft/Paxos 同步落盤，以延遲換取
+        100% 強一致性。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="cap-diagram-caption">
+    圖：分散式共識基石 —— CAP 定理物理分區約束三角與 PACELC 延遲代價模型
+  </figcaption>
+</figure>
+
+<style>
+  .cap-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .cap-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .cap-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .cap-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .cap-diagram__badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    fill: var(--dg-muted);
+  }
+
+  .cap-diagram__title {
+    font-size: 16px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .cap-diagram__tri-poly {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+
+  .cap-diagram__circle {
+    stroke-width: 2;
+  }
+
+  .cap-diagram__circle--blue {
+    fill: rgba(59, 130, 246, 0.1);
+    stroke: #3b82f6;
+  }
+  .cap-diagram__circle-text--blue {
+    fill: #2563eb;
+    font-size: 18px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle--blue {
+    fill: rgba(59, 130, 246, 0.2);
+    stroke: #60a5fa;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle-text--blue {
+    fill: #93c5fd;
+  }
+
+  .cap-diagram__circle--green {
+    fill: rgba(22, 163, 74, 0.1);
+    stroke: #16a34a;
+  }
+  .cap-diagram__circle-text--green {
+    fill: #15803d;
+    font-size: 18px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle--green {
+    fill: rgba(22, 163, 74, 0.2);
+    stroke: #4ade80;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle-text--green {
+    fill: #86efac;
+  }
+
+  .cap-diagram__circle--purple {
+    fill: rgba(139, 92, 246, 0.1);
+    stroke: #8b5cf6;
+  }
+  .cap-diagram__circle-text--purple {
+    fill: #7c3aed;
+    font-size: 18px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle--purple {
+    fill: rgba(139, 92, 246, 0.2);
+    stroke: #a78bfa;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__circle-text--purple {
+    fill: #c4b5fd;
+  }
+
+  .cap-diagram__node-label {
+    font-size: 12px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .cap-diagram__alert-box {
+    fill: rgba(249, 115, 22, 0.08);
+    stroke: #f97316;
+    stroke-width: 1;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__alert-box {
+    fill: rgba(249, 115, 22, 0.16);
+    stroke: #fb923c;
+  }
+
+  .cap-diagram__alert-text {
+    font-size: 12px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__alert-text {
+    fill: #fdba74;
+  }
+
+  .cap-diagram__subcard {
+    stroke-width: 1.2;
+  }
+
+  .cap-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.05);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__subcard--red {
+    fill: rgba(220, 38, 38, 0.12);
+    stroke: #f87171;
+  }
+
+  .cap-diagram__header--red {
+    fill: #b91c1c;
+    font-size: 13.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__header--red {
+    fill: #fca5a5;
+  }
+
+  .cap-diagram__tag--red {
+    fill: #b91c1c;
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__tag--red {
+    fill: #fca5a5;
+  }
+
+  .cap-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.05);
+    stroke: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__subcard--blue {
+    fill: rgba(59, 130, 246, 0.12);
+    stroke: #60a5fa;
+  }
+
+  .cap-diagram__header--blue {
+    fill: #2563eb;
+    font-size: 13.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__header--blue {
+    fill: #93c5fd;
+  }
+
+  .cap-diagram__tag--blue {
+    fill: #2563eb;
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .cap-diagram__tag--blue {
+    fill: #93c5fd;
+  }
+
+  .cap-diagram__desc {
+    font-size: 12px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .cap-diagram__desktop {
+      display: none !important;
+    }
+
+    .cap-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .cap-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .cap-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+    .cap-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    .cap-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+      background: rgba(59, 130, 246, 0.04);
+    }
+
+    :global(:root[data-theme="dark"]) .cap-mobile-card--red {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: #f87171;
+    }
+
+    :global(:root[data-theme="dark"]) .cap-mobile-card--blue {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #60a5fa;
+    }
+
+    .cap-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .cap-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .cap-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .cap-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .cap-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .cap-mobile-badge--blue {
+      color: #3b82f6;
+    }
+    :global(:root[data-theme="dark"]) .cap-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .cap-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .cap-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .cap-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>
