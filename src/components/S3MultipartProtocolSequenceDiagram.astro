@@ -1,0 +1,562 @@
+---
+// S3 Multipart Upload 3-Stage Standard Protocol Sequence Diagram Component
+---
+
+<figure class="s3seq-diag" aria-labelledby="s3seq-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="s3seq-diag__desktop"
+    viewBox="0 0 860 380"
+    role="img"
+    aria-labelledby="s3seq-diag-title s3seq-diag-desc"
+  >
+    <title id="s3seq-diag-title">
+      S3 大檔案分段上傳（Multipart Upload）三階段標準協議時序
+    </title>
+    <desc id="s3seq-diag-desc">
+      展示客戶端 Client 與 Amazon S3 物件儲存之間：1. Initiate 獲取 UploadId、2.
+      多線程並行 PUT 分段並返回各 Part ETag、3. Complete
+      提交已排序分段清單並觸發零拷貝中繼資料合併瞬間上線。
+    </desc>
+
+    <defs>
+      <marker
+        id="s3seq-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="s3seq-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="s3seq-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="s3seq-diag__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="s3seq-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="s3seq-diag__arrow-head--purple"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Background Framing Card -->
+    <rect
+      x="25"
+      y="20"
+      width="810"
+      height="340"
+      rx="12"
+      class="s3seq-diag__card-bg"></rect>
+
+    <!-- Lifeline Headers -->
+    <!-- Client Node -->
+    <g transform="translate(60, 38)">
+      <rect
+        width="200"
+        height="42"
+        rx="8"
+        class="s3seq-diag__lane-node s3seq-diag__lane-node--blue"></rect>
+      <text
+        x="100"
+        y="26"
+        class="s3seq-diag__node-title s3seq-diag__node-title--blue"
+        text-anchor="middle">Client (客戶端 SDK)</text
+      >
+    </g>
+
+    <!-- S3 Storage Node -->
+    <g transform="translate(600, 38)">
+      <rect
+        width="200"
+        height="42"
+        rx="8"
+        class="s3seq-diag__lane-node s3seq-diag__lane-node--green"></rect>
+      <text
+        x="100"
+        y="26"
+        class="s3seq-diag__node-title s3seq-diag__node-title--green"
+        text-anchor="middle">Amazon S3 儲存叢集</text
+      >
+    </g>
+
+    <!-- Vertical Lifeline Dashes -->
+    <line x1="160" y1="80" x2="160" y2="335" class="s3seq-diag__lifeline"
+    ></line>
+    <line x1="700" y1="80" x2="700" y2="335" class="s3seq-diag__lifeline"
+    ></line>
+
+    <!-- Phase 1: Initiate (y: 115) -->
+    <g class="s3seq-diag__step">
+      <path
+        d="M 160 115 L 690 115"
+        class="s3seq-diag__msg-line s3seq-diag__msg-line--blue"
+        marker-end="url(#s3seq-arrow-blue)"></path>
+      <rect
+        x="240"
+        y="98"
+        width="380"
+        height="26"
+        rx="4"
+        class="s3seq-diag__msg-pill s3seq-diag__msg-pill--blue"></rect>
+      <text
+        x="430"
+        y="115"
+        class="s3seq-diag__msg-text s3seq-diag__msg-text--blue"
+        text-anchor="middle"
+      >
+        1. POST /bucket/large.iso?uploads ➔ 獲取 UploadId
+      </text>
+    </g>
+
+    <!-- Phase 2: Parallel Upload Parts (y: 155, 195) -->
+    <!-- Part 1 -->
+    <g class="s3seq-diag__step">
+      <path
+        d="M 160 155 L 690 155"
+        class="s3seq-diag__msg-line s3seq-diag__msg-line--green"
+        marker-end="url(#s3seq-arrow-green)"></path>
+      <rect
+        x="220"
+        y="138"
+        width="420"
+        height="26"
+        rx="4"
+        class="s3seq-diag__msg-pill s3seq-diag__msg-pill--green"></rect>
+      <text
+        x="430"
+        y="155"
+        class="s3seq-diag__msg-text s3seq-diag__msg-text--green"
+        text-anchor="middle"
+      >
+        2a. PUT Part 1 (64MB) [並行 Worker 1] ➔ 回傳 ETag_1 ("b10a...")
+      </text>
+    </g>
+
+    <!-- Part 2 -->
+    <g class="s3seq-diag__step">
+      <path
+        d="M 160 195 L 690 195"
+        class="s3seq-diag__msg-line s3seq-diag__msg-line--green"
+        marker-end="url(#s3seq-arrow-green)"></path>
+      <rect
+        x="220"
+        y="178"
+        width="420"
+        height="26"
+        rx="4"
+        class="s3seq-diag__msg-pill s3seq-diag__msg-pill--green"></rect>
+      <text
+        x="430"
+        y="195"
+        class="s3seq-diag__msg-text s3seq-diag__msg-text--green"
+        text-anchor="middle"
+      >
+        2b. PUT Part 2 (64MB) [並行 Worker 2] ➔ 回傳 ETag_2 ("1b2c...")
+      </text>
+    </g>
+
+    <!-- Phase 3: Complete Multipart (y: 240) -->
+    <g class="s3seq-diag__step">
+      <path
+        d="M 160 240 L 690 240"
+        class="s3seq-diag__msg-line s3seq-diag__msg-line--purple"
+        marker-end="url(#s3seq-arrow-purple)"></path>
+      <rect
+        x="210"
+        y="223"
+        width="440"
+        height="26"
+        rx="4"
+        class="s3seq-diag__msg-pill s3seq-diag__msg-pill--purple"></rect>
+      <text
+        x="430"
+        y="240"
+        class="s3seq-diag__msg-text s3seq-diag__msg-text--purple"
+        text-anchor="middle"
+      >
+        3. POST /bucket/large.iso?uploadId=xxx (提交有序 Part &amp; ETag 清單)
+      </text>
+    </g>
+
+    <!-- Phase 3 Result Banner (y: 278) -->
+    <g transform="translate(160, 278)">
+      <rect width="540" height="42" rx="8" class="s3seq-diag__final-pill"
+      ></rect>
+      <text x="270" y="26" class="s3seq-diag__final-text" text-anchor="middle">
+        ✅ 200 OK ── S3 內部零拷貝中繼資料指針合併，最終物件瞬間發布上線！
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Process Cards) -->
+  <div class="s3seq-diag__mobile">
+    <div class="s3seq-mobile-card s3seq-mobile-card--blue">
+      <span class="s3seq-mobile-badge s3seq-mobile-badge--blue"
+        >STAGE 1: INITIATE</span
+      >
+      <h4>1. 初始化上傳會話</h4>
+      <p>• 客戶端呼叫 <code>POST /bucket/file?uploads</code>。</p>
+      <p>
+        • S3 返回全域唯一 <code>UploadId</code
+        >，客戶端將其持久化至本地（IndexedDB/SQLite），作為斷點續傳的 Session
+        錨點。
+      </p>
+    </div>
+
+    <div class="s3seq-mobile-arrow">↓ 並行 Worker 池傳輸</div>
+
+    <div class="s3seq-mobile-card s3seq-mobile-card--green">
+      <span class="s3seq-mobile-badge s3seq-mobile-badge--green"
+        >STAGE 2: UPLOAD PARTS</span
+      >
+      <h4>2. 多執行緒並行分段上傳</h4>
+      <p>
+        • 檔案切割為多個 Part（例如每塊 64MB），多線程同時發送 <code
+          >PUT Part N</code
+        >。
+      </p>
+      <p>• S3 持久化分片後返回 <code>ETag</code> 雜湊簽名。</p>
+      <p>
+        • <strong>斷點續傳關鍵：</strong
+        >任何單一分片失敗僅重試該分片，其餘成功分片完全不受影響！
+      </p>
+    </div>
+
+    <div class="s3seq-mobile-arrow">↓ 收集全部 ETag</div>
+
+    <div class="s3seq-mobile-card s3seq-mobile-card--purple">
+      <span class="s3seq-mobile-badge s3seq-mobile-badge--purple"
+        >STAGE 3: COMPLETE</span
+      >
+      <h4>3. 完成合併發布</h4>
+      <p>• 客戶端提交依照 PartNumber 嚴格升序排序的清單。</p>
+      <p>• 呼叫 <code>CompleteMultipartUpload</code> 請求。</p>
+    </div>
+
+    <div class="s3seq-mobile-card s3seq-mobile-card--final">
+      <span class="s3seq-mobile-badge s3seq-mobile-badge--green"
+        >ZERO-COPY SUCCESS</span
+      >
+      <h4>✅ 零拷貝中繼資料指針組裝</h4>
+      <p>
+        S3
+        不做繁重的物理硬碟搬移，僅在分散式中繼資料庫建立指針樹，毫秒級瞬間發布完整
+        Object！
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="s3seq-diag-caption" class="s3seq-diag__caption">
+    圖二：S3 分段上傳三階段標準協議（Initiate、Upload Part、Complete）時序流程
+  </figcaption>
+</figure>
+
+<style>
+  .s3seq-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .s3seq-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .s3seq-diag__mobile {
+    display: none;
+  }
+
+  .s3seq-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  /* SVG Base Styling */
+  .s3seq-diag__card-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .s3seq-diag__lane-node {
+    stroke-width: 1.5;
+  }
+
+  .s3seq-diag__lane-node--blue {
+    fill: rgba(37, 99, 235, 0.08);
+    stroke: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__lane-node--blue {
+    fill: rgba(59, 130, 246, 0.16);
+    stroke: #60a5fa;
+  }
+
+  .s3seq-diag__lane-node--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__lane-node--green {
+    fill: rgba(34, 197, 94, 0.16);
+    stroke: #4ade80;
+  }
+
+  .s3seq-diag__node-title {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .s3seq-diag__node-title--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__node-title--blue {
+    fill: #93c5fd;
+  }
+
+  .s3seq-diag__node-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__node-title--green {
+    fill: #86efac;
+  }
+
+  .s3seq-diag__lifeline {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+  }
+
+  /* Message Lines & Pills */
+  .s3seq-diag__msg-line {
+    stroke-width: 2;
+  }
+
+  .s3seq-diag__msg-line--blue {
+    stroke: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-line--blue {
+    stroke: #60a5fa;
+  }
+
+  .s3seq-diag__msg-line--green {
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-line--green {
+    stroke: #4ade80;
+  }
+
+  .s3seq-diag__msg-line--purple {
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-line--purple {
+    stroke: #a78bfa;
+  }
+
+  .s3seq-diag__arrow-head--blue {
+    fill: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__arrow-head--blue {
+    fill: #60a5fa;
+  }
+
+  .s3seq-diag__arrow-head--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__arrow-head--green {
+    fill: #4ade80;
+  }
+
+  .s3seq-diag__arrow-head--purple {
+    fill: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__arrow-head--purple {
+    fill: #a78bfa;
+  }
+
+  .s3seq-diag__msg-pill {
+    fill: var(--dg-surface);
+    stroke-width: 1;
+  }
+
+  .s3seq-diag__msg-pill--blue {
+    stroke: #3b82f6;
+  }
+  .s3seq-diag__msg-pill--green {
+    stroke: #16a34a;
+  }
+  .s3seq-diag__msg-pill--purple {
+    stroke: #8b5cf6;
+  }
+
+  .s3seq-diag__msg-text {
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+  }
+
+  .s3seq-diag__msg-text--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-text--blue {
+    fill: #93c5fd;
+  }
+
+  .s3seq-diag__msg-text--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-text--green {
+    fill: #86efac;
+  }
+
+  .s3seq-diag__msg-text--purple {
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__msg-text--purple {
+    fill: #c4b5fd;
+  }
+
+  .s3seq-diag__final-pill {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: #16a34a;
+    stroke-width: 1.5;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__final-pill {
+    fill: rgba(34, 197, 94, 0.16);
+    stroke: #4ade80;
+  }
+
+  .s3seq-diag__final-text {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .s3seq-diag__final-text {
+    fill: #86efac;
+  }
+
+  /* Responsive Mobile Styling */
+  @media (max-width: 48rem) {
+    .s3seq-diag__desktop {
+      display: none !important;
+    }
+
+    .s3seq-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .s3seq-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .s3seq-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .s3seq-mobile-card--green {
+      border-left: 4px solid #16a34a;
+    }
+
+    .s3seq-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .s3seq-mobile-card--final {
+      background: rgba(22, 163, 74, 0.06);
+      border: 1px solid #16a34a;
+      border-left: 4px solid #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .s3seq-mobile-card--final {
+      background: rgba(22, 163, 74, 0.14);
+      border-color: #4ade80;
+    }
+
+    .s3seq-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .s3seq-mobile-badge--blue {
+      color: #2563eb;
+    }
+    :global(:root[data-theme="dark"]) .s3seq-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .s3seq-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .s3seq-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .s3seq-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .s3seq-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .s3seq-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .s3seq-mobile-card p {
+      margin: 0.2rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .s3seq-mobile-card code {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.8125rem;
+      background: var(--dg-surface-2);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+
+    .s3seq-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>

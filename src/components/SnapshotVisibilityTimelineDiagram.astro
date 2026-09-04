@@ -1,0 +1,575 @@
+---
+// PostgreSQL Snapshot Visibility Decision Timeline Diagram Component
+---
+
+<figure class="snap-diag" aria-labelledby="snap-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="snap-diag__desktop"
+    viewBox="0 0 860 300"
+    role="img"
+    aria-labelledby="snap-diag-title snap-diag-desc"
+  >
+    <title id="snap-diag-title">
+      PostgreSQL SnapshotData 快照可見性判定時間軸
+    </title>
+    <desc id="snap-diag-desc">
+      展示 Snapshot 格式 xmin:xmax:xip_list 在交易 XID
+      遞增時間軸上如何判定早期提交交易可見、當前活躍交易不可見、以及快照建立後的未來交易不可見。
+    </desc>
+
+    <defs>
+      <marker
+        id="snap-axis-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="snap-diag__axis-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Framing Box -->
+    <rect
+      x="25"
+      y="20"
+      width="810"
+      height="260"
+      rx="12"
+      class="snap-diag__card-bg"></rect>
+
+    <!-- 1. Left Region: XID < xmin (Visible) (x: 45, width: 235) -->
+    <g transform="translate(45, 38)">
+      <rect
+        width="235"
+        height="74"
+        rx="8"
+        class="snap-diag__zone-rect snap-diag__zone-rect--green"></rect>
+      <text
+        x="117"
+        y="26"
+        class="snap-diag__zone-title snap-diag__zone-title--green"
+        text-anchor="middle"
+      >
+        XID &lt; xmin (e.g. &lt; 100)
+      </text>
+      <text
+        x="117"
+        y="46"
+        class="snap-diag__zone-desc snap-diag__zone-desc--green"
+        text-anchor="middle"
+      >
+        早於最老活躍交易
+      </text>
+      <text
+        x="117"
+        y="62"
+        class="snap-diag__zone-badge snap-diag__zone-badge--green"
+        text-anchor="middle"
+      >
+        ✅ 必定已提交（可見）
+      </text>
+    </g>
+
+    <!-- 2. Mid Region: xmin <= XID < xmax (Active check) (x: 305, width: 270) -->
+    <g transform="translate(305, 38)">
+      <rect
+        width="270"
+        height="74"
+        rx="8"
+        class="snap-diag__zone-rect snap-diag__zone-rect--purple"></rect>
+      <text
+        x="135"
+        y="26"
+        class="snap-diag__zone-title snap-diag__zone-title--purple"
+        text-anchor="middle"
+      >
+        xmin &le; XID &lt; xmax (100 ~ 107)
+      </text>
+      <text
+        x="135"
+        y="46"
+        class="snap-diag__zone-desc snap-diag__zone-desc--purple"
+        text-anchor="middle"
+      >
+        若在 xip [102, 105] 則活躍中（不可見）
+      </text>
+      <text
+        x="135"
+        y="62"
+        class="snap-diag__zone-badge snap-diag__zone-badge--purple"
+        text-anchor="middle"
+      >
+        若不在 xip 列表中 ➔ 視為已提交（可見）
+      </text>
+    </g>
+
+    <!-- 3. Right Region: XID >= xmax (Future) (x: 600, width: 215) -->
+    <g transform="translate(600, 38)">
+      <rect
+        width="215"
+        height="74"
+        rx="8"
+        class="snap-diag__zone-rect snap-diag__zone-rect--red"></rect>
+      <text
+        x="107"
+        y="26"
+        class="snap-diag__zone-title snap-diag__zone-title--red"
+        text-anchor="middle"
+      >
+        XID &ge; xmax (&ge; 108)
+      </text>
+      <text
+        x="107"
+        y="46"
+        class="snap-diag__zone-desc snap-diag__zone-desc--red"
+        text-anchor="middle"
+      >
+        快照獲取後開啟之交易
+      </text>
+      <text
+        x="107"
+        y="62"
+        class="snap-diag__zone-badge snap-diag__zone-badge--red"
+        text-anchor="middle"
+      >
+        ❌ 未來事務（不可見）
+      </text>
+    </g>
+
+    <!-- Timeline Horizontal Axis (y: 155) -->
+    <line
+      x1="45"
+      y1="155"
+      x2="795"
+      y2="155"
+      class="snap-diag__axis-line"
+      marker-end="url(#snap-axis-arrow)"></line>
+    <text x="795" y="142" class="snap-diag__axis-label" text-anchor="end"
+      >交易 XID 遞增時間軸 ➔</text
+    >
+
+    <!-- Point 1: xmin = 100 Indicator (x: 290) -->
+    <circle cx="290" cy="155" r="5" class="snap-diag__axis-dot"></circle>
+    <line x1="290" y1="135" x2="290" y2="175" class="snap-diag__marker-line"
+    ></line>
+    <rect
+      x="235"
+      y="180"
+      width="110"
+      height="26"
+      rx="4"
+      class="snap-diag__marker-badge snap-diag__marker-badge--purple"></rect>
+    <text x="290" y="197" class="snap-diag__marker-text" text-anchor="middle"
+      >xmin = 100</text
+    >
+
+    <!-- Point 2: xmax = 108 Indicator (x: 590) -->
+    <circle cx="590" cy="155" r="5" class="snap-diag__axis-dot"></circle>
+    <line x1="590" y1="135" x2="590" y2="175" class="snap-diag__marker-line"
+    ></line>
+    <rect
+      x="535"
+      y="180"
+      width="110"
+      height="26"
+      rx="4"
+      class="snap-diag__marker-badge snap-diag__marker-badge--red"></rect>
+    <text x="590" y="197" class="snap-diag__marker-text" text-anchor="middle"
+      >xmax = 108</text
+    >
+
+    <!-- Bottom Snapshot Format Example Pill (y: 226) -->
+    <g transform="translate(180, 224)">
+      <rect width="500" height="38" rx="8" class="snap-diag__format-pill"
+      ></rect>
+      <text x="250" y="24" class="snap-diag__format-text" text-anchor="middle">
+        Snapshot 格式範例：100:108:102,105（xmin:xmax:xip_list）
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Step Cards) -->
+  <div class="snap-diag__mobile">
+    <div class="snap-mobile-card snap-mobile-card--green">
+      <span class="snap-mobile-badge snap-mobile-badge--green"
+        >XID &lt; xmin (e.g. &lt; 100)</span
+      >
+      <h4>早期提交交易：必定可見</h4>
+      <p>
+        比系統當前最老的活躍交易還要早開啟，且已確定完成
+        Commit，對當前快照必定可見。
+      </p>
+    </div>
+
+    <div class="snap-mobile-arrow">↓ 邊界點：xmin = 100（最小活躍事務）</div>
+
+    <div class="snap-mobile-card snap-mobile-card--purple">
+      <span class="snap-mobile-badge snap-mobile-badge--purple"
+        >xmin &le; XID &lt; xmax (100 ~ 107)</span
+      >
+      <h4>活躍區間校驗：查核 xip_list</h4>
+      <p>
+        • 若 XID 出現在 <code>xip_list: [102, 105]</code> 中：代表快照獲取瞬間<strong
+          >仍未提交</strong
+        >，判定不可見。
+      </p>
+      <p>
+        • 若 XID 不在 <code>xip_list</code> 中：代表在快照產生前已成功提交，判定可見。
+      </p>
+    </div>
+
+    <div class="snap-mobile-arrow">
+      ↓ 邊界點：xmax = 108（最新分配事務 + 1）
+    </div>
+
+    <div class="snap-mobile-card snap-mobile-card--red">
+      <span class="snap-mobile-badge snap-mobile-badge--red"
+        >XID &ge; xmax (&ge; 108)</span
+      >
+      <h4>未來交易：一律不可見</h4>
+      <p>
+        在快照產生之後才開啟的新事務，依據快照隔離（Snapshot
+        Isolation）原則，其變更對本快照絕對不可見。
+      </p>
+    </div>
+
+    <div class="snap-mobile-card snap-mobile-card--format">
+      <span class="snap-mobile-badge">SNAPSHOT STRING FORMAT</span>
+      <h4>快照字串定義</h4>
+      <p>
+        <code>xmin:xmax:xip_list</code>（例如 <code>100:108:102,105</code
+        >）以緊湊的整數陣列在記憶體中快速完成萬級 Tuple 的可見性判定。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="snap-diag-caption" class="snap-diag__caption">
+    圖二：PostgreSQL SnapshotData（xmin:xmax:xip_list）可見性判定時間軸
+  </figcaption>
+</figure>
+
+<style>
+  .snap-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .snap-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .snap-diag__mobile {
+    display: none;
+  }
+
+  .snap-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  /* SVG Base Styling */
+  .snap-diag__card-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  /* Region Zones */
+  .snap-diag__zone-rect {
+    stroke-width: 1.2;
+  }
+
+  .snap-diag__zone-rect--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-rect--green {
+    fill: rgba(34, 197, 94, 0.16);
+    stroke: #4ade80;
+  }
+
+  .snap-diag__zone-rect--purple {
+    fill: rgba(139, 92, 246, 0.08);
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-rect--purple {
+    fill: rgba(168, 85, 247, 0.16);
+    stroke: #a78bfa;
+  }
+
+  .snap-diag__zone-rect--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-rect--red {
+    fill: rgba(239, 68, 68, 0.16);
+    stroke: #f87171;
+  }
+
+  .snap-diag__zone-title {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+  }
+
+  .snap-diag__zone-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-title--green {
+    fill: #86efac;
+  }
+
+  .snap-diag__zone-title--purple {
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-title--purple {
+    fill: #c4b5fd;
+  }
+
+  .snap-diag__zone-title--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-title--red {
+    fill: #fca5a5;
+  }
+
+  .snap-diag__zone-desc {
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .snap-diag__zone-desc--green {
+    fill: #166534;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-desc--green {
+    fill: #bbf7d0;
+  }
+
+  .snap-diag__zone-desc--purple {
+    fill: #5b21b6;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-desc--purple {
+    fill: #ddd6fe;
+  }
+
+  .snap-diag__zone-desc--red {
+    fill: #991b1b;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-desc--red {
+    fill: #fecaca;
+  }
+
+  .snap-diag__zone-badge {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .snap-diag__zone-badge--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-badge--green {
+    fill: #4ade80;
+  }
+
+  .snap-diag__zone-badge--purple {
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-badge--purple {
+    fill: #c084fc;
+  }
+
+  .snap-diag__zone-badge--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__zone-badge--red {
+    fill: #f87171;
+  }
+
+  /* Axis Lines */
+  .snap-diag__axis-line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2.5;
+  }
+
+  .snap-diag__axis-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .snap-diag__axis-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--dg-muted);
+  }
+
+  .snap-diag__axis-dot {
+    fill: var(--dg-ink);
+  }
+
+  .snap-diag__marker-line {
+    stroke: var(--dg-ink);
+    stroke-width: 2;
+  }
+
+  .snap-diag__marker-badge {
+    fill: var(--dg-surface);
+    stroke-width: 1.5;
+  }
+
+  .snap-diag__marker-badge--purple {
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__marker-badge--purple {
+    stroke: #a78bfa;
+  }
+
+  .snap-diag__marker-badge--red {
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .snap-diag__marker-badge--red {
+    stroke: #f87171;
+  }
+
+  .snap-diag__marker-text {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Format Pill */
+  .snap-diag__format-pill {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.2;
+  }
+
+  .snap-diag__format-text {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Responsive Mobile Styling */
+  @media (max-width: 48rem) {
+    .snap-diag__desktop {
+      display: none !important;
+    }
+
+    .snap-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .snap-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .snap-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-card--green {
+      background: rgba(22, 163, 74, 0.12);
+      border-color: #4ade80;
+    }
+
+    .snap-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-card--purple {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: #a78bfa;
+    }
+
+    .snap-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-card--red {
+      background: rgba(220, 38, 38, 0.12);
+      border-color: #f87171;
+    }
+
+    .snap-mobile-card--format {
+      background: var(--dg-surface-2);
+      border-left: 4px solid var(--dg-rule-strong);
+    }
+
+    .snap-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .snap-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .snap-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .snap-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .snap-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .snap-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .snap-mobile-card p {
+      margin: 0.2rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .snap-mobile-card code {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.8125rem;
+      background: var(--dg-surface-2);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+
+    .snap-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>

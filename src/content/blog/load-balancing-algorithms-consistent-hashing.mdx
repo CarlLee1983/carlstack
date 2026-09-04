@@ -15,6 +15,9 @@ tags:
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
+import SmoothWrrDynamicWeightDiagram from "../../components/SmoothWrrDynamicWeightDiagram.astro";
+import ConsistentHashingRingDiagram from "../../components/ConsistentHashingRingDiagram.astro";
+
 在分散式高併發架構中，負載平衡器（Load Balancer，如 Nginx、Envoy、HAProxy、AWS ALB）是流量分發的中樞神經。無論是 L4 傳輸層代理還是 L7 應用層路由，其核心使命都是將海量請求以高效、均勻且可預測的方式分配至後端伺服器叢集。
 
 然而，不同場景對負載平衡演算法的需求大相徑庭：
@@ -49,40 +52,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 2. 挑選 `current_weight` 最大者處理請求。
 3. 被選中的節點將其 `current_weight -= sum(weights)`（減去所有節點固定權重之和）。
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 190" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="swrr-title swrr-desc">
-    <title id="swrr-title">Nginx 平滑加權輪詢（Smooth WRR）動態權重推演圖</title>
-    <desc id="swrr-desc">展示權重 A:5, B:1, C:1 (總和 7) 在三輪計算中動態調度並平滑分發為 A, A, B, A, C, A, A 的完整過程。</desc>
-    
-    <rect x="20" y="15" width="760" height="30" rx="4" fill="#1f242c" stroke="#58a6ff"/>
-    <text x="400" y="35" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">節點初始配置：A (權重 5), B (權重 1), C (權重 1) ── 總權重和 Sum = 7</text>
-
-    <rect x="20" y="52" width="240" height="85" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="140" y="72" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">第 1 輪 (Round 1)</text>
-    <text x="35" y="92" fill="#c9d1d9" font-size="10">• 權重：A:5, B:1, C:1 (選 A)</text>
-    <text x="35" y="110" fill="#8b949e" font-size="10">• A 更新：5 - 7 = -2</text>
-    <text x="35" y="128" fill="#3fb950" font-size="10" font-weight="700">➔ 命中 A，剩餘 [-2, 1, 1]</text>
-
-
-    <rect x="280" y="52" width="240" height="85" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="400" y="72" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">第 2 輪 (Round 2)</text>
-    <text x="295" y="92" fill="#c9d1d9" font-size="10">• 加上固定：A:3, B:2, C:2 (選 A)</text>
-    <text x="295" y="110" fill="#8b949e" font-size="10">• A 更新：3 - 7 = -4</text>
-    <text x="295" y="128" fill="#3fb950" font-size="10" font-weight="700">➔ 命中 A，剩餘 [-4, 2, 2]</text>
-
-
-    <rect x="540" y="52" width="240" height="85" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="660" y="72" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">第 3 輪 (Round 3)</text>
-    <text x="555" y="92" fill="#c9d1d9" font-size="10">• 加上固定：A:1, B:3, C:3 (選 B)</text>
-    <text x="555" y="110" fill="#8b949e" font-size="10">• B 更新：3 - 7 = -4</text>
-    <text x="555" y="128" fill="#d2a8ff" font-size="10" font-weight="700">➔ 命中 B，剩餘 [1, -4, 3]</text>
-
-
-    <rect x="20" y="145" width="760" height="32" rx="4" fill="#1b2e23" stroke="#238636"/>
-    <text x="400" y="166" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">最終平滑分發序列：A ➔ A ➔ B ➔ A ➔ C ➔ A ➔ A (徹底杜絕連打 5 次 A 的突發壓力)</text>
-
-  </svg>
-</div>
+<SmoothWrrDynamicWeightDiagram />
 
 ---
 
@@ -120,48 +90,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 2. 將實體伺服器節點的 IP 或名稱進行雜湊，落在環上的特定點。
 3. 資料鍵（Data Key）計算雜湊後，**沿順時針方向尋找第一個大於或等於該雜湊值的伺服器節點**。
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ch-ring-title ch-ring-desc">
-    <title id="ch-ring-title">一致性雜湊環（Consistent Hashing Ring）與順時針尋址拓撲圖</title>
-    <desc id="ch-ring-desc">展示 0 至 2^32-1 圓環上節點 A、B、C 分佈，Key 1 順時針映射至 Node B，Key 2 映射至 Node C，Key 3 映射至 Node A，單節點變更僅影響局部。</desc>
-    
-    
-    <circle cx="260" cy="120" r="85" fill="none" stroke="#58a6ff" stroke-width="2.5" stroke-dasharray="4 2"/>
-    <text x="260" y="24" fill="#8b949e" font-size="10" font-family="monospace" text-anchor="middle">0 / 2^32 - 1</text>
-
-    <circle cx="260" cy="35" r="10" fill="#238636" stroke="#3fb950" stroke-width="2"/>
-    <text x="260" y="20" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Node A</text>
-
-
-    <circle cx="330" cy="80" r="5" fill="#e3b341"/>
-    <text x="345" y="82" fill="#e3b341" font-size="10" font-family="monospace">Key 1 (順時針 ➔ Node B)</text>
-
-
-    <circle cx="335" cy="165" r="10" fill="#1f6feb" stroke="#58a6ff" stroke-width="2"/>
-    <text x="375" y="175" fill="#58a6ff" font-size="11" font-weight="700">Node B</text>
-
-
-    <circle cx="260" cy="205" r="5" fill="#e3b341"/>
-    <text x="260" y="228" fill="#e3b341" font-size="10" font-family="monospace" text-anchor="middle">Key 2 (順時針 ➔ Node C)</text>
-
-
-    <circle cx="185" cy="165" r="10" fill="#8957e5" stroke="#bc8cff" stroke-width="2"/>
-    <text x="120" y="175" fill="#bc8cff" font-size="11" font-weight="700">Node C</text>
-
-
-    <circle cx="190" cy="80" r="5" fill="#e3b341"/>
-    <text x="175" y="82" fill="#e3b341" font-size="10" font-family="monospace" text-anchor="end">Key 3 (➔ Node A)</text>
-
-
-    <rect x="440" y="30" width="340" height="175" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="460" y="58" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700">一致性雜湊核心特性：</text>
-    <text x="460" y="90" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 節點下線：僅受影響節點的 Key 順延至下一節點</text>
-    <text x="460" y="115" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif">• 其餘所有無關 Key 快取命中率保持 100%！</text>
-    <text x="460" y="145" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif">• 引入虛擬節點 (Virtual Nodes, 如 160 個/節點)</text>
-    <text x="460" y="170" fill="#d2a8ff" font-size="11" font-family="system-ui, sans-serif">• 徹底消除資料傾斜，負載分佈均勻平坦！</text>
-
-  </svg>
-</div>
+<ConsistentHashingRingDiagram />
 
 - **節點下線**：若 Node B 下線，受影響的僅有原先映射到 Node B 的 Key 1（順延至 Node C），其餘 Key 2、Key 3 完全不受影響。
 - **節點新增**：新增節點僅需分擔其逆時針方向相鄰節點的部分資料。

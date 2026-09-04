@@ -1,0 +1,622 @@
+---
+// Consistent Hashing Ring with Virtual Nodes and Clockwise Lookup Diagram Component
+---
+
+<figure class="ch-diag" aria-labelledby="ch-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="ch-diag__desktop"
+    viewBox="0 0 880 430"
+    role="img"
+    aria-labelledby="ch-diag-title ch-diag-desc"
+  >
+    <title id="ch-diag-title">
+      一致性雜湊環（Consistent Hashing Ring）與順時針尋址架構
+    </title>
+    <desc id="ch-diag-desc">
+      展示 0 至 2^32-1 圓形雜湊環上的節點分佈與 Key
+      順時針尋址原理：單一節點增減僅影響相鄰局部，其餘 Key 快取命中率保持
+      100%；並以多虛擬節點散列徹底消除資料傾斜。
+    </desc>
+
+    <defs>
+      <marker
+        id="ch-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ch-diag__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Left Panel: Hash Ring Visualizer -->
+    <g class="ch-diag__card" transform="translate(25, 25)">
+      <rect width="450" height="380" rx="12"></rect>
+      <text class="ch-diag__badge" x="20" y="30">HASH RING TOPOLOGY</text>
+      <text class="ch-diag__card-title" x="20" y="56"
+        >2^32 - 1 雜湊圓環與順時針路由</text
+      >
+
+      <!-- Center Hash Ring (Radius: 105, Center: 225, 220) -->
+      <circle cx="225" cy="220" r="105" class="ch-diag__ring"></circle>
+
+      <!-- Ring Scale Top Zero Marker -->
+      <rect
+        x="180"
+        y="90"
+        width="90"
+        height="22"
+        rx="4"
+        class="ch-diag__ring-marker"></rect>
+      <text x="225" y="105" class="ch-diag__mono-label" text-anchor="middle"
+        >0 / 2^32 - 1</text
+      >
+
+      <!-- Node A: ~0 rad (top: 225, 115) -->
+      <circle
+        cx="225"
+        cy="115"
+        r="14"
+        class="ch-diag__node-outer ch-diag__node-outer--green"></circle>
+      <circle
+        cx="225"
+        cy="115"
+        r="7"
+        class="ch-diag__node-core ch-diag__node-core--green"></circle>
+      <text
+        x="225"
+        y="80"
+        class="ch-diag__node-label ch-diag__node-label--green"
+        text-anchor="middle">Node A</text
+      >
+
+      <!-- Key 1: ~0.65 rad (x: 225 + 105*sin(0.65) = 288, y: 220 - 105*cos(0.65) = 136) -->
+      <circle cx="288" cy="136" r="6" class="ch-diag__key-dot"></circle>
+      <!-- Pointer to Node B -->
+      <path
+        d="M 292 142 Q 315 175 315 260"
+        class="ch-diag__route-line"
+        marker-end="url(#ch-arrow)"></path>
+      <text x="300" y="132" class="ch-diag__key-label">Key 1</text>
+      <text x="300" y="146" class="ch-diag__key-sub">➔ Node B</text>
+
+      <!-- Node B: ~2.1 rad (x: 225 + 105*sin(2.1) = 315, y: 220 - 105*cos(2.1) = 273) -->
+      <circle
+        cx="315"
+        cy="273"
+        r="14"
+        class="ch-diag__node-outer ch-diag__node-outer--blue"></circle>
+      <circle
+        cx="315"
+        cy="273"
+        r="7"
+        class="ch-diag__node-core ch-diag__node-core--blue"></circle>
+      <text
+        x="350"
+        y="280"
+        class="ch-diag__node-label ch-diag__node-label--blue">Node B</text
+      >
+
+      <!-- Key 2: ~3.14 rad (bottom: 225, 325) -->
+      <circle cx="225" cy="325" r="6" class="ch-diag__key-dot"></circle>
+      <path
+        d="M 218 327 Q 165 325 140 285"
+        class="ch-diag__route-line"
+        marker-end="url(#ch-arrow)"></path>
+      <text x="225" y="348" class="ch-diag__key-label" text-anchor="middle"
+        >Key 2 (➔ Node C)</text
+      >
+
+      <!-- Node C: ~4.2 rad (x: 225 + 105*sin(4.2) = 133, y: 220 - 105*cos(4.2) = 272) -->
+      <circle
+        cx="133"
+        cy="272"
+        r="14"
+        class="ch-diag__node-outer ch-diag__node-outer--purple"></circle>
+      <circle
+        cx="133"
+        cy="272"
+        r="7"
+        class="ch-diag__node-core ch-diag__node-core--purple"></circle>
+      <text
+        x="100"
+        y="280"
+        class="ch-diag__node-label ch-diag__node-label--purple"
+        text-anchor="end">Node C</text
+      >
+
+      <!-- Key 3: ~5.2 rad (x: 225 + 105*sin(5.2) = 132, y: 220 - 105*cos(5.2) = 171) -->
+      <circle cx="132" cy="171" r="6" class="ch-diag__key-dot"></circle>
+      <path
+        d="M 134 163 Q 155 125 210 115"
+        class="ch-diag__route-line"
+        marker-end="url(#ch-arrow)"></path>
+      <text x="120" y="156" class="ch-diag__key-label" text-anchor="end"
+        >Key 3</text
+      >
+      <text x="120" y="170" class="ch-diag__key-sub" text-anchor="end"
+        >➔ Node A</text
+      >
+
+      <!-- Clockwise Indicator -->
+      <text x="225" y="215" class="ch-diag__center-clock" text-anchor="middle"
+        >順時針尋址</text
+      >
+      <text x="225" y="235" class="ch-diag__center-sub" text-anchor="middle"
+        >Clockwise ➔</text
+      >
+    </g>
+
+    <!-- Right Panel: Principles & Virtual Nodes (Width: 365, Height: 380) -->
+    <g class="ch-diag__card" transform="translate(490, 25)">
+      <rect width="365" height="380" rx="12"></rect>
+      <text class="ch-diag__badge" x="20" y="30">ADVANCED RESILIENCE</text>
+      <text class="ch-diag__card-title" x="20" y="56"
+        >核心優勢與虛擬節點防傾斜</text
+      >
+
+      <!-- Subcard 1: Node Down Rehash -->
+      <g transform="translate(18, 75)">
+        <rect
+          width="329"
+          height="84"
+          rx="8"
+          class="ch-diag__subcard ch-diag__subcard--green"></rect>
+        <text class="ch-diag__subhead ch-diag__subhead--green" x="14" y="22"
+          >1. 節點異動最小擾動（零全量雪崩）</text
+        >
+        <text class="ch-diag__desc" x="14" y="44"
+          >• 若 Node B 下線，僅原映射到 B 的 Key 1 順延至 C</text
+        >
+        <text class="ch-diag__desc" x="14" y="62"
+          >• Key 2、Key 3 完全不變，全庫命中率仍達 (N-1)/N</text
+        >
+        <text class="ch-diag__tag-green" x="14" y="78">99%+ 快取服務保活率</text
+        >
+      </g>
+
+      <!-- Subcard 2: Virtual Nodes -->
+      <g transform="translate(18, 172)">
+        <rect
+          width="329"
+          height="110"
+          rx="8"
+          class="ch-diag__subcard ch-diag__subcard--purple"></rect>
+        <text class="ch-diag__subhead ch-diag__subhead--purple" x="14" y="22"
+          >2. 虛擬節點（Virtual Nodes）防傾斜</text
+        >
+        <text class="ch-diag__desc" x="14" y="44"
+          >• 實體節點過少時，環上分佈易產生「資料熱點」</text
+        >
+        <text class="ch-diag__desc" x="14" y="62"
+          >• 為每台主機分配 160 ~ 256 個虛擬節點散列環上</text
+        >
+        <text class="ch-diag__desc" x="14" y="80"
+          >• 例如：Node_A#1, Node_A#2, ..., Node_A#160</text
+        >
+        <text class="ch-diag__tag-purple" x="14" y="98"
+          >資料標準差大幅縮小，負載極度均勻</text
+        >
+      </g>
+
+      <!-- Subcard 3: Lookup Complexity -->
+      <g transform="translate(18, 295)">
+        <rect
+          width="329"
+          height="70"
+          rx="8"
+          class="ch-diag__subcard ch-diag__subcard--blue"></rect>
+        <text class="ch-diag__subhead ch-diag__subhead--blue" x="14" y="22"
+          >3. 高效二分尋址 (O(log M))</text
+        >
+        <text class="ch-diag__desc" x="14" y="44"
+          >• 節點列表按 Hash 值排序儲存於跳躍表或紅黑樹</text
+        >
+        <text class="ch-diag__desc" x="14" y="60"
+          >• 客戶端在記憶體內以極低開銷毫秒完成路由跳轉</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Layout) -->
+  <div class="ch-diag__mobile">
+    <div class="ch-mobile-card ch-mobile-card--green">
+      <span class="ch-mobile-badge ch-mobile-badge--green"
+        >CLOCKWISE ROUTING</span
+      >
+      <h4>一致性雜湊環順時針路由</h4>
+      <p>• 將雜湊空間映射在 0 ~ 2^32-1 環狀空間。</p>
+      <p>• 實體伺服器 Node A、B、C 雜湊至環上特定位置。</p>
+      <p>
+        • 資料鍵（Key）計算雜湊後，<strong>順時針尋找第一個碰到的節點</strong
+        >：Key 1 ➔ Node B、Key 2 ➔ Node C、Key 3 ➔ Node A。
+      </p>
+    </div>
+
+    <div class="ch-mobile-card">
+      <span class="ch-mobile-badge">LOCAL IMPACT ONLY</span>
+      <h4>節點下線最小化擾動</h4>
+      <p>• 若 Node B 突發下線，僅有原本命中 B 的 Key 1 順延至 Node C。</p>
+      <p>
+        • 其餘絕大多數節點與 Key 完全不受影響，彻底杜絕模數雜湊 `hash(key) % N`
+        導致的 100% 快取全滅雪崩！
+      </p>
+    </div>
+
+    <div class="ch-mobile-card ch-mobile-card--purple">
+      <span class="ch-mobile-badge ch-mobile-badge--purple">VIRTUAL NODES</span>
+      <h4>虛擬節點防資料傾斜</h4>
+      <p>• 實體節點較少時，節點分佈易不均勻造成某節點被塞爆。</p>
+      <p>
+        • 解決方案：為每個實體節點配置 160 ~ 256 個虛擬節點（如 `Node_A#1` ~
+        `Node_A#160`）均勻散落在環上，大幅壓平分佈標準差。
+      </p>
+    </div>
+
+    <div class="ch-mobile-card ch-mobile-card--blue">
+      <span class="ch-mobile-badge ch-mobile-badge--blue">O(log M) SEARCH</span>
+      <h4>高效二分查找路由</h4>
+      <p>
+        所有節點 Hash 形成有序陣列，客戶端利用二分搜尋（Binary
+        Search）在微秒級別鎖定目標伺服器，完全無網路額外往返！
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="ch-diag-caption" class="ch-diag__caption">
+    圖二：一致性雜湊環（Consistent Hashing Ring）順時針尋址與虛擬節點架構
+  </figcaption>
+</figure>
+
+<style>
+  .ch-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ch-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .ch-diag__mobile {
+    display: none;
+  }
+
+  .ch-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  /* SVG Base Styling */
+  .ch-diag__card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .ch-diag__badge {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .ch-diag__card-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Ring Styles */
+  .ch-diag__ring {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2.5;
+    stroke-dasharray: 6 4;
+  }
+
+  .ch-diag__ring-marker {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .ch-diag__mono-label {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-muted);
+  }
+
+  /* Ring Nodes */
+  .ch-diag__node-outer {
+    stroke-width: 2;
+    fill: var(--dg-surface);
+  }
+
+  .ch-diag__node-outer--green {
+    stroke: #16a34a;
+  }
+  .ch-diag__node-core--green {
+    fill: #16a34a;
+  }
+  .ch-diag__node-label--green {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__node-label--green {
+    fill: #86efac;
+  }
+
+  .ch-diag__node-outer--blue {
+    stroke: #2563eb;
+  }
+  .ch-diag__node-core--blue {
+    fill: #2563eb;
+  }
+  .ch-diag__node-label--blue {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__node-label--blue {
+    fill: #93c5fd;
+  }
+
+  .ch-diag__node-outer--purple {
+    stroke: #7c3aed;
+  }
+  .ch-diag__node-core--purple {
+    fill: #7c3aed;
+  }
+  .ch-diag__node-label--purple {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__node-label--purple {
+    fill: #c4b5fd;
+  }
+
+  /* Keys & Routes */
+  .ch-diag__key-dot {
+    fill: #d97706;
+    stroke: #ffffff;
+    stroke-width: 1.5;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__key-dot {
+    fill: #fbbf24;
+    stroke: #18181b;
+  }
+
+  .ch-diag__key-label {
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: #b45309;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__key-label {
+    fill: #fde68a;
+  }
+
+  .ch-diag__key-sub {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-muted);
+  }
+
+  .ch-diag__route-line {
+    fill: none;
+    stroke: #d97706;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 2;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__route-line {
+    stroke: #fbbf24;
+  }
+
+  .ch-diag__arrow-head {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__arrow-head {
+    fill: #fbbf24;
+  }
+
+  .ch-diag__center-clock {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .ch-diag__center-sub {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-muted);
+  }
+
+  /* Right Subcards */
+  .ch-diag__subcard {
+    fill: var(--dg-surface);
+    stroke-width: 1;
+  }
+
+  .ch-diag__subcard--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.05);
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subcard--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.12);
+  }
+
+  .ch-diag__subhead--green {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subhead--green {
+    fill: #86efac;
+  }
+
+  .ch-diag__tag-green {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__tag-green {
+    fill: #86efac;
+  }
+
+  .ch-diag__subcard--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.05);
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subcard--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.12);
+  }
+
+  .ch-diag__subhead--purple {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subhead--purple {
+    fill: #c4b5fd;
+  }
+
+  .ch-diag__tag-purple {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__tag-purple {
+    fill: #ddd6fe;
+  }
+
+  .ch-diag__subcard--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.05);
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subcard--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.12);
+  }
+
+  .ch-diag__subhead--blue {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .ch-diag__subhead--blue {
+    fill: #93c5fd;
+  }
+
+  .ch-diag__desc {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  /* Responsive Mobile Styling */
+  @media (max-width: 48rem) {
+    .ch-diag__desktop {
+      display: none !important;
+    }
+
+    .ch-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .ch-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .ch-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .ch-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    .ch-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .ch-mobile-card--purple {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: #a78bfa;
+    }
+
+    .ch-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .ch-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .ch-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .ch-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .ch-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .ch-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .ch-mobile-badge--blue {
+      color: #2563eb;
+    }
+    :global(:root[data-theme="dark"]) .ch-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .ch-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .ch-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>

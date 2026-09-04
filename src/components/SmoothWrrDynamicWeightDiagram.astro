@@ -1,0 +1,557 @@
+---
+// Nginx Smooth Weighted Round Robin (Smooth WRR) Dynamic Weight Scheduling Diagram Component
+---
+
+<figure class="swrr-diag" aria-labelledby="swrr-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="swrr-diag__desktop"
+    viewBox="0 0 860 410"
+    role="img"
+    aria-labelledby="swrr-diag-title swrr-diag-desc"
+  >
+    <title id="swrr-diag-title">
+      Nginx 平滑加權輪詢（Smooth Weighted Round Robin）動態推演
+    </title>
+    <desc id="swrr-diag-desc">
+      展示固定權重 A:5, B:1, C:1 (總和 7) 在動態排程中，透過 current_weight +=
+      weight 與選中者扣減總權重的演算，使原本容易連續突發的 A
+      節點請求平滑均勻交錯分發。
+    </desc>
+
+    <defs>
+      <marker
+        id="swrr-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="swrr-diag__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Top Banner: Configuration Summary -->
+    <g class="swrr-diag__config-banner" transform="translate(30, 24)">
+      <rect width="800" height="42" rx="8" class="swrr-diag__banner-rect"
+      ></rect>
+      <text class="swrr-diag__banner-title" x="24" y="26">
+        節點初始配置：
+      </text>
+      <text class="swrr-diag__banner-node" x="120" y="26">
+        Node A (權重 5)
+      </text>
+      <text class="swrr-diag__banner-sep" x="235" y="26">•</text>
+      <text class="swrr-diag__banner-node" x="255" y="26">
+        Node B (權重 1)
+      </text>
+      <text class="swrr-diag__banner-sep" x="370" y="26">•</text>
+      <text class="swrr-diag__banner-node" x="390" y="26">
+        Node C (權重 1)
+      </text>
+      <text class="swrr-diag__banner-total" x="510" y="26">
+        ➔ 總權重和 S = 7，初始動態權重 current_weight 皆為 0
+      </text>
+    </g>
+
+    <!-- Round 1 Card -->
+    <g class="swrr-diag__card" transform="translate(30, 84)">
+      <rect width="250" height="230" rx="10"></rect>
+      <text class="swrr-diag__badge" x="18" y="28">STEP 01</text>
+      <text class="swrr-diag__card-title" x="18" y="52">第 1 輪 (Round 1)</text>
+
+      <g transform="translate(14, 68)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20"
+          >1. 各累加固定權重</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >A: 5, B: 1, C: 1</text
+        >
+      </g>
+
+      <g transform="translate(14, 122)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20">2. 選取最大者</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >A(5) 最大 ➔ 命中 Node A</text
+        >
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="222"
+          height="44"
+          rx="6"
+          class="swrr-diag__hit swrr-diag__hit--blue"></rect>
+        <text class="swrr-diag__hit-text" x="12" y="18"
+          >3. A 扣減總和 (5 - 7 = -2)</text
+        >
+        <text class="swrr-diag__hit-badge" x="12" y="34"
+          >剩餘權重：[-2, 1, 1]</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrow 1 -> 2 -->
+    <path
+      d="M 285 199 L 300 199"
+      class="swrr-diag__flow-line"
+      marker-end="url(#swrr-arrow)"></path>
+
+    <!-- Round 2 Card -->
+    <g class="swrr-diag__card" transform="translate(305, 84)">
+      <rect width="250" height="230" rx="10"></rect>
+      <text class="swrr-diag__badge" x="18" y="28">STEP 02</text>
+      <text class="swrr-diag__card-title" x="18" y="52">第 2 輪 (Round 2)</text>
+
+      <g transform="translate(14, 68)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20"
+          >1. 各累加固定權重</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >A: -2+5=3, B: 1+1=2, C: 1+1=2</text
+        >
+      </g>
+
+      <g transform="translate(14, 122)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20">2. 選取最大者</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >A(3) 最大 ➔ 命中 Node A</text
+        >
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="222"
+          height="44"
+          rx="6"
+          class="swrr-diag__hit swrr-diag__hit--blue"></rect>
+        <text class="swrr-diag__hit-text" x="12" y="18"
+          >3. A 扣減總和 (3 - 7 = -4)</text
+        >
+        <text class="swrr-diag__hit-badge" x="12" y="34"
+          >剩餘權重：[-4, 2, 2]</text
+        >
+      </g>
+    </g>
+
+    <!-- Connecting Arrow 2 -> 3 -->
+    <path
+      d="M 560 199 L 575 199"
+      class="swrr-diag__flow-line"
+      marker-end="url(#swrr-arrow)"></path>
+
+    <!-- Round 3 Card -->
+    <g class="swrr-diag__card" transform="translate(580, 84)">
+      <rect width="250" height="230" rx="10"></rect>
+      <text class="swrr-diag__badge" x="18" y="28">STEP 03</text>
+      <text class="swrr-diag__card-title" x="18" y="52">第 3 輪 (Round 3)</text>
+
+      <g transform="translate(14, 68)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20"
+          >1. 各累加固定權重</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >A: -4+5=1, B: 2+1=3, C: 2+1=3</text
+        >
+      </g>
+
+      <g transform="translate(14, 122)">
+        <rect width="222" height="46" rx="6" class="swrr-diag__subcard"></rect>
+        <text class="swrr-diag__subcard-title" x="12" y="20">2. 選取最大者</text
+        >
+        <text class="swrr-diag__subcard-desc" x="12" y="36"
+          >B 與 C 平手，取前者 ➔ 命中 Node B</text
+        >
+      </g>
+
+      <g transform="translate(14, 176)">
+        <rect
+          width="222"
+          height="44"
+          rx="6"
+          class="swrr-diag__hit swrr-diag__hit--purple"></rect>
+        <text
+          class="swrr-diag__hit-text swrr-diag__hit-text--purple"
+          x="12"
+          y="18">3. B 扣減總和 (3 - 7 = -4)</text
+        >
+        <text
+          class="swrr-diag__hit-badge swrr-diag__hit-badge--purple"
+          x="12"
+          y="34">剩餘權重：[1, -4, 3]</text
+        >
+      </g>
+    </g>
+
+    <!-- Bottom Result Bar -->
+    <g class="swrr-diag__result-bar" transform="translate(30, 332)">
+      <rect width="800" height="54" rx="8" class="swrr-diag__result-rect"
+      ></rect>
+      <text class="swrr-diag__result-title" x="24" y="24">
+        7 輪週期平滑分發序列：
+      </text>
+      <text class="swrr-diag__result-seq" x="24" y="42">
+        A ➔ A ➔ B ➔ A ➔ C ➔ A ➔ A
+      </text>
+      <text class="swrr-diag__result-note" x="320" y="33">
+        （演算法確保權重最高的 A 均勻交錯分佈，徹底消除原始加權輪詢連打 5 次 A
+        的瞬間過載風險）
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="swrr-diag__mobile">
+    <div class="swrr-mobile-card swrr-mobile-card--config">
+      <span class="swrr-mobile-badge">CONFIGURATION</span>
+      <h4>節點權重初始配置</h4>
+      <p>• Node A: 權重 5 ｜ Node B: 權重 1 ｜ Node C: 權重 1</p>
+      <p>• 總權重和 S = 7，初始各節點動態權重 current_weight 皆為 0</p>
+    </div>
+
+    <div class="swrr-mobile-arrow">↓ 第 1 輪計算</div>
+
+    <div class="swrr-mobile-card">
+      <span class="swrr-mobile-badge">ROUND 1</span>
+      <h4>第 1 輪：命中 Node A</h4>
+      <p>1. 累加權重：A: 5, B: 1, C: 1</p>
+      <p>2. A(5) 最大被選中，扣除總和 S(7) 得 -2</p>
+      <p><strong>輪次結算：</strong>命中 A，剩餘 [-2, 1, 1]</p>
+    </div>
+
+    <div class="swrr-mobile-arrow">↓ 第 2 輪計算</div>
+
+    <div class="swrr-mobile-card">
+      <span class="swrr-mobile-badge">ROUND 2</span>
+      <h4>第 2 輪：命中 Node A</h4>
+      <p>1. 累加權重：A: 3, B: 2, C: 2</p>
+      <p>2. A(3) 最大被選中，扣除總和 S(7) 得 -4</p>
+      <p><strong>輪次結算：</strong>命中 A，剩餘 [-4, 2, 2]</p>
+    </div>
+
+    <div class="swrr-mobile-arrow">↓ 第 3 輪計算</div>
+
+    <div class="swrr-mobile-card swrr-mobile-card--hit-b">
+      <span class="swrr-mobile-badge swrr-mobile-badge--purple">ROUND 3</span>
+      <h4>第 3 輪：平滑命中 Node B</h4>
+      <p>1. 累加權重：A: 1, B: 3, C: 3</p>
+      <p>2. B 與 C 平手取前者 B(3)，扣除 S(7) 得 -4</p>
+      <p><strong>輪次結算：</strong>命中 B，剩餘 [1, -4, 3]</p>
+    </div>
+
+    <div class="swrr-mobile-card swrr-mobile-card--result">
+      <span class="swrr-mobile-badge swrr-mobile-badge--green"
+        >FINAL SEQUENCE</span
+      >
+      <h4>平滑分發序列結果</h4>
+      <p class="swrr-mobile-seq">A ➔ A ➔ B ➔ A ➔ C ➔ A ➔ A</p>
+      <p>七次分發中 A 均勻交錯出現，完美打散高權重節點的突發聚集流量。</p>
+    </div>
+  </div>
+
+  <figcaption id="swrr-diag-caption" class="swrr-diag__caption">
+    圖一：Nginx 平滑加權輪詢（Smooth WRR）動態權重推演與均勻排程
+  </figcaption>
+</figure>
+
+<style>
+  .swrr-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .swrr-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .swrr-diag__mobile {
+    display: none;
+  }
+
+  .swrr-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  /* SVG Typography & Elements */
+  .swrr-diag__card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .swrr-diag__banner-rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .swrr-diag__banner-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .swrr-diag__banner-node {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .swrr-diag__banner-sep {
+    font-size: 12px;
+    fill: var(--dg-muted);
+  }
+
+  .swrr-diag__banner-total {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--dg-muted);
+  }
+
+  .swrr-diag__badge {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .swrr-diag__card-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .swrr-diag__subcard {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .swrr-diag__subcard-title {
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--dg-ink-2);
+  }
+
+  .swrr-diag__subcard-desc {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 500;
+    fill: var(--dg-ink);
+  }
+
+  .swrr-diag__hit {
+    stroke-width: 1;
+  }
+
+  .swrr-diag__hit--blue {
+    fill: rgba(59, 130, 246, 0.08);
+    stroke: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit--blue {
+    fill: rgba(59, 130, 246, 0.18);
+    stroke: #60a5fa;
+  }
+
+  .swrr-diag__hit--purple {
+    fill: rgba(139, 92, 246, 0.08);
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit--purple {
+    fill: rgba(139, 92, 246, 0.18);
+    stroke: #a78bfa;
+  }
+
+  .swrr-diag__hit-text {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit-text {
+    fill: #93c5fd;
+  }
+
+  .swrr-diag__hit-text--purple {
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit-text--purple {
+    fill: #c4b5fd;
+  }
+
+  .swrr-diag__hit-badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit-badge {
+    fill: #bfdbfe;
+  }
+
+  .swrr-diag__hit-badge--purple {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__hit-badge--purple {
+    fill: #ddd6fe;
+  }
+
+  .swrr-diag__flow-line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .swrr-diag__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .swrr-diag__result-rect {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+    stroke-width: 1.2;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__result-rect {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .swrr-diag__result-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__result-title {
+    fill: #86efac;
+  }
+
+  .swrr-diag__result-seq {
+    font-size: 13px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: #166534;
+  }
+  :global(:root[data-theme="dark"]) .swrr-diag__result-seq {
+    fill: #bbf7d0;
+  }
+
+  .swrr-diag__result-note {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+  }
+
+  /* Responsive Mobile Styling */
+  @media (max-width: 48rem) {
+    .swrr-diag__desktop {
+      display: none !important;
+    }
+
+    .swrr-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .swrr-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .swrr-mobile-card--config {
+      background: var(--dg-surface-2);
+      border-left: 4px solid var(--dg-rule-strong);
+    }
+
+    .swrr-mobile-card--hit-b {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .swrr-mobile-card--result {
+      background: rgba(22, 163, 74, 0.05);
+      border-left: 4px solid #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .swrr-mobile-card--result {
+      background: rgba(22, 163, 74, 0.12);
+      border-color: #4ade80;
+    }
+
+    .swrr-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .swrr-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .swrr-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .swrr-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .swrr-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .swrr-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .swrr-mobile-card p {
+      margin: 0.2rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .swrr-mobile-seq {
+      font-family: var(--font-mono, monospace);
+      font-weight: 700;
+      color: #16a34a !important;
+      font-size: 1rem !important;
+    }
+    :global(:root[data-theme="dark"]) .swrr-mobile-seq {
+      color: #86efac !important;
+    }
+
+    .swrr-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>
