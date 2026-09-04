@@ -1,0 +1,665 @@
+---
+// Saga Distributed Transaction Forward Execution vs Backward Compensation Diagram Component
+---
+
+<figure class="saga-diag" aria-labelledby="saga-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="saga-diag__desktop"
+    viewBox="0 0 880 390"
+    role="img"
+    aria-labelledby="saga-diag-title saga-diag-desc"
+  >
+    <title id="saga-diag-title">
+      Saga 分散式長事務：正向執行鏈與失敗補償鏈
+    </title>
+    <desc id="saga-diag-desc">
+      展示 Saga 正向事務 T1 到 T4 依序提交成功，以及當 T3
+      扣款失敗時依相反順序觸發 C2 釋放庫存與 C1
+      取消訂單的反向補償達成最終一致性。
+    </desc>
+
+    <defs>
+      <marker
+        id="saga-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="saga-diag__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="saga-arrow-red"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="saga-diag__arrow-head--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Top Lane: Forward Success Path (y: 20, height: 160) -->
+    <g class="saga-diag__card" transform="translate(25, 20)">
+      <rect
+        width="830"
+        height="155"
+        rx="10"
+        class="saga-diag__card-bg saga-diag__card-bg--green"></rect>
+      <text class="saga-diag__badge saga-diag__badge--green" x="20" y="28"
+        >FORWARD EXECUTION PIPELINE</text
+      >
+      <text class="saga-diag__title saga-diag__title--green" x="20" y="52"
+        >✅ 正向成功路徑（本地事務鏈依序提交釋放鎖）</text
+      >
+
+      <g transform="translate(20, 68)">
+        <!-- T1: Order Service -->
+        <rect
+          x="0"
+          y="0"
+          width="165"
+          height="46"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--green"></rect>
+        <text
+          x="82"
+          y="20"
+          class="saga-diag__step-title saga-diag__step-title--green"
+          text-anchor="middle">T1: 建立訂單</text
+        >
+        <text
+          x="82"
+          y="36"
+          class="saga-diag__step-sub saga-diag__step-sub--green"
+          text-anchor="middle">訂單服務 (Commit)</text
+        >
+
+        <!-- Arrow 1 -> 2 -->
+        <path
+          d="M 165 23 L 205 23"
+          class="saga-diag__line--green"
+          marker-end="url(#saga-arrow-green)"></path>
+
+        <!-- T2: Inventory Service -->
+        <rect
+          x="215"
+          y="0"
+          width="165"
+          height="46"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--green"></rect>
+        <text
+          x="297"
+          y="20"
+          class="saga-diag__step-title saga-diag__step-title--green"
+          text-anchor="middle">T2: 預扣庫存</text
+        >
+        <text
+          x="297"
+          y="36"
+          class="saga-diag__step-sub saga-diag__step-sub--green"
+          text-anchor="middle">庫存服務 (Commit)</text
+        >
+
+        <!-- Arrow 2 -> 3 -->
+        <path
+          d="M 380 23 L 420 23"
+          class="saga-diag__line--green"
+          marker-end="url(#saga-arrow-green)"></path>
+
+        <!-- T3: Payment Service -->
+        <rect
+          x="430"
+          y="0"
+          width="165"
+          height="46"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--green"></rect>
+        <text
+          x="512"
+          y="20"
+          class="saga-diag__step-title saga-diag__step-title--green"
+          text-anchor="middle">T3: 執行扣款</text
+        >
+        <text
+          x="512"
+          y="36"
+          class="saga-diag__step-sub saga-diag__step-sub--green"
+          text-anchor="middle">支付服務 (Commit)</text
+        >
+
+        <!-- Arrow 3 -> 4 -->
+        <path
+          d="M 595 23 L 635 23"
+          class="saga-diag__line--green"
+          marker-end="url(#saga-arrow-green)"></path>
+
+        <!-- T4: Delivery Service -->
+        <rect
+          x="645"
+          y="0"
+          width="145"
+          height="46"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--green"></rect>
+        <text
+          x="717"
+          y="20"
+          class="saga-diag__step-title saga-diag__step-title--green"
+          text-anchor="middle">T4: 物流出貨</text
+        >
+        <text
+          x="717"
+          y="36"
+          class="saga-diag__step-sub saga-diag__step-sub--green"
+          text-anchor="middle">物流服務 (成功完成)</text
+        >
+      </g>
+
+      <text class="saga-diag__summary saga-diag__summary--green" x="20" y="140">
+        特點：每個服務僅鎖定自身資料庫，執行完畢即刻
+        Commit，高吞吐無全局排他鎖阻塞。
+      </text>
+    </g>
+
+    <!-- Bottom Lane: Backward Compensation Path (y: 195, height: 175) -->
+    <g class="saga-diag__card" transform="translate(25, 195)">
+      <rect
+        width="830"
+        height="175"
+        rx="10"
+        class="saga-diag__card-bg saga-diag__card-bg--red"></rect>
+      <text class="saga-diag__badge saga-diag__badge--red" x="20" y="28"
+        >COMPENSATING ROLLBACK PIPELINE</text
+      >
+      <text class="saga-diag__title saga-diag__title--red" x="20" y="52"
+        >❌ 失敗回滾路徑（T3 扣款失敗 ➔ 逆序觸發業務沖正補償 C2, C1）</text
+      >
+
+      <g transform="translate(20, 68)">
+        <!-- Step 1: T1 & C1 -->
+        <rect
+          x="0"
+          y="0"
+          width="165"
+          height="58"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--comp"></rect>
+        <text x="82" y="18" class="saga-diag__step-title" text-anchor="middle"
+          >T1: 建立訂單</text
+        >
+        <rect
+          x="15"
+          y="26"
+          width="135"
+          height="24"
+          rx="4"
+          class="saga-diag__pill-red"></rect>
+        <text
+          x="82"
+          y="42"
+          class="saga-diag__pill-text--red"
+          text-anchor="middle">C1: 標記訂單取消</text
+        >
+
+        <!-- Compensation Arrow C2 -> C1 (Left pointing) -->
+        <path
+          d="M 215 38 L 175 38"
+          class="saga-diag__line--red"
+          marker-end="url(#saga-arrow-red)"></path>
+
+        <!-- Step 2: T2 & C2 -->
+        <rect
+          x="215"
+          y="0"
+          width="165"
+          height="58"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--comp"></rect>
+        <text x="297" y="18" class="saga-diag__step-title" text-anchor="middle"
+          >T2: 預扣庫存</text
+        >
+        <rect
+          x="230"
+          y="26"
+          width="135"
+          height="24"
+          rx="4"
+          class="saga-diag__pill-red"></rect>
+        <text
+          x="297"
+          y="42"
+          class="saga-diag__pill-text--red"
+          text-anchor="middle">C2: 釋放預扣庫存</text
+        >
+
+        <!-- Compensation Trigger Arrow T3 -> C2 (Left pointing) -->
+        <path
+          d="M 430 38 L 390 38"
+          class="saga-diag__line--red"
+          marker-end="url(#saga-arrow-red)"></path>
+
+        <!-- Step 3: T3 Failed -->
+        <rect
+          x="430"
+          y="0"
+          width="165"
+          height="58"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--alert"></rect>
+        <text
+          x="512"
+          y="22"
+          class="saga-diag__step-title saga-diag__step-title--red"
+          text-anchor="middle">T3: 扣款失敗！✗</text
+        >
+        <text
+          x="512"
+          y="42"
+          class="saga-diag__step-sub saga-diag__step-sub--red"
+          text-anchor="middle">卡片餘額不足 / 銀行逾時</text
+        >
+
+        <!-- Step 4: Final State -->
+        <rect
+          x="635"
+          y="0"
+          width="155"
+          height="58"
+          rx="6"
+          class="saga-diag__step-rect saga-diag__step-rect--final"></rect>
+        <text
+          x="712"
+          y="24"
+          class="saga-diag__step-title saga-diag__step-title--green"
+          text-anchor="middle">最終一致性</text
+        >
+        <text
+          x="712"
+          y="44"
+          class="saga-diag__step-sub saga-diag__step-sub--green"
+          text-anchor="middle">無懸掛孤立資料</text
+        >
+      </g>
+
+      <text class="saga-diag__summary saga-diag__summary--red" x="20" y="156">
+        鐵律：補償不是底層
+        ROLLBACK，而是全新補償交易（須具備冪等性、重試不允許失敗、可補償步驟置於樞紐之前）。
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="saga-diag__mobile">
+    <div class="saga-mobile-card saga-mobile-card--green">
+      <span class="saga-mobile-badge saga-mobile-badge--green"
+        >FORWARD SUCCESS</span
+      >
+      <h4>✅ 正向成功鏈 (Forward Path)</h4>
+      <p>1. <strong>T1 (訂單)</strong>：建立訂單並提交。</p>
+      <p>2. <strong>T2 (庫存)</strong>：預扣庫存並提交。</p>
+      <p>3. <strong>T3 (支付)</strong>：扣款成功並提交。</p>
+      <p>4. <strong>T4 (物流)</strong>：生成運單並成功完成。</p>
+    </div>
+
+    <div class="saga-mobile-arrow">VS. 遇到業務例外時</div>
+
+    <div class="saga-mobile-card saga-mobile-card--red">
+      <span class="saga-mobile-badge saga-mobile-badge--red"
+        >COMPENSATING ROLLBACK</span
+      >
+      <h4>❌ 失敗回滾鏈 (Compensation Path)</h4>
+      <p>1. <strong>T3 失敗</strong>：支付帳戶餘額不足，中止正向流程。</p>
+      <p>2. <strong>C2 補償</strong>：呼叫庫存服務釋放已凍結之庫存（沖正）。</p>
+      <p>3. <strong>C1 補償</strong>：呼叫訂單服務更新狀態為已取消。</p>
+      <p class="saga-mobile-note">
+        補償交易須遵循冪等性與重試必定成功原則，達成全鏈路最終一致性。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="saga-diag-caption" class="saga-diag__caption">
+    圖一：Saga 模式正向本地事務推進與失敗逆向補償架構對比
+  </figcaption>
+</figure>
+
+<style>
+  .saga-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .saga-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .saga-diag__mobile {
+    display: none;
+  }
+
+  .saga-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  /* Card Backgrounds */
+  .saga-diag__card-bg {
+    stroke-width: 1.5;
+  }
+
+  .saga-diag__card-bg--green {
+    fill: rgba(22, 163, 74, 0.03);
+    stroke: rgba(22, 163, 74, 0.25);
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__card-bg--green {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: rgba(34, 197, 94, 0.35);
+  }
+
+  .saga-diag__card-bg--red {
+    fill: rgba(220, 38, 38, 0.03);
+    stroke: rgba(220, 38, 38, 0.25);
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__card-bg--red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: rgba(239, 68, 68, 0.35);
+  }
+
+  .saga-diag__badge {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .saga-diag__badge--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__badge--green {
+    fill: #86efac;
+  }
+
+  .saga-diag__badge--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__badge--red {
+    fill: #fca5a5;
+  }
+
+  .saga-diag__title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .saga-diag__title--green {
+    fill: #166534;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__title--green {
+    fill: #4ade80;
+  }
+
+  .saga-diag__title--red {
+    fill: #991b1b;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__title--red {
+    fill: #f87171;
+  }
+
+  /* Step Rectangles */
+  .saga-diag__step-rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.2;
+  }
+
+  .saga-diag__step-rect--green {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-rect--green {
+    fill: rgba(22, 163, 74, 0.16);
+    stroke: #4ade80;
+  }
+
+  .saga-diag__step-rect--comp {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+
+  .saga-diag__step-rect--alert {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-rect--alert {
+    fill: rgba(220, 38, 38, 0.18);
+    stroke: #f87171;
+  }
+
+  .saga-diag__step-rect--final {
+    fill: rgba(22, 163, 74, 0.08);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-rect--final {
+    fill: rgba(22, 163, 74, 0.18);
+    stroke: #4ade80;
+  }
+
+  .saga-diag__step-title {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .saga-diag__step-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-title--green {
+    fill: #86efac;
+  }
+
+  .saga-diag__step-title--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-title--red {
+    fill: #fca5a5;
+  }
+
+  .saga-diag__step-sub {
+    font-size: 11px;
+    font-weight: 500;
+    fill: var(--dg-muted);
+  }
+
+  .saga-diag__step-sub--green {
+    fill: #166534;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-sub--green {
+    fill: #bbf7d0;
+  }
+
+  .saga-diag__step-sub--red {
+    fill: #991b1b;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__step-sub--red {
+    fill: #fecaca;
+  }
+
+  .saga-diag__pill-red {
+    fill: rgba(220, 38, 38, 0.08);
+    stroke: #dc2626;
+    stroke-width: 1;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__pill-red {
+    fill: rgba(220, 38, 38, 0.2);
+    stroke: #f87171;
+  }
+
+  .saga-diag__pill-text--red {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__pill-text--red {
+    fill: #fca5a5;
+  }
+
+  /* Flow Lines */
+  .saga-diag__line--green {
+    stroke: #16a34a;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__line--green {
+    stroke: #4ade80;
+  }
+
+  .saga-diag__line--red {
+    stroke: #dc2626;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__line--red {
+    stroke: #f87171;
+  }
+
+  .saga-diag__arrow-head--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__arrow-head--green {
+    fill: #4ade80;
+  }
+
+  .saga-diag__arrow-head--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__arrow-head--red {
+    fill: #f87171;
+  }
+
+  .saga-diag__summary {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .saga-diag__summary--green {
+    fill: #166534;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__summary--green {
+    fill: #86efac;
+  }
+
+  .saga-diag__summary--red {
+    fill: #991b1b;
+  }
+  :global(:root[data-theme="dark"]) .saga-diag__summary--red {
+    fill: #fca5a5;
+  }
+
+  /* Mobile View */
+  @media (max-width: 48rem) {
+    .saga-diag__desktop {
+      display: none !important;
+    }
+
+    .saga-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .saga-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .saga-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .saga-mobile-card--green {
+      background: rgba(22, 163, 74, 0.12);
+      border-color: #4ade80;
+    }
+
+    .saga-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .saga-mobile-card--red {
+      background: rgba(220, 38, 38, 0.12);
+      border-color: #f87171;
+    }
+
+    .saga-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .saga-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .saga-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .saga-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .saga-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .saga-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .saga-mobile-card p {
+      margin: 0.2rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .saga-mobile-note {
+      margin-top: 0.5rem !important;
+      font-size: 0.8125rem !important;
+      color: #991b1b !important;
+    }
+    :global(:root[data-theme="dark"]) .saga-mobile-note {
+      color: #fca5a5 !important;
+    }
+
+    .saga-mobile-arrow {
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>
