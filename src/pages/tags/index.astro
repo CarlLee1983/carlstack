@@ -10,8 +10,8 @@ const tags = collectTaxonomy(await getVisiblePosts(), "tags");
   title="標籤"
   description="由 CarlStack 已發布文章自動產生的技術標籤。"
 >
-  <div class="page shell">
-    <header class="page-header">
+  <div class="page shell tags-page">
+    <header class="page-header tags-header">
       <h1>標籤</h1>
       <p>
         標籤名稱與穩定 URL 由 Content Collections
@@ -20,7 +20,7 @@ const tags = collectTaxonomy(await getVisiblePosts(), "tags");
     </header>
     {
       tags.length > 0 ? (
-        <ul class="tag-list">
+        <ul class="tag-list tags-cloud" aria-label="全部文章標籤">
           {tags.map((tag) => (
             <li>
               <a
@@ -42,3 +42,133 @@ const tags = collectTaxonomy(await getVisiblePosts(), "tags");
     }
   </div>
 </BaseLayout>
+
+<style>
+  .tags-page {
+    isolation: isolate;
+  }
+
+  .tags-header {
+    position: relative;
+  }
+
+  .tags-header::before {
+    content: "";
+    position: absolute;
+    inset: -2rem auto auto -3rem;
+    z-index: -1;
+    width: min(24rem, 75vw);
+    aspect-ratio: 2 / 1;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--color-accent-soft),
+      transparent 68%
+    );
+    filter: blur(8px);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .tags-header h1 {
+    width: fit-content;
+  }
+
+  .tags-header h1::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 0.18rem;
+    margin-block-start: var(--space-2xs);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    transform-origin: left;
+  }
+
+  .tags-cloud :global(.tag[data-count])::after {
+    display: inline-grid;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    place-items: center;
+    padding-inline: var(--space-2xs);
+    border-radius: var(--radius-pill);
+    background: var(--color-paper);
+    transition:
+      color var(--dur-micro) var(--ease-out),
+      background-color var(--dur-micro) var(--ease-out),
+      transform var(--dur-short) var(--ease-out);
+  }
+
+  .tags-cloud :global(.tag:hover),
+  .tags-cloud :global(.tag:focus-visible) {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  .tags-cloud :global(.tag:hover)::after,
+  .tags-cloud :global(.tag:focus-visible)::after {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    transform: translateX(0.12rem);
+  }
+
+  .tags-cloud :global(.tag:active) {
+    transform: translateY(0) scale(0.98);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tags-header h1::after {
+      animation: rule-draw 560ms 100ms var(--ease-out) both;
+    }
+
+    .tags-header::before {
+      animation: ambient-drift 8s var(--ease-in-out) infinite alternate;
+    }
+
+    .tags-cloud {
+      animation: cloud-reveal 500ms 100ms var(--ease-out) both;
+    }
+  }
+
+  @keyframes rule-draw {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes ambient-drift {
+    to {
+      opacity: 0.9;
+      transform: translate3d(1.5rem, 0.5rem, 0) scale(1.08);
+    }
+  }
+
+  @keyframes cloud-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tags-header::before,
+    .tags-header h1::after,
+    .tags-cloud {
+      animation: none;
+    }
+
+    .tags-cloud :global(.tag),
+    .tags-cloud :global(.tag)::after {
+      transition: none;
+    }
+
+    .tags-cloud :global(.tag:hover),
+    .tags-cloud :global(.tag:focus-visible),
+    .tags-cloud :global(.tag:active),
+    .tags-cloud :global(.tag:hover)::after,
+    .tags-cloud :global(.tag:focus-visible)::after {
+      transform: none;
+    }
+  }
+</style>
