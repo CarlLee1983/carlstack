@@ -16,6 +16,8 @@ coverAlt: "中央金色加密保險艙與雙重備援電路路徑，展示高可
 ---
 
 import ShopifyPaymentResilienceDiagram from "../../components/ShopifyPaymentResilienceDiagram.astro";
+import ShopifyPaymentFsmDiagram from "../../components/ShopifyPaymentFsmDiagram.astro";
+import ShopifyTimeoutBudgetDiagram from "../../components/ShopifyTimeoutBudgetDiagram.astro";
 
 在電商與金融科技領域，支付系統（Payment Systems）是容錯率最低的架構模組。任何網路抖動、下游第三方支付通道（如 Stripe、Adyen 或銀行）的延遲升高，或是重複的扣款請求，都會直接導致資金損失與商譽崩潰。
 
@@ -62,40 +64,7 @@ end
 
 支付交易生命週期絕不可使用零散的 Boolean 欄位（如 `is_paid`、`is_failed`）來判定，必須透過**明確有限狀態機（FSM）**管理：
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 100" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="shop-fsm-title shop-fsm-desc">
-    <title id="shop-fsm-title">Shopify 支付有限狀態機流轉圖</title>
-    <desc id="shop-fsm-desc">展示 Pending 經 Authorize 進入 Authorized，經 Capture 進入 Captured，最終經 Refund 進入 Refunded 的嚴格單向流轉。</desc>
-    
-    <defs>
-      <marker id="shp-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
-      </marker>
-    </defs>
-
-    <rect x="20" y="30" width="130" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
-    <text x="85" y="55" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Pending</text>
-
-    <path d="M 150 50 L 220 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#shp-arrow)"/>
-    <text x="185" y="42" fill="#8b949e" font-size="9" text-anchor="middle">Authorize</text>
-
-    <rect x="220" y="30" width="140" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="290" y="55" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Authorized</text>
-
-    <path d="M 360 50 L 440 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#shp-arrow)"/>
-    <text x="400" y="42" fill="#3fb950" font-size="9" text-anchor="middle">Capture</text>
-
-    <rect x="440" y="30" width="140" height="40" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="510" y="55" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Captured</text>
-
-    <path d="M 580 50 L 650 50" stroke="#d29922" stroke-width="1.5" marker-end="url(#shp-arrow)"/>
-    <text x="615" y="42" fill="#e3b341" font-size="9" text-anchor="middle">Refund</text>
-
-    <rect x="650" y="30" width="130" height="40" rx="6" fill="#161b22" stroke="#d29922"/>
-    <text x="715" y="55" fill="#e3b341" font-size="12" font-weight="700" text-anchor="middle">Refunded</text>
-
-  </svg>
-</div>
+<ShopifyPaymentFsmDiagram />
 
 - **禁止非法躍遷**：例如 `Failed` 狀態絕對無法直接躍遷為 `Captured`。
 - **消除模糊狀態**：當下游閘道回傳超時（HTTP 504）時，狀態必須設定為 `In-Doubt` 或 `Processing`，交由非同步排程確認，絕不可直接標記為失敗以防止使用者二次下單造成雙重扣款。
@@ -165,29 +134,7 @@ Sleep = random(0, min(MaxSleep, BaseSleep * 2^attempt))
 
 分散式呼叫中，上游客戶端的 Timeout 時間必須**嚴格小於**下游服務的 Timeout：
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="shop-time-title shop-time-desc">
-    <title id="shop-time-title">分散式呼叫階層式逾時預算（Timeout Budget Hierarchy）圖</title>
-    <desc id="shop-time-desc">展示客戶端/閘道 Timeout 5.0s 大於內部支付服務 Timeout 3.5s 大於第三方銀行 API Timeout 2.0s 的遞減階層。</desc>
-    
-    <rect x="20" y="25" width="220" height="70" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
-    <text x="130" y="52" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">客戶端 / API 閘道</text>
-    <text x="130" y="75" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">Timeout 預算: 5.0s</text>
-
-    <path d="M 240 60 L 290 60" stroke="#58a6ff" stroke-width="2" marker-end="url(#shp-arrow)"/>
-
-    <rect x="290" y="25" width="220" height="70" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
-    <text x="400" y="52" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">內部支付微服務</text>
-    <text x="400" y="75" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">Timeout 預算: 3.5s</text>
-
-    <path d="M 510 60 L 560 60" stroke="#58a6ff" stroke-width="2" marker-end="url(#shp-arrow)"/>
-
-    <rect x="560" y="25" width="220" height="70" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
-    <text x="670" y="52" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">第三方銀行 API</text>
-    <text x="670" y="75" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">Timeout 預算: 2.0s</text>
-
-  </svg>
-</div>
+<ShopifyTimeoutBudgetDiagram />
 
 如果第三方 API 耗時 5 秒才超時，而上游服務早已在 3 秒時中斷連線，上游會誤以為扣款失敗，而下游卻可能在第 4 秒完成扣款，產生致命的狀態脫節。設定層級化的逾時預算可確保上游永遠能收到明確的失敗響應並觸發補償。
 

@@ -1,0 +1,480 @@
+---
+// Shopify Distributed Call Timeout Budget Hierarchy Diagram Component
+---
+
+<figure class="spt-diag" aria-labelledby="spt-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="spt-diag__desktop"
+    viewBox="0 0 880 180"
+    role="img"
+    aria-labelledby="spt-diag-title spt-diag-desc"
+  >
+    <title id="spt-diag-title">
+      分散式呼叫階層式逾時預算（Timeout Budget Hierarchy）圖
+    </title>
+    <desc id="spt-diag-desc">
+      展示客戶端/閘道 Timeout 5.0s 大於內部支付服務 Timeout 3.5s 大於第三方銀行
+      API Timeout 2.0s 的嚴格遞減階層。
+    </desc>
+
+    <defs>
+      <marker
+        id="spt-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="spt-diag__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="150"
+      rx="12"
+      class="spt-diag__card-bg"></rect>
+
+    <!-- Node 1: Gateway (x: 45, width: 235) -->
+    <g transform="translate(45, 30)">
+      <rect
+        width="235"
+        height="100"
+        rx="8"
+        class="spt-diag__box spt-diag__box--blue"></rect>
+      <text
+        x="117"
+        y="28"
+        class="spt-diag__title spt-diag__title--blue"
+        text-anchor="middle"
+      >
+        1. 客戶端 / API 閘道
+      </text>
+      <text x="117" y="52" class="spt-diag__desc" text-anchor="middle">
+        入口端全域等待上限
+      </text>
+      <rect
+        x="20"
+        y="64"
+        width="195"
+        height="24"
+        rx="4"
+        class="spt-diag__pill spt-diag__pill--green"></rect>
+      <text
+        x="117"
+        y="80"
+        class="spt-diag__pill-text spt-diag__pill-text--green"
+        text-anchor="middle"
+      >
+        Timeout 預算: 5.0s
+      </text>
+    </g>
+
+    <path
+      d="M 285 80 L 320 80"
+      class="spt-diag__path"
+      marker-end="url(#spt-arrow)"></path>
+
+    <!-- Node 2: Payment Service (x: 325, width: 235) -->
+    <g transform="translate(325, 30)">
+      <rect
+        width="235"
+        height="100"
+        rx="8"
+        class="spt-diag__box spt-diag__box--amber"></rect>
+      <text
+        x="117"
+        y="28"
+        class="spt-diag__title spt-diag__title--amber"
+        text-anchor="middle"
+      >
+        2. 內部支付微服務
+      </text>
+      <text x="117" y="52" class="spt-diag__desc" text-anchor="middle">
+        核心業務中台處理預算
+      </text>
+      <rect
+        x="20"
+        y="64"
+        width="195"
+        height="24"
+        rx="4"
+        class="spt-diag__pill spt-diag__pill--amber"></rect>
+      <text
+        x="117"
+        y="80"
+        class="spt-diag__pill-text spt-diag__pill-text--amber"
+        text-anchor="middle"
+      >
+        Timeout 預算: 3.5s
+      </text>
+    </g>
+
+    <path
+      d="M 565 80 L 600 80"
+      class="spt-diag__path"
+      marker-end="url(#spt-arrow)"></path>
+
+    <!-- Node 3: Bank API (x: 605, width: 230) -->
+    <g transform="translate(605, 30)">
+      <rect
+        width="230"
+        height="100"
+        rx="8"
+        class="spt-diag__box spt-diag__box--red"></rect>
+      <text
+        x="115"
+        y="28"
+        class="spt-diag__title spt-diag__title--red"
+        text-anchor="middle"
+      >
+        3. 第三方銀行 API
+      </text>
+      <text x="115" y="52" class="spt-diag__desc" text-anchor="middle">
+        底層收單渠道通訊超時
+      </text>
+      <rect
+        x="18"
+        y="64"
+        width="194"
+        height="24"
+        rx="4"
+        class="spt-diag__pill spt-diag__pill--red"></rect>
+      <text
+        x="115"
+        y="80"
+        class="spt-diag__pill-text spt-diag__pill-text--red"
+        text-anchor="middle"
+      >
+        Timeout 預算: 2.0s
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="spt-diag__mobile">
+    <div class="spt-mobile-card spt-mobile-card--green">
+      <span class="spt-mobile-badge spt-mobile-badge--green"
+        >GATEWAY BUDGET: 5.0s</span
+      >
+      <h4>1. 客戶端 / API 閘道</h4>
+      <p>
+        最外層客戶端與網關設定 5.0
+        秒最大超時限制，保留足夠餘裕等待內層邏輯完成。
+      </p>
+    </div>
+
+    <div class="spt-mobile-arrow">▼ 必須嚴格大於下游（留緩衝時間）</div>
+
+    <div class="spt-mobile-card spt-mobile-card--amber">
+      <span class="spt-mobile-badge spt-mobile-badge--amber"
+        >SERVICE BUDGET: 3.5s</span
+      >
+      <h4>2. 內部支付微服務</h4>
+      <p>
+        中台服務設定 3.5 秒超時，留出 1.5 秒處理結果封裝、風控更新與重試記錄。
+      </p>
+    </div>
+
+    <div class="spt-mobile-arrow">▼ 必須嚴格大於外部渠道</div>
+
+    <div class="spt-mobile-card spt-mobile-card--red">
+      <span class="spt-mobile-badge spt-mobile-badge--red"
+        >BANK API BUDGET: 2.0s</span
+      >
+      <h4>3. 第三方銀行 / 渠道 API</h4>
+      <p>
+        底層對外 HTTP 請求嚴格限制 2.0 秒熔斷。若 2.0
+        秒未響應立即斷開並發起狀態查詢，絕不讓上游先於下游超時造成狀態幽靈脫節！
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="spt-diag-caption" class="spt-diag__caption">
+    圖二：分散式服務呼叫階層式逾時預算（Timeout Budget Hierarchy）防脫節架構
+  </figcaption>
+</figure>
+
+<style>
+  .spt-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .spt-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .spt-diag__mobile {
+    display: none;
+  }
+
+  .spt-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .spt-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .spt-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .spt-diag__box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .spt-diag__box--amber {
+    fill: var(--dg-surface-2, #292316);
+    stroke: #d29922;
+  }
+
+  .spt-diag__box--red {
+    fill: var(--dg-surface-2, #2d1d24);
+    stroke: #da3633;
+  }
+
+  .spt-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .spt-diag__title--blue {
+    fill: #58a6ff;
+  }
+
+  .spt-diag__title--amber {
+    fill: #e3b341;
+  }
+
+  .spt-diag__title--red {
+    fill: #f85149;
+  }
+
+  .spt-diag__desc {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .spt-diag__pill {
+    stroke-width: 1px;
+  }
+
+  .spt-diag__pill--green {
+    fill: #1b2e23;
+    stroke: #238636;
+  }
+
+  .spt-diag__pill--amber {
+    fill: #292316;
+    stroke: #d29922;
+  }
+
+  .spt-diag__pill--red {
+    fill: #2d1d24;
+    stroke: #da3633;
+  }
+
+  .spt-diag__pill-text {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .spt-diag__pill-text--green {
+    fill: #3fb950;
+  }
+
+  .spt-diag__pill-text--amber {
+    fill: #e3b341;
+  }
+
+  .spt-diag__pill-text--red {
+    fill: #f85149;
+  }
+
+  .spt-diag__path {
+    fill: none;
+    stroke: var(--dg-rule-strong, #58a6ff);
+    stroke-width: 2px;
+  }
+
+  .spt-diag__arrow-head {
+    fill: var(--dg-rule-strong, #58a6ff);
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .spt-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__box--amber {
+    fill: #fff8c5;
+    stroke: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__box--red {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__title--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__title--amber {
+    fill: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__title--red {
+    fill: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill--amber {
+    fill: #fff8c5;
+    stroke: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill--red {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill-text--amber {
+    fill: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__pill-text--red {
+    fill: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__path {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .spt-diag__arrow-head {
+    fill: #0969da;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .spt-diag__desktop {
+      display: none !important;
+    }
+
+    .spt-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .spt-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .spt-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .spt-mobile-card--amber {
+      border-color: #d29922;
+      background: rgba(210, 153, 34, 0.05);
+    }
+
+    .spt-mobile-card--red {
+      border-color: #da3633;
+      background: rgba(218, 54, 51, 0.05);
+    }
+
+    .spt-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .spt-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .spt-mobile-badge--amber {
+      background: rgba(210, 153, 34, 0.2);
+      color: #e3b341;
+    }
+
+    .spt-mobile-badge--red {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f85149;
+    }
+
+    .spt-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .spt-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+
+    .spt-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dg-muted, #8b949e);
+    }
+  }
+</style>
