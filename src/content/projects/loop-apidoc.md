@@ -4,6 +4,8 @@ description: "為 Loop Engineering 建立以來源為依據的 API 文件產生�
 repositoryUrl: https://github.com/CarlLee1983/loop-apidoc
 status: 開源
 featured: true
+cover: ../../assets/projects/loop-apidoc.webp
+coverAlt: "紙雕拼貼風格的開放典籍，來源文件以細線連至中央結晶與結構化地圖"
 tags:
   - API 整合
   - 文件工程

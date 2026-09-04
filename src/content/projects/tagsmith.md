@@ -4,6 +4,8 @@ description: "Git tag 規格與發布護欄工具，支援 SemVer、CalVer、bui
 repositoryUrl: https://github.com/CarlLee1983/Tagsmith
 status: 開源
 featured: false
+cover: ../../assets/projects/tagsmith.webp
+coverAlt: "銅黑鑄印工坊中，分支軌道把版本令牌送往中央壓印機"
 tags:
   - Git
   - CLI

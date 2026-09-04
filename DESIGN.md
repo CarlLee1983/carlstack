@@ -116,7 +116,8 @@
   - 舒展的橫向大卡片，搭配微上浮（`translateY(-3px)`）與陰影加深懸浮微動態。
   - 整合標籤膠囊、SVG 時鐘閱讀時間與右側箭頭圓形按鈕。
 - **專案卡片 (`ProjectCard.astro`)**：
-  - 大圓角封面預覽，搭配 SVG GitHub 與外連按鈕。
+  - 固定 4:5 比例、實體厚邊與雙層細框組成收藏卡語彙；預設以主視覺與專案名稱為主，hover 或鍵盤聚焦才揭露摘要與標籤。
+  - 點擊卡片以原生 `dialog` 顯示 Markdown 正文、專案連結與完整 metadata；支援 Esc、背景點擊、焦點還原與 reduced-motion。有封面時必須提供具體 `coverAlt`。
 
 ### 5.3 關於我與頭像設計 (Profile Hero & Avatar Slot)
 

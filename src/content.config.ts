@@ -26,7 +26,7 @@ const blog = defineCollection({
         series: taxonomyName.optional(),
         seriesOrder: z.number().int().positive().optional(),
         cover: image().optional(),
-        coverAlt: z.string().min(1).optional(),
+        coverAlt: z.string().trim().min(1).optional(),
         canonicalUrl: z.url().optional(),
         repositoryUrl: z.url().optional(),
       })
@@ -65,17 +65,28 @@ const blog = defineCollection({
 const projects = defineCollection({
   loader: glob({ base: "./src/content/projects", pattern: "**/*.{md,mdx}" }),
   schema: ({ image }) =>
-    z.object({
-      name: z.string().min(1),
-      description: z.string().min(1),
-      repositoryUrl: z.url(),
-      homepageUrl: z.url().optional(),
-      status: z.string().min(1),
-      featured: z.boolean().default(false),
-      tags: z.array(z.string().min(1)).default([]),
-      startedAt: z.coerce.date().optional(),
-      cover: image().optional(),
-    }),
+    z
+      .object({
+        name: z.string().min(1),
+        description: z.string().min(1),
+        repositoryUrl: z.url(),
+        homepageUrl: z.url().optional(),
+        status: z.string().min(1),
+        featured: z.boolean().default(false),
+        tags: z.array(z.string().min(1)).default([]),
+        startedAt: z.coerce.date().optional(),
+        cover: image().optional(),
+        coverAlt: z.string().trim().min(1).optional(),
+      })
+      .superRefine((data, context) => {
+        if (data.cover && !data.coverAlt) {
+          context.addIssue({
+            code: "custom",
+            path: ["coverAlt"],
+            message: "設定專案 cover 時必須提供 coverAlt。",
+          });
+        }
+      }),
 });
 
 export const collections = { blog, projects };

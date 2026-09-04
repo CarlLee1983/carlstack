@@ -63,6 +63,8 @@
 
 首屏主要圖片不要 lazy-load。下方圖片使用 `loading="lazy"`。需要多尺寸輸出的 cover 放 `src/assets`，在 schema 中使用 image metadata；不要把遠端圖片 URL 當長期依賴。
 
+專案卡封面放在 `src/assets/projects`，建議使用 4:5 直式構圖。設定 `cover` 時必須同時提供描述圖片資訊的 `coverAlt`。
+
 ## 提示區塊
 
 需要把提醒、前提或警告從正文拉出來時，用 GitHub alert 語法，不要自己刻樣式或引入元件：
