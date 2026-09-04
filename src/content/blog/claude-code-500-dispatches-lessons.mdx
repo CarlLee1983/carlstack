@@ -1,0 +1,256 @@
+---
+title: "Claude Code 500 多次派工復盤：刪光自訂 Command 後，我只留三層工作流"
+description: "比較 7 支自訂 Command、9 個專用 Agent 與 546 次實際派工後，我刪掉沒人使用的入口，只留下模型分層、情境型 Skill 與一條手動規格化管線。"
+publishDate: 2026-09-04T22:15:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 專案復盤
+  - 軟體品質
+cover: ../../assets/covers/claude-code-500-dispatches-lessons.png
+coverAlt: "七個黑色模組經中央分流機構篩選，四個落入淘汰槽，三個沿琥珀色軌道繼續前進"
+---
+
+剛開始把 Claude Code 深度放進每日開發時，我也把它當成傳統 IDE 外掛來「深度裝修」：寫了 7 支自訂 Command，在 `~/.claude/agents/` 定義 9 個各司其職的專用 Agent，還在提示詞裡預設了一套看似嚴謹的意圖分類。
+
+累積一段時間後，我翻出 `~/.claude/history.jsonl` 與 `~/.claude/projects/*/*.jsonl` 跑了一次統計。
+
+數字給了直接的答案。7 支 Command 裡有 5 支使用次數掛零，另外 2 支的最後一次呼叫也停在幾個月前；9 個專用 Agent 裡，有 3 個從未被派工。真正的問題不是入口互相搶工作，而是多數入口根本沒人使用。
+
+這篇整理 546 次派工：358 次交給自訂 Agent，另外 188 次走內建的 `Explore` 與 `general-purpose`。這是我在單一開發環境裡的觀測，不是跨團隊的效能基準；它回答的是哪些設定真的進入日常工作流，以及我據此刪掉了什麼。
+
+[上一篇文章](/blog/claude-code-self-driving-workflows/)談規則、Skill、Hook 與 Subagent 應該各自承擔什麼責任；這篇只聚焦實際使用紀錄，以及最後留下的三層工作流。
+
+## 設定的存廢用紀錄判斷，不用讀設定檔推論
+
+讀著自己寫的設定檔時，很容易開始替它辯護：這支 Command 的 description 很清楚、界線也分明，留著總有一天會用到。
+
+比起從設定檔推測用途，執行紀錄更能反映實際使用情況。在這套 Claude Code 環境裡，我主要檢查兩組檔案：
+
+- `~/.claude/history.jsonl`：檢查手動輸入過的 Prompt 與斜線指令。
+- `~/.claude/projects/*/*.jsonl`：檢查各個 session 裡的 Agent、Subagent 與 Skill 使用紀錄。
+
+### 清空命令區，從 7 支到 0 支
+
+盤點 `history.jsonl` 時，原本 7 支自訂 Command 的呼叫次數如下。
+
+- `/security-scan` 呼叫 0 次
+- `/verify` 呼叫 0 次
+- `/e2e` 呼叫 0 次
+- `/learn` 呼叫 0 次
+- `/update-docs` 呼叫 0 次
+- `/plan` 呼叫 5 次，最後一次在好幾個月前，且全在其他無關專案
+- `/refactor-clean` 呼叫 5 次，最後一次在兩個月前
+
+7 支自訂指令在整段紀錄裡合計只出現 10 次，而且都不是近期使用。連同內建的 `review` 與 `security-review`，也在確認已有更明確的專屬流程後，直接在 `settings.json` 的 `skillOverrides` 中關閉。
+
+最後，我把 `~/.claude/commands/` 清空。沒人使用的指令即使不會直接造成錯誤，也會多出一組需要辨識、維護與避免過期的入口。
+
+## 模型分層，能做完事的最小模型
+
+在專案規則 `performance.md` 中，立下的第一原則是「能做完事的最小模型」。
+
+判準只有一個：這個 Agent 主要是在執行既定步驟，還是在做會被後續工作依賴的架構判斷？
+
+依據實測派工紀錄，真實分佈如下。
+
+<div class="dispatch-grid not-prose">
+  <section aria-labelledby="dispatch-haiku">
+    <div>
+      <h3 id="dispatch-haiku">Haiku</h3>
+      <span>3 次</span>
+    </div>
+    <dl>
+      <div>
+        <dt>
+          <code>scout</code>
+          <strong>3 次</strong>
+        </dt>
+        <dd>只開放 Read、Grep、Glob，負責唯讀定位。樣本太少。</dd>
+      </div>
+    </dl>
+  </section>
+
+<section aria-labelledby="dispatch-sonnet">
+  <div>
+    <h3 id="dispatch-sonnet">Sonnet</h3>
+    <span>106 次</span>
+  </div>
+  <dl>
+    <div>
+      <dt>
+        <code>implementer</code>
+        <strong>105 次</strong>
+      </dt>
+      <dd>規格明確後負責實作，可使用 Write、Edit 與 Bash。實戰驗證。</dd>
+    </div>
+    <div>
+      <dt>
+        <code>doc-updater</code>
+        <strong>1 次</strong>
+      </dt>
+      <dd>同步 codemap、README 與文件。樣本太少。</dd>
+    </div>
+    <div>
+      <dt>
+        <span>其餘 3 個 Agent</span>
+        <strong>0 次</strong>
+      </dt>
+      <dd>build-error-resolver · refactor-cleaner · e2e-runner</dd>
+    </div>
+  </dl>
+</section>
+
+<section aria-labelledby="dispatch-opus">
+  <div>
+    <h3 id="dispatch-opus">Opus</h3>
+    <span>249 次</span>
+  </div>
+  <dl>
+    <div>
+      <dt>
+        <code>code-reviewer</code>
+        <strong>230 次</strong>
+      </dt>
+      <dd>唯讀檢查並可執行 Bash，負責嚴格審查程式碼。實戰驗證。</dd>
+    </div>
+    <div>
+      <dt>
+        <code>security-reviewer</code>
+        <strong>18 次</strong>
+      </dt>
+      <dd>檢查輸入、認證、API 與敏感資料。實戰驗證。</dd>
+    </div>
+    <div>
+      <dt>
+        <code>architect</code>
+        <strong>1 次</strong>
+      </dt>
+      <dd>唯讀處理架構決策與高難度技術取捨。樣本太少。</dd>
+    </div>
+  </dl>
+</section>
+
+  <section aria-labelledby="dispatch-built-in">
+    <div>
+      <h3 id="dispatch-built-in">內建 Agent</h3>
+      <span>188 次</span>
+    </div>
+    <dl>
+      <div>
+        <dt>
+          <code>Explore</code>
+          <strong>113 次</strong>
+        </dt>
+      </div>
+      <div>
+        <dt>
+          <code>general-purpose</code>
+          <strong>75 次</strong>
+        </dt>
+      </div>
+    </dl>
+  </section>
+</div>
+
+`general-purpose` 被派了 75 次，是個值得注意的訊號。它是沒有精準對應到專用 Agent 時的預設退路；次數偏高，代表當初規劃的精細分工與日常需求有落差。
+
+### 驗證出來的三個支柱
+
+真正通過高頻考驗、撐住日常開發的，其實只有三個組合。
+
+第一個是 Opus 的 `code-reviewer`（230 次），負責在程式碼剛寫完時進行嚴格審查。這項工作需要理解語境、判斷邊界，也要對專案規範保持敏感，因此我把它固定在能力最強的模型。
+
+第二個是 Sonnet 的 `implementer`（105 次）。一旦規格明確、測試與受影響檔案都已列出，寫程式交給 Sonnet，速度與成本最符合日常需求。
+
+第三個是 Opus 的 `security-reviewer`（18 次），在牽涉到認證授權、敏感資料流動與外部輸入時，強制拉高審核規格。
+
+### 小模型（Haiku）的已知失效模式
+
+把檢索工作交給 Haiku 時，我遇過兩類失效模式。這也是後來在提示詞中為它劃定「描述地形，不指路」界線的原因。
+
+第一種是推測自己無法觀察的事。它曾直接回報一項必須執行 Bash 指令才能得知的環境細節，但該 Agent 根本沒有 Bash 工具。結論雖然碰巧正確，證據鏈卻不存在。
+
+第二種是細節平滑化。它會把 `.d.ts` 裡的 `export declare function` 自動腦補改寫成 `export async function`；正文條列了 6 項，總結卻順手寫成了 7 項。
+
+因此，我只把 Haiku 回報的檔案位置當成索引；涉及程式碼語法、型別與工具輸出的結論，仍要回到原檔或實際命令確認。
+
+## 三層機制之前，先分清楚 Skill 與 MCP
+
+這次盤點的不只 Agent 派工。我也解析各個 session 中由 Assistant 實際發出的 `tool_use`，把開發環境裡用過的 Skill 與 MCP 分開整理。Skill 帶入的是工作方法，MCP 接上的則是外部系統與執行工具；兩者都會出現在開發過程中，但不是同一層能力。
+
+### Skill：把方法帶進工作流
+
+主要的工程方法來自 [Matt Pocock 的 `skills` repository](https://github.com/mattpocock/skills)，我沒有重寫另一套流程，而是依自己的工作邊界重新組裝：
+
+- 手動規格化使用 `grill-with-docs`、`to-spec`、`to-tickets` 與 `implement`，把需求一路推進到可驗收的工作票。
+- session 中最常實際觸發的是 `grilling`（38 次）、`tdd`（36 次）、`domain-modeling`（31 次）、`resolving-merge-conflicts`（30 次）與 `code-review`（22 次）。
+- 其餘需求才交給自己維護或按專案安裝的 Skill，例如資料庫操作用的 `dbcli`（33 次）、HTTP 問題診斷（10 次），以及少量的文件、圖表與專案領域工具。
+
+這些數字也解釋了為什麼我後來不再增加 Command：真正反覆使用的是會在情境吻合時自動載入的方法，以及少數必須由人明確啟動的規格化入口。
+
+### MCP：把 Agent 接到外部系統
+
+同一批 session 裡共出現 831 次 MCP 工具呼叫，工作幾乎集中在幾個明確接口：
+
+- Linear 421 次：讀寫工作票、留言與專案狀態。
+- Playwright 358 次：操作頁面、截圖與執行瀏覽器驗證。
+- Notion 16 次：讀取、建立與更新文件。
+- Claude in Chrome 10 次：處理需要既有登入狀態的瀏覽器工作。
+- 專案內部的資料查詢與搜尋 MCP 合計 26 次。
+
+這裡的 Skill 與 MCP 數字都是 `tool_use` 次數，和前面的 546 次 Agent 派工是不同維度，不能相加。它們的價值也不在於裝了多少，而在於是否真的縮短了從需求、實作到驗證的路徑。
+
+## 捨棄指令後，日常只留三層機制
+
+清空自訂 Command 之後，工作流只剩三層：
+
+1. **手動規格化管線**：把模糊需求整理成可驗收的工作票。
+2. **情境型 Skill**：符合條件時自動載入方法，不靠人記指令。
+3. **Agent 派工**：主 Agent 切清邊界，再交給合適的模型執行與審查。
+
+### 第一層：手動規格化管線
+
+面對任何超越微小修補的新需求時，我不在對話框裡直接要求 Agent 寫程式。
+
+流程強制只有一條路，也就是 `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement`。
+
+主 Agent 在 `/grill-with-docs` 透過文件與提問反覆挑戰需求盲點，把邊界、非目標與失敗條件問清楚。在專案裡它帶有 `disable-model-invocation`，意味著必須由人類明確啟動，AI 不得擅自跳過提問。接著由 `/to-spec` 將問答成果沉澱為嚴謹的規格文件。隨後 `/to-tickets` 將規格切分成具備依賴關係、獨立可驗證的工作票。最後 `/implement` 吃進單張票，自動驅動 TDD 測試與後續審查。
+
+### 第二層：情境型 Skill 自動觸發
+
+以下五個 Skill 只設定觸發情境與使用邊界：
+
+- 寫新功能或修邏輯時，自動觸發 `tdd`，先寫紅燈測試。
+- 回報系統壞了、報錯或變慢時，自動觸發 `diagnosing-bugs`，依序重現、最小化、假設、檢驗並修復根因。
+- 遇上 Git rebase 或 merge 衝突時，自動觸發 `resolving-merge-conflicts`，逐塊還原意圖，禁止盲目放棄。
+- 術語發散或概念模糊時，自動觸發 `domain-modeling`，更新架構詞彙與決策紀錄。
+- 介面與模組劃分時，自動觸發 `codebase-design`，鎖定深模組與小表面積，隱藏複雜度。
+
+只要情境吻合，Agent 就應自然帶入對應模式，不必依賴工程師在每次對話前手動下提示。
+
+### 第三層：Agent 按邊界派工
+
+為了避免每次呼叫 Subagent 都因確認權限而中斷，我在 `CLAUDE.md` 中寫下明確的常設授權。符合既定情境的派工可直接執行，但這份授權不會擴張到 commit、push、deploy 等外部動作。
+
+派工守則遵循以下邊界。
+
+如果多個 Agent 的 Prompt 互不依賴，就在同一輪併行派發。主 Agent 負責整體脈絡、架構決策與 review 整合；一旦任務進入「完成這張工作票」、「讓這條紅燈測試變綠」或「修改這兩個指定檔案」的階段，就交給 `implementer`。
+
+對於單一檔案的修改、已知檔案的查詢、純交談式回覆，派工的 context 切換與通訊成本完全不划算，直接由主 Agent 就地解決，絕不濫用子代理。
+
+## 寫在最後，寫程式的不是模型，是整個環境
+
+回顧這段時間的演進，最大的轉變是放棄用長篇 Prompt 教育模型，改用具體、可測量、也允許被淘汰的環境約束它。
+
+不要憑空保留設定。想知道某個指令或 Agent 有沒有用，就查歷史紀錄；長期零次數的設定直接刪除，避免繼續支付維護與辨識成本。
+
+小模型適合快速定位與掃描，但它轉述的程式碼細節，以及必須使用未授權工具才能得出的結論，都要回到來源驗證。
+
+規格化是自動化的前提。沒有釐清邊界、非目標與失敗條件的需求，即使產出語法正確，也可能只是沒有解決問題的精緻死碼。
+
+能用腳本回答的，就不要逐檔肉眼看。跨檔案的疑問，先在資料源頭篩選，再把必要證據送進 Context，不必讓未過濾的原始內容擠滿上下文。
+
+把多餘的指令砍掉，讓每次派工都有跡可循。當開發環境的邊界清晰了，AI 才能真正成為精準的工程槓桿。

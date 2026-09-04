@@ -423,6 +423,67 @@ blockquote {
   text-wrap: pretty;
 }
 
+.prose .dispatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-md);
+  margin-block: 2rem;
+}
+
+.prose .dispatch-grid > section {
+  min-width: 0;
+  padding: var(--space-lg);
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.prose .dispatch-grid > section > div,
+.prose .dispatch-grid dt {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.prose .dispatch-grid h3,
+.prose .dispatch-grid dl {
+  margin: 0;
+}
+
+.prose .dispatch-grid h3 {
+  font-size: var(--text-md);
+}
+
+.prose .dispatch-grid section > div > span {
+  flex: none;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-tag-bg);
+  color: var(--color-tag-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.prose .dispatch-grid dl {
+  display: grid;
+  gap: var(--space-md);
+  margin-block-start: var(--space-md);
+}
+
+.prose .dispatch-grid dl > div {
+  padding-block-start: var(--space-sm);
+  border-block-start: var(--rule-hair) solid var(--color-rule);
+}
+
+.prose .dispatch-grid dd {
+  margin: 0.25rem 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
 .prose > *:first-child {
   margin-block-start: 0;
 }
