@@ -16,6 +16,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
 import CacheEvictionAlgorithmsDiagram from "../../components/CacheEvictionAlgorithmsDiagram.astro";
+import LruStructureDiagram from "../../components/LruStructureDiagram.astro";
 
 在記憶體資源有限的系統中，快取的大小永遠無法無限膨脹。當快取容量達到上限時，必須有一套智慧演算法來決定：**「當新資料進入時，哪一條舊資料應該被立即驅逐（Evict）？」**
 
@@ -44,41 +45,7 @@ import CacheEvictionAlgorithmsDiagram from "../../components/CacheEvictionAlgori
 
 ### 2.1 LRU 資料結構：HashMap + 雙向鏈表
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lru-struct-title lru-struct-desc">
-    <title id="lru-struct-title">LRU 雙向鏈表與 HashMap 定位結構圖</title>
-    <desc id="lru-struct-desc">展示最新存取移至 Head，最舊未存取移至 Tail 並在容量超額時淘汰。</desc>
-    
-    <rect x="20" y="20" width="130" height="50" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="85" y="44" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Head (最新存取)</text>
-    <text x="85" y="60" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">最安全・不淘汰</text>
-
-    <text x="165" y="52" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
-
-    <rect x="180" y="20" width="120" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="240" y="50" fill="#c9d1d9" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">Node A</text>
-
-    <text x="315" y="52" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
-
-    <rect x="330" y="20" width="120" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="390" y="50" fill="#c9d1d9" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">Node B</text>
-
-    <text x="465" y="52" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
-
-    <rect x="480" y="20" width="120" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>
-    <text x="540" y="50" fill="#c9d1d9" font-size="13" font-family="monospace" font-weight="600" text-anchor="middle">Node C</text>
-
-    <text x="615" y="52" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">◄──►</text>
-
-    <rect x="630" y="20" width="150" height="50" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
-    <text x="705" y="44" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Tail (最舊存取)</text>
-    <text x="705" y="60" fill="#f85149" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">超額時直接淘汰！</text>
-
-    <rect x="250" y="85" width="300" height="34" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1"/>
-    <text x="400" y="106" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">HashMap O(1) 索引直達目標節點並重置到 Head</text>
-
-  </svg>
-</div>
+<LruStructureDiagram />
 
 - 每次存取或寫入某個 Key 時，將該節點從雙向鏈表中摘下，重新插入到鏈表頭部（Head）。
 - 容量滿時，直接將鏈表尾部（Tail）的節點移除。

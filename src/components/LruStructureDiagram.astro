@@ -1,0 +1,463 @@
+---
+// LRU Doubly Linked List & HashMap Structure Diagram
+---
+
+<figure class="lru-diagram" aria-labelledby="lru-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 820x220, generous padding and large legible fonts) -->
+  <svg
+    class="lru-diagram__desktop"
+    viewBox="0 0 820 220"
+    role="img"
+    aria-labelledby="lru-diagram-title lru-diagram-desc"
+  >
+    <title id="lru-diagram-title">LRU 雙向鏈表與 HashMap 索引結構圖</title>
+    <desc id="lru-diagram-desc">
+      展示最新存取節點移至 Head（最安全），最久未存取節點移至
+      Tail（滿額淘汰），並透過 HashMap 達成 O(1) 直達索引與位移。
+    </desc>
+
+    <defs>
+      <marker
+        id="lru-link-arrow"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="lru-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="lru-hash-arrow"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="lru-diagram__arrow-head--hash"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Head Node (Most Recent) -->
+    <g transform="translate(30, 30)">
+      <rect
+        width="160"
+        height="76"
+        rx="10"
+        class="lru-diagram__node lru-diagram__node--head"></rect>
+      <text
+        class="lru-diagram__node-title lru-diagram__node-title--green"
+        x="80"
+        y="32"
+        text-anchor="middle"
+      >
+        Head (最新存取)
+      </text>
+      <text class="lru-diagram__node-sub" x="80" y="56" text-anchor="middle">
+        最安全・不淘汰
+      </text>
+    </g>
+
+    <!-- Connector: Head <-> Node A -->
+    <path
+      d="M 200 60 H 225"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+    <path
+      d="M 225 76 H 200"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+
+    <!-- Node A -->
+    <g transform="translate(235, 30)">
+      <rect width="140" height="76" rx="10" class="lru-diagram__node"></rect>
+      <text class="lru-diagram__node-code" x="70" y="34" text-anchor="middle"
+        >Node A</text
+      >
+      <text class="lru-diagram__node-desc" x="70" y="56" text-anchor="middle"
+        >Key: "user:1"</text
+      >
+    </g>
+
+    <!-- Connector: Node A <-> Node B -->
+    <path
+      d="M 385 60 H 410"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+    <path
+      d="M 410 76 H 385"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+
+    <!-- Node B -->
+    <g transform="translate(420, 30)">
+      <rect width="140" height="76" rx="10" class="lru-diagram__node"></rect>
+      <text class="lru-diagram__node-code" x="70" y="34" text-anchor="middle"
+        >Node B</text
+      >
+      <text class="lru-diagram__node-desc" x="70" y="56" text-anchor="middle"
+        >Key: "user:2"</text
+      >
+    </g>
+
+    <!-- Connector: Node B <-> Tail -->
+    <path
+      d="M 570 60 H 595"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+    <path
+      d="M 595 76 H 570"
+      class="lru-diagram__link-line"
+      marker-end="url(#lru-link-arrow)"></path>
+
+    <!-- Tail Node (Least Recent - Eviction Target) -->
+    <g transform="translate(605, 30)">
+      <rect
+        width="180"
+        height="76"
+        rx="10"
+        class="lru-diagram__node lru-diagram__node--tail"></rect>
+      <text
+        class="lru-diagram__node-title lru-diagram__node-title--red"
+        x="90"
+        y="32"
+        text-anchor="middle"
+      >
+        Tail (最舊存取)
+      </text>
+      <text
+        class="lru-diagram__node-sub--red"
+        x="90"
+        y="56"
+        text-anchor="middle"
+      >
+        容量滿額 ➔ 優先驅逐！
+      </text>
+    </g>
+
+    <!-- Bottom HashMap O(1) Index Bar -->
+    <g transform="translate(130, 145)">
+      <rect width="560" height="50" rx="10" class="lru-diagram__hash-card"
+      ></rect>
+      <text class="lru-diagram__hash-title" x="280" y="31" text-anchor="middle">
+        HashMap 索引 (Key ➔ Node 指標)：O(1) 定位目標並重置至 Head
+      </text>
+    </g>
+
+    <!-- Direct Index Pointers from Hash to Nodes -->
+    <path
+      d="M 305 145 V 116"
+      class="lru-diagram__hash-line"
+      marker-end="url(#lru-hash-arrow)"></path>
+    <path
+      d="M 490 145 V 116"
+      class="lru-diagram__hash-line"
+      marker-end="url(#lru-hash-arrow)"></path>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="lru-diagram__mobile">
+    <div class="lru-mobile-card lru-mobile-card--green">
+      <span class="lru-mobile-badge lru-mobile-badge--green"
+        >HEAD (MOST RECENT)</span
+      >
+      <h4>鏈表頭部：最新被存取節點</h4>
+      <p>
+        無論新寫入或舊資料被讀取，一律以 O(1) 移至
+        Head。處於最安全防禦區，永不優先淘汰。
+      </p>
+    </div>
+
+    <div class="lru-mobile-arrow">↕ 雙向指標鏈結 (Prev / Next)</div>
+
+    <div class="lru-mobile-card">
+      <span class="lru-mobile-badge">MIDDLE NODES</span>
+      <h4>中間資料節點 (Node A / B ...)</h4>
+      <p>
+        維護前後節點雙向記憶體指標，被命中時透過 HashMap O(1) 摘除並重新插回
+        Head。
+      </p>
+    </div>
+
+    <div class="lru-mobile-arrow">↕ 雙向指標鏈結 (Prev / Next)</div>
+
+    <div class="lru-mobile-card lru-mobile-card--red">
+      <span class="lru-mobile-badge lru-mobile-badge--red"
+        >TAIL (LEAST RECENT)</span
+      >
+      <h4>鏈表尾部：最舊存取 (驅逐目標)</h4>
+      <p>
+        長時間未被存取的資料逐漸沉降至
+        Tail；當快取容量超過上限時，直接從尾部驅逐拋棄。
+      </p>
+    </div>
+
+    <div class="lru-mobile-card lru-mobile-card--hash">
+      <span class="lru-mobile-badge lru-mobile-badge--hash">HASHMAP INDEX</span>
+      <h4>HashMap O(1) 直達索引</h4>
+      <p>
+        底層雜湊表直接映射 Key 到鏈表節點指標，擺脫 O(N) 遍歷開銷，保證讀寫均為
+        O(1)。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="lru-diagram-caption">
+    圖：LRU 核心資料結構 —— HashMap O(1) 索引搭配雙向鏈表動態頭尾重置
+  </figcaption>
+</figure>
+
+<style>
+  .lru-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .lru-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .lru-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .lru-diagram__node {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .lru-diagram__node--head {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__node--head {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .lru-diagram__node--tail {
+    fill: rgba(220, 38, 38, 0.06);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__node--tail {
+    fill: rgba(220, 38, 38, 0.14);
+    stroke: #f87171;
+  }
+
+  .lru-diagram__node-title {
+    font-size: 14.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+
+  .lru-diagram__node-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__node-title--green {
+    fill: #86efac;
+  }
+
+  .lru-diagram__node-title--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__node-title--red {
+    fill: #fca5a5;
+  }
+
+  .lru-diagram__node-sub {
+    font-size: 12.5px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-muted);
+  }
+
+  .lru-diagram__node-sub--red {
+    font-size: 12.5px;
+    font-family: var(--font-body, sans-serif);
+    font-weight: 600;
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__node-sub--red {
+    fill: #fca5a5;
+  }
+
+  .lru-diagram__node-code {
+    font-size: 15px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .lru-diagram__node-desc {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    fill: var(--dg-ink-2);
+  }
+
+  .lru-diagram__link-line {
+    stroke: #3b82f6;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__link-line {
+    stroke: #60a5fa;
+  }
+
+  .lru-diagram__arrow-head {
+    fill: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__arrow-head {
+    fill: #60a5fa;
+  }
+
+  /* Bottom HashMap Bar */
+  .lru-diagram__hash-card {
+    fill: var(--dg-surface-2);
+    stroke: #8b5cf6;
+    stroke-width: 1.5;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__hash-card {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.12);
+  }
+
+  .lru-diagram__hash-title {
+    font-size: 13.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__hash-title {
+    fill: #c4b5fd;
+  }
+
+  .lru-diagram__hash-line {
+    stroke: #8b5cf6;
+    stroke-width: 2;
+    stroke-dasharray: 4, 3;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__hash-line {
+    stroke: #a78bfa;
+  }
+
+  .lru-diagram__arrow-head--hash {
+    fill: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .lru-diagram__arrow-head--hash {
+    fill: #a78bfa;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .lru-diagram__desktop {
+      display: none !important;
+    }
+
+    .lru-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .lru-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .lru-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    .lru-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-card--red {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: #f87171;
+    }
+
+    .lru-mobile-card--hash {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-card--hash {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: #a78bfa;
+    }
+
+    .lru-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .lru-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .lru-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .lru-mobile-badge--hash {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .lru-mobile-badge--hash {
+      color: #c4b5fd;
+    }
+
+    .lru-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .lru-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .lru-mobile-arrow {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>
