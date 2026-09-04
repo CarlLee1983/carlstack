@@ -1,0 +1,583 @@
+---
+// Cache Eviction Algorithms & W-TinyLFU Architecture Diagram Component
+---
+
+<figure class="ce-diagram" aria-labelledby="ce-diagram-caption">
+  <!-- Desktop SVG layout -->
+  <svg
+    class="ce-diagram__desktop"
+    viewBox="0 0 840 450"
+    role="img"
+    aria-labelledby="ce-diagram-title ce-diagram-desc"
+  >
+    <title id="ce-diagram-title">
+      W-TinyLFU 現代快取架構：Window LRU、TinyLFU 準入過濾與分段 SLRU
+    </title>
+    <desc id="ce-diagram-desc">
+      展示 Caffeine 快取如何透過 1% Window LRU 捕捉突發熱點，經由 4-bit
+      Count-Min Sketch 頻率對決，決定資料晉升至 99% SLRU 主快取或直接淘汰。
+    </desc>
+
+    <defs>
+      <marker
+        id="ce-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ce-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="ce-arrow-pass"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ce-diagram__arrow-head--pass"
+        ></path>
+      </marker>
+      <marker
+        id="ce-arrow-drop"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ce-diagram__arrow-head--drop"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Window LRU & Ingress (Card height: 390, Bottom padding: 26px) -->
+    <g class="ce-diagram__card" transform="translate(20, 30)">
+      <rect width="230" height="390" rx="12"></rect>
+      <text class="ce-diagram__badge" x="20" y="32">01. INGRESS</text>
+      <text class="ce-diagram__title" x="20" y="60">新資料緩衝區</text>
+
+      <g transform="translate(16, 80)">
+        <rect
+          width="198"
+          height="85"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--blue"></rect>
+        <text class="ce-diagram__header ce-diagram__header--blue" x="14" y="24"
+          >新增項目寫入</text
+        >
+        <text class="ce-diagram__desc" x="14" y="50">• 未命中時載入記憶體</text>
+        <text class="ce-diagram__desc" x="14" y="70">• 預設進入 Window LRU</text
+        >
+      </g>
+
+      <g transform="translate(16, 178)">
+        <rect
+          width="198"
+          height="100"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--purple"></rect>
+        <text
+          class="ce-diagram__header ce-diagram__header--purple"
+          x="14"
+          y="24">Window LRU (1%)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="50"
+          >• 保留短暫突發存取緩衝</text
+        >
+        <text class="ce-diagram__desc" x="14" y="72" font-weight="600"
+          >• 避免立即淘汰新資料</text
+        >
+        <text class="ce-diagram__desc" x="14" y="90"
+          >• 滿額產生 Candidate 挑戰者</text
+        >
+      </g>
+
+      <g transform="translate(16, 290)">
+        <rect width="198" height="74" rx="8" class="ce-diagram__subcard"></rect>
+        <text class="ce-diagram__header" x="14" y="24">掃描污染防禦</text>
+        <text class="ce-diagram__desc" x="14" y="48">• 冷資料全表掃描時</text>
+        <text class="ce-diagram__desc" x="14" y="66">• 僅在 1% 視窗內打轉</text>
+      </g>
+    </g>
+
+    <!-- Connector 1 -> 2 -->
+    <path
+      d="M 250 228 L 295 228"
+      class="ce-diagram__connector"
+      marker-end="url(#ce-arrow)"></path>
+
+    <!-- Column 2: TinyLFU Filter (Card height: 390, Bottom padding: 26px) -->
+    <g class="ce-diagram__card" transform="translate(295, 30)">
+      <rect width="250" height="390" rx="12"></rect>
+      <text class="ce-diagram__badge" x="20" y="32">02. ADMISSION</text>
+      <text class="ce-diagram__title" x="20" y="60">TinyLFU 準入閘門</text>
+
+      <g transform="translate(16, 80)">
+        <rect
+          width="218"
+          height="135"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--orange"></rect>
+        <text
+          class="ce-diagram__header ce-diagram__header--orange"
+          x="14"
+          y="25">Count-Min Sketch</text
+        >
+        <text class="ce-diagram__desc" x="14" y="50"
+          >• 4-bit 概率計數矩陣 (0~15)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="72"
+          >• 空間極度壓縮 (每項 4 bits)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="94" font-weight="600"
+          >• 週期性計數折半衰減</text
+        >
+        <text class="ce-diagram__desc" x="14" y="116"
+          >• 徹底根治 LFU 歷史熱點殭屍化</text
+        >
+      </g>
+
+      <g transform="translate(16, 228)">
+        <rect
+          width="218"
+          height="136"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--teal"></rect>
+        <text class="ce-diagram__header ce-diagram__header--teal" x="14" y="25"
+          >頻率擂台 PK 規則</text
+        >
+        <text class="ce-diagram__desc" x="14" y="50"
+          >• 挑戰者：Window 淘汰候選</text
+        >
+        <text class="ce-diagram__desc" x="14" y="72"
+          >• 守擂者：主快取最末尾節點</text
+        >
+        <text class="ce-diagram__desc" x="14" y="94" font-weight="600"
+          >Freq(新) > Freq(舊) ➔ 准入</text
+        >
+        <text class="ce-diagram__desc" x="14" y="116"
+          >Freq(新) ≤ Freq(舊) ➔ 丟棄</text
+        >
+      </g>
+    </g>
+
+    <!-- Connector 2 -> 3 -->
+    <path
+      d="M 545 185 L 590 150"
+      class="ce-diagram__connector ce-diagram__connector--pass"
+      marker-end="url(#ce-arrow-pass)"></path>
+    <path
+      d="M 545 265 L 590 295"
+      class="ce-diagram__connector ce-diagram__connector--drop"
+      marker-end="url(#ce-arrow-drop)"></path>
+
+    <!-- Column 3: Main Cache (Card height: 390, Bottom padding: 26px) -->
+    <g class="ce-diagram__card" transform="translate(590, 30)">
+      <rect width="230" height="390" rx="12"></rect>
+      <text class="ce-diagram__badge" x="20" y="32">03. MAIN CACHE</text>
+      <text class="ce-diagram__title" x="20" y="60">分段主快取 (99%)</text>
+
+      <!-- SLRU Branch -->
+      <g transform="translate(16, 80)">
+        <rect
+          width="198"
+          height="120"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--green"></rect>
+        <text class="ce-diagram__header ce-diagram__header--green" x="14" y="24"
+          >✔ 晉升 Segmented LRU</text
+        >
+        <text class="ce-diagram__desc" x="14" y="48"
+          >• 試用區 (Probationary: 20%)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="70"
+          >• 再次命中晉升至保護區</text
+        >
+        <text class="ce-diagram__desc" x="14" y="92"
+          >• 保護區 (Protected: 80%)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="112" font-weight="600"
+          >✔ 保障高頻真實熱點安全</text
+        >
+      </g>
+
+      <!-- Drop Branch -->
+      <g transform="translate(16, 212)">
+        <rect
+          width="198"
+          height="85"
+          rx="8"
+          class="ce-diagram__subcard ce-diagram__subcard--red"></rect>
+        <text class="ce-diagram__header ce-diagram__header--red" x="14" y="24"
+          >✖ 頻率不足 (Evicted)</text
+        >
+        <text class="ce-diagram__desc" x="14" y="48">• 挑戰失敗直接丟棄</text>
+        <text class="ce-diagram__desc" x="14" y="70" font-weight="600"
+          >• 主快取熱點完全不被污染</text
+        >
+      </g>
+
+      <!-- Benchmark Summary -->
+      <g transform="translate(16, 308)">
+        <rect width="198" height="56" rx="8" class="ce-diagram__subcard"></rect>
+        <text class="ce-diagram__header" x="14" y="22">Caffeine 工業級實踐</text
+        >
+        <text class="ce-diagram__desc" x="14" y="44"
+          >• 命中率與吞吐量最佳化</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout (HTML cards) -->
+  <div class="ce-diagram__mobile">
+    <div class="ce-mobile-card ce-mobile-card--blue">
+      <span class="ce-mobile-badge">01. INGRESS &amp; WINDOW LRU</span>
+      <h4>新資料緩衝區 (容量佔比 1%)</h4>
+      <p>
+        未命中資料優先載入小容量 Window
+        LRU，捕捉短暫的高頻突發請求；當突發全表掃描發生時，冷資料僅在此處流轉，絕不直接衝擊主快取。
+      </p>
+    </div>
+
+    <div class="ce-mobile-arrow">↓ 滿額產生挑戰者 Candidate</div>
+
+    <div class="ce-mobile-card ce-mobile-card--orange">
+      <span class="ce-mobile-badge ce-mobile-badge--orange"
+        >02. TINYLFU ADMISSION FILTER</span
+      >
+      <h4>Count-Min Sketch 頻率對決</h4>
+      <p>
+        採用 4-bit 概率計數矩陣估算存取頻率（每項僅 4 bits
+        開銷），搭配定期折半衰減避免殭屍熱點；將 Window
+        淘汰者與主快取末尾者進行頻率 PK。
+      </p>
+    </div>
+
+    <div class="ce-mobile-arrow">↓ 頻率較高者晉升</div>
+
+    <div class="ce-mobile-card ce-mobile-card--green">
+      <span class="ce-mobile-badge ce-mobile-badge--green"
+        >03A. SLRU PROMOTION (晉升主快取)</span
+      >
+      <h4>晉升 Segmented LRU (佔比 99%)</h4>
+      <p>
+        挑戰成功的熱點進入 20% 試用區（Probationary），若再次被讀取則升入 80%
+        保護區（Protected），確保高頻核心熱點長效存留。
+      </p>
+    </div>
+
+    <div class="ce-mobile-arrow">↓ 頻率不足者淘汰</div>
+
+    <div class="ce-mobile-card ce-mobile-card--red">
+      <span class="ce-mobile-badge ce-mobile-badge--red"
+        >03B. DROP (拒絕准入)</span
+      >
+      <h4>頻率不足：直接丟棄</h4>
+      <p>
+        無法勝過主快取末尾項的冷資料直接被驅逐，從根源徹底免疫突發冷資料的全表掃描污染。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="ce-diagram-caption">
+    圖：現代快取淘汰架構 —— W-TinyLFU 雙層快取、4-bit Count-Min Sketch 準入與
+    SLRU 分段防禦
+  </figcaption>
+</figure>
+
+<style>
+  .ce-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ce-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .ce-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .ce-diagram__card > rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .ce-diagram__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .ce-diagram__badge {
+    font-size: 12.5px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    fill: var(--dg-muted);
+  }
+
+  .ce-diagram__title {
+    font-size: 19px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .ce-diagram__header {
+    font-size: 14px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .ce-diagram__desc {
+    font-size: 12.5px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .ce-diagram__connector {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2.5;
+    fill: none;
+  }
+
+  .ce-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Color Variations */
+  .ce-diagram__subcard--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.06);
+  }
+  .ce-diagram__header--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--blue {
+    fill: #93c5fd;
+  }
+
+  .ce-diagram__subcard--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.06);
+  }
+  .ce-diagram__header--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--purple {
+    fill: #c4b5fd;
+  }
+
+  .ce-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: rgba(249, 115, 22, 0.06);
+  }
+  .ce-diagram__header--orange {
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--orange {
+    stroke: #fb923c;
+    fill: rgba(249, 115, 22, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--orange {
+    fill: #fdba74;
+  }
+
+  .ce-diagram__subcard--teal {
+    stroke: #0d9488;
+    fill: rgba(13, 148, 136, 0.06);
+  }
+  .ce-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--teal {
+    stroke: #2dd4bf;
+    fill: rgba(13, 148, 136, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--teal {
+    fill: #5eead4;
+  }
+
+  .ce-diagram__subcard--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.06);
+  }
+  .ce-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--green {
+    fill: #86efac;
+  }
+
+  .ce-diagram__subcard--red {
+    stroke: #dc2626;
+    fill: rgba(220, 38, 38, 0.06);
+  }
+  .ce-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__subcard--red {
+    stroke: #f87171;
+    fill: rgba(220, 38, 38, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__header--red {
+    fill: #fca5a5;
+  }
+
+  /* Branch Connectors */
+  .ce-diagram__connector--pass {
+    stroke: #16a34a;
+  }
+  .ce-diagram__arrow-head--pass {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__connector--pass {
+    stroke: #4ade80;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__arrow-head--pass {
+    fill: #4ade80;
+  }
+
+  .ce-diagram__connector--drop {
+    stroke: #dc2626;
+  }
+  .ce-diagram__arrow-head--drop {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__connector--drop {
+    stroke: #f87171;
+  }
+  :global(:root[data-theme="dark"]) .ce-diagram__arrow-head--drop {
+    fill: #f87171;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .ce-diagram__desktop {
+      display: none !important;
+    }
+
+    .ce-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .ce-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .ce-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+    .ce-mobile-card--orange {
+      border-left: 4px solid #f97316;
+    }
+    .ce-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    .ce-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+
+    :global(:root[data-theme="dark"]) .ce-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    :global(:root[data-theme="dark"]) .ce-mobile-card--red {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: #f87171;
+    }
+
+    .ce-mobile-badge {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.375rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .ce-mobile-badge--orange {
+      color: #ea580c;
+    }
+    :global(:root[data-theme="dark"]) .ce-mobile-badge--orange {
+      color: #fdba74;
+    }
+
+    .ce-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .ce-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .ce-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .ce-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .ce-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .ce-mobile-card p {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+    }
+
+    .ce-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.25rem 0;
+    }
+  }
+</style>
