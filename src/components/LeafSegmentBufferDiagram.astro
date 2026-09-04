@@ -3,25 +3,25 @@
 ---
 
 <figure class="leaf-diagram" aria-labelledby="leaf-diagram-caption">
-  <!-- Desktop SVG layout (ViewBox 840x260, spacious padding, large legible fonts) -->
+  <!-- Desktop SVG layout (ViewBox 840x440, clear 3-block pipeline, large legible fonts, generous padding) -->
   <svg
     class="leaf-diagram__desktop"
-    viewBox="0 0 840 260"
+    viewBox="0 0 840 440"
     role="img"
     aria-labelledby="leaf-diagram-title leaf-diagram-desc"
   >
     <title id="leaf-diagram-title">
-      美團 Leaf 雙 Buffer 非同步號段平滑切換架構
+      美團 Leaf 雙 Buffer 非同步號段平滑切換架構圖
     </title>
     <desc id="leaf-diagram-desc">
-      展示應用記憶體 Buffer 1 在消耗至 10%
-      閾值時，喚醒背景執行緒非同步向資料庫批量獲取新號段寫入 Buffer 2；當 Buffer
-      1 耗盡時，指標毫秒級切換，達成 100% 零阻塞與 DB 短暫當機容災。
+      展示應用服務當前消耗 Buffer 1，餘量達到 10% 閾值時觸發非同步執行緒向 MySQL
+      批量獲取新號段寫入 Buffer 2；Buffer 1 耗盡瞬間，指標極速切換至 Buffer
+      2，實現 100% 零阻塞發號與 DB 容災。
     </desc>
 
     <defs>
       <marker
-        id="leaf-arrow"
+        id="leaf-arrow-purple"
         viewBox="0 0 10 10"
         refX="7"
         refY="5"
@@ -29,10 +29,11 @@
         markerHeight="6"
         orient="auto"
       >
-        <path d="M 0 1 L 8 5 L 0 9 z" class="leaf-diagram__arrow-head"></path>
+        <path d="M 0 1 L 8 5 L 0 9 z" class="leaf-diagram__arrow-head--purple"
+        ></path>
       </marker>
       <marker
-        id="leaf-arrow-switch"
+        id="leaf-arrow-blue"
         viewBox="0 0 10 10"
         refX="7"
         refY="5"
@@ -40,112 +41,195 @@
         markerHeight="6"
         orient="auto"
       >
-        <path d="M 0 1 L 8 5 L 0 9 z" class="leaf-diagram__arrow-head--switch"
+        <path d="M 0 1 L 8 5 L 0 9 z" class="leaf-diagram__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="leaf-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="leaf-diagram__arrow-head--green"
         ></path>
       </marker>
     </defs>
 
-    <!-- Column 1: Buffer 1 In Use (X: 20, Y: 30, Width: 380, Height: 190) -->
-    <g transform="translate(20, 30)">
+    <!-- Card 1: Buffer 1 (Active) (X: 20, Y: 25, W: 380, H: 200) -->
+    <g transform="translate(20, 25)">
       <rect
         width="380"
-        height="190"
+        height="200"
         rx="12"
         class="leaf-diagram__card leaf-diagram__card--green"></rect>
-      <text class="leaf-diagram__badge leaf-diagram__badge--green" x="20" y="32"
-        >MEMORY BUFFER 1 (ACTIVE)</text
+      <text class="leaf-diagram__badge leaf-diagram__badge--green" x="20" y="30"
+        >BUFFER 1 (ACTIVE IN USE)</text
       >
-      <text class="leaf-diagram__title leaf-diagram__title--green" x="20" y="60"
-        >目前使用中號段 (1001 ~ 2000)</text
+      <text class="leaf-diagram__title leaf-diagram__title--green" x="20" y="58"
+        >記憶體號段 1：高頻讀取中</text
       >
 
-      <g transform="translate(18, 78)">
-        <rect width="344" height="42" rx="6" class="leaf-diagram__subbox"
-        ></rect>
-        <text class="leaf-diagram__code" x="172" y="26" text-anchor="middle">
-          AtomicLong.incrementAndGet() ➔ O(1) 極速取號
+      <!-- Subbox for Segment range & atomic operation -->
+      <g transform="translate(18, 75)">
+        <rect
+          width="344"
+          height="60"
+          rx="8"
+          class="leaf-diagram__subbox leaf-diagram__subbox--green"></rect>
+        <text
+          class="leaf-diagram__subbox-title leaf-diagram__subbox-title--green"
+          x="172"
+          y="25"
+          text-anchor="middle"
+        >
+          號段區間：ID 1001 ~ 2000 (步長 1000)
+        </text>
+        <text
+          class="leaf-diagram__subbox-code leaf-diagram__subbox-code--green"
+          x="172"
+          y="46"
+          text-anchor="middle"
+        >
+          AtomicLong.incrementAndGet() ➔ O(1) 極速發號
         </text>
       </g>
 
-      <g transform="translate(20, 140)">
+      <!-- Trigger callout -->
+      <g transform="translate(20, 152)">
         <text class="leaf-diagram__desc" x="0" y="16"
-          >• 剩餘 10% 閾值 (餘量 ≤ 100) ➔ 觸發非同步預載</text
+          >• 剩餘 10% 閾值 (餘量 ≤ 100 筆) ➔ 觸發非同步預載</text
         >
-        <text class="leaf-diagram__highlight" x="0" y="38"
-          >耗盡瞬間：記憶體指標極速原子切換！</text
+        <text class="leaf-diagram__desc" x="0" y="36"
+          >• 線上業務完全不阻塞，繼續極速取號</text
         >
       </g>
     </g>
 
-    <!-- Async Loading Arrow (Buffer 1 -> Background DB Thread) -->
+    <!-- Arrow 1: Buffer 1 -> DB Async Fetch (Rightward) -->
     <path
-      d="M 400 75 H 445"
-      class="leaf-diagram__connector leaf-diagram__connector--async"
-      marker-end="url(#leaf-arrow)"></path>
-    <text class="leaf-diagram__arrow-label" x="422" y="65" text-anchor="middle"
-      >非同步喚醒</text
-    >
+      d="M 400 115 L 435 115"
+      class="leaf-diagram__flow-line leaf-diagram__flow-line--purple"
+      marker-end="url(#leaf-arrow-purple)"></path>
 
-    <!-- Column 2: Async Thread & DB -> Buffer 2 (X: 450, Y: 30, Width: 370, Height: 190) -->
-    <g transform="translate(450, 30)">
+    <!-- Card 2: Async Thread & DB (X: 445, Y: 25, W: 375, H: 200) -->
+    <g transform="translate(445, 25)">
       <rect
-        width="370"
-        height="190"
+        width="375"
+        height="200"
         rx="12"
         class="leaf-diagram__card leaf-diagram__card--purple"></rect>
       <text
         class="leaf-diagram__badge leaf-diagram__badge--purple"
         x="20"
-        y="32">ASYNC PRELOAD ➔ BUFFER 2</text
+        y="30">ASYNC THREAD & DB</text
       >
       <text
         class="leaf-diagram__title leaf-diagram__title--purple"
         x="20"
-        y="60">非同步資料庫號段交互 (待命)</text
+        y="58">非同步背景執行緒 ➔ DB 交互</text
       >
 
-      <g transform="translate(18, 78)">
+      <!-- Subbox for DB SQL -->
+      <g transform="translate(18, 75)">
         <rect
-          width="334"
-          height="42"
-          rx="6"
-          class="leaf-diagram__subbox leaf-diagram__subbox--db"></rect>
+          width="339"
+          height="60"
+          rx="8"
+          class="leaf-diagram__subbox leaf-diagram__subbox--purple"></rect>
         <text
-          class="leaf-diagram__code leaf-diagram__code--db"
-          x="167"
-          y="26"
+          class="leaf-diagram__subbox-code leaf-diagram__subbox-code--purple"
+          x="170"
+          y="25"
           text-anchor="middle"
         >
           UPDATE tbl SET max_id = max_id + 1000
         </text>
-      </g>
-
-      <!-- Buffer 2 Ready State -->
-      <g transform="translate(18, 130)">
-        <rect
-          width="334"
-          height="42"
-          rx="6"
-          class="leaf-diagram__subbox leaf-diagram__subbox--ready"></rect>
         <text
-          class="leaf-diagram__ready-text"
-          x="167"
-          y="26"
+          class="leaf-diagram__subbox-title leaf-diagram__subbox-title--purple"
+          x="170"
+          y="46"
           text-anchor="middle"
         >
-          Buffer 2 載入就緒 (2001 ~ 3000)・零阻塞待命
+          單次 SQL I/O 預載下一區間 2001 ~ 3000
         </text>
+      </g>
+
+      <!-- Features -->
+      <g transform="translate(20, 152)">
+        <text class="leaf-diagram__desc" x="0" y="16"
+          >• 預先申請號段並寫入 Buffer 2</text
+        >
+        <text class="leaf-diagram__desc" x="0" y="36"
+          >• DB 容災：資料庫若短暫當機，系統仍可發號數分鐘</text
+        >
       </g>
     </g>
 
-    <!-- Switch Pointer Curved Arrow (Buffer 2 -> Buffer 1) -->
+    <!-- Arrow 2: DB -> Buffer 2 (Downward) -->
     <path
-      d="M 450 170 C 425 185, 425 140, 405 155"
-      class="leaf-diagram__connector leaf-diagram__connector--switch"
-      marker-end="url(#leaf-arrow-switch)"></path>
+      d="M 632 225 L 632 265"
+      class="leaf-diagram__flow-line leaf-diagram__flow-line--blue"
+      marker-end="url(#leaf-arrow-blue)"></path>
+
+    <!-- Card 3: Buffer 2 (Standby / Handover) (X: 20, Y: 275, W: 800, H: 135) -->
+    <g transform="translate(20, 275)">
+      <rect
+        width="800"
+        height="135"
+        rx="12"
+        class="leaf-diagram__card leaf-diagram__card--blue"></rect>
+      <text class="leaf-diagram__badge leaf-diagram__badge--blue" x="20" y="28"
+        >BUFFER 2 (HOT STANDBY ➔ SEAMLESS HANDOVER)</text
+      >
+      <text class="leaf-diagram__title leaf-diagram__title--blue" x="20" y="54"
+        >記憶體號段 2：熱待命中 ➔ Buffer 1 耗盡瞬間無縫切換！</text
+      >
+
+      <!-- Inner Horizontal Flow -->
+      <g transform="translate(18, 70)">
+        <rect
+          width="360"
+          height="46"
+          rx="8"
+          class="leaf-diagram__subbox leaf-diagram__subbox--blue"></rect>
+        <text
+          class="leaf-diagram__subbox-title leaf-diagram__subbox-title--blue"
+          x="180"
+          y="28"
+          text-anchor="middle"
+        >
+          號段 2 預載完畢：ID 2001 ~ 3000 就緒
+        </text>
+      </g>
+
+      <!-- Arrow 3: Handover inside Card 3 -->
+      <path
+        d="M 390 93 L 420 93"
+        class="leaf-diagram__flow-line leaf-diagram__flow-line--green"
+        marker-end="url(#leaf-arrow-green)"></path>
+
+      <g transform="translate(430, 70)">
+        <rect
+          width="352"
+          height="46"
+          rx="8"
+          class="leaf-diagram__subbox leaf-diagram__subbox--green"></rect>
+        <text
+          class="leaf-diagram__highlight"
+          x="176"
+          y="28"
+          text-anchor="middle"
+        >
+          ✔ 雙指標極速原子切換 ➔ 達成 100% 零阻塞無感發號！
+        </text>
+      </g>
+    </g>
   </svg>
 
-  <!-- Mobile vertical layout -->
+  <!-- Mobile vertical layout (<= 48rem / 768px) -->
   <div class="leaf-diagram__mobile">
     <div class="leaf-mobile-card leaf-mobile-card--green">
       <span class="leaf-mobile-badge leaf-mobile-badge--green"
@@ -171,7 +255,7 @@
       </p>
     </div>
 
-    <div class="leaf-mobile-arrow">↓ Buffer 1 耗盡瞬間</div>
+    <div class="leaf-mobile-arrow">↓ Buffer 1 耗盡瞬間指標原子切換</div>
 
     <div class="leaf-mobile-card leaf-mobile-card--blue">
       <span class="leaf-mobile-badge leaf-mobile-badge--blue"
@@ -194,7 +278,11 @@
 <style>
   .leaf-diagram {
     margin: 2.5rem 0;
-    width: 100%;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-rule);
+    background: var(--dg-surface);
+    overflow: hidden;
   }
 
   .leaf-diagram__desktop {
@@ -209,7 +297,7 @@
 
   /* SVG Base Tokens */
   .leaf-diagram__card {
-    fill: var(--dg-surface);
+    fill: var(--dg-surface-2);
     stroke-width: 1.5;
   }
 
@@ -227,11 +315,21 @@
     stroke: #a78bfa;
   }
 
+  .leaf-diagram__card--blue {
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__card--blue {
+    stroke: #60a5fa;
+  }
+
   .leaf-diagram__badge {
-    font-size: 12px;
-    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
   }
 
   .leaf-diagram__badge--green {
@@ -248,9 +346,19 @@
     fill: #c4b5fd;
   }
 
+  .leaf-diagram__badge--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__badge--blue {
+    fill: #93c5fd;
+  }
+
   .leaf-diagram__title {
     font-size: 16px;
-    font-family: var(--font-display, sans-serif);
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-weight: 800;
   }
 
@@ -268,63 +376,112 @@
     fill: #c4b5fd;
   }
 
-  .leaf-diagram__subbox {
-    fill: var(--dg-surface-2);
-    stroke: var(--dg-rule-strong);
-    stroke-width: 1;
+  .leaf-diagram__title--blue {
+    fill: #1d4ed8;
   }
-
-  .leaf-diagram__subbox--db {
-    stroke: #8b5cf6;
-    fill: rgba(139, 92, 246, 0.06);
-  }
-  :global(:root[data-theme="dark"]) .leaf-diagram__subbox--db {
-    stroke: #a78bfa;
-    fill: rgba(139, 92, 246, 0.12);
-  }
-
-  .leaf-diagram__subbox--ready {
-    stroke: #3b82f6;
-    fill: rgba(59, 130, 246, 0.06);
-  }
-  :global(:root[data-theme="dark"]) .leaf-diagram__subbox--ready {
-    stroke: #60a5fa;
-    fill: rgba(59, 130, 246, 0.12);
-  }
-
-  .leaf-diagram__code {
-    font-size: 12px;
-    font-family: var(--font-mono, monospace);
-    font-weight: 600;
-    fill: var(--dg-ink);
-  }
-
-  .leaf-diagram__code--db {
-    fill: #7c3aed;
-  }
-  :global(:root[data-theme="dark"]) .leaf-diagram__code--db {
-    fill: #c4b5fd;
-  }
-
-  .leaf-diagram__ready-text {
-    font-size: 12.5px;
-    font-family: var(--font-display, sans-serif);
-    font-weight: 700;
-    fill: #2563eb;
-  }
-  :global(:root[data-theme="dark"]) .leaf-diagram__ready-text {
+  :global(:root[data-theme="dark"]) .leaf-diagram__title--blue {
     fill: #93c5fd;
   }
 
-  .leaf-diagram__desc {
+  .leaf-diagram__subbox {
+    stroke-width: 1.2;
+  }
+
+  .leaf-diagram__subbox--green {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox--green {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .leaf-diagram__subbox--purple {
+    fill: rgba(139, 92, 246, 0.06);
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox--purple {
+    fill: rgba(139, 92, 246, 0.14);
+    stroke: #a78bfa;
+  }
+
+  .leaf-diagram__subbox--blue {
+    fill: rgba(37, 99, 235, 0.06);
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox--blue {
+    fill: rgba(37, 99, 235, 0.14);
+    stroke: #60a5fa;
+  }
+
+  .leaf-diagram__subbox-title {
     font-size: 13px;
-    font-family: var(--font-body, sans-serif);
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-weight: 700;
+  }
+
+  .leaf-diagram__subbox-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox-title--green {
+    fill: #86efac;
+  }
+
+  .leaf-diagram__subbox-title--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox-title--purple {
+    fill: #c4b5fd;
+  }
+
+  .leaf-diagram__subbox-title--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox-title--blue {
+    fill: #93c5fd;
+  }
+
+  .leaf-diagram__subbox-code {
+    font-size: 12px;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-weight: 600;
+  }
+
+  .leaf-diagram__subbox-code--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox-code--green {
+    fill: #86efac;
+  }
+
+  .leaf-diagram__subbox-code--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__subbox-code--purple {
+    fill: #c4b5fd;
+  }
+
+  .leaf-diagram__desc {
+    font-size: 12.5px;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     fill: var(--dg-ink-2);
   }
 
   .leaf-diagram__highlight {
     font-size: 13px;
-    font-family: var(--font-display, sans-serif);
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-weight: 700;
     fill: #15803d;
   }
@@ -332,52 +489,56 @@
     fill: #4ade80;
   }
 
-  .leaf-diagram__connector {
-    stroke-width: 2;
+  .leaf-diagram__flow-line {
+    stroke-width: 2.5;
     fill: none;
   }
 
-  .leaf-diagram__connector--async {
+  .leaf-diagram__flow-line--purple {
     stroke: #8b5cf6;
   }
-  :global(:root[data-theme="dark"]) .leaf-diagram__connector--async {
+  :global(:root[data-theme="dark"]) .leaf-diagram__flow-line--purple {
     stroke: #a78bfa;
   }
 
-  .leaf-diagram__arrow-head {
-    fill: #8b5cf6;
+  .leaf-diagram__flow-line--blue {
+    stroke: #2563eb;
   }
-  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-head {
-    fill: #a78bfa;
+  :global(:root[data-theme="dark"]) .leaf-diagram__flow-line--blue {
+    stroke: #60a5fa;
   }
 
-  .leaf-diagram__connector--switch {
+  .leaf-diagram__flow-line--green {
     stroke: #16a34a;
   }
-  :global(:root[data-theme="dark"]) .leaf-diagram__connector--switch {
+  :global(:root[data-theme="dark"]) .leaf-diagram__flow-line--green {
     stroke: #4ade80;
   }
 
-  .leaf-diagram__arrow-head--switch {
-    fill: #16a34a;
-  }
-  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-head--switch {
-    fill: #4ade80;
-  }
-
-  .leaf-diagram__arrow-label {
-    font-size: 11px;
-    font-family: var(--font-display, sans-serif);
-    font-weight: 700;
+  .leaf-diagram__arrow-head--purple {
     fill: #8b5cf6;
   }
-  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-label {
-    fill: #c4b5fd;
+  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-head--purple {
+    fill: #a78bfa;
+  }
+
+  .leaf-diagram__arrow-head--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-head--blue {
+    fill: #60a5fa;
+  }
+
+  .leaf-diagram__arrow-head--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .leaf-diagram__arrow-head--green {
+    fill: #4ade80;
   }
 
   figcaption {
     text-align: center;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     color: var(--dg-muted);
     margin-top: 1rem;
   }
@@ -391,11 +552,11 @@
     .leaf-diagram__mobile {
       display: flex !important;
       flex-direction: column;
-      gap: 0.875rem;
+      gap: 0.75rem;
     }
 
     .leaf-mobile-card {
-      background: var(--dg-surface);
+      background: var(--dg-surface-2);
       border: 1px solid var(--dg-rule);
       border-radius: 0.875rem;
       padding: 1.125rem 1.25rem;
@@ -403,29 +564,34 @@
 
     .leaf-mobile-card--green {
       border-left: 4px solid #16a34a;
-      background: rgba(22, 163, 74, 0.04);
     }
     :global(:root[data-theme="dark"]) .leaf-mobile-card--green {
-      background: rgba(22, 163, 74, 0.1);
       border-color: #4ade80;
     }
 
     .leaf-mobile-card--purple {
       border-left: 4px solid #8b5cf6;
-      background: rgba(139, 92, 246, 0.04);
     }
     :global(:root[data-theme="dark"]) .leaf-mobile-card--purple {
-      background: rgba(139, 92, 246, 0.1);
       border-color: #a78bfa;
     }
 
     .leaf-mobile-card--blue {
-      border-left: 4px solid #3b82f6;
-      background: rgba(59, 130, 246, 0.04);
+      border-left: 4px solid #2563eb;
     }
     :global(:root[data-theme="dark"]) .leaf-mobile-card--blue {
-      background: rgba(59, 130, 246, 0.1);
       border-color: #60a5fa;
+    }
+
+    .leaf-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     .leaf-mobile-badge {
@@ -434,7 +600,10 @@
       color: var(--dg-muted);
       display: block;
       margin-bottom: 0.25rem;
-      font-family: var(--font-mono, monospace);
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     .leaf-mobile-badge--green {
@@ -452,7 +621,7 @@
     }
 
     .leaf-mobile-badge--blue {
-      color: #3b82f6;
+      color: #2563eb;
     }
     :global(:root[data-theme="dark"]) .leaf-mobile-badge--blue {
       color: #93c5fd;
@@ -470,14 +639,6 @@
       font-size: 0.875rem;
       color: var(--dg-ink-2);
       line-height: 1.5;
-    }
-
-    .leaf-mobile-arrow {
-      text-align: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--dg-muted);
-      padding: 0.125rem 0;
     }
   }
 </style>
