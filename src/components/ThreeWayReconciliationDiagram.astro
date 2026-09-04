@@ -1,0 +1,475 @@
+---
+// Three-Way Reconciliation Triangle Matrix (Ledger, Gateway, Bank) Diagram Component
+---
+
+<figure class="twr-diag" aria-labelledby="twr-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="twr-diag__desktop"
+    viewBox="0 0 880 290"
+    role="img"
+    aria-labelledby="twr-diag-title twr-diag-desc"
+  >
+    <title id="twr-diag-title">三方對帳三角矩陣拓撲圖</title>
+    <desc id="twr-diag-desc">
+      展示內部核心帳本、支付網關流水與銀行官方清算文件三者之間的雙向比對校驗閉環。
+    </desc>
+
+    <defs>
+      <marker
+        id="twr-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="twr-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="twr-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="twr-diag__arrow-head--purple"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="260"
+      rx="12"
+      class="twr-diag__card-bg"></rect>
+
+    <!-- Top Node: Internal Ledger (x: 290, width: 300) -->
+    <g transform="translate(290, 30)">
+      <rect
+        width="300"
+        height="60"
+        rx="8"
+        class="twr-diag__box twr-diag__box--green"></rect>
+      <text
+        x="150"
+        y="26"
+        class="twr-diag__title twr-diag__title--green"
+        text-anchor="middle"
+      >
+        1. 內部核心帳本 (Internal Ledger)
+      </text>
+      <text x="150" y="46" class="twr-diag__desc" text-anchor="middle">
+        業務系統訂單與雙式記帳會計流水
+      </text>
+    </g>
+
+    <!-- Arrows from Top to Bottom Nodes -->
+    <path
+      d="M 370 90 L 220 150"
+      class="twr-diag__path twr-diag__path--blue"
+      marker-end="url(#twr-arrow-blue)"></path>
+    <text x="255" y="115" class="twr-diag__path-tag">校驗交易存在性</text>
+
+    <path
+      d="M 510 90 L 660 150"
+      class="twr-diag__path twr-diag__path--blue"
+      marker-end="url(#twr-arrow-blue)"></path>
+    <text x="615" y="115" class="twr-diag__path-tag">校驗資金入帳頭寸</text>
+
+    <!-- Bottom Left Node: Payment Gateway (x: 50, width: 330) -->
+    <g transform="translate(50, 155)">
+      <rect
+        width="330"
+        height="70"
+        rx="8"
+        class="twr-diag__box twr-diag__box--blue"></rect>
+      <text
+        x="165"
+        y="28"
+        class="twr-diag__title twr-diag__title--blue"
+        text-anchor="middle"
+      >
+        2. 支付網關交易紀錄 (Gateway Logs)
+      </text>
+      <text x="165" y="50" class="twr-diag__desc" text-anchor="middle">
+        Stripe / Adyen 通訊狀態與授權憑據
+      </text>
+    </g>
+
+    <!-- Bottom Right Node: Bank Settlement (x: 500, width: 330) -->
+    <g transform="translate(500, 155)">
+      <rect
+        width="330"
+        height="70"
+        rx="8"
+        class="twr-diag__box twr-diag__box--purple"></rect>
+      <text
+        x="165"
+        y="28"
+        class="twr-diag__title twr-diag__title--purple"
+        text-anchor="middle"
+      >
+        3. 銀行清算報表 (Bank Settlement File)
+      </text>
+      <text x="165" y="50" class="twr-diag__desc" text-anchor="middle">
+        官方 MT940 / Camt.053 對帳單與手續費明細
+      </text>
+    </g>
+
+    <!-- Horizontal Bidirectional Arrow for Gateway <-> Bank Closed Loop -->
+    <path
+      d="M 385 185 L 492 185"
+      class="twr-diag__path twr-diag__path--purple twr-diag__path--dashed"
+      marker-end="url(#twr-arrow-purple)"></path>
+    <path
+      d="M 495 195 L 388 195"
+      class="twr-diag__path twr-diag__path--purple twr-diag__path--dashed"
+      marker-end="url(#twr-arrow-purple)"></path>
+    <rect
+      x="400"
+      y="172"
+      width="80"
+      height="20"
+      rx="4"
+      class="twr-diag__loop-pill"></rect>
+    <text x="440" y="186" class="twr-diag__loop-text" text-anchor="middle"
+      >閉環校驗</text
+    >
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="twr-diag__mobile">
+    <div class="twr-mobile-card twr-mobile-card--green">
+      <span class="twr-mobile-badge twr-mobile-badge--green"
+        >NODE 1: 內部帳本</span
+      >
+      <h4>1. 內部核心帳本 (Internal Ledger)</h4>
+      <p>
+        訂單系統與借貸複式記帳。記錄使用者交易事實、應收金額與商戶結算標籤。
+      </p>
+    </div>
+
+    <div class="twr-mobile-card twr-mobile-card--blue">
+      <span class="twr-mobile-badge twr-mobile-badge--blue"
+        >NODE 2: 渠道流水</span
+      >
+      <h4>2. 支付網關交易紀錄 (Payment Gateway)</h4>
+      <p>
+        Stripe、Adyen 等收單機構 API 通訊紀錄。記錄網關傳回的 Authorization Code
+        與 Charge ID。
+      </p>
+    </div>
+
+    <div class="twr-mobile-card twr-mobile-card--purple">
+      <span class="twr-mobile-badge twr-mobile-badge--purple"
+        >NODE 3: 銀行清單</span
+      >
+      <h4>3. 銀行結算清單 (Bank Settlement File)</h4>
+      <p>
+        官方銀行產出之 MT940 或 Camt.053
+        對帳檔。記錄真正進入銀行帳戶的結算淨額與手續費。
+      </p>
+    </div>
+
+    <div class="twr-mobile-card twr-mobile-card--closed">
+      <span class="twr-mobile-badge twr-mobile-badge--closed">CLOSED LOOP</span>
+      <h4>三方閉環交叉比對規則</h4>
+      <p>• <strong>帳本 vs 網關：</strong>防止漏單或偽造請求。</p>
+      <p>• <strong>網關 vs 銀行：</strong>核實渠道代扣款項是否足額抵達銀行。</p>
+      <p>
+        • <strong>帳本 vs 銀行：</strong>最終確保內部餘額與外部銀行頭寸 100%
+        平帳。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="twr-diag-caption" class="twr-diag__caption">
+    圖二：三方對帳三角矩陣（內部帳本、支付網關與銀行清算檔）閉環校驗架構
+  </figcaption>
+</figure>
+
+<style>
+  .twr-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .twr-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .twr-diag__mobile {
+    display: none;
+  }
+
+  .twr-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .twr-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .twr-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .twr-diag__box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .twr-diag__box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .twr-diag__box--purple {
+    fill: var(--dg-surface-2, #241b35);
+    stroke: #bc8cff;
+  }
+
+  .twr-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .twr-diag__title--green {
+    fill: #3fb950;
+  }
+
+  .twr-diag__title--blue {
+    fill: #58a6ff;
+  }
+
+  .twr-diag__title--purple {
+    fill: #d2a8ff;
+  }
+
+  .twr-diag__desc {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .twr-diag__path {
+    fill: none;
+    stroke-width: 2px;
+  }
+
+  .twr-diag__path--blue {
+    stroke: #388bfd;
+  }
+
+  .twr-diag__path--purple {
+    stroke: #bc8cff;
+  }
+
+  .twr-diag__path--dashed {
+    stroke-dasharray: 4 3;
+  }
+
+  .twr-diag__arrow-head--blue {
+    fill: #388bfd;
+  }
+
+  .twr-diag__arrow-head--purple {
+    fill: #bc8cff;
+  }
+
+  .twr-diag__path-tag {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .twr-diag__loop-pill {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1px;
+  }
+
+  .twr-diag__loop-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    fill: #d2a8ff;
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .twr-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__box--purple {
+    fill: #fbefff;
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__title--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__title--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__title--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__path--blue {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__path--purple {
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__arrow-head--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__arrow-head--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__loop-pill {
+    fill: #ffffff;
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .twr-diag__loop-text {
+    fill: #8250df;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .twr-diag__desktop {
+      display: none !important;
+    }
+
+    .twr-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .twr-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .twr-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .twr-mobile-card--blue {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.05);
+    }
+
+    .twr-mobile-card--purple {
+      border-color: #bc8cff;
+      background: rgba(188, 140, 255, 0.05);
+    }
+
+    .twr-mobile-card--closed {
+      border-color: #d29922;
+      background: rgba(210, 153, 34, 0.05);
+    }
+
+    .twr-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .twr-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .twr-mobile-badge--blue {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .twr-mobile-badge--purple {
+      background: rgba(188, 140, 255, 0.2);
+      color: #d2a8ff;
+    }
+
+    .twr-mobile-badge--closed {
+      background: rgba(210, 153, 34, 0.2);
+      color: #e3b341;
+    }
+
+    .twr-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .twr-mobile-card p {
+      margin: 0 0 0.25rem;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+
+    .twr-mobile-card p:last-child {
+      margin-bottom: 0;
+    }
+  }
+</style>
