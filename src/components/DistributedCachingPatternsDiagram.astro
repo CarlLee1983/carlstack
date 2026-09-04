@@ -1,0 +1,764 @@
+---
+// Distributed Caching Patterns Flow Diagram Component
+---
+
+<figure
+  class="caching-patterns-diagram"
+  aria-labelledby="caching-patterns-caption"
+>
+  <!-- Desktop SVG layout (ViewBox 840x440, big clear fonts, 25px+ bottom margin, theme tokens) -->
+  <svg
+    class="caching-patterns-diagram__desktop"
+    viewBox="0 0 840 440"
+    role="img"
+    aria-labelledby="caching-patterns-title caching-patterns-desc"
+  >
+    <title id="caching-patterns-title">五大分散式快取讀寫模式拓撲圖</title>
+    <desc id="caching-patterns-desc">
+      展示 Cache-Aside（旁路快取：應用層主導）、Write-Through（直寫：快取同步刷
+      DB）與
+      Write-Behind（非同步批量回寫：極限寫入吞吐）三種模式的資料流動拓撲。
+    </desc>
+
+    <defs>
+      <marker
+        id="cp-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path
+          d="M 0 1 L 8 5 L 0 9 z"
+          class="caching-patterns-diagram__arrow--blue"></path>
+      </marker>
+      <marker
+        id="cp-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path
+          d="M 0 1 L 8 5 L 0 9 z"
+          class="caching-patterns-diagram__arrow--green"></path>
+      </marker>
+      <marker
+        id="cp-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path
+          d="M 0 1 L 8 5 L 0 9 z"
+          class="caching-patterns-diagram__arrow--purple"></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Cache-Aside (X: 20, Width: 250, Height: 390, Bottom margin: 25px) -->
+    <g class="caching-patterns-diagram__col" transform="translate(20, 25)">
+      <rect
+        width="250"
+        height="390"
+        rx="12"
+        class="caching-patterns-diagram__card"></rect>
+      <text class="caching-patterns-diagram__badge" x="18" y="28"
+        >PATTERN 01</text
+      >
+      <text class="caching-patterns-diagram__title" x="18" y="52"
+        >Cache-Aside 旁路快取</text
+      >
+
+      <!-- Step 1: App Node -->
+      <g transform="translate(20, 75)">
+        <rect
+          width="210"
+          height="48"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--app"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="24"
+          text-anchor="middle">應用服務 (Application)</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="105"
+          y="40"
+          text-anchor="middle">應用層親自調度讀寫</text
+        >
+      </g>
+
+      <!-- Step 2: Read Cache / Miss Read DB -->
+      <path
+        d="M 75 123 L 75 170"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--blue"
+        marker-end="url(#cp-arrow-blue)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="65"
+        y="150"
+        text-anchor="end">① 讀快取</text
+      >
+
+      <!-- Cache Node -->
+      <g transform="translate(20, 170)">
+        <rect
+          width="100"
+          height="70"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--cache"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="50"
+          y="32"
+          text-anchor="middle">Redis 快取</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="50"
+          y="52"
+          text-anchor="middle">未命中查 DB</text
+        >
+      </g>
+
+      <!-- DB Node -->
+      <g transform="translate(130, 170)">
+        <rect
+          width="100"
+          height="70"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--db"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="50"
+          y="32"
+          text-anchor="middle">MySQL 主庫</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="50"
+          y="52"
+          text-anchor="middle">持久化儲存</text
+        >
+      </g>
+
+      <path
+        d="M 175 123 L 175 170"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--green"
+        marker-end="url(#cp-arrow-green)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="185"
+        y="150"
+        text-anchor="start">② 寫資料庫</text
+      >
+
+      <!-- Invalidate Cache -->
+      <path
+        d="M 130 215 L 120 215"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--purple"
+        marker-end="url(#cp-arrow-purple)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag caching-patterns-diagram__flow-tag--alert"
+        x="125"
+        y="270"
+        text-anchor="middle">③ 成功後刪除快取 (DEL)</text
+      >
+
+      <!-- Summary Card Footer -->
+      <g transform="translate(18, 295)">
+        <rect
+          width="214"
+          height="80"
+          rx="8"
+          class="caching-patterns-diagram__subcard"></rect>
+        <text class="caching-patterns-diagram__subcard-title" x="14" y="24"
+          >核心特徵與適用</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="44"
+          >• 最通用，防範髒寫入</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="64"
+          >• 建議搭配 CDC 非同步淘汰</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Write-Through (X: 295, Width: 250, Height: 390) -->
+    <g class="caching-patterns-diagram__col" transform="translate(295, 25)">
+      <rect
+        width="250"
+        height="390"
+        rx="12"
+        class="caching-patterns-diagram__card"></rect>
+      <text class="caching-patterns-diagram__badge" x="18" y="28"
+        >PATTERN 02</text
+      >
+      <text class="caching-patterns-diagram__title" x="18" y="52"
+        >Write-Through 直寫模式</text
+      >
+
+      <!-- Step 1: App Node -->
+      <g transform="translate(20, 75)">
+        <rect
+          width="210"
+          height="48"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--app"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="24"
+          text-anchor="middle">應用服務 (Application)</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="105"
+          y="40"
+          text-anchor="middle">只面對快取中介層</text
+        >
+      </g>
+
+      <path
+        d="M 125 123 L 125 170"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--blue"
+        marker-end="url(#cp-arrow-blue)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="135"
+        y="150"
+        text-anchor="start">① 寫入快取層</text
+      >
+
+      <!-- Cache Provider Node -->
+      <g transform="translate(20, 170)">
+        <rect
+          width="210"
+          height="52"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--cache"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="24"
+          text-anchor="middle">快取中介層 (Cache Layer)</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="105"
+          y="42"
+          text-anchor="middle">由外層組件封裝 DB 存取</text
+        >
+      </g>
+
+      <path
+        d="M 125 222 L 125 255"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--green"
+        marker-end="url(#cp-arrow-green)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="135"
+        y="242"
+        text-anchor="start">② 同步直寫 DB</text
+      >
+
+      <!-- DB Node -->
+      <g transform="translate(20, 255)">
+        <rect
+          width="210"
+          height="30"
+          rx="6"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--db"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="20"
+          text-anchor="middle">MySQL 資料庫</text
+        >
+      </g>
+
+      <!-- Summary Card Footer -->
+      <g transform="translate(18, 295)">
+        <rect
+          width="214"
+          height="80"
+          rx="8"
+          class="caching-patterns-diagram__subcard"></rect>
+        <text class="caching-patterns-diagram__subcard-title" x="14" y="24"
+          >核心特徵與適用</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="44"
+          >• 資料強一致，無髒讀</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="64"
+          >• 寫入延遲受限於 DB 速度</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Write-Behind (X: 570, Width: 250, Height: 390) -->
+    <g class="caching-patterns-diagram__col" transform="translate(570, 25)">
+      <rect
+        width="250"
+        height="390"
+        rx="12"
+        class="caching-patterns-diagram__card"></rect>
+      <text class="caching-patterns-diagram__badge" x="18" y="28"
+        >PATTERN 03</text
+      >
+      <text class="caching-patterns-diagram__title" x="18" y="52"
+        >Write-Behind 非同步回寫</text
+      >
+
+      <!-- Step 1: App Node -->
+      <g transform="translate(20, 75)">
+        <rect
+          width="210"
+          height="48"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--app"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="24"
+          text-anchor="middle">應用服務 (Application)</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="105"
+          y="40"
+          text-anchor="middle">極致寫入，秒回客戶端</text
+        >
+      </g>
+
+      <path
+        d="M 125 123 L 125 170"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--blue"
+        marker-end="url(#cp-arrow-blue)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="135"
+        y="150"
+        text-anchor="start">① 純記憶體極速寫入</text
+      >
+
+      <!-- Cache Provider Node -->
+      <g transform="translate(20, 170)">
+        <rect
+          width="210"
+          height="52"
+          rx="8"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--cache"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="24"
+          text-anchor="middle">Redis 記憶體層</text
+        >
+        <text
+          class="caching-patterns-diagram__node-sub"
+          x="105"
+          y="42"
+          text-anchor="middle">暫存變更・背景批量聚合</text
+        >
+      </g>
+
+      <path
+        d="M 125 222 L 125 255"
+        class="caching-patterns-diagram__flow-line caching-patterns-diagram__flow-line--purple"
+        stroke-dasharray="4 4"
+        marker-end="url(#cp-arrow-purple)"></path>
+      <text
+        class="caching-patterns-diagram__flow-tag"
+        x="135"
+        y="242"
+        text-anchor="start">② 背景非同步批量刷盤</text
+      >
+
+      <!-- DB Node -->
+      <g transform="translate(20, 255)">
+        <rect
+          width="210"
+          height="30"
+          rx="6"
+          class="caching-patterns-diagram__node caching-patterns-diagram__node--db"
+        ></rect>
+        <text
+          class="caching-patterns-diagram__node-title"
+          x="105"
+          y="20"
+          text-anchor="middle">MySQL 資料庫 (批次寫入)</text
+        >
+      </g>
+
+      <!-- Summary Card Footer -->
+      <g transform="translate(18, 295)">
+        <rect
+          width="214"
+          height="80"
+          rx="8"
+          class="caching-patterns-diagram__subcard"></rect>
+        <text class="caching-patterns-diagram__subcard-title" x="14" y="24"
+          >核心特徵與適用</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="44"
+          >• 吞吐量極高，降低 99% DB 負載</text
+        >
+        <text class="caching-patterns-diagram__subcard-text" x="14" y="64"
+          >• 當機存在極短資料丟失風險</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="caching-patterns-diagram__mobile">
+    <div class="caching-patterns-diagram__m-card">
+      <div class="caching-patterns-diagram__m-badge">PATTERN 01</div>
+      <h4 class="caching-patterns-diagram__m-title">
+        Cache-Aside 旁路快取 (最通用)
+      </h4>
+      <div class="caching-patterns-diagram__m-steps">
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">1</span>
+          <span
+            ><strong>讀取流程</strong>：先查快取，未命中則查 DB 並回填快取。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">2</span>
+          <span
+            ><strong>寫入流程</strong>：先寫資料庫更新，成功後<strong
+              >刪除快取 (DEL)</strong
+            >。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">3</span>
+          <span
+            ><strong>最佳搭檔</strong>：搭配 Binlog CDC 非同步淘汰徹底解耦。</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="caching-patterns-diagram__m-card">
+      <div class="caching-patterns-diagram__m-badge">PATTERN 02</div>
+      <h4 class="caching-patterns-diagram__m-title">
+        Write-Through 直寫模式 (強一致)
+      </h4>
+      <div class="caching-patterns-diagram__m-steps">
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">1</span>
+          <span
+            ><strong>存取介面</strong>：應用層只面對快取中介層，不直接操作 DB。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">2</span>
+          <span
+            ><strong>同步直寫</strong>：快取元件收到寫入時，同步將資料寫入 DB
+            才回覆成功。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">3</span>
+          <span
+            ><strong>代價權衡</strong>：保證無髒資料，但寫入延遲受底層 DB
+            速度約束。</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="caching-patterns-diagram__m-card">
+      <div class="caching-patterns-diagram__m-badge">PATTERN 03</div>
+      <h4 class="caching-patterns-diagram__m-title">
+        Write-Behind 非同步回寫 (極限吞吐)
+      </h4>
+      <div class="caching-patterns-diagram__m-steps">
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">1</span>
+          <span
+            ><strong>純記憶體</strong>：應用層所有讀寫只在 Redis
+            記憶體中完成，超低延遲。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">2</span>
+          <span
+            ><strong>背景批次</strong>：定時或累積批量變更，以 Batch SQL
+            一次性回寫 DB。</span
+          >
+        </div>
+        <div class="caching-patterns-diagram__m-step">
+          <span class="caching-patterns-diagram__m-num">3</span>
+          <span
+            ><strong>適合情境</strong
+            >：遊戲經驗值、即時觀看數、點讚等高頻時計數。</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <figcaption
+    id="caching-patterns-caption"
+    class="caching-patterns-diagram__caption"
+  >
+    圖：五大分散式快取讀寫模式拓撲與權衡比較
+  </figcaption>
+</figure>
+
+<style>
+  .caching-patterns-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-border);
+    background: var(--dg-bg);
+    overflow: hidden;
+  }
+
+  .caching-patterns-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .caching-patterns-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .caching-patterns-diagram__card {
+    fill: var(--dg-card);
+    stroke: var(--dg-border);
+    stroke-width: 1.5;
+  }
+
+  .caching-patterns-diagram__badge {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__title {
+    fill: var(--dg-title);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__node {
+    stroke-width: 1.5;
+  }
+
+  .caching-patterns-diagram__node--app {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-blue);
+  }
+
+  .caching-patterns-diagram__node--cache {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-purple);
+  }
+
+  .caching-patterns-diagram__node--db {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-green);
+  }
+
+  .caching-patterns-diagram__node-title {
+    fill: var(--dg-title);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__node-sub {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__flow-line {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .caching-patterns-diagram__flow-line--blue {
+    stroke: var(--dg-blue);
+  }
+
+  .caching-patterns-diagram__flow-line--green {
+    stroke: var(--dg-green);
+  }
+
+  .caching-patterns-diagram__flow-line--purple {
+    stroke: var(--dg-purple);
+  }
+
+  .caching-patterns-diagram__arrow--blue {
+    fill: var(--dg-blue);
+  }
+
+  .caching-patterns-diagram__arrow--green {
+    fill: var(--dg-green);
+  }
+
+  .caching-patterns-diagram__arrow--purple {
+    fill: var(--dg-purple);
+  }
+
+  .caching-patterns-diagram__flow-tag {
+    fill: var(--dg-title);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__flow-tag--alert {
+    fill: var(--dg-amber);
+  }
+
+  .caching-patterns-diagram__subcard {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-border);
+    stroke-width: 1;
+  }
+
+  .caching-patterns-diagram__subcard-title {
+    fill: var(--dg-title);
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__subcard-text {
+    fill: var(--dg-muted);
+    font-size: 11.5px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .caching-patterns-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Responsive layout for mobile (<= 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .caching-patterns-diagram__desktop {
+      display: none;
+    }
+
+    .caching-patterns-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .caching-patterns-diagram__m-card {
+      background: var(--dg-card);
+      border: 1px solid var(--dg-border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .caching-patterns-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .caching-patterns-diagram__m-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--dg-title);
+      margin: 0 0 1rem 0;
+    }
+
+    .caching-patterns-diagram__m-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .caching-patterns-diagram__m-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      font-size: 0.875rem;
+      color: var(--dg-body);
+      line-height: 1.5;
+    }
+
+    .caching-patterns-diagram__m-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.375rem;
+      height: 1.375rem;
+      border-radius: 9999px;
+      background: var(--dg-card-soft);
+      border: 1px solid var(--dg-border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-blue);
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+  }
+
+  /* Tokens definition scoped & Dark Theme Support */
+  .caching-patterns-diagram {
+    --dg-bg: var(--color-card, #f8fafc);
+    --dg-card: var(--color-surface, #ffffff);
+    --dg-card-soft: rgba(0, 0, 0, 0.03);
+    --dg-border: var(--color-border, #e2e8f0);
+    --dg-title: #0f172a;
+    --dg-body: #334155;
+    --dg-muted: #64748b;
+    --dg-blue: #2563eb;
+    --dg-green: #16a34a;
+    --dg-purple: #7c3aed;
+    --dg-amber: #d97706;
+  }
+
+  :global(:root[data-theme="dark"]) .caching-patterns-diagram {
+    --dg-bg: #0d1117;
+    --dg-card: #161b22;
+    --dg-card-soft: #21262d;
+    --dg-border: #30363d;
+    --dg-title: #f0f6fc;
+    --dg-body: #c9d1d9;
+    --dg-muted: #8b949e;
+    --dg-blue: #58a6ff;
+    --dg-green: #3fb950;
+    --dg-purple: #bc8cff;
+    --dg-amber: #d29922;
+  }
+</style>

@@ -1,0 +1,422 @@
+---
+// Binlog CDC Asynchronous Cache Invalidation Flow Component
+---
+
+<figure class="cdc-diagram" aria-labelledby="cdc-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 840x260, large clear text, 25px+ bottom margin) -->
+  <svg
+    class="cdc-diagram__desktop"
+    viewBox="0 0 840 260"
+    role="img"
+    aria-labelledby="cdc-diagram-title cdc-diagram-desc"
+  >
+    <title id="cdc-diagram-title">
+      Binlog CDC 變更捕獲與非同步快取淘汰架構圖
+    </title>
+    <desc id="cdc-diagram-desc">
+      展示應用服務寫入 MySQL 主庫，CDC 引擎（Canal/Debezium）捕獲 Binlog
+      並發送至 Kafka 訊息佇列，快取淘汰 Worker 非同步冪等刪除 Redis 快取。
+    </desc>
+
+    <defs>
+      <marker
+        id="cdc-arrow"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="cdc-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Box (Height: 215, Bottom spacing: 25px) -->
+    <g transform="translate(20, 20)">
+      <rect width="800" height="215" rx="12" class="cdc-diagram__card"></rect>
+      <text class="cdc-diagram__badge" x="20" y="26"
+        >CDC ASYNC INVALIDATION ARCHITECTURE</text
+      >
+      <text class="cdc-diagram__title" x="20" y="48"
+        >MySQL Binlog CDC 非同步解耦快取淘汰流程</text
+      >
+
+      <!-- Step 1: App (X: 20, Y: 70, W: 155, H: 65) -->
+      <g transform="translate(20, 70)">
+        <rect
+          width="155"
+          height="65"
+          rx="8"
+          class="cdc-diagram__node cdc-diagram__node--app"></rect>
+        <text class="cdc-diagram__node-num" x="14" y="24">01</text>
+        <text class="cdc-diagram__node-title" x="36" y="24">應用層服務</text>
+        <text class="cdc-diagram__node-sub" x="14" y="48">純粹寫入 DB 主庫</text
+        >
+      </g>
+
+      <!-- Arrow 1 -> 2 -->
+      <path
+        d="M 175 102 L 205 102"
+        class="cdc-diagram__flow-line"
+        marker-end="url(#cdc-arrow)"></path>
+
+      <!-- Step 2: MySQL (X: 215, Y: 70, W: 165, H: 65) -->
+      <g transform="translate(215, 70)">
+        <rect
+          width="165"
+          height="65"
+          rx="8"
+          class="cdc-diagram__node cdc-diagram__node--mysql"></rect>
+        <text class="cdc-diagram__node-num" x="14" y="24">02</text>
+        <text class="cdc-diagram__node-title" x="36" y="24">MySQL 主庫</text>
+        <text class="cdc-diagram__node-sub" x="14" y="48"
+          >寫入並生成 Binlog</text
+        >
+      </g>
+
+      <!-- Arrow 2 -> 3 (Down to CDC) -->
+      <path
+        d="M 297 135 L 297 155 L 405 155"
+        class="cdc-diagram__flow-line cdc-diagram__flow-line--purple"
+        marker-end="url(#cdc-arrow)"></path>
+
+      <!-- Step 3: CDC Engine (X: 415, Y: 130, W: 175, H: 55) -->
+      <g transform="translate(415, 130)">
+        <rect
+          width="175"
+          height="55"
+          rx="8"
+          class="cdc-diagram__node cdc-diagram__node--cdc"></rect>
+        <text class="cdc-diagram__node-num" x="14" y="22">03</text>
+        <text class="cdc-diagram__node-title" x="36" y="22"
+          >Canal / Debezium</text
+        >
+        <text class="cdc-diagram__node-sub" x="14" y="42"
+          >即時解析 Binlog 事件</text
+        >
+      </g>
+
+      <!-- Arrow 3 -> 4 -->
+      <path
+        d="M 590 157 L 615 157"
+        class="cdc-diagram__flow-line cdc-diagram__flow-line--amber"
+        marker-end="url(#cdc-arrow)"></path>
+
+      <!-- Step 4: Kafka (X: 625, Y: 130, W: 155, H: 55) -->
+      <g transform="translate(625, 130)">
+        <rect
+          width="155"
+          height="55"
+          rx="8"
+          class="cdc-diagram__node cdc-diagram__node--kafka"></rect>
+        <text class="cdc-diagram__node-num" x="14" y="22">04</text>
+        <text class="cdc-diagram__node-title" x="36" y="22"
+          >Kafka / MQ 佇列</text
+        >
+        <text class="cdc-diagram__node-sub" x="14" y="42">變更持久化與重試</text
+        >
+      </g>
+
+      <!-- Arrow 4 -> 5 (Up & Left to Worker) -->
+      <path
+        d="M 702 130 L 702 102 L 605 102"
+        class="cdc-diagram__flow-line cdc-diagram__flow-line--green"
+        marker-end="url(#cdc-arrow)"></path>
+
+      <!-- Step 5: Worker & Redis (X: 415, Y: 70, W: 180, H: 48) -->
+      <g transform="translate(415, 70)">
+        <rect
+          width="180"
+          height="48"
+          rx="8"
+          class="cdc-diagram__node cdc-diagram__node--redis"></rect>
+        <text class="cdc-diagram__node-num" x="14" y="20">05</text>
+        <text class="cdc-diagram__node-title" x="36" y="20"
+          >淘汰 Worker ➔ Redis</text
+        >
+        <text class="cdc-diagram__node-sub" x="14" y="38"
+          >冪等 DEL，業務完全解耦</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="cdc-diagram__mobile">
+    <div class="cdc-diagram__m-card">
+      <div class="cdc-diagram__m-badge">ASYNC CDC FLOW</div>
+      <h4 class="cdc-diagram__m-title">Binlog CDC 快取淘汰步驟</h4>
+      <div class="cdc-diagram__m-steps">
+        <div class="cdc-diagram__m-step">
+          <span class="cdc-diagram__m-num">1</span>
+          <div>
+            <strong>應用服務寫入</strong>
+            <p>
+              應用層僅純粹更新 MySQL
+              主庫，不承擔快取淘汰責任，徹底消除業務複雜度。
+            </p>
+          </div>
+        </div>
+        <div class="cdc-diagram__m-step">
+          <span class="cdc-diagram__m-num">2</span>
+          <div>
+            <strong>Binlog 事件捕獲</strong>
+            <p>
+              Canal 或 Debezium 模擬 MySQL 備庫協議，即時捕獲 Row 級別變更日誌。
+            </p>
+          </div>
+        </div>
+        <div class="cdc-diagram__m-step">
+          <span class="cdc-diagram__m-num">3</span>
+          <div>
+            <strong>訊息佇列緩衝</strong>
+            <p>
+              將變更事件投遞至 Kafka / MQ，提供削峰、持久化重試與死信防禦機制。
+            </p>
+          </div>
+        </div>
+        <div class="cdc-diagram__m-step">
+          <span class="cdc-diagram__m-num">4</span>
+          <div>
+            <strong>Worker 冪等刪除</strong>
+            <p>
+              消費者 Worker 讀取訊息，精準執行 <code>DEL key</code
+              >，並天然適應主從複製延遲。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="cdc-diagram-caption" class="cdc-diagram__caption">
+    圖：基於 MySQL Binlog CDC 與 Kafka 的非同步快取解耦淘汰架構
+  </figcaption>
+</figure>
+
+<style>
+  .cdc-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-border);
+    background: var(--dg-bg);
+    overflow: hidden;
+  }
+
+  .cdc-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .cdc-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styling */
+  .cdc-diagram__card {
+    fill: var(--dg-card);
+    stroke: var(--dg-border);
+    stroke-width: 1.5;
+  }
+
+  .cdc-diagram__badge {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cdc-diagram__title {
+    fill: var(--dg-title);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cdc-diagram__node {
+    stroke-width: 1.5;
+  }
+
+  .cdc-diagram__node--app {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-blue);
+  }
+
+  .cdc-diagram__node--mysql {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-blue);
+  }
+
+  .cdc-diagram__node--cdc {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-purple);
+  }
+
+  .cdc-diagram__node--kafka {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-amber);
+  }
+
+  .cdc-diagram__node--redis {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-green);
+  }
+
+  .cdc-diagram__node-num {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: monospace;
+  }
+
+  .cdc-diagram__node-title {
+    fill: var(--dg-title);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cdc-diagram__node-sub {
+    fill: var(--dg-muted);
+    font-size: 11.5px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cdc-diagram__flow-line {
+    fill: none;
+    stroke: var(--dg-blue);
+    stroke-width: 2;
+  }
+
+  .cdc-diagram__flow-line--purple {
+    stroke: var(--dg-purple);
+  }
+
+  .cdc-diagram__flow-line--amber {
+    stroke: var(--dg-amber);
+  }
+
+  .cdc-diagram__flow-line--green {
+    stroke: var(--dg-green);
+  }
+
+  .cdc-diagram__arrow-head {
+    fill: var(--dg-blue);
+  }
+
+  .cdc-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Responsive Mobile */
+  @media (max-width: 48rem) {
+    .cdc-diagram__desktop {
+      display: none;
+    }
+
+    .cdc-diagram__mobile {
+      display: block;
+    }
+
+    .cdc-diagram__m-card {
+      background: var(--dg-card);
+      border: 1px solid var(--dg-border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .cdc-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .cdc-diagram__m-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--dg-title);
+      margin: 0 0 1.25rem 0;
+    }
+
+    .cdc-diagram__m-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .cdc-diagram__m-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--dg-body);
+    }
+
+    .cdc-diagram__m-step strong {
+      display: block;
+      color: var(--dg-title);
+      margin-bottom: 0.25rem;
+    }
+
+    .cdc-diagram__m-step p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--dg-muted);
+      line-height: 1.45;
+    }
+
+    .cdc-diagram__m-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 9999px;
+      background: var(--dg-card-soft);
+      border: 1px solid var(--dg-border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-blue);
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+  }
+
+  /* Tokens & Theme */
+  .cdc-diagram {
+    --dg-bg: var(--color-card, #f8fafc);
+    --dg-card: var(--color-surface, #ffffff);
+    --dg-card-soft: rgba(0, 0, 0, 0.03);
+    --dg-border: var(--color-border, #e2e8f0);
+    --dg-title: #0f172a;
+    --dg-body: #334155;
+    --dg-muted: #64748b;
+    --dg-blue: #2563eb;
+    --dg-green: #16a34a;
+    --dg-purple: #7c3aed;
+    --dg-amber: #d97706;
+  }
+
+  :global(:root[data-theme="dark"]) .cdc-diagram {
+    --dg-bg: #0d1117;
+    --dg-card: #161b22;
+    --dg-card-soft: #21262d;
+    --dg-border: #30363d;
+    --dg-title: #f0f6fc;
+    --dg-body: #c9d1d9;
+    --dg-muted: #8b949e;
+    --dg-blue: #58a6ff;
+    --dg-green: #3fb950;
+    --dg-purple: #bc8cff;
+    --dg-amber: #d29922;
+  }
+</style>
