@@ -1,0 +1,585 @@
+---
+// Rate Limiting Algorithms & Architecture Diagram Component (Refined Layout & Padding)
+---
+
+<figure class="rl-diagram" aria-labelledby="rl-diagram-caption">
+  <!-- Desktop SVG layout -->
+  <svg
+    class="rl-diagram__desktop"
+    viewBox="0 0 840 450"
+    role="img"
+    aria-labelledby="rl-diagram-title rl-diagram-desc"
+  >
+    <title id="rl-diagram-title">
+      分散式限流架構：Token Bucket、滑動視窗與邊界裁決
+    </title>
+    <desc id="rl-diagram-desc">
+      展示 API 閘道如何透過 Token Bucket 與滑動視窗演算法，結合 Redis+Lua
+      進行原子裁決，區分放行與 429 阻擋。
+    </desc>
+
+    <defs>
+      <marker
+        id="rl-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rl-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="rl-arrow-pass"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rl-diagram__arrow-head--pass"
+        ></path>
+      </marker>
+      <marker
+        id="rl-arrow-block"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="rl-diagram__arrow-head--block"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Client Traffic (Card height: 390, Bottom padding: 25px) -->
+    <g class="rl-diagram__card" transform="translate(20, 30)">
+      <rect width="230" height="390" rx="12"></rect>
+      <text class="rl-diagram__badge" x="20" y="32">01. TRAFFIC</text>
+      <text class="rl-diagram__title" x="20" y="60">流量湧入</text>
+
+      <g transform="translate(16, 80)">
+        <rect
+          width="198"
+          height="80"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--blue"></rect>
+        <text class="rl-diagram__header rl-diagram__header--blue" x="14" y="24"
+          >正常業務請求</text
+        >
+        <text class="rl-diagram__desc" x="14" y="48">• 均勻調用 (TPS 平穩)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="68">• 系統額定承載內</text>
+      </g>
+
+      <g transform="translate(16, 172)">
+        <rect
+          width="198"
+          height="90"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--orange"></rect>
+        <text
+          class="rl-diagram__header rl-diagram__header--orange"
+          x="14"
+          y="24">突發流量 (Spike)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="48">• 秒殺搶購 / 爬蟲掃描</text
+        >
+        <text class="rl-diagram__desc" x="14" y="70" font-weight="600"
+          >• 邊界交界處 2x 突刺</text
+        >
+      </g>
+
+      <g transform="translate(16, 274)">
+        <rect width="198" height="85" rx="8" class="rl-diagram__subcard"></rect>
+        <text class="rl-diagram__header" x="14" y="24">防禦目標</text>
+        <text class="rl-diagram__desc" x="14" y="48">• 允許合理短暫突發</text>
+        <text class="rl-diagram__desc" x="14" y="68">• 遏制惡意穿透打垮 DB</text
+        >
+      </g>
+    </g>
+
+    <!-- Connector 1 -> 2 -->
+    <path
+      d="M 250 225 L 295 225"
+      class="rl-diagram__connector"
+      marker-end="url(#rl-arrow)"></path>
+
+    <!-- Column 2: Rate Limiting Algorithms (Card height: 390, Bottom padding: 25px) -->
+    <g class="rl-diagram__card" transform="translate(295, 30)">
+      <rect width="250" height="390" rx="12"></rect>
+      <text class="rl-diagram__badge" x="20" y="32">02. ALGORITHM</text>
+      <text class="rl-diagram__title" x="20" y="60">雙模裁決引擎</text>
+
+      <g transform="translate(16, 80)">
+        <rect
+          width="218"
+          height="135"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--purple"></rect>
+        <text
+          class="rl-diagram__header rl-diagram__header--purple"
+          x="14"
+          y="25">權杖桶 (Token Bucket)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="50"
+          >• 恆速 r 投放 Token 至容量 C</text
+        >
+        <text class="rl-diagram__desc" x="14" y="74"
+          >• 請求消耗 1 Token 後放行</text
+        >
+        <text class="rl-diagram__desc" x="14" y="98">• 桶空無 Token 則攔截</text
+        >
+        <text class="rl-diagram__desc" x="14" y="120" font-weight="600"
+          >✔ 完美兼顧平滑與突發</text
+        >
+      </g>
+
+      <g transform="translate(16, 226)">
+        <rect
+          width="218"
+          height="135"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--teal"></rect>
+        <text class="rl-diagram__header rl-diagram__header--teal" x="14" y="25"
+          >滑動視窗 (Sliding Window)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="50"
+          >• 線性插值權重近似計數</text
+        >
+        <text class="rl-diagram__mono" x="14" y="74"
+          >Req = C_prev*(1-w) + C_curr</text
+        >
+        <text class="rl-diagram__desc" x="14" y="98"
+          >• 消除邊界 2x 雙倍流量死角</text
+        >
+        <text class="rl-diagram__desc" x="14" y="120" font-weight="600"
+          >✔ O(1) 極低記憶體開銷</text
+        >
+      </g>
+    </g>
+
+    <!-- Connector 2 -> 3 -->
+    <path
+      d="M 545 185 L 590 150"
+      class="rl-diagram__connector rl-diagram__connector--pass"
+      marker-end="url(#rl-arrow-pass)"></path>
+    <path
+      d="M 545 265 L 590 295"
+      class="rl-diagram__connector rl-diagram__connector--block"
+      marker-end="url(#rl-arrow-block)"></path>
+
+    <!-- Column 3: Enforcement (Card height: 390, Bottom padding: 25px) -->
+    <g class="rl-diagram__card" transform="translate(590, 30)">
+      <rect width="230" height="390" rx="12"></rect>
+      <text class="rl-diagram__badge" x="20" y="32">03. ENFORCEMENT</text>
+      <text class="rl-diagram__title" x="20" y="60">原子裁決響應</text>
+
+      <!-- Pass Branch -->
+      <g transform="translate(16, 80)">
+        <rect
+          width="198"
+          height="98"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--green"></rect>
+        <text class="rl-diagram__header rl-diagram__header--green" x="14" y="24"
+          >✔ 放行 (Pass)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="48">• Tokens ≥ 1 扣減成功</text
+        >
+        <text class="rl-diagram__desc" x="14" y="70">• 轉發至下游微服務</text>
+        <text class="rl-diagram__desc" x="14" y="90"
+          >• 帶 RateLimit 響應標頭</text
+        >
+      </g>
+
+      <!-- Block Branch -->
+      <g transform="translate(16, 190)">
+        <rect
+          width="198"
+          height="92"
+          rx="8"
+          class="rl-diagram__subcard rl-diagram__subcard--red"></rect>
+        <text class="rl-diagram__header rl-diagram__header--red" x="14" y="24"
+          >✖ 阻擋 (Drop)</text
+        >
+        <text class="rl-diagram__desc" x="14" y="48">• 權杖耗盡 / 超出閾值</text
+        >
+        <text class="rl-diagram__desc" x="14" y="70" font-weight="600"
+          >• 回傳 HTTP 429</text
+        >
+        <text class="rl-diagram__desc" x="14" y="88"
+          >• Retry-After 冷卻提示</text
+        >
+      </g>
+
+      <!-- Redis Lua Subcard -->
+      <g transform="translate(16, 294)">
+        <rect width="198" height="66" rx="8" class="rl-diagram__subcard"></rect>
+        <text class="rl-diagram__header" x="14" y="24">Redis + Lua 原子性</text>
+        <text class="rl-diagram__desc" x="14" y="48"
+          >• 零 Race Condition 競態</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout (HTML cards) -->
+  <div class="rl-diagram__mobile">
+    <div class="rl-mobile-card rl-mobile-card--blue">
+      <span class="rl-mobile-badge">01. INGRESS & SPIKE</span>
+      <h4>客戶端突發流量湧入</h4>
+      <p>
+        平緩業務請求與秒殺突發（Burst Spike）流量交織，在固定視窗邊界可能引發 2
+        倍於額定閾值的瞬間流量突刺。
+      </p>
+    </div>
+
+    <div class="rl-mobile-arrow">↓ 進入演算法引擎</div>
+
+    <div class="rl-mobile-card rl-mobile-card--purple">
+      <span class="rl-mobile-badge rl-mobile-badge--purple"
+        >02. RATE LIMITING ENGINE</span
+      >
+      <h4>Token Bucket vs. 滑動視窗雙模裁決</h4>
+      <p>
+        <strong>權杖桶 (Token Bucket)</strong>：以恆定速率投放
+        Token，保留儲存餘額以容忍合理短暫突發。<br />
+        <strong>滑動視窗 (Sliding Window)</strong
+        >：以線性權重插值平滑跨視窗計數，避免邊界死角。
+      </p>
+    </div>
+
+    <div class="rl-mobile-arrow">↓ Redis + Lua 原子判斷</div>
+
+    <div class="rl-mobile-card rl-mobile-card--green">
+      <span class="rl-mobile-badge rl-mobile-badge--green"
+        >03A. PASS (放行)</span
+      >
+      <h4>Token 足額：轉發下游服務</h4>
+      <p>
+        成功扣除 Token 並原子寫回狀態，轉發至核心業務微服務，回傳標準
+        RateLimit-* 響應標頭。
+      </p>
+    </div>
+
+    <div class="rl-mobile-arrow">↓ 若 Token 耗盡</div>
+
+    <div class="rl-mobile-card rl-mobile-card--red">
+      <span class="rl-mobile-badge rl-mobile-badge--red"
+        >03B. DROP / 429 (阻擋)</span
+      >
+      <h4>Token 耗盡：邊界秒級攔截</h4>
+      <p>
+        API 閘道直接阻斷請求，不穿透後端資料庫，回傳 HTTP 429 Too Many Requests
+        與 Retry-After 秒數。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="rl-diagram-caption">
+    圖：現代分散式限流架構 —— 流量突發整流、Token Bucket/滑動視窗演算法與
+    Redis+Lua 邊界攔截
+  </figcaption>
+</figure>
+
+<style>
+  .rl-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .rl-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .rl-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .rl-diagram__card > rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .rl-diagram__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .rl-diagram__badge {
+    font-size: 12.5px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    fill: var(--dg-muted);
+  }
+
+  .rl-diagram__title {
+    font-size: 19px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .rl-diagram__header {
+    font-size: 14px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .rl-diagram__desc {
+    font-size: 12.5px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .rl-diagram__mono {
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .rl-diagram__connector {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2.5;
+    fill: none;
+  }
+
+  .rl-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Color Variations */
+  .rl-diagram__subcard--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.06);
+  }
+  .rl-diagram__header--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--blue {
+    fill: #93c5fd;
+  }
+
+  .rl-diagram__subcard--orange {
+    stroke: #f97316;
+    fill: rgba(249, 115, 22, 0.06);
+  }
+  .rl-diagram__header--orange {
+    fill: #ea580c;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--orange {
+    stroke: #fb923c;
+    fill: rgba(249, 115, 22, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--orange {
+    fill: #fdba74;
+  }
+
+  .rl-diagram__subcard--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.06);
+  }
+  .rl-diagram__header--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--purple {
+    fill: #c4b5fd;
+  }
+
+  .rl-diagram__subcard--teal {
+    stroke: #0d9488;
+    fill: rgba(13, 148, 136, 0.06);
+  }
+  .rl-diagram__header--teal {
+    fill: #0f766e;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--teal {
+    stroke: #2dd4bf;
+    fill: rgba(13, 148, 136, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--teal {
+    fill: #5eead4;
+  }
+
+  .rl-diagram__subcard--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.06);
+  }
+  .rl-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--green {
+    fill: #86efac;
+  }
+
+  .rl-diagram__subcard--red {
+    stroke: #dc2626;
+    fill: rgba(220, 38, 38, 0.06);
+  }
+  .rl-diagram__header--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__subcard--red {
+    stroke: #f87171;
+    fill: rgba(220, 38, 38, 0.14);
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__header--red {
+    fill: #fca5a5;
+  }
+
+  /* Branch Connectors */
+  .rl-diagram__connector--pass {
+    stroke: #16a34a;
+  }
+  .rl-diagram__arrow-head--pass {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__connector--pass {
+    stroke: #4ade80;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__arrow-head--pass {
+    fill: #4ade80;
+  }
+
+  .rl-diagram__connector--block {
+    stroke: #dc2626;
+  }
+  .rl-diagram__arrow-head--block {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__connector--block {
+    stroke: #f87171;
+  }
+  :global(:root[data-theme="dark"]) .rl-diagram__arrow-head--block {
+    fill: #f87171;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .rl-diagram__desktop {
+      display: none !important;
+    }
+
+    .rl-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .rl-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .rl-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+    .rl-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+    .rl-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    .rl-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+
+    :global(:root[data-theme="dark"]) .rl-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    :global(:root[data-theme="dark"]) .rl-mobile-card--red {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: #f87171;
+    }
+
+    .rl-mobile-badge {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.375rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .rl-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .rl-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .rl-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .rl-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .rl-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .rl-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .rl-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .rl-mobile-card p {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+    }
+
+    .rl-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--dg-muted);
+      padding: 0.25rem 0;
+    }
+  }
+</style>

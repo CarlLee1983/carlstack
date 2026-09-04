@@ -15,11 +15,21 @@ tags:
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
+import RateLimitingAlgorithmsDiagram from "../../components/RateLimitingAlgorithmsDiagram.astro";
+
 在高併發分散式系統與微服務架構中，系統的處理能力始終存在極限。面對突發流量峰值、網路爬蟲狂暴抓取、惡意 DDoS 攻擊或下游服務依賴緩慢引發的資源耗盡，**限流（Rate Limiting）與流量整形（Traffic Shaping）** 是保護系統不被衝垮的最核心防線。
 
 然而，許多系統在實作限流時，往往因選型不當而面臨「視窗邊界雙倍流量突刺」、「記憶體無節制暴增」或「分散式競態條件（Race Condition）」等嚴重問題。
 
 本文將從數學模型、時間複雜度、記憶體開銷到生產級 Redis + Lua 原子實踐，全面剖析五大經典限流演算法與叢集限流架構。
+
+---
+
+## 分散式限流架構全景圖
+
+以下架構圖展示客戶端突發流量、Token Bucket 與滑動視窗雙模演算法引擎，以及透過 Redis + Lua 進行原子裁決放行或 HTTP 429 阻擋的完整流向：
+
+<RateLimitingAlgorithmsDiagram />
 
 ---
 
