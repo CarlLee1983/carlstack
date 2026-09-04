@@ -1,0 +1,378 @@
+---
+// JWT Standard 3-Part Structure (Header . Payload . Signature) Diagram Component
+---
+
+<figure class="jwts-diag" aria-labelledby="jwts-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="jwts-diag__desktop"
+    viewBox="0 0 880 180"
+    role="img"
+    aria-labelledby="jwts-diag-title jwts-diag-desc"
+  >
+    <title id="jwts-diag-title">JWT 三段式緊湊編碼結構示意圖</title>
+    <desc id="jwts-diag-desc">
+      展示 JSON Web Token
+      標準三段式格式：Header（演算法與類型）、Payload（身份實體宣告與過期時間）與
+      Signature（數位簽名防偽）。
+    </desc>
+
+    <!-- Background Card -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="145"
+      rx="12"
+      class="jwts-diag__card-bg"></rect>
+
+    <!-- Part 1: Header (x: 45, width: 235) -->
+    <g transform="translate(45, 30)">
+      <rect
+        width="235"
+        height="110"
+        rx="8"
+        class="jwts-diag__part-box jwts-diag__part-box--red"></rect>
+      <text
+        x="117"
+        y="28"
+        class="jwts-diag__part-title jwts-diag__part-title--red"
+        text-anchor="middle"
+      >
+        1. Header (標頭)
+      </text>
+      <rect
+        x="20"
+        y="42"
+        width="195"
+        height="52"
+        rx="4"
+        class="jwts-diag__code-pill"></rect>
+      <text x="30" y="62" class="jwts-diag__code-text">"alg": "RS256",</text>
+      <text x="30" y="80" class="jwts-diag__code-text">"typ": "JWT"</text>
+    </g>
+
+    <!-- Dot Separator 1 -->
+    <text x="300" y="96" class="jwts-diag__dot" text-anchor="middle">.</text>
+
+    <!-- Part 2: Payload (x: 320, width: 240) -->
+    <g transform="translate(320, 30)">
+      <rect
+        width="240"
+        height="110"
+        rx="8"
+        class="jwts-diag__part-box jwts-diag__part-box--purple"></rect>
+      <text
+        x="120"
+        y="28"
+        class="jwts-diag__part-title jwts-diag__part-title--purple"
+        text-anchor="middle"
+      >
+        2. Payload (負載 Claims)
+      </text>
+      <rect
+        x="20"
+        y="42"
+        width="200"
+        height="52"
+        rx="4"
+        class="jwts-diag__code-pill"></rect>
+      <text x="30" y="62" class="jwts-diag__code-text"
+        >"sub": "user_42", "role": "editor",</text
+      >
+      <text x="30" y="80" class="jwts-diag__code-text">"exp": 1772640000</text>
+    </g>
+
+    <!-- Dot Separator 2 -->
+    <text x="580" y="96" class="jwts-diag__dot" text-anchor="middle">.</text>
+
+    <!-- Part 3: Signature (x: 600, width: 235) -->
+    <g transform="translate(600, 30)">
+      <rect
+        width="235"
+        height="110"
+        rx="8"
+        class="jwts-diag__part-box jwts-diag__part-box--green"></rect>
+      <text
+        x="117"
+        y="28"
+        class="jwts-diag__part-title jwts-diag__part-title--green"
+        text-anchor="middle"
+      >
+        3. Signature (數位防偽簽名)
+      </text>
+      <rect
+        x="18"
+        y="42"
+        width="199"
+        height="52"
+        rx="4"
+        class="jwts-diag__code-pill"></rect>
+      <text x="28" y="62" class="jwts-diag__code-text">RSASHA256(</text>
+      <text x="28" y="80" class="jwts-diag__code-text">
+        base64(H) + "." + base64(P), key)</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="jwts-diag__mobile">
+    <div class="jwts-mobile-card jwts-mobile-card--red">
+      <span class="jwts-mobile-badge jwts-mobile-badge--red"
+        >PART 1: HEADER</span
+      >
+      <h4>1. 標頭 (Header)</h4>
+      <p>
+        定義簽名演算法與權杖型態：<code
+          >&#123; "alg": "RS256", "typ": "JWT" &#125;</code
+        >
+      </p>
+    </div>
+
+    <div class="jwts-mobile-arrow">. (Base64Url 編碼串接)</div>
+
+    <div class="jwts-mobile-card jwts-mobile-card--purple">
+      <span class="jwts-mobile-badge jwts-mobile-badge--purple"
+        >PART 2: PAYLOAD</span
+      >
+      <h4>2. 負載 (Payload Claims)</h4>
+      <p>
+        攜帶主體身份與宣告資料：<code
+          >&#123; "sub": "42", "role": "editor", "exp": 1772640000 &#125;</code
+        >
+      </p>
+    </div>
+
+    <div class="jwts-mobile-arrow">. (Base64Url 編碼串接)</div>
+
+    <div class="jwts-mobile-card jwts-mobile-card--green">
+      <span class="jwts-mobile-badge jwts-mobile-badge--green"
+        >PART 3: SIGNATURE</span
+      >
+      <h4>3. 數位防偽簽名 (Signature)</h4>
+      <p>
+        由伺服器私鑰或密鑰對前兩部分進行雜湊簽名，任何篡改皆會導致簽名校驗崩潰！
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="jwts-diag-caption" class="jwts-diag__caption">
+    圖二：JSON Web Token（JWT）標準三段式結構與防偽簽名編排
+  </figcaption>
+</figure>
+
+<style>
+  .jwts-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .jwts-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .jwts-diag__mobile {
+    display: none;
+  }
+
+  .jwts-diag__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--dg-muted);
+  }
+
+  .jwts-diag__card-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .jwts-diag__part-box {
+    stroke-width: 1.2;
+  }
+
+  .jwts-diag__part-box--red {
+    fill: rgba(220, 38, 38, 0.04);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-box--red {
+    fill: rgba(220, 38, 38, 0.14);
+    stroke: #f87171;
+  }
+
+  .jwts-diag__part-box--purple {
+    fill: rgba(139, 92, 246, 0.04);
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-box--purple {
+    fill: rgba(139, 92, 246, 0.14);
+    stroke: #a78bfa;
+  }
+
+  .jwts-diag__part-box--green {
+    fill: rgba(22, 163, 74, 0.04);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-box--green {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .jwts-diag__part-title {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .jwts-diag__part-title--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-title--red {
+    fill: #fca5a5;
+  }
+
+  .jwts-diag__part-title--purple {
+    fill: #6d28d9;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-title--purple {
+    fill: #c4b5fd;
+  }
+
+  .jwts-diag__part-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .jwts-diag__part-title--green {
+    fill: #86efac;
+  }
+
+  .jwts-diag__code-pill {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .jwts-diag__code-text {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .jwts-diag__dot {
+    font-size: 32px;
+    font-weight: 800;
+    fill: var(--dg-muted);
+  }
+
+  /* Mobile View */
+  @media (max-width: 48rem) {
+    .jwts-diag__desktop {
+      display: none !important;
+    }
+
+    .jwts-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .jwts-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .jwts-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-card--red {
+      background: rgba(220, 38, 38, 0.12);
+      border-color: #f87171;
+    }
+
+    .jwts-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-card--purple {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: #a78bfa;
+    }
+
+    .jwts-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-card--green {
+      background: rgba(22, 163, 74, 0.12);
+      border-color: #4ade80;
+    }
+
+    .jwts-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .jwts-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .jwts-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .jwts-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .jwts-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .jwts-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .jwts-mobile-card p {
+      margin: 0.2rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .jwts-mobile-card code {
+      font-family: var(--font-mono, monospace);
+      font-size: 0.8125rem;
+      background: var(--dg-surface-2);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+
+    .jwts-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      padding: 0.125rem 0;
+    }
+  }
+</style>

@@ -15,6 +15,10 @@ tags:
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
+import BolaAttackDefenseDiagram from "../../components/BolaAttackDefenseDiagram.astro";
+import JwtAlgorithmConfusionDiagram from "../../components/JwtAlgorithmConfusionDiagram.astro";
+import JwtStructureDiagram from "../../components/JwtStructureDiagram.astro";
+
 在雲原生與前後端分離的架構下，**API（Application Programming Interface）** 承載了企業 90% 以上的業務流量與敏感數據。
 
 然而，許多工程師往往只注重邊界防火牆（WAF）與身份認證（Authentication），卻忽略了應用層更為致命的邏輯漏洞。攻擊者不需要攻破伺服器操作系統，只需透過惡意構造的 API 請求，就能直接掏空用戶數據庫！
@@ -27,33 +31,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 **BOLA（Broken Object Level Authorization）** 長年位居 OWASP API 安全榜首。其根源在於：**系統只檢查了「你是否已登入」，卻忘了檢查「你是否有權存取該 ID 的物件」！**
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="bola-attack-title bola-attack-desc">
-    <title id="bola-attack-title">BOLA (Broken Object Level Authorization) 越權攻擊示意圖</title>
-    <desc id="bola-attack-desc">展示攻擊者持有合法 Token 存取非本人帳單 ID，後端未校驗租戶歸屬導致敏感資料外洩。</desc>
-    
-    <defs>
-      <marker id="sec-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#f85149"/>
-      </marker>
-    </defs>
-
-    <rect x="20" y="20" width="220" height="70" rx="8" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
-    <text x="130" y="48" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">攻擊者 (User ID: 999)</text>
-    <text x="130" y="70" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">持有自身有效 JWT Token</text>
-
-    <path d="M 240 55 L 340 55" stroke="#f85149" stroke-width="2" marker-end="url(#sec-arrow)"/>
-    <text x="290" y="45" fill="#f85149" font-size="11" font-family="monospace" text-anchor="middle">GET /invoices/10086</text>
-
-    <rect x="350" y="20" width="430" height="170" rx="10" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
-    <text x="565" y="48" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">❌ 漏洞後端伺服器 (未檢查資料擁有者)</text>
-    <rect x="370" y="65" width="390" height="42" rx="6" fill="#2d1d24" stroke="#f85149" stroke-width="1"/>
-    <text x="565" y="90" fill="#f85149" font-size="12" font-family="monospace" text-anchor="middle">SELECT * FROM invoices WHERE id = 10086;</text>
-    <text x="565" y="130" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Token 雖合法，但伺服器未校驗 10086 屬於 User 999 還是 User 42</text>
-    <text x="565" y="152" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">➔ 越權洩漏他人隱私財務數據！</text>
-
-  </svg>
-</div>
+<BolaAttackDefenseDiagram />
 
 ### 1.1 防禦架構：行級安全（RLS）與防禦性查詢
 
@@ -83,7 +61,7 @@ def get_invoice(invoice_id: str, current_user = Depends(get_current_user)):
 
 現代 Web 框架（如 Spring Boot、Ruby on Rails、FastAPI、Prisma）通常提供方便的「自動模型綁定」功能。若未對傳入參數進行嚴格過濾，攻擊者就能隨意修改系統核心欄位：
 
-```json
+```http
 // 攻擊者在更新用戶個人資料時，惡意夾帶權限欄位
 PATCH /api/v1/users/me
 {
@@ -103,29 +81,7 @@ PATCH /api/v1/users/me
 
 JWT 是現代分散式系統最常用的無狀態憑證，但其底層如果實作不慎，極易遭受毀滅性攻擊：
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="jwt-struct-title jwt-struct-desc">
-    <title id="jwt-struct-title">JWT 三段式結構示意圖</title>
-    <desc id="jwt-struct-desc">展示 Header 演算法、Payload 身份聲明與 Signature 簽名校驗的三段式標準格式。</desc>
-    
-    <rect x="20" y="20" width="240" height="75" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.5"/>
-    <text x="140" y="48" fill="#f85149" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Header (頭部)</text>
-    <text x="140" y="72" fill="#8b949e" font-size="11" font-family="monospace" text-anchor="middle">alg (RS256) + typ (JWT)</text>
-
-    <text x="270" y="62" fill="#58a6ff" font-size="22" font-family="system-ui, sans-serif" font-weight="700">.</text>
-
-    <rect x="285" y="20" width="240" height="75" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="405" y="48" fill="#d2a8ff" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Payload (載荷)</text>
-    <text x="405" y="72" fill="#8b949e" font-size="11" font-family="monospace" text-anchor="middle">sub, role, exp (過期時間)</text>
-
-    <text x="535" y="62" fill="#58a6ff" font-size="22" font-family="system-ui, sans-serif" font-weight="700">.</text>
-
-    <rect x="550" y="20" width="230" height="75" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
-    <text x="665" y="48" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Signature (防偽簽名)</text>
-    <text x="665" y="72" fill="#8b949e" font-size="11" font-family="monospace" text-anchor="middle">HMACSHA256(H.P, secret)</text>
-
-  </svg>
-</div>
+<JwtStructureDiagram />
 
 ### 3.1 攻擊一：`alg: none` 簽名剝離攻擊
 
@@ -135,105 +91,7 @@ JWT 是現代分散式系統最常用的無狀態憑證，但其底層如果實�
 
 ### 3.2 攻擊二：密鑰混淆攻擊（RS256 降級為 HS256）
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg
-    viewBox="0 0 800 240"
-    class="w-full h-auto"
-    xmlns="http://www.w3.org/2000/svg"
-    role="img"
-    aria-labelledby="alg-confuse-title alg-confuse-desc"
-  >
-    <title id="alg-confuse-title">
-      JWT 密鑰混淆攻擊（Algorithm Confusion）流程圖
-    </title>
-    <desc id="alg-confuse-desc">
-      展示攻擊者將非對稱 RS256 降級為對稱 HS256，利用公開的 Public Key 當作
-      Secret 偽造合法簽名。
-    </desc>
-
-    <rect
-      x="20"
-      y="15"
-      width="760"
-      height="210"
-      rx="10"
-      fill="#161b22"
-      stroke="#da3633"
-      stroke-width="1.5"
-    />
-    <text
-      x="40"
-      y="40"
-      fill="#f85149"
-      font-size="14"
-      font-family="system-ui, sans-serif"
-      font-weight="700"
-    >
-      密鑰混淆攻擊步驟 (Algorithm Confusion Attack)
-    </text>
-    <text
-      x="40"
-      y="68"
-      fill="#c9d1d9"
-      font-size="12"
-      font-family="system-ui, sans-serif"
-    >
-      1. 伺服器原本預期使用 RS256（非對稱加密：公鑰驗證，私鑰簽名）
-    </text>
-    <text
-      x="40"
-      y="92"
-      fill="#c9d1d9"
-      font-size="12"
-      font-family="system-ui, sans-serif"
-    >
-      2. 攻擊者獲取了伺服器的【公開公鑰 Public Key】（通常是公開可得的 PEM
-      格式字串）
-    </text>
-    <text
-      x="40"
-      y="116"
-      fill="#f85149"
-      font-size="12"
-      font-family="system-ui, sans-serif"
-    >
-      3. 攻擊者將 Token Header 的 alg 改為 HS256（對稱加密），並以【公鑰字串】為
-      Secret 簽名偽造管理員 Token！
-    </text>
-
-    <rect
-      x="40"
-      y="132"
-      width="720"
-      height="52"
-      rx="6"
-      fill="#2d1d24"
-      stroke="#f85149"
-      stroke-width="1"
-    />
-    <text
-      x="50"
-      y="154"
-      fill="#f85149"
-      font-size="12"
-      font-family="system-ui, sans-serif"
-      font-weight="700"
-    >
-      伺服器驗證缺陷：
-    </text>
-    <text
-      x="50"
-      y="172"
-      fill="#c9d1d9"
-      font-size="11"
-      font-family="system-ui, sans-serif"
-    >
-      若驗證程式碼未鎖死演算法，直接將 publicKey 當密鑰傳入 HS256 驗證 ➔
-      雜湊完全吻合 ➔ 攻擊者成功偽造身分！
-    </text>
-
-  </svg>
-</div>
+<JwtAlgorithmConfusionDiagram />
 
 - **防禦**：使用專門的密鑰管理模組，嚴格分離對稱與非對稱金鑰體系，杜絕公鑰被當作對稱金鑰驗證。
 
