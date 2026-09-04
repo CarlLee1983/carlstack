@@ -1,0 +1,478 @@
+---
+// Perfect Forward Secrecy (PFS) and Post-Compromise Security (PCS) Timeline Diagram Component
+---
+
+<figure class="pfs-diag" aria-labelledby="pfs-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="pfs-diag__desktop"
+    viewBox="0 0 880 240"
+    role="img"
+    aria-labelledby="pfs-diag-title pfs-diag-desc"
+  >
+    <title id="pfs-diag-title">
+      前向保密性（PFS）與後向安全性（PCS）時序定義圖
+    </title>
+    <desc id="pfs-diag-desc">
+      展示設備私鑰洩漏時，PFS 保證過去歷史訊息依然安全，PCS
+      透過密鑰自癒保證未來訊息重新安全。
+    </desc>
+
+    <defs>
+      <marker
+        id="pfs-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="pfs-diag__arrow-head--blue"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="210"
+      rx="12"
+      class="pfs-diag__card-bg"></rect>
+
+    <!-- 3 Epoch Boxes -->
+    <!-- Epoch 1: Past / PFS (x: 45, width: 245) -->
+    <g transform="translate(45, 30)">
+      <rect
+        width="245"
+        height="70"
+        rx="8"
+        class="pfs-diag__box pfs-diag__box--green"></rect>
+      <text
+        x="122"
+        y="28"
+        class="pfs-diag__title pfs-diag__title--green"
+        text-anchor="middle"
+      >
+        歷史過去訊息 (Past)
+      </text>
+      <rect
+        x="15"
+        y="38"
+        width="215"
+        height="22"
+        rx="4"
+        class="pfs-diag__pill pfs-diag__pill--green"></rect>
+      <text
+        x="122"
+        y="53"
+        class="pfs-diag__pill-text pfs-diag__pill-text--green"
+        text-anchor="middle"
+      >
+        PFS: 密鑰已銷毀，歷史密文不可破！
+      </text>
+    </g>
+
+    <!-- Epoch 2: Compromise (x: 315, width: 250) -->
+    <g transform="translate(315, 30)">
+      <rect
+        width="250"
+        height="70"
+        rx="8"
+        class="pfs-diag__box pfs-diag__box--red"></rect>
+      <text
+        x="125"
+        y="28"
+        class="pfs-diag__title pfs-diag__title--red"
+        text-anchor="middle"
+      >
+        ⚠️ 設備私鑰洩漏 / 短暫被攻破
+      </text>
+      <rect
+        x="15"
+        y="38"
+        width="220"
+        height="22"
+        rx="4"
+        class="pfs-diag__pill pfs-diag__pill--red"></rect>
+      <text
+        x="125"
+        y="53"
+        class="pfs-diag__pill-text pfs-diag__pill-text--red"
+        text-anchor="middle"
+      >
+        攻擊者獲取某時刻暫態密鑰 (Snapshot)
+      </text>
+    </g>
+
+    <!-- Epoch 3: Future / PCS (x: 590, width: 245) -->
+    <g transform="translate(590, 30)">
+      <rect
+        width="245"
+        height="70"
+        rx="8"
+        class="pfs-diag__box pfs-diag__box--green"></rect>
+      <text
+        x="122"
+        y="28"
+        class="pfs-diag__title pfs-diag__title--green"
+        text-anchor="middle"
+      >
+        未來通訊訊息 (Future)
+      </text>
+      <rect
+        x="15"
+        y="38"
+        width="215"
+        height="22"
+        rx="4"
+        class="pfs-diag__pill pfs-diag__pill--green"></rect>
+      <text
+        x="122"
+        y="53"
+        class="pfs-diag__pill-text pfs-diag__pill-text--green"
+        text-anchor="middle"
+      >
+        PCS: 協議自動注入新熵，自癒加密！
+      </text>
+    </g>
+
+    <!-- Timeline Arrow Axis -->
+    <g transform="translate(45, 125)">
+      <line
+        x1="0"
+        y1="0"
+        x2="780"
+        y2="0"
+        class="pfs-diag__axis-line"
+        marker-end="url(#pfs-arrow-blue)"></line>
+      <circle cx="122" cy="0" r="5" class="pfs-diag__dot pfs-diag__dot--green"
+      ></circle>
+      <circle cx="395" cy="0" r="6" class="pfs-diag__dot pfs-diag__dot--red"
+      ></circle>
+      <circle cx="667" cy="0" r="5" class="pfs-diag__dot pfs-diag__dot--green"
+      ></circle>
+      <text x="790" y="4" class="pfs-diag__axis-label" text-anchor="end"
+        >通訊時間軸 (Timeline) ➔</text
+      >
+    </g>
+
+    <!-- Summary Banner at Bottom -->
+    <g transform="translate(140, 160)">
+      <rect width="600" height="42" rx="8" class="pfs-diag__summary-box"></rect>
+      <text x="300" y="26" class="pfs-diag__summary-text" text-anchor="middle">
+        🛡️ 真 E2EE 的密碼學黃金標準：過去密文不可破（PFS） ＋
+        未來通訊自動自癒（PCS）
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="pfs-diag__mobile">
+    <div class="pfs-mobile-card pfs-mobile-card--green">
+      <span class="pfs-mobile-badge pfs-mobile-badge--green"
+        >PAST: PFS 保證</span
+      >
+      <h4>1. 歷史過去訊息（前向保密 Perfect Forward Secrecy）</h4>
+      <p>
+        每條訊息的暫態密鑰在加解密完成後立即從記憶體徹底抹除。即使攻擊者今日拿到設備的長期私鑰，也完全無法回溯解密過去攔截的歷史密文！
+      </p>
+    </div>
+
+    <div class="pfs-mobile-card pfs-mobile-card--red">
+      <span class="pfs-mobile-badge pfs-mobile-badge--red">EVENT: 私鑰遭竊</span
+      >
+      <h4>2. 設備遭惡意滲透 / 短暫淪陷</h4>
+      <p>
+        攻擊者獲取用戶當前暫態密鑰快照。若無安全機制，攻擊者將持續偷聽所有後續對話。
+      </p>
+    </div>
+
+    <div class="pfs-mobile-card pfs-mobile-card--green">
+      <span class="pfs-mobile-badge pfs-mobile-badge--green"
+        >FUTURE: PCS 自癒</span
+      >
+      <h4>3. 未來通訊訊息（後向安全 Post-Compromise Security）</h4>
+      <p>
+        用戶只要持續發送新訊息，雙棘輪協議會觸發新的 DH
+        非對稱密鑰交換，注入全新隨機熵，協議在數輪對話內自動自癒並將攻擊者徹底踢出！
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="pfs-diag-caption" class="pfs-diag__caption">
+    圖一：端到端加密核心安全性質：前向保密性（PFS）與後向安全性（PCS）時序定義
+  </figcaption>
+</figure>
+
+<style>
+  .pfs-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .pfs-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .pfs-diag__mobile {
+    display: none;
+  }
+
+  .pfs-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .pfs-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .pfs-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .pfs-diag__box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .pfs-diag__box--red {
+    fill: var(--dg-surface-2, #2d1d24);
+    stroke: #da3633;
+  }
+
+  .pfs-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .pfs-diag__title--green {
+    fill: #3fb950;
+  }
+
+  .pfs-diag__title--red {
+    fill: #f85149;
+  }
+
+  .pfs-diag__pill {
+    stroke-width: 1px;
+  }
+
+  .pfs-diag__pill--green {
+    fill: rgba(35, 134, 54, 0.2);
+    stroke: #238636;
+  }
+
+  .pfs-diag__pill--red {
+    fill: rgba(218, 54, 51, 0.2);
+    stroke: #da3633;
+  }
+
+  .pfs-diag__pill-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .pfs-diag__pill-text--green {
+    fill: #56d364;
+  }
+
+  .pfs-diag__pill-text--red {
+    fill: #f85149;
+  }
+
+  .pfs-diag__axis-line {
+    stroke: #58a6ff;
+    stroke-width: 2.5px;
+  }
+
+  .pfs-diag__arrow-head--blue {
+    fill: #58a6ff;
+  }
+
+  .pfs-diag__dot {
+    stroke-width: 2px;
+  }
+
+  .pfs-diag__dot--green {
+    fill: #3fb950;
+    stroke: #ffffff;
+  }
+
+  .pfs-diag__dot--red {
+    fill: #f85149;
+    stroke: #ffffff;
+  }
+
+  .pfs-diag__axis-label {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    fill: #58a6ff;
+  }
+
+  .pfs-diag__summary-box {
+    fill: var(--dg-surface-2, #10141a);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1px;
+  }
+
+  .pfs-diag__summary-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--dg-ink, #f0f6fc);
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .pfs-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__box--red {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__title--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__title--red {
+    fill: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__pill--green {
+    fill: #dcfce7;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__pill--red {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__pill-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__pill-text--red {
+    fill: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__axis-line {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__arrow-head--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__axis-label {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__summary-box {
+    fill: #f6f8fa;
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .pfs-diag__summary-text {
+    fill: var(--dg-ink, #24292f);
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .pfs-diag__desktop {
+      display: none !important;
+    }
+
+    .pfs-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .pfs-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .pfs-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .pfs-mobile-card--red {
+      border-color: #da3633;
+      background: rgba(218, 54, 51, 0.05);
+    }
+
+    .pfs-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .pfs-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .pfs-mobile-badge--red {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f85149;
+    }
+
+    .pfs-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .pfs-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+  }
+</style>
