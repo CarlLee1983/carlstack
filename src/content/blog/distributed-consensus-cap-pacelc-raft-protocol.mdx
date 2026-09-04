@@ -16,7 +16,8 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
 import CapPacelcTheoremDiagram from "../../components/CapPacelcTheoremDiagram.astro";
-import RaftConsensusArchitectureDiagram from "../../components/RaftConsensusArchitectureDiagram.astro";
+import RaftRoleFsmDiagram from "../../components/RaftRoleFsmDiagram.astro";
+import RaftLogReplicationDiagram from "../../components/RaftLogReplicationDiagram.astro";
 
 在建構大規模分散式系統（如 Kubernetes 的 etcd、Kafka 的 KRaft、CockroachDB 或 TiDB）時，跨網路的多個獨立節點如何對某個資料值或操作日誌達成**全域唯一且不可撤銷的共識（Consensus）**？
 
@@ -60,9 +61,9 @@ Eric Brewer 提出的 CAP 定理是分散式領域中最被廣泛引用、但也
 
 經典的 Paxos 演算法因晦澀難懂且難以在工業界直接實現而著稱。史丹佛大學團隊提出了 **Raft 演算法**，其核心思想是將共識問題分解為兩個完全獨立的子問題：**領導者選舉（Leader Election）** 與 **日誌複製（Log Replication）**。
 
-<RaftConsensusArchitectureDiagram />
-
 ### 3.1 三種角色狀態轉換
+
+<RaftRoleFsmDiagram />
 
 1. **Follower（跟隨者）**：完全被動，僅接收來自 Leader 的日誌追加與心跳，若心跳逾時則發起選舉。
 2. **Candidate（候選人）**：主動拉票，向其他節點發送 `RequestVote` RPC。
@@ -81,6 +82,8 @@ Eric Brewer 提出的 CAP 定理是分散式領域中最被廣泛引用、但也
 - 獲得**過半數（Quorum: `floor(N / 2) + 1`）** 投票的 Candidate 立即勝出成為新任 Leader。
 
 ### 4.2 日誌複製與兩階段提交安全保證
+
+<RaftLogReplicationDiagram />
 
 Leader 接收 Client 寫入請求後，先以未提交狀態寫入本機日誌，再透過 `AppendEntries` RPC 平行廣播複製至各 Follower。當過半數 Quorum 節點均回報持久化成功後，Leader 立即推進 `commitIndex`，並向 Client 回覆確認。
 

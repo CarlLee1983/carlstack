@@ -1,0 +1,540 @@
+---
+// Raft Role State Transitions FSM Diagram Component
+---
+
+<figure class="raft-fsm-diagram" aria-labelledby="raft-fsm-caption">
+  <!-- Desktop SVG layout (ViewBox 840x260, spacious 3-node FSM with clean arched fallback) -->
+  <svg
+    class="raft-fsm-diagram__desktop"
+    viewBox="0 0 840 260"
+    role="img"
+    aria-labelledby="raft-fsm-title raft-fsm-desc"
+  >
+    <title id="raft-fsm-title">Raft 三種角色狀態機躍遷圖</title>
+    <desc id="raft-fsm-desc">
+      展示 Follower（跟隨者）心跳逾時自增 Term 轉為
+      Candidate（候選人），獲得過半 Quorum 投票勝選為 Leader（領導者），發現更高
+      Term 或當機重啟後降級回 Follower。
+    </desc>
+
+    <defs>
+      <marker
+        id="fsm-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-fsm-diagram__arrow--blue"
+        ></path>
+      </marker>
+      <marker
+        id="fsm-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-fsm-diagram__arrow--green"
+        ></path>
+      </marker>
+      <marker
+        id="fsm-arrow-red"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-fsm-diagram__arrow--red"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Frame Card (X: 20, Y: 20, W: 800, H: 215, Bottom margin: 25px) -->
+    <g transform="translate(20, 20)">
+      <rect width="800" height="215" rx="12" class="raft-fsm-diagram__card"
+      ></rect>
+      <text class="raft-fsm-diagram__badge" x="20" y="26"
+        >RAFT ROLE STATE MACHINE</text
+      >
+      <text class="raft-fsm-diagram__title" x="20" y="48"
+        >三角色狀態機流轉 (State Transitions)</text
+      >
+
+      <!-- Top Fallback Arc (Leader -> Follower) -->
+      <!-- Leader center: X: 675, Follower center: X: 125, Peak Y: 58 -->
+      <path
+        d="M 675 95 C 675 62, 125 62, 125 90"
+        class="raft-fsm-diagram__arc-line"
+        stroke-dasharray="5 4"
+        marker-end="url(#fsm-arrow-red)"></path>
+      <rect
+        x="250"
+        y="52"
+        width="300"
+        height="22"
+        rx="4"
+        class="raft-fsm-diagram__arc-badge"></rect>
+      <text
+        class="raft-fsm-diagram__arc-text"
+        x="400"
+        y="67"
+        text-anchor="middle"
+      >
+        發現更高 Term 任期號或崩潰重啟 ➔ 降級為 Follower
+      </text>
+
+      <!-- Node 1: FOLLOWER (X: 20, Y: 95, W: 210, H: 95) -->
+      <g transform="translate(20, 95)">
+        <rect
+          width="210"
+          height="95"
+          rx="8"
+          class="raft-fsm-diagram__node raft-fsm-diagram__node--follower"
+        ></rect>
+        <text
+          class="raft-fsm-diagram__node-title"
+          x="105"
+          y="30"
+          text-anchor="middle">FOLLOWER (跟隨者)</text
+        >
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="105"
+          y="54"
+          text-anchor="middle">• 完全被動接收日誌與心跳</text
+        >
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="105"
+          y="74"
+          text-anchor="middle">• 心跳逾時 (150~300ms) 觸發選舉</text
+        >
+      </g>
+
+      <!-- Arrow 1: Follower -> Candidate -->
+      <path
+        d="M 230 142 L 275 142"
+        class="raft-fsm-diagram__flow-line raft-fsm-diagram__flow-line--blue"
+        marker-end="url(#fsm-arrow-blue)"></path>
+      <text
+        class="raft-fsm-diagram__flow-tag raft-fsm-diagram__flow-tag--blue"
+        x="252"
+        y="132"
+        text-anchor="middle"
+      >
+        心跳逾時
+      </text>
+
+      <!-- Node 2: CANDIDATE (X: 285, Y: 95, W: 230, H: 95) -->
+      <g transform="translate(285, 95)">
+        <rect
+          width="230"
+          height="95"
+          rx="8"
+          class="raft-fsm-diagram__node raft-fsm-diagram__node--candidate"
+        ></rect>
+        <text
+          class="raft-fsm-diagram__node-title raft-fsm-diagram__node-title--candidate"
+          x="115"
+          y="30"
+          text-anchor="middle"
+        >
+          CANDIDATE (候選人)
+        </text>
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="115"
+          y="54"
+          text-anchor="middle">• 自增 Term 任期號，投自己一票</text
+        >
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="115"
+          y="74"
+          text-anchor="middle">• 向其他節點廣播 RequestVote RPC</text
+        >
+      </g>
+
+      <!-- Arrow 2: Candidate -> Leader -->
+      <path
+        d="M 515 142 L 560 142"
+        class="raft-fsm-diagram__flow-line raft-fsm-diagram__flow-line--green"
+        marker-end="url(#fsm-arrow-green)"></path>
+      <text
+        class="raft-fsm-diagram__flow-tag raft-fsm-diagram__flow-tag--green"
+        x="537"
+        y="132"
+        text-anchor="middle"
+      >
+        獲得過半票
+      </text>
+
+      <!-- Node 3: LEADER (X: 570, Y: 95, W: 210, H: 95) -->
+      <g transform="translate(570, 95)">
+        <rect
+          width="210"
+          height="95"
+          rx="8"
+          class="raft-fsm-diagram__node raft-fsm-diagram__node--leader"></rect>
+        <text
+          class="raft-fsm-diagram__node-title raft-fsm-diagram__node-title--leader"
+          x="105"
+          y="30"
+          text-anchor="middle"
+        >
+          LEADER (領導者)
+        </text>
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="105"
+          y="54"
+          text-anchor="middle">• 唯一全權受理 Client 寫入</text
+        >
+        <text
+          class="raft-fsm-diagram__node-desc"
+          x="105"
+          y="74"
+          text-anchor="middle">• 定期發送心跳維持統治地位</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="raft-fsm-diagram__mobile">
+    <div class="raft-fsm-diagram__m-card">
+      <div class="raft-fsm-diagram__m-badge">ROLE 01</div>
+      <h4 class="raft-fsm-diagram__m-title">FOLLOWER (跟隨者)</h4>
+      <p class="raft-fsm-diagram__m-desc">
+        完全被動響應來自 Leader
+        的日誌追加與心跳。當隨機化逾時（150ms~300ms）到達未收到心跳時，自增 Term
+        躍遷為 Candidate。
+      </p>
+    </div>
+
+    <div class="raft-fsm-diagram__m-arrow">↓ 心跳逾時，發起投票</div>
+
+    <div class="raft-fsm-diagram__m-card raft-fsm-diagram__m-card--candidate">
+      <div
+        class="raft-fsm-diagram__m-badge raft-fsm-diagram__m-badge--candidate"
+      >
+        ROLE 02
+      </div>
+      <h4
+        class="raft-fsm-diagram__m-title raft-fsm-diagram__m-title--candidate"
+      >
+        CANDIDATE (候選人)
+      </h4>
+      <p class="raft-fsm-diagram__m-desc">
+        自增 Term 並向全體節點廣播 RequestVote RPC
+        拉票。若贏得多數票（Quorum）則晉升 Leader；若收到更高 Term 則退回
+        Follower。
+      </p>
+    </div>
+
+    <div class="raft-fsm-diagram__m-arrow">↓ 贏得多數 Quorum 票數</div>
+
+    <div class="raft-fsm-diagram__m-card raft-fsm-diagram__m-card--leader">
+      <div class="raft-fsm-diagram__m-badge raft-fsm-diagram__m-badge--leader">
+        ROLE 03
+      </div>
+      <h4 class="raft-fsm-diagram__m-title raft-fsm-diagram__m-title--leader">
+        LEADER (領導者)
+      </h4>
+      <p class="raft-fsm-diagram__m-desc">
+        唯一全權負責受理 Client 寫入、為日誌指派 Index，並向所有 Follower 同步
+        AppendEntries RPC；持續廣播心跳維繫權威。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="raft-fsm-caption" class="raft-fsm-diagram__caption">
+    圖：Raft 演算法三種角色狀態轉換有限狀態機 (FSM)
+  </figcaption>
+</figure>
+
+<style>
+  .raft-fsm-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-rule);
+    background: var(--dg-surface);
+    overflow: hidden;
+  }
+
+  .raft-fsm-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .raft-fsm-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .raft-fsm-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .raft-fsm-diagram__badge {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-fsm-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-fsm-diagram__arc-line {
+    fill: none;
+    stroke: #dc2626;
+    stroke-width: 2;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arc-line {
+    stroke: #f87171;
+  }
+
+  .raft-fsm-diagram__arc-badge {
+    fill: var(--dg-surface);
+    stroke: #dc2626;
+    stroke-width: 1;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arc-badge {
+    stroke: #f87171;
+  }
+
+  .raft-fsm-diagram__arc-text {
+    fill: #dc2626;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arc-text {
+    fill: #fca5a5;
+  }
+
+  .raft-fsm-diagram__node {
+    stroke-width: 1.5;
+  }
+
+  .raft-fsm-diagram__node--follower {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+
+  .raft-fsm-diagram__node--candidate {
+    fill: rgba(217, 119, 6, 0.05);
+    stroke: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__node--candidate {
+    fill: rgba(217, 119, 6, 0.12);
+    stroke: #f59e0b;
+  }
+
+  .raft-fsm-diagram__node--leader {
+    fill: rgba(22, 163, 74, 0.05);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__node--leader {
+    fill: rgba(22, 163, 74, 0.12);
+    stroke: #4ade80;
+  }
+
+  .raft-fsm-diagram__node-title {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-fsm-diagram__node-title--candidate {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__node-title--candidate {
+    fill: #f59e0b;
+  }
+
+  .raft-fsm-diagram__node-title--leader {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__node-title--leader {
+    fill: #4ade80;
+  }
+
+  .raft-fsm-diagram__node-desc {
+    fill: var(--dg-ink-2);
+    font-size: 11.5px;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-fsm-diagram__flow-line {
+    fill: none;
+    stroke-width: 2.5;
+  }
+
+  .raft-fsm-diagram__flow-line--blue {
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__flow-line--blue {
+    stroke: #60a5fa;
+  }
+
+  .raft-fsm-diagram__flow-line--green {
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__flow-line--green {
+    stroke: #4ade80;
+  }
+
+  .raft-fsm-diagram__arrow--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arrow--blue {
+    fill: #60a5fa;
+  }
+
+  .raft-fsm-diagram__arrow--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arrow--green {
+    fill: #4ade80;
+  }
+
+  .raft-fsm-diagram__arrow--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__arrow--red {
+    fill: #f87171;
+  }
+
+  .raft-fsm-diagram__flow-tag {
+    font-size: 11px;
+    font-weight: 700;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-fsm-diagram__flow-tag--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__flow-tag--blue {
+    fill: #60a5fa;
+  }
+
+  .raft-fsm-diagram__flow-tag--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-fsm-diagram__flow-tag--green {
+    fill: #4ade80;
+  }
+
+  .raft-fsm-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Responsive Mobile */
+  @media (max-width: 48rem) {
+    .raft-fsm-diagram__desktop {
+      display: none !important;
+    }
+
+    .raft-fsm-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .raft-fsm-diagram__m-card {
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .raft-fsm-diagram__m-card--candidate {
+      border-left: 4px solid #d97706;
+    }
+
+    .raft-fsm-diagram__m-card--leader {
+      border-left: 4px solid #16a34a;
+    }
+
+    .raft-fsm-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+    }
+
+    .raft-fsm-diagram__m-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .raft-fsm-diagram__m-title--candidate {
+      color: #d97706;
+    }
+
+    .raft-fsm-diagram__m-title--leader {
+      color: #16a34a;
+    }
+
+    .raft-fsm-diagram__m-desc {
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .raft-fsm-diagram__m-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+    }
+  }
+</style>

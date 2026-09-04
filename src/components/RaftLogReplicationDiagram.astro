@@ -1,0 +1,547 @@
+---
+// Raft Two-Phase Log Replication & Quorum Commit Diagram Component
+---
+
+<figure class="raft-log-diagram" aria-labelledby="raft-log-caption">
+  <!-- Desktop SVG layout (ViewBox 840x360, spacious step-by-step pipeline) -->
+  <svg
+    class="raft-log-diagram__desktop"
+    viewBox="0 0 840 360"
+    role="img"
+    aria-labelledby="raft-log-title raft-log-desc"
+  >
+    <title id="raft-log-title">Raft 日誌兩階段複製與 Quorum 提交流程圖</title>
+    <desc id="raft-log-desc">
+      展示客戶端將寫入請求發送至 Leader，Leader 記錄未提交日誌並廣播
+      AppendEntries RPC 至各 Follower 節點，當過半數節點寫入磁碟後推進 Commit
+      Index，並安全回覆客戶端。
+    </desc>
+
+    <defs>
+      <marker
+        id="rl-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-log-diagram__arrow--blue"
+        ></path>
+      </marker>
+      <marker
+        id="rl-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-log-diagram__arrow--purple"
+        ></path>
+      </marker>
+      <marker
+        id="rl-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="raft-log-diagram__arrow--green"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Frame Card (X: 20, Y: 20, W: 800, H: 315, Bottom margin: 25px) -->
+    <g transform="translate(20, 20)">
+      <rect width="800" height="315" rx="12" class="raft-log-diagram__card"
+      ></rect>
+      <text class="raft-log-diagram__badge" x="20" y="26"
+        >RAFT LOG REPLICATION & QUORUM</text
+      >
+      <text class="raft-log-diagram__title" x="20" y="48"
+        >日誌兩階段複製與 Commit 推進流程</text
+      >
+
+      <!-- Step 1: Client Request & Leader Log (X: 20, Y: 70) -->
+      <g transform="translate(20, 70)">
+        <!-- Client Box (W: 180, H: 48) -->
+        <rect
+          width="180"
+          height="48"
+          rx="8"
+          class="raft-log-diagram__node raft-log-diagram__node--client"></rect>
+        <text
+          class="raft-log-diagram__header raft-log-diagram__header--blue"
+          x="90"
+          y="22"
+          text-anchor="middle"
+        >
+          Client 客戶端
+        </text>
+        <text class="raft-log-diagram__desc" x="90" y="38" text-anchor="middle">
+          發起寫入：Set x=5
+        </text>
+
+        <!-- Arrow Client -> Leader -->
+        <path
+          d="M 180 24 L 218 24"
+          class="raft-log-diagram__flow-line raft-log-diagram__flow-line--blue"
+          marker-end="url(#rl-arrow-blue)"></path>
+
+        <!-- Leader Log Box (X: 228, W: 532, H: 48) -->
+        <g transform="translate(228, 0)">
+          <rect
+            width="532"
+            height="48"
+            rx="8"
+            class="raft-log-diagram__node raft-log-diagram__node--leader"
+          ></rect>
+          <text
+            class="raft-log-diagram__mono"
+            x="266"
+            y="22"
+            text-anchor="middle"
+          >
+            Leader Log: [ Index 1, Term 1, Set x=5 (Uncommitted) ]
+          </text>
+          <text
+            class="raft-log-diagram__desc"
+            x="266"
+            y="38"
+            text-anchor="middle"
+          >
+            寫入本機 WAL 日誌（尚未 Commit）
+          </text>
+        </g>
+      </g>
+
+      <!-- Step 2: AppendEntries RPC to Followers (Y: 142) -->
+      <!-- Leader Center is ~580. Branches down to Follower A (X: 180) & Follower B (X: 520) -->
+      <path
+        d="M 400 118 L 220 148"
+        class="raft-log-diagram__flow-line raft-log-diagram__flow-line--purple"
+        marker-end="url(#rl-arrow-purple)"></path>
+      <path
+        d="M 620 118 L 570 148"
+        class="raft-log-diagram__flow-line raft-log-diagram__flow-line--purple"
+        marker-end="url(#rl-arrow-purple)"></path>
+
+      <g transform="translate(20, 150)">
+        <!-- Follower A (W: 360, H: 52) -->
+        <g transform="translate(40, 0)">
+          <rect
+            width="320"
+            height="52"
+            rx="8"
+            class="raft-log-diagram__node raft-log-diagram__node--follower"
+          ></rect>
+          <text
+            class="raft-log-diagram__header raft-log-diagram__header--purple"
+            x="160"
+            y="24"
+            text-anchor="middle"
+          >
+            Follower A (AppendEntries 寫入磁碟)
+          </text>
+          <text
+            class="raft-log-diagram__desc"
+            x="160"
+            y="42"
+            text-anchor="middle"
+          >
+            持久化未提交日誌 ➔ 回覆 ACK 成功
+          </text>
+        </g>
+
+        <!-- Follower B (W: 360, H: 52) -->
+        <g transform="translate(400, 0)">
+          <rect
+            width="320"
+            height="52"
+            rx="8"
+            class="raft-log-diagram__node raft-log-diagram__node--follower"
+          ></rect>
+          <text
+            class="raft-log-diagram__header raft-log-diagram__header--purple"
+            x="160"
+            y="24"
+            text-anchor="middle"
+          >
+            Follower B (AppendEntries 寫入磁碟)
+          </text>
+          <text
+            class="raft-log-diagram__desc"
+            x="160"
+            y="42"
+            text-anchor="middle"
+          >
+            持久化未提交日誌 ➔ 回覆 ACK 成功
+          </text>
+        </g>
+      </g>
+
+      <!-- Step 3: Quorum Commit & State Machine Apply (Y: 226) -->
+      <path
+        d="M 200 202 L 380 230"
+        class="raft-log-diagram__flow-line raft-log-diagram__flow-line--green"
+        marker-end="url(#rl-arrow-green)"></path>
+      <path
+        d="M 560 202 L 420 230"
+        class="raft-log-diagram__flow-line raft-log-diagram__flow-line--green"
+        marker-end="url(#rl-arrow-green)"></path>
+
+      <g transform="translate(70, 232)">
+        <rect
+          width="660"
+          height="60"
+          rx="8"
+          class="raft-log-diagram__node raft-log-diagram__node--commit"></rect>
+        <text
+          class="raft-log-diagram__header raft-log-diagram__header--green"
+          x="330"
+          y="26"
+          text-anchor="middle"
+        >
+          過半數 Quorum 寫入成功 ➔ Leader 推進 Commit Index！
+        </text>
+        <text
+          class="raft-log-diagram__desc raft-log-diagram__desc--green"
+          x="330"
+          y="46"
+          text-anchor="middle"
+        >
+          日誌安全應用至本機狀態機 ➔ 回覆客戶端成功 ➔ 下次心跳廣播通知 Followers
+          Commit
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="raft-log-diagram__mobile">
+    <div class="raft-log-diagram__m-card">
+      <div class="raft-log-diagram__m-badge">PHASE 01: WRITE REQUEST</div>
+      <h4 class="raft-log-diagram__m-title">
+        客戶端發起寫入與 Leader 日誌預寫
+      </h4>
+      <p class="raft-log-diagram__m-desc">
+        Client 發送 <code>Set x=5</code> 請求。Leader 將操作附加至本地 WAL 日誌中，標記為未提交（Uncommitted）狀態。
+      </p>
+    </div>
+
+    <div class="raft-log-diagram__m-arrow">↓ 廣播 AppendEntries RPC</div>
+
+    <div class="raft-log-diagram__m-card raft-log-diagram__m-card--purple">
+      <div class="raft-log-diagram__m-badge raft-log-diagram__m-badge--purple">
+        PHASE 02: REPLICATION
+      </div>
+      <h4 class="raft-log-diagram__m-title raft-log-diagram__m-title--purple">
+        平行複製至所有 Follower 節點
+      </h4>
+      <p class="raft-log-diagram__m-desc">
+        Follower 接收到日誌項目並確認前置 Index 與 Term 無誤後，寫入本地磁碟並向
+        Leader 回覆 ACK 成功。
+      </p>
+    </div>
+
+    <div class="raft-log-diagram__m-arrow">↓ 達到過半數 Quorum (N/2 + 1)</div>
+
+    <div class="raft-log-diagram__m-card raft-log-diagram__m-card--green">
+      <div class="raft-log-diagram__m-badge raft-log-diagram__m-badge--green">
+        PHASE 03: COMMIT & APPLY
+      </div>
+      <h4 class="raft-log-diagram__m-title raft-log-diagram__m-title--green">
+        推進 Commit Index 並回覆客戶端
+      </h4>
+      <p class="raft-log-diagram__m-desc">
+        一旦過半節點持久化成功，Leader 立即推進
+        commitIndex，將日誌應用至狀態機並回覆客戶端成功；日誌此時具有不可撤銷的安全性保證。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="raft-log-caption" class="raft-log-diagram__caption">
+    圖：Raft 日誌兩階段複製與 Quorum 多數派提交安全保證機制
+  </figcaption>
+</figure>
+
+<style>
+  .raft-log-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-rule);
+    background: var(--dg-surface);
+    overflow: hidden;
+  }
+
+  .raft-log-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .raft-log-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .raft-log-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .raft-log-diagram__badge {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-log-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-log-diagram__node {
+    stroke-width: 1.5;
+  }
+
+  .raft-log-diagram__node--client {
+    fill: rgba(37, 99, 235, 0.05);
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__node--client {
+    fill: rgba(37, 99, 235, 0.12);
+    stroke: #60a5fa;
+  }
+
+  .raft-log-diagram__node--leader {
+    fill: var(--dg-surface);
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__node--leader {
+    stroke: #60a5fa;
+  }
+
+  .raft-log-diagram__node--follower {
+    fill: rgba(139, 92, 246, 0.05);
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__node--follower {
+    fill: rgba(139, 92, 246, 0.12);
+    stroke: #a78bfa;
+  }
+
+  .raft-log-diagram__node--commit {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__node--commit {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .raft-log-diagram__header {
+    font-size: 13px;
+    font-weight: 700;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-log-diagram__header--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__header--blue {
+    fill: #60a5fa;
+  }
+
+  .raft-log-diagram__header--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__header--purple {
+    fill: #c4b5fd;
+  }
+
+  .raft-log-diagram__header--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__header--green {
+    fill: #4ade80;
+  }
+
+  .raft-log-diagram__mono {
+    font-size: 12.5px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__mono {
+    fill: #93c5fd;
+  }
+
+  .raft-log-diagram__desc {
+    fill: var(--dg-ink-2);
+    font-size: 11.5px;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .raft-log-diagram__desc--green {
+    fill: #16a34a;
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__desc--green {
+    fill: #86efac;
+  }
+
+  .raft-log-diagram__flow-line {
+    fill: none;
+    stroke-width: 2.2;
+  }
+
+  .raft-log-diagram__flow-line--blue {
+    stroke: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__flow-line--blue {
+    stroke: #60a5fa;
+  }
+
+  .raft-log-diagram__flow-line--purple {
+    stroke: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__flow-line--purple {
+    stroke: #a78bfa;
+  }
+
+  .raft-log-diagram__flow-line--green {
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__flow-line--green {
+    stroke: #4ade80;
+  }
+
+  .raft-log-diagram__arrow--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__arrow--blue {
+    fill: #60a5fa;
+  }
+
+  .raft-log-diagram__arrow--purple {
+    fill: #8b5cf6;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__arrow--purple {
+    fill: #a78bfa;
+  }
+
+  .raft-log-diagram__arrow--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .raft-log-diagram__arrow--green {
+    fill: #4ade80;
+  }
+
+  .raft-log-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Responsive Mobile */
+  @media (max-width: 48rem) {
+    .raft-log-diagram__desktop {
+      display: none !important;
+    }
+
+    .raft-log-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .raft-log-diagram__m-card {
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .raft-log-diagram__m-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .raft-log-diagram__m-card--green {
+      border-left: 4px solid #16a34a;
+    }
+
+    .raft-log-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
+    }
+
+    .raft-log-diagram__m-badge--purple {
+      color: #8b5cf6;
+    }
+
+    .raft-log-diagram__m-badge--green {
+      color: #16a34a;
+    }
+
+    .raft-log-diagram__m-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .raft-log-diagram__m-title--purple {
+      color: #7c3aed;
+    }
+
+    .raft-log-diagram__m-title--green {
+      color: #16a34a;
+    }
+
+    .raft-log-diagram__m-desc {
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .raft-log-diagram__m-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+    }
+  }
+</style>
