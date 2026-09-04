@@ -1,0 +1,319 @@
+---
+// Exponential Backoff vs Full Jitter Comparison Diagram Component
+---
+
+<figure class="jitter-diagram" aria-labelledby="jitter-diagram-caption">
+  <!-- Desktop SVG Layout (ViewBox 840x300, clear contrast, 25px+ bottom margin) -->
+  <svg
+    class="jitter-diagram__desktop"
+    viewBox="0 0 840 300"
+    role="img"
+    aria-labelledby="jitter-diagram-title jitter-diagram-desc"
+  >
+    <title id="jitter-diagram-title">
+      無抖動鋸齒共振 vs Full Jitter 流量平鋪對比圖
+    </title>
+    <desc id="jitter-diagram-desc">
+      展示無抖動時所有重試在固定週期引發同步脈衝衝擊下游，而 Full Jitter
+      將請求隨機分散在時間軸上，使流量平穩消除高峰。
+    </desc>
+
+    <!-- Box 1: No Jitter (Y: 20, Height: 115, Bottom margin: 25px) -->
+    <g transform="translate(20, 20)">
+      <rect
+        width="800"
+        height="115"
+        rx="12"
+        class="jitter-diagram__card jitter-diagram__card--bad"></rect>
+      <text
+        class="jitter-diagram__badge jitter-diagram__badge--bad"
+        x="20"
+        y="26">ANTI-PATTERN: NO JITTER</text
+      >
+      <text
+        class="jitter-diagram__title jitter-diagram__title--bad"
+        x="20"
+        y="50">❌ 固定指數退避 (No Jitter) ➔ 同步共振鋸齒波</text
+      >
+      <text class="jitter-diagram__desc" x="20" y="74"
+        >所有客戶端在 1s, 2s, 4s 瞬間同時重試，引發共振脈衝！</text
+      >
+
+      <!-- Pulse waves -->
+      <g transform="translate(480, 45)">
+        <rect x="0" y="30" width="300" height="2" class="jitter-diagram__axis"
+        ></rect>
+        <path
+          d="M 10 30 L 30 0 L 50 30 M 90 30 L 110 -15 L 130 30 M 180 30 L 205 -35 L 230 30"
+          class="jitter-diagram__spike-line"></path>
+        <text
+          class="jitter-diagram__axis-tag"
+          x="30"
+          y="44"
+          text-anchor="middle">1s 尖峰</text
+        >
+        <text
+          class="jitter-diagram__axis-tag"
+          x="110"
+          y="44"
+          text-anchor="middle">2s 尖峰</text
+        >
+        <text
+          class="jitter-diagram__axis-tag"
+          x="205"
+          y="44"
+          text-anchor="middle">4s 尖峰</text
+        >
+      </g>
+    </g>
+
+    <!-- Box 2: Full Jitter (Y: 155, Height: 120, Bottom margin: 25px) -->
+    <g transform="translate(20, 155)">
+      <rect
+        width="800"
+        height="120"
+        rx="12"
+        class="jitter-diagram__card jitter-diagram__card--good"></rect>
+      <text
+        class="jitter-diagram__badge jitter-diagram__badge--good"
+        x="20"
+        y="26">RECOMMENDED: FULL JITTER</text
+      >
+      <text
+        class="jitter-diagram__title jitter-diagram__title--good"
+        x="20"
+        y="50">✅ 結合 Full Jitter 全隨機抖動 ➔ 流量平鋪與自癒</text
+      >
+      <text class="jitter-diagram__desc" x="20" y="74"
+        >每個客戶端在 [0, Backoff] 區間隨機選值，消除峰值衝擊。</text
+      >
+
+      <!-- Smooth flat waves -->
+      <g transform="translate(480, 50)">
+        <rect x="0" y="25" width="300" height="2" class="jitter-diagram__axis"
+        ></rect>
+        <path
+          d="M 5 20 Q 25 10 45 22 T 85 18 T 125 22 T 165 19 T 205 21 T 245 20 T 285 22"
+          class="jitter-diagram__smooth-line"></path>
+        <text
+          class="jitter-diagram__axis-tag jitter-diagram__axis-tag--good"
+          x="150"
+          y="44"
+          text-anchor="middle">均勻分散時間軸・下游平順自癒</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="jitter-diagram__mobile">
+    <div class="jitter-diagram__m-card jitter-diagram__m-card--bad">
+      <div class="jitter-diagram__m-badge">ANTI-PATTERN</div>
+      <h4 class="jitter-diagram__m-title">❌ 無抖動固定退避：共振鋸齒</h4>
+      <p class="jitter-diagram__m-desc">
+        多個併發請求在遭遇故障後，遵循相同的公式在相同秒數（如 1s, 2s,
+        4s）同時發起重試，在下游形成劇烈尖峰脈衝，導致原本微小的抖動升級為永久雪崩。
+      </p>
+    </div>
+
+    <div class="jitter-diagram__m-card jitter-diagram__m-card--good">
+      <div class="jitter-diagram__m-badge">BEST PRACTICE</div>
+      <h4 class="jitter-diagram__m-title">
+        ✅ Full Jitter 全隨機抖動：均勻平鋪
+      </h4>
+      <p class="jitter-diagram__m-desc">
+        每次重試時在 <code>[0, Backoff]</code> 範圍內隨機挑選睡眠時長，打破所有客戶端的同步週期，使重試流量均勻散落在整個時間軸上，下游得以順利自癒。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="jitter-diagram-caption" class="jitter-diagram__caption">
+    圖：固定指數退避（鋸齒共振）與 Full Jitter（流量平鋪）的衝擊對比
+  </figcaption>
+</figure>
+
+<style>
+  .jitter-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-border);
+    background: var(--dg-bg);
+    overflow: hidden;
+  }
+
+  .jitter-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .jitter-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .jitter-diagram__card {
+    fill: var(--dg-card);
+    stroke-width: 1.5;
+  }
+
+  .jitter-diagram__card--bad {
+    stroke: var(--dg-red);
+  }
+
+  .jitter-diagram__card--good {
+    stroke: var(--dg-green);
+  }
+
+  .jitter-diagram__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family: system-ui, sans-serif;
+  }
+
+  .jitter-diagram__badge--bad {
+    fill: var(--dg-red);
+  }
+
+  .jitter-diagram__badge--good {
+    fill: var(--dg-green);
+  }
+
+  .jitter-diagram__title {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .jitter-diagram__title--bad {
+    fill: var(--dg-red);
+  }
+
+  .jitter-diagram__title--good {
+    fill: var(--dg-green);
+  }
+
+  .jitter-diagram__desc {
+    fill: var(--dg-body);
+    font-size: 12.5px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .jitter-diagram__axis {
+    fill: var(--dg-border);
+  }
+
+  .jitter-diagram__spike-line {
+    fill: none;
+    stroke: var(--dg-red);
+    stroke-width: 2.5;
+  }
+
+  .jitter-diagram__smooth-line {
+    fill: none;
+    stroke: var(--dg-green);
+    stroke-width: 2.5;
+  }
+
+  .jitter-diagram__axis-tag {
+    fill: var(--dg-muted);
+    font-size: 10.5px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .jitter-diagram__axis-tag--good {
+    fill: var(--dg-green);
+    font-weight: 600;
+  }
+
+  .jitter-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Mobile */
+  @media (max-width: 48rem) {
+    .jitter-diagram__desktop {
+      display: none;
+    }
+
+    .jitter-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .jitter-diagram__m-card {
+      background: var(--dg-card);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      border: 1px solid var(--dg-border);
+    }
+
+    .jitter-diagram__m-card--bad {
+      border-left: 4px solid var(--dg-red);
+    }
+
+    .jitter-diagram__m-card--good {
+      border-left: 4px solid var(--dg-green);
+    }
+
+    .jitter-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .jitter-diagram__m-card--bad .jitter-diagram__m-badge {
+      color: var(--dg-red);
+    }
+
+    .jitter-diagram__m-card--good .jitter-diagram__m-badge {
+      color: var(--dg-green);
+    }
+
+    .jitter-diagram__m-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--dg-title);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .jitter-diagram__m-desc {
+      font-size: 0.875rem;
+      color: var(--dg-body);
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  /* Tokens & Theme */
+  .jitter-diagram {
+    --dg-bg: var(--color-card, #f8fafc);
+    --dg-card: var(--color-surface, #ffffff);
+    --dg-card-soft: rgba(0, 0, 0, 0.03);
+    --dg-border: var(--color-border, #e2e8f0);
+    --dg-title: #0f172a;
+    --dg-body: #334155;
+    --dg-muted: #64748b;
+    --dg-green: #16a34a;
+    --dg-red: #dc2626;
+  }
+
+  :global(:root[data-theme="dark"]) .jitter-diagram {
+    --dg-bg: #0d1117;
+    --dg-card: #161b22;
+    --dg-card-soft: #21262d;
+    --dg-border: #30363d;
+    --dg-title: #f0f6fc;
+    --dg-body: #c9d1d9;
+    --dg-muted: #8b949e;
+    --dg-green: #3fb950;
+    --dg-red: #f85149;
+  }
+</style>

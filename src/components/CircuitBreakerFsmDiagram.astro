@@ -1,0 +1,439 @@
+---
+// Circuit Breaker Three-State FSM Component
+---
+
+<figure class="cb-diagram" aria-labelledby="cb-diagram-caption">
+  <!-- Desktop SVG Layout (ViewBox 840x380, big titles, 25px+ bottom margin) -->
+  <svg
+    class="cb-diagram__desktop"
+    viewBox="0 0 840 380"
+    role="img"
+    aria-labelledby="cb-diagram-title cb-diagram-desc"
+  >
+    <title id="cb-diagram-title">
+      斷路器三態有限狀態機 (FSM) 架構與狀態流轉圖
+    </title>
+    <desc id="cb-diagram-desc">
+      展示斷路器在 CLOSED（正常流通）、OPEN（熔斷阻斷）與
+      HALF-OPEN（試探恢復）三態之間的流轉條件與關鍵閾值。
+    </desc>
+
+    <defs>
+      <marker
+        id="cb-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="cb-diagram__arrow--blue"></path>
+      </marker>
+      <marker
+        id="cb-arrow-red"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="cb-diagram__arrow--red"></path>
+      </marker>
+      <marker
+        id="cb-arrow-green"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="cb-diagram__arrow--green"></path>
+      </marker>
+      <marker
+        id="cb-arrow-amber"
+        viewBox="0 0 10 10"
+        refX="7"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 1 L 8 5 L 0 9 z" class="cb-diagram__arrow--amber"></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Box (Height: 335, Bottom spacing: 25px) -->
+    <g transform="translate(20, 20)">
+      <rect width="800" height="335" rx="12" class="cb-diagram__card"></rect>
+      <text class="cb-diagram__badge" x="20" y="26"
+        >CIRCUIT BREAKER PATTERN</text
+      >
+      <text class="cb-diagram__title" x="20" y="50"
+        >斷路器三態有限狀態機 (FSM) 核心躍遷</text
+      >
+
+      <!-- 1. State: CLOSED (X: 30, Y: 85, W: 225, H: 105) -->
+      <g transform="translate(30, 85)">
+        <rect
+          width="225"
+          height="105"
+          rx="10"
+          class="cb-diagram__state cb-diagram__state--closed"></rect>
+        <text
+          class="cb-diagram__state-title cb-diagram__state-title--closed"
+          x="20"
+          y="32">CLOSED 關閉</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="56"
+          >• 請求全量正常通行</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="78"
+          >• 滑動視窗實時統計失敗率</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="96"
+          >• 慢查詢與異常計數</text
+        >
+      </g>
+
+      <!-- Arrow CLOSED -> OPEN (Top curve) -->
+      <path
+        d="M 255 120 L 540 120"
+        class="cb-diagram__flow-line cb-diagram__flow-line--red"
+        marker-end="url(#cb-arrow-red)"></path>
+      <text
+        class="cb-diagram__flow-tag cb-diagram__flow-tag--red"
+        x="400"
+        y="110"
+        text-anchor="middle">失敗率 &gt; 50% ➔ 立即跳閘熔斷！</text
+      >
+
+      <!-- 2. State: OPEN (X: 545, Y: 85, W: 225, H: 105) -->
+      <g transform="translate(545, 85)">
+        <rect
+          width="225"
+          height="105"
+          rx="10"
+          class="cb-diagram__state cb-diagram__state--open"></rect>
+        <text
+          class="cb-diagram__state-title cb-diagram__state-title--open"
+          x="20"
+          y="32">OPEN 開啟 (熔斷)</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="56"
+          >• 阻斷所有下游請求</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="78"
+          >• 0ms 本地快速失敗 (Fast-Fail)</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="96"
+          >• 觸發預設降級邏輯 (Fallback)</text
+        >
+      </g>
+
+      <!-- Arrow OPEN -> HALF-OPEN (Down Right to Center) -->
+      <path
+        d="M 657 190 L 657 245 L 525 245"
+        class="cb-diagram__flow-line cb-diagram__flow-line--amber"
+        marker-end="url(#cb-arrow-amber)"></path>
+      <text
+        class="cb-diagram__flow-tag cb-diagram__flow-tag--amber"
+        x="665"
+        y="222"
+        text-anchor="start">冷卻計時完畢 (如 30s)</text
+      >
+
+      <!-- 3. State: HALF-OPEN (X: 285, Y: 215, W: 230, H: 95) -->
+      <g transform="translate(285, 215)">
+        <rect
+          width="230"
+          height="95"
+          rx="10"
+          class="cb-diagram__state cb-diagram__state--half"></rect>
+        <text
+          class="cb-diagram__state-title cb-diagram__state-title--half"
+          x="20"
+          y="30">HALF-OPEN 半開</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="54"
+          >• 放行極少量試探請求 (e.g. 10次)</text
+        >
+        <text class="cb-diagram__state-sub" x="20" y="74"
+          >• 驗證下游服務自癒狀況</text
+        >
+      </g>
+
+      <!-- Arrow HALF-OPEN -> CLOSED (Success) -->
+      <path
+        d="M 285 260 L 142 260 L 142 195"
+        class="cb-diagram__flow-line cb-diagram__flow-line--green"
+        marker-end="url(#cb-arrow-green)"></path>
+      <text
+        class="cb-diagram__flow-tag cb-diagram__flow-tag--green"
+        x="155"
+        y="240"
+        text-anchor="start">試探成功 ➔ 恢復正常</text
+      >
+
+      <!-- Arrow HALF-OPEN -> OPEN (Failure) -->
+      <path
+        d="M 450 310 L 450 325 L 720 325 L 720 195"
+        class="cb-diagram__flow-line cb-diagram__flow-line--red"
+        stroke-dasharray="4 4"
+        marker-end="url(#cb-arrow-red)"></path>
+      <text
+        class="cb-diagram__flow-tag cb-diagram__flow-tag--red"
+        x="585"
+        y="320"
+        text-anchor="middle">再次失敗 ➔ 重新進入熔斷冷卻</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile HTML Layout (<= 48rem) -->
+  <div class="cb-diagram__mobile">
+    <div class="cb-diagram__m-card">
+      <div class="cb-diagram__m-badge">STATE 01</div>
+      <h4 class="cb-diagram__m-title">CLOSED 關閉狀態 (正常運行)</h4>
+      <p class="cb-diagram__m-desc">
+        所有請求全量通行。內部透過環形緩衝區統計滑動視窗內的請求失敗率，一旦超過閾值（如
+        50%）立即切換為 OPEN。
+      </p>
+    </div>
+
+    <div class="cb-diagram__m-card">
+      <div class="cb-diagram__m-badge">STATE 02</div>
+      <h4 class="cb-diagram__m-title">OPEN 開啟狀態 (熔斷阻斷)</h4>
+      <p class="cb-diagram__m-desc">
+        阻斷所有發往遠端的請求，耗時 0ms 在本地拋出例外或執行 Fallback
+        降級，並啟動冷卻計時器（如 30 秒）。
+      </p>
+    </div>
+
+    <div class="cb-diagram__m-card">
+      <div class="cb-diagram__m-badge">STATE 03</div>
+      <h4 class="cb-diagram__m-title">HALF-OPEN 半開狀態 (試探自癒)</h4>
+      <p class="cb-diagram__m-desc">
+        冷卻結束後放行極少數試探請求（如 10 次）：若全數成功則恢復
+        CLOSED；若再次發生失敗則立即退回 OPEN。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="cb-diagram-caption" class="cb-diagram__caption">
+    圖：斷路器三態有限狀態機 (FSM) 狀態躍遷與保護機制
+  </figcaption>
+</figure>
+
+<style>
+  .cb-diagram {
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--dg-border);
+    background: var(--dg-bg);
+    overflow: hidden;
+  }
+
+  .cb-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .cb-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .cb-diagram__card {
+    fill: var(--dg-card);
+    stroke: var(--dg-border);
+    stroke-width: 1.5;
+  }
+
+  .cb-diagram__badge {
+    fill: var(--dg-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cb-diagram__title {
+    fill: var(--dg-title);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cb-diagram__state {
+    stroke-width: 1.5;
+  }
+
+  .cb-diagram__state--closed {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-green);
+  }
+
+  .cb-diagram__state--open {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-red);
+  }
+
+  .cb-diagram__state--half {
+    fill: var(--dg-card-soft);
+    stroke: var(--dg-amber);
+  }
+
+  .cb-diagram__state-title {
+    font-size: 15px;
+    font-weight: 700;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cb-diagram__state-title--closed {
+    fill: var(--dg-green);
+  }
+
+  .cb-diagram__state-title--open {
+    fill: var(--dg-red);
+  }
+
+  .cb-diagram__state-title--half {
+    fill: var(--dg-amber);
+  }
+
+  .cb-diagram__state-sub {
+    fill: var(--dg-body);
+    font-size: 11px;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cb-diagram__flow-line {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .cb-diagram__flow-line--red {
+    stroke: var(--dg-red);
+  }
+
+  .cb-diagram__flow-line--green {
+    stroke: var(--dg-green);
+  }
+
+  .cb-diagram__flow-line--amber {
+    stroke: var(--dg-amber);
+  }
+
+  .cb-diagram__arrow--red {
+    fill: var(--dg-red);
+  }
+
+  .cb-diagram__arrow--green {
+    fill: var(--dg-green);
+  }
+
+  .cb-diagram__arrow--amber {
+    fill: var(--dg-amber);
+  }
+
+  .cb-diagram__flow-tag {
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: system-ui, sans-serif;
+  }
+
+  .cb-diagram__flow-tag--red {
+    fill: var(--dg-red);
+  }
+
+  .cb-diagram__flow-tag--green {
+    fill: var(--dg-green);
+  }
+
+  .cb-diagram__flow-tag--amber {
+    fill: var(--dg-amber);
+  }
+
+  .cb-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Responsive Mobile */
+  @media (max-width: 48rem) {
+    .cb-diagram__desktop {
+      display: none;
+    }
+
+    .cb-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .cb-diagram__m-card {
+      background: var(--dg-card);
+      border: 1px solid var(--dg-border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .cb-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .cb-diagram__m-title {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: var(--dg-title);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .cb-diagram__m-desc {
+      font-size: 0.875rem;
+      color: var(--dg-body);
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  /* Tokens & Theme */
+  .cb-diagram {
+    --dg-bg: var(--color-card, #f8fafc);
+    --dg-card: var(--color-surface, #ffffff);
+    --dg-card-soft: rgba(0, 0, 0, 0.03);
+    --dg-border: var(--color-border, #e2e8f0);
+    --dg-title: #0f172a;
+    --dg-body: #334155;
+    --dg-muted: #64748b;
+    --dg-blue: #2563eb;
+    --dg-green: #16a34a;
+    --dg-red: #dc2626;
+    --dg-amber: #d97706;
+  }
+
+  :global(:root[data-theme="dark"]) .cb-diagram {
+    --dg-bg: #0d1117;
+    --dg-card: #161b22;
+    --dg-card-soft: #21262d;
+    --dg-border: #30363d;
+    --dg-title: #f0f6fc;
+    --dg-body: #c9d1d9;
+    --dg-muted: #8b949e;
+    --dg-blue: #58a6ff;
+    --dg-green: #3fb950;
+    --dg-red: #f85149;
+    --dg-amber: #d29922;
+  }
+</style>
