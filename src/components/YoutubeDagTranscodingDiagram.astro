@@ -1,0 +1,577 @@
+---
+// YouTube Video GOP Splitting and Distributed DAG Transcoding Diagram Component
+---
+
+<figure class="ytd-diag" aria-labelledby="ytd-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="ytd-diag__desktop"
+    viewBox="0 0 880 370"
+    role="img"
+    aria-labelledby="ytd-diag-title ytd-diag-desc"
+  >
+    <title id="ytd-diag-title">YouTube GOP 切片與 DAG 任務排程編排圖</title>
+    <desc id="ytd-diag-desc">
+      展示原始 4K 影片解耦為音訊軌與視訊 GOP 關鍵幀切片，分發為數千個獨立 Chunk
+      平行轉碼為 H.264 與 AV1 格式。
+    </desc>
+
+    <defs>
+      <marker
+        id="ytd-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytd-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="ytd-arrow-purple"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytd-diag__arrow-head--purple"
+        ></path>
+      </marker>
+      <marker
+        id="ytd-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytd-diag__arrow-head--green"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="340"
+      rx="12"
+      class="ytd-diag__card-bg"></rect>
+
+    <!-- Level 1: Raw Video Ingestion (x: 270, width: 340) -->
+    <g transform="translate(270, 30)">
+      <rect
+        width="340"
+        height="48"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--blue"></rect>
+      <text
+        x="170"
+        y="24"
+        class="ytd-diag__title ytd-diag__title--blue"
+        text-anchor="middle"
+      >
+        原始 4K 影片上傳完成 (Raw Blob Storage)
+      </text>
+      <text x="170" y="39" class="ytd-diag__sub" text-anchor="middle"
+        >50 GB ｜ 60 FPS ｜ 無損母片</text
+      >
+    </g>
+
+    <!-- Connecting Arrows from Level 1 to Level 2 -->
+    <path
+      d="M 380 78 L 220 120"
+      class="ytd-diag__path ytd-diag__path--purple"
+      marker-end="url(#ytd-arrow-purple)"></path>
+    <path
+      d="M 500 78 L 660 120"
+      class="ytd-diag__path ytd-diag__path--green"
+      marker-end="url(#ytd-arrow-green)"></path>
+
+    <!-- Level 2: Demuxing & Splitting -->
+    <!-- Audio Track Demux (x: 50, width: 340) -->
+    <g transform="translate(50, 120)">
+      <rect
+        width="340"
+        height="62"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--purple"></rect>
+      <text
+        x="170"
+        y="26"
+        class="ytd-diag__title ytd-diag__title--purple"
+        text-anchor="middle"
+      >
+        音訊軌解封裝與多音軌轉碼
+      </text>
+      <text x="170" y="48" class="ytd-diag__sub" text-anchor="middle"
+        >AAC-LC ｜ Opus ｜ 5.1 空間音訊 ｜ 多國語言</text
+      >
+    </g>
+
+    <!-- Video GOP Splitting (x: 490, width: 340) -->
+    <g transform="translate(490, 120)">
+      <rect
+        width="340"
+        height="62"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--green"></rect>
+      <text
+        x="170"
+        y="26"
+        class="ytd-diag__title ytd-diag__title--green"
+        text-anchor="middle"
+      >
+        視訊 GOP 關鍵幀（I-Frame）切片
+      </text>
+      <text x="170" y="48" class="ytd-diag__sub" text-anchor="middle"
+        >切分 Chunk_001 ~ Chunk_100 (5~10 秒無損切片)</text
+      >
+    </g>
+
+    <!-- Bus Forking for Workers -->
+    <path d="M 660 182 L 660 215" class="ytd-diag__path ytd-diag__path--green"
+    ></path>
+    <path d="M 175 215 L 705 215" class="ytd-diag__path ytd-diag__path--green"
+    ></path>
+    <path
+      d="M 175 215 L 175 242"
+      class="ytd-diag__path ytd-diag__path--green"
+      marker-end="url(#ytd-arrow-green)"></path>
+    <path
+      d="M 440 215 L 440 242"
+      class="ytd-diag__path ytd-diag__path--green"
+      marker-end="url(#ytd-arrow-green)"></path>
+    <path
+      d="M 705 215 L 705 242"
+      class="ytd-diag__path ytd-diag__path--green"
+      marker-end="url(#ytd-arrow-green)"></path>
+
+    <!-- Level 3: Distributed Transcoding Workers -->
+    <!-- Worker 1 -->
+    <g transform="translate(50, 245)">
+      <rect
+        width="250"
+        height="85"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--worker"></rect>
+      <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
+        >Chunk_001 Worker</text
+      >
+      <rect
+        x="20"
+        y="38"
+        width="210"
+        height="34"
+        rx="4"
+        class="ytd-diag__worker-tag"></rect>
+      <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
+        >H.264 (1080p, 720p)</text
+      >
+      <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
+        >AV1 / VP9 (4K, 1440p)</text
+      >
+    </g>
+
+    <!-- Worker 2 -->
+    <g transform="translate(315, 245)">
+      <rect
+        width="250"
+        height="85"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--worker"></rect>
+      <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
+        >Chunk_002 Worker</text
+      >
+      <rect
+        x="20"
+        y="38"
+        width="210"
+        height="34"
+        rx="4"
+        class="ytd-diag__worker-tag"></rect>
+      <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
+        >H.264 (1080p, 720p)</text
+      >
+      <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
+        >AV1 / VP9 (4K, 1440p)</text
+      >
+    </g>
+
+    <!-- Worker 3 -->
+    <g transform="translate(580, 245)">
+      <rect
+        width="250"
+        height="85"
+        rx="8"
+        class="ytd-diag__box ytd-diag__box--worker"></rect>
+      <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
+        >Chunk_003 ... Worker</text
+      >
+      <rect
+        x="20"
+        y="38"
+        width="210"
+        height="34"
+        rx="4"
+        class="ytd-diag__worker-tag"></rect>
+      <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
+        >H.264 (1080p, 720p)</text
+      >
+      <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
+        >AV1 / VP9 (4K, 1440p)</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="ytd-diag__mobile">
+    <div class="ytd-mobile-card ytd-mobile-card--blue">
+      <span class="ytd-mobile-badge ytd-mobile-badge--blue"
+        >STAGE 1: 原始輸入</span
+      >
+      <h4>1. 原始 4K 影片入庫 (Raw Video)</h4>
+      <p>
+        完整的未轉碼無損影片（50GB+）安全沉澱於分散式 BlobStore，觸發非同步轉碼
+        DAG 工作流。
+      </p>
+    </div>
+
+    <div class="ytd-mobile-card ytd-mobile-card--purple">
+      <span class="ytd-mobile-badge ytd-mobile-badge--purple"
+        >STAGE 2A: 音訊分離</span
+      >
+      <h4>2. 音訊軌解封裝與多音軌編碼</h4>
+      <p>
+        解耦音訊串流，獨立並行轉碼為 AAC、Opus、立體聲、5.1
+        空間音訊與多語系音軌。
+      </p>
+    </div>
+
+    <div class="ytd-mobile-card ytd-mobile-card--green">
+      <span class="ytd-mobile-badge ytd-mobile-badge--green"
+        >STAGE 2B: 視訊 GOP 切片</span
+      >
+      <h4>3. 視訊關鍵幀 (Keyframe) 精準切分</h4>
+      <p>
+        嚴格在 I-Frame 邊界精確切分為 5~10 秒獨立
+        Chunk，確保每一個小切片都能獨立並行解碼編碼而無上下文依賴。
+      </p>
+    </div>
+
+    <div class="ytd-mobile-card ytd-mobile-card--worker">
+      <span class="ytd-mobile-badge ytd-mobile-badge--worker"
+        >STAGE 3: 萬核轉碼矩陣</span
+      >
+      <h4>4. 分散式平行轉碼矩陣</h4>
+      <p>
+        數千個 Worker 並行領取切片任務，同時產出全解析度階梯（360p ~
+        4K）與多格式轉碼（H.264、VP9、AV1）。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="ytd-diag-caption" class="ytd-diag__caption">
+    圖二：YouTube GOP 切片與分散式 DAG 任務轉碼編排工作流
+  </figcaption>
+</figure>
+
+<style>
+  .ytd-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ytd-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .ytd-diag__mobile {
+    display: none;
+  }
+
+  .ytd-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .ytd-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .ytd-diag__box {
+    stroke-width: 1.5px;
+  }
+
+  .ytd-diag__box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .ytd-diag__box--purple {
+    fill: var(--dg-surface-2, #241b35);
+    stroke: #bc8cff;
+  }
+
+  .ytd-diag__box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .ytd-diag__box--worker {
+    fill: var(--dg-surface-2, #161b22);
+    stroke: #388bfd;
+  }
+
+  .ytd-diag__title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ytd-diag__title--blue {
+    fill: #58a6ff;
+  }
+
+  .ytd-diag__title--purple {
+    fill: #d2a8ff;
+  }
+
+  .ytd-diag__title--green {
+    fill: #3fb950;
+  }
+
+  .ytd-diag__sub {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 10px;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .ytd-diag__worker-title {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    fill: #58a6ff;
+  }
+
+  .ytd-diag__worker-tag {
+    fill: var(--dg-surface, #10141a);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1px;
+  }
+
+  .ytd-diag__worker-code {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    fill: var(--dg-ink-2, #8b949e);
+  }
+
+  .ytd-diag__path {
+    fill: none;
+    stroke-width: 2px;
+  }
+
+  .ytd-diag__path--blue {
+    stroke: #58a6ff;
+  }
+
+  .ytd-diag__path--purple {
+    stroke: #bc8cff;
+  }
+
+  .ytd-diag__path--green {
+    stroke: #3fb950;
+  }
+
+  .ytd-diag__arrow-head--blue {
+    fill: #58a6ff;
+  }
+
+  .ytd-diag__arrow-head--purple {
+    fill: #bc8cff;
+  }
+
+  .ytd-diag__arrow-head--green {
+    fill: #3fb950;
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .ytd-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__box--purple {
+    fill: #fbefff;
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__box--worker {
+    fill: #f6f8fa;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__title--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__title--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__title--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__worker-title {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__worker-tag {
+    fill: #ffffff;
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__path--blue {
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__path--purple {
+    stroke: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__path--green {
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__arrow-head--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__arrow-head--purple {
+    fill: #8250df;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytd-diag__arrow-head--green {
+    fill: #1a7f37;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .ytd-diag__desktop {
+      display: none !important;
+    }
+
+    .ytd-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .ytd-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .ytd-mobile-card--blue {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.05);
+    }
+
+    .ytd-mobile-card--purple {
+      border-color: #bc8cff;
+      background: rgba(188, 140, 255, 0.05);
+    }
+
+    .ytd-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .ytd-mobile-card--worker {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.08);
+    }
+
+    .ytd-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .ytd-mobile-badge--blue {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .ytd-mobile-badge--purple {
+      background: rgba(188, 140, 255, 0.2);
+      color: #d2a8ff;
+    }
+
+    .ytd-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .ytd-mobile-badge--worker {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .ytd-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .ytd-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+  }
+</style>

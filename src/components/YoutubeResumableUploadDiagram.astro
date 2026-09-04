@@ -1,0 +1,562 @@
+---
+// YouTube Resumable Chunked Upload Protocol Sequence Diagram Component
+---
+
+<figure class="ytr-diag" aria-labelledby="ytr-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="ytr-diag__desktop"
+    viewBox="0 0 880 340"
+    role="img"
+    aria-labelledby="ytr-diag-title ytr-diag-desc"
+  >
+    <title id="ytr-diag-title">YouTube 可中斷續傳分塊上傳協議時序圖</title>
+    <desc id="ytr-diag-desc">
+      展示客戶端與 API 閘道之間初始化會話、上傳分塊、中斷後發送 HEAD 查詢已接收
+      Range 並續傳的完整時序。
+    </desc>
+
+    <defs>
+      <marker
+        id="ytr-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytr-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="ytr-arrow-green"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytr-diag__arrow-head--green"
+        ></path>
+      </marker>
+      <marker
+        id="ytr-arrow-amber"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="ytr-diag__arrow-head--amber"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Outer Card Background -->
+    <rect
+      x="25"
+      y="15"
+      width="830"
+      height="310"
+      rx="12"
+      class="ytr-diag__card-bg"></rect>
+
+    <!-- Top Actors Header -->
+    <g transform="translate(60, 30)">
+      <rect
+        width="220"
+        height="42"
+        rx="8"
+        class="ytr-diag__actor-box ytr-diag__actor-box--blue"></rect>
+      <text
+        x="110"
+        y="26"
+        class="ytr-diag__actor-text ytr-diag__actor-text--blue"
+        text-anchor="middle"
+      >
+        客戶端 (Client / Web / App)
+      </text>
+    </g>
+
+    <g transform="translate(600, 30)">
+      <rect
+        width="220"
+        height="42"
+        rx="8"
+        class="ytr-diag__actor-box ytr-diag__actor-box--green"></rect>
+      <text
+        x="110"
+        y="26"
+        class="ytr-diag__actor-text ytr-diag__actor-text--green"
+        text-anchor="middle"
+      >
+        API 閘道 / 分散式 BlobStore
+      </text>
+    </g>
+
+    <!-- Lifelines -->
+    <line x1="170" y1="72" x2="170" y2="305" class="ytr-diag__lifeline"></line>
+    <line x1="710" y1="72" x2="710" y2="305" class="ytr-diag__lifeline"></line>
+
+    <!-- Step 1: Init Session -->
+    <g transform="translate(0, 95)">
+      <line
+        x1="170"
+        y1="0"
+        x2="702"
+        y2="0"
+        class="ytr-diag__seq-line ytr-diag__seq-line--blue"
+        marker-end="url(#ytr-arrow-blue)"></line>
+      <rect
+        x="235"
+        y="-14"
+        width="410"
+        height="26"
+        rx="4"
+        class="ytr-diag__msg-pill"></rect>
+      <text
+        x="440"
+        y="3"
+        class="ytr-diag__msg-text ytr-diag__msg-text--blue"
+        text-anchor="middle"
+      >
+        1. POST /upload/init (50GB, SHA-256, Codec) ➔ 回傳專屬 Upload URL
+      </text>
+    </g>
+
+    <!-- Step 2: Upload Chunk #1 -->
+    <g transform="translate(0, 145)">
+      <line
+        x1="170"
+        y1="0"
+        x2="702"
+        y2="0"
+        class="ytr-diag__seq-line ytr-diag__seq-line--green"
+        marker-end="url(#ytr-arrow-green)"></line>
+      <rect
+        x="245"
+        y="-14"
+        width="390"
+        height="26"
+        rx="4"
+        class="ytr-diag__msg-pill"></rect>
+      <text
+        x="440"
+        y="3"
+        class="ytr-diag__msg-text ytr-diag__msg-text--green"
+        text-anchor="middle"
+      >
+        2. PUT Chunk #1 (Bytes 0-10485759 / 10MB) ➔ 200 OK 確認已寫入
+      </text>
+    </g>
+
+    <!-- Network Disconnect Alert -->
+    <g transform="translate(240, 185)">
+      <rect width="400" height="28" rx="6" class="ytr-diag__alert-box"></rect>
+      <text x="200" y="18" class="ytr-diag__alert-text" text-anchor="middle">
+        ⚠️ 網路突發中斷 (WiFi 基地台切換 / 逾時重試)
+      </text>
+    </g>
+
+    <!-- Step 3: Query Upload Status -->
+    <g transform="translate(0, 235)">
+      <line
+        x1="170"
+        y1="0"
+        x2="702"
+        y2="0"
+        class="ytr-diag__seq-line ytr-diag__seq-line--amber"
+        marker-end="url(#ytr-arrow-amber)"></line>
+      <rect
+        x="230"
+        y="-14"
+        width="420"
+        height="26"
+        rx="4"
+        class="ytr-diag__msg-pill"></rect>
+      <text
+        x="440"
+        y="3"
+        class="ytr-diag__msg-text ytr-diag__msg-text--amber"
+        text-anchor="middle"
+      >
+        3. HEAD /upload/status ➔ 308 Resume Incomplete (Range: 0-10485759)
+      </text>
+    </g>
+
+    <!-- Step 4: Resume Chunk #2 -->
+    <g transform="translate(0, 285)">
+      <line
+        x1="170"
+        y1="0"
+        x2="702"
+        y2="0"
+        class="ytr-diag__seq-line ytr-diag__seq-line--green"
+        marker-end="url(#ytr-arrow-green)"></line>
+      <rect
+        x="235"
+        y="-14"
+        width="410"
+        height="26"
+        rx="4"
+        class="ytr-diag__msg-pill"></rect>
+      <text
+        x="440"
+        y="3"
+        class="ytr-diag__msg-text ytr-diag__msg-text--green"
+        text-anchor="middle"
+      >
+        4. PUT Chunk #2 (Bytes 10485760-20971519) ➔ 平滑續傳，零冗餘重跑！
+      </text>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="ytr-diag__mobile">
+    <div class="ytr-mobile-card ytr-mobile-card--blue">
+      <span class="ytr-mobile-badge ytr-mobile-badge--blue"
+        >STEP 1: 會話初始化</span
+      >
+      <h4>1. 建立專屬可續傳 Upload URL</h4>
+      <p>
+        客戶端發送 <code>POST /upload/init</code>，宣告整檔 50 GB 大小、原始檔
+        SHA-256 雜湊與容器格式。API 閘道產生帶權限的簽名續傳網址。
+      </p>
+    </div>
+
+    <div class="ytr-mobile-card ytr-mobile-card--green">
+      <span class="ytr-mobile-badge ytr-mobile-badge--green"
+        >STEP 2: 分塊寫入</span
+      >
+      <h4>2. 依序上傳分塊 (Chunked PUT)</h4>
+      <p>
+        客戶端切割 10 MB 分塊並附帶 Content-Range 依序傳送；伺服器驗證局部 MD5
+        並寫入分散式 BlobStore，回傳 200 OK 確認落盤。
+      </p>
+    </div>
+
+    <div class="ytr-mobile-card ytr-mobile-card--alert">
+      <span class="ytr-mobile-badge ytr-mobile-badge--alert">NETWORK EVENT</span
+      >
+      <h4>⚠️ 網路異常斷線容錯</h4>
+      <p>
+        當無線網路切換基地台或連線逾時斷開時，客戶端不必放棄整個 50 GB
+        檔案，只需暫停並準備斷點查詢。
+      </p>
+    </div>
+
+    <div class="ytr-mobile-card ytr-mobile-card--amber">
+      <span class="ytr-mobile-badge ytr-mobile-badge--amber"
+        >STEP 3: 狀態探測</span
+      >
+      <h4>3. HEAD 探測伺服器已持久化範圍</h4>
+      <p>
+        客戶端發送 <code>HEAD /upload/status</code>。伺服器查詢中繼資料庫回傳 <code
+          >308 Resume Incomplete</code
+        > 與 <code>Range: 0-10485759</code>。
+      </p>
+    </div>
+
+    <div class="ytr-mobile-card ytr-mobile-card--green">
+      <span class="ytr-mobile-badge ytr-mobile-badge--green"
+        >STEP 4: 精準續傳</span
+      >
+      <h4>4. 續傳下一個位元組 (Chunk #2)</h4>
+      <p>
+        客戶端依據 308 回應直接從位元組 10485760 繼續上傳後續分塊，達到 100%
+        頻寬零浪費與平滑斷點續傳。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="ytr-diag-caption" class="ytr-diag__caption">
+    圖一：YouTube 可中斷續傳分塊上傳協議（Resumable Media Upload）時序流程
+  </figcaption>
+</figure>
+
+<style>
+  .ytr-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ytr-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .ytr-diag__mobile {
+    display: none;
+  }
+
+  .ytr-diag__caption {
+    margin-top: 0.875rem;
+    font-size: 0.8125rem;
+    color: var(--dg-muted, #8b949e);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* SVG Theme Token Styles */
+  .ytr-diag__card-bg {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+  }
+
+  .ytr-diag__actor-box {
+    stroke-width: 1.5px;
+  }
+
+  .ytr-diag__actor-box--blue {
+    fill: var(--dg-surface-2, #1f242c);
+    stroke: #388bfd;
+  }
+
+  .ytr-diag__actor-box--green {
+    fill: var(--dg-surface-2, #1b2e23);
+    stroke: #238636;
+  }
+
+  .ytr-diag__actor-text {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .ytr-diag__actor-text--blue {
+    fill: #58a6ff;
+  }
+
+  .ytr-diag__actor-text--green {
+    fill: #3fb950;
+  }
+
+  .ytr-diag__lifeline {
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1.5px;
+    stroke-dasharray: 4 4;
+  }
+
+  .ytr-diag__seq-line {
+    stroke-width: 2px;
+  }
+
+  .ytr-diag__seq-line--blue {
+    stroke: #58a6ff;
+  }
+
+  .ytr-diag__seq-line--green {
+    stroke: #3fb950;
+  }
+
+  .ytr-diag__seq-line--amber {
+    stroke: #d29922;
+  }
+
+  .ytr-diag__arrow-head--blue {
+    fill: #58a6ff;
+  }
+
+  .ytr-diag__arrow-head--green {
+    fill: #3fb950;
+  }
+
+  .ytr-diag__arrow-head--amber {
+    fill: #d29922;
+  }
+
+  .ytr-diag__msg-pill {
+    fill: var(--dg-surface, #161b22);
+    stroke: var(--dg-rule, #30363d);
+    stroke-width: 1px;
+  }
+
+  .ytr-diag__msg-text {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .ytr-diag__msg-text--blue {
+    fill: #58a6ff;
+  }
+
+  .ytr-diag__msg-text--green {
+    fill: #3fb950;
+  }
+
+  .ytr-diag__msg-text--amber {
+    fill: #e3b341;
+  }
+
+  .ytr-diag__alert-box {
+    fill: rgba(248, 81, 73, 0.12);
+    stroke: #da3633;
+    stroke-width: 1.2px;
+  }
+
+  .ytr-diag__alert-text {
+    fill: #f85149;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Light Theme Adjustments */
+  :global(:root:not([data-theme="dark"])) .ytr-diag__card-bg {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__actor-box--blue {
+    fill: #eff7ff;
+    stroke: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__actor-box--green {
+    fill: #dafbe1;
+    stroke: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__actor-text--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__actor-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__lifeline {
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__msg-pill {
+    fill: #ffffff;
+    stroke: var(--dg-rule, #d0d7de);
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__msg-text--blue {
+    fill: #0969da;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__msg-text--green {
+    fill: #1a7f37;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__msg-text--amber {
+    fill: #9a6700;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__alert-box {
+    fill: #ffebe9;
+    stroke: #cf222e;
+  }
+
+  :global(:root:not([data-theme="dark"])) .ytr-diag__alert-text {
+    fill: #cf222e;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .ytr-diag__desktop {
+      display: none !important;
+    }
+
+    .ytr-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .ytr-mobile-card {
+      padding: 1rem 1.125rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--dg-rule, #30363d);
+      background: var(--dg-surface, #161b22);
+    }
+
+    .ytr-mobile-card--blue {
+      border-color: #388bfd;
+      background: rgba(56, 139, 253, 0.05);
+    }
+
+    .ytr-mobile-card--green {
+      border-color: #238636;
+      background: rgba(35, 134, 54, 0.05);
+    }
+
+    .ytr-mobile-card--amber {
+      border-color: #d29922;
+      background: rgba(210, 153, 34, 0.05);
+    }
+
+    .ytr-mobile-card--alert {
+      border-color: #da3633;
+      background: rgba(218, 54, 51, 0.08);
+    }
+
+    .ytr-mobile-badge {
+      display: inline-block;
+      padding: 0.125rem 0.4rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .ytr-mobile-badge--blue {
+      background: rgba(56, 139, 253, 0.2);
+      color: #58a6ff;
+    }
+
+    .ytr-mobile-badge--green {
+      background: rgba(35, 134, 54, 0.2);
+      color: #3fb950;
+    }
+
+    .ytr-mobile-badge--amber {
+      background: rgba(210, 153, 34, 0.2);
+      color: #e3b341;
+    }
+
+    .ytr-mobile-badge--alert {
+      background: rgba(218, 54, 51, 0.2);
+      color: #f85149;
+    }
+
+    .ytr-mobile-card h4 {
+      margin: 0 0 0.375rem;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink, #f0f6fc);
+    }
+
+    .ytr-mobile-card p {
+      margin: 0;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #8b949e);
+    }
+
+    .ytr-mobile-card code {
+      font-size: 0.75rem;
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.2rem;
+      background: var(--dg-surface-2, #1f242c);
+      color: var(--dg-ink, #f0f6fc);
+    }
+  }
+</style>
