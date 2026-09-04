@@ -1,0 +1,392 @@
+---
+// Monotonic Increasing ID vs Random UUIDv4 B+ Tree Storage Impact Diagram
+---
+
+<figure class="id-split-diagram" aria-labelledby="id-split-caption">
+  <!-- Desktop SVG layout (ViewBox 840x320, clean 2-column comparison, large fonts, 28px bottom padding) -->
+  <svg
+    class="id-split-diagram__desktop"
+    viewBox="0 0 840 320"
+    role="img"
+    aria-labelledby="id-split-title id-split-desc"
+  >
+    <title id="id-split-title">
+      順序單調遞增 ID vs. 隨機 UUIDv4 在 InnoDB B+ Tree 中的寫入差異
+    </title>
+    <desc id="id-split-desc">
+      左側展示順序單調遞增 ID (Snowflake/UUIDv7) 順序追加至末尾 Leaf
+      Page，填充率達 95%；右側展示隨機 UUIDv4 插入中間滿載 Page，引發頻繁頁分裂
+      (Page Split) 與磁碟隨機 I/O。
+    </desc>
+
+    <!-- Column 1: Monotonic ID (Height: 260, Y: 30, Bottom margin: 30px) -->
+    <g transform="translate(20, 30)">
+      <rect
+        width="385"
+        height="260"
+        rx="12"
+        class="id-split-diagram__card id-split-diagram__card--green"></rect>
+      <text
+        class="id-split-diagram__badge id-split-diagram__badge--green"
+        x="20"
+        y="32">IDEAL FOR INNODB</text
+      >
+      <text
+        class="id-split-diagram__title id-split-diagram__title--green"
+        x="20"
+        y="60"
+      >
+        ✔ 單調遞增 ID (Snowflake / UUIDv7)
+      </text>
+
+      <!-- Page Buffer Block -->
+      <g transform="translate(18, 80)">
+        <rect
+          width="349"
+          height="52"
+          rx="8"
+          class="id-split-diagram__page-box id-split-diagram__page-box--green"
+        ></rect>
+        <text
+          class="id-split-diagram__page-text id-split-diagram__page-text--green"
+          x="174"
+          y="32"
+          text-anchor="middle"
+        >
+          [Page 1: 1..3] ➔ [Page 2: 4..6] ➔ [Page 3: 7..9] ➔ 追加新頁
+        </text>
+      </g>
+
+      <!-- Characteristics -->
+      <g transform="translate(20, 150)">
+        <text class="id-split-diagram__desc" x="0" y="20"
+          >• 每次寫入精確追加在最末尾 Leaf Page</text
+        >
+        <text class="id-split-diagram__desc" x="0" y="44"
+          >• 頁面物理填充率高達 95% 以上，零內部碎片</text
+        >
+        <text
+          class="id-split-diagram__highlight id-split-diagram__highlight--green"
+          x="0"
+          y="72"
+        >
+          極致 Buffer Pool 命中率・純順序磁碟寫入！
+        </text>
+      </g>
+    </g>
+
+    <!-- Column 2: Random UUIDv4 (Height: 260, Y: 30, Bottom margin: 30px) -->
+    <g transform="translate(435, 30)">
+      <rect
+        width="385"
+        height="260"
+        rx="12"
+        class="id-split-diagram__card id-split-diagram__card--red"></rect>
+      <text
+        class="id-split-diagram__badge id-split-diagram__badge--red"
+        x="20"
+        y="32">PERFORMANCE DISASTER</text
+      >
+      <text
+        class="id-split-diagram__title id-split-diagram__title--red"
+        x="20"
+        y="60"
+      >
+        ✖ 隨機 UUIDv4 (引發頁分裂)
+      </text>
+
+      <!-- Page Split Box -->
+      <g transform="translate(18, 80)">
+        <rect
+          width="349"
+          height="52"
+          rx="8"
+          class="id-split-diagram__page-box id-split-diagram__page-box--red"
+        ></rect>
+        <text
+          class="id-split-diagram__page-text id-split-diagram__page-text--red"
+          x="174"
+          y="32"
+          text-anchor="middle"
+        >
+          隨機插入已滿載中間 Page ➔ 觸發 Page Split 頁分裂！
+        </text>
+      </g>
+
+      <!-- Characteristics -->
+      <g transform="translate(20, 150)">
+        <text class="id-split-diagram__desc" x="0" y="20"
+          >• 強制搬移舊頁 50% 數據至新磁碟頁</text
+        >
+        <text class="id-split-diagram__desc" x="0" y="44"
+          >• 空間嚴重碎片化，頁面填充率驟降至 50%</text
+        >
+        <text
+          class="id-split-diagram__highlight id-split-diagram__highlight--red"
+          x="0"
+          y="72"
+        >
+          寫入吞吐量斷崖式暴跌 70%~85%！
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="id-split-diagram__mobile">
+    <div class="id-split-mobile-card id-split-mobile-card--green">
+      <span class="id-split-mobile-badge id-split-mobile-badge--green"
+        >RECOMMENDED</span
+      >
+      <h4>順序單調遞增 ID (Snowflake / UUIDv7)</h4>
+      <p>
+        每次插入皆直接追加在最末尾葉子節點（Leaf Page），頁面填充率高達 95%
+        以上，享受純順序 I/O 與極致快取效能。
+      </p>
+    </div>
+
+    <div class="id-split-mobile-card id-split-mobile-card--red">
+      <span class="id-split-mobile-badge id-split-mobile-badge--red"
+        >AVOID IN RDBMS</span
+      >
+      <h4>隨機 UUIDv4 (B+ Tree 效能殺手)</h4>
+      <p>
+        隨機 Hash 插入滿載的中間節點引發頻繁頁分裂（Page
+        Split），空間利用率暴跌至 50%，千萬級高壓寫入吞吐量衰減達 70%~85%。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="id-split-caption">
+    圖：關聯式資料庫寫入效能對比 —— 順序單調遞增 ID 最佳化追加 vs. 隨機 UUIDv4
+    頁分裂衝擊
+  </figcaption>
+</figure>
+
+<style>
+  .id-split-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .id-split-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .id-split-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .id-split-diagram__card {
+    fill: var(--dg-surface);
+    stroke-width: 1.5;
+  }
+
+  .id-split-diagram__card--green {
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__card--green {
+    stroke: #4ade80;
+  }
+
+  .id-split-diagram__card--red {
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__card--red {
+    stroke: #f87171;
+  }
+
+  .id-split-diagram__badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .id-split-diagram__badge--green {
+    fill: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__badge--green {
+    fill: #86efac;
+  }
+
+  .id-split-diagram__badge--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__badge--red {
+    fill: #fca5a5;
+  }
+
+  .id-split-diagram__title {
+    font-size: 16.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 800;
+  }
+
+  .id-split-diagram__title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__title--green {
+    fill: #86efac;
+  }
+
+  .id-split-diagram__title--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__title--red {
+    fill: #fca5a5;
+  }
+
+  .id-split-diagram__page-box {
+    stroke-width: 1.2;
+  }
+
+  .id-split-diagram__page-box--green {
+    fill: rgba(22, 163, 74, 0.06);
+    stroke: #16a34a;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__page-box--green {
+    fill: rgba(22, 163, 74, 0.14);
+    stroke: #4ade80;
+  }
+
+  .id-split-diagram__page-box--red {
+    fill: rgba(220, 38, 38, 0.06);
+    stroke: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__page-box--red {
+    fill: rgba(220, 38, 38, 0.14);
+    stroke: #f87171;
+  }
+
+  .id-split-diagram__page-text {
+    font-size: 12.5px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 600;
+  }
+
+  .id-split-diagram__page-text--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__page-text--green {
+    fill: #86efac;
+  }
+
+  .id-split-diagram__page-text--red {
+    fill: #b91c1c;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__page-text--red {
+    fill: #fca5a5;
+  }
+
+  .id-split-diagram__desc {
+    font-size: 13px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .id-split-diagram__highlight {
+    font-size: 13.5px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+
+  .id-split-diagram__highlight--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__highlight--green {
+    fill: #4ade80;
+  }
+
+  .id-split-diagram__highlight--red {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .id-split-diagram__highlight--red {
+    fill: #f87171;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .id-split-diagram__desktop {
+      display: none !important;
+    }
+
+    .id-split-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .id-split-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1.125rem 1.25rem;
+    }
+
+    .id-split-mobile-card--green {
+      border-left: 4px solid #16a34a;
+      background: rgba(22, 163, 74, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .id-split-mobile-card--green {
+      background: rgba(22, 163, 74, 0.1);
+      border-color: #4ade80;
+    }
+
+    .id-split-mobile-card--red {
+      border-left: 4px solid #dc2626;
+      background: rgba(220, 38, 38, 0.04);
+    }
+    :global(:root[data-theme="dark"]) .id-split-mobile-card--red {
+      background: rgba(220, 38, 38, 0.1);
+      border-color: #f87171;
+    }
+
+    .id-split-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .id-split-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .id-split-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .id-split-mobile-badge--red {
+      color: #dc2626;
+    }
+    :global(:root[data-theme="dark"]) .id-split-mobile-badge--red {
+      color: #fca5a5;
+    }
+
+    .id-split-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .id-split-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>

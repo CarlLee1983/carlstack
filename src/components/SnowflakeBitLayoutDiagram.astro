@@ -1,0 +1,418 @@
+---
+// Twitter Snowflake 64-bit Binary Layout Diagram Component
+---
+
+<figure class="sf-diagram" aria-labelledby="sf-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 820x220, generous padding and large legible fonts) -->
+  <svg
+    class="sf-diagram__desktop"
+    viewBox="0 0 820 220"
+    role="img"
+    aria-labelledby="sf-diagram-title sf-diagram-desc"
+  >
+    <title id="sf-diagram-title">
+      Twitter Snowflake 64-bit 二進位拓撲結構圖
+    </title>
+    <desc id="sf-diagram-desc">
+      展示 1-bit 固定正數符號位 (0)、41-bit 毫秒時間戳差值 (支撐 69 年)、10-bit
+      工作節點 ID (1024 獨立節點) 與 12-bit 序列號 (每毫秒 4096 個唯一 ID)
+      的精確二進位位元分佈。
+    </desc>
+
+    <!-- Top Total Bit Bar -->
+    <g transform="translate(20, 25)">
+      <rect width="780" height="28" rx="6" class="sf-diagram__total-bar"></rect>
+      <text class="sf-diagram__total-text" x="390" y="19" text-anchor="middle">
+        64-bit 單調遞增整數 (Long / int64) ➔ MySQL BIGINT (8 Bytes) 高效索引
+      </text>
+    </g>
+
+    <!-- Bit Segments Grid (Y: 65, Height: 115, Bottom padding to 220 is 40px) -->
+    <!-- Segment 1: Sign Bit (1 bit) -->
+    <g transform="translate(20, 65)">
+      <rect
+        width="70"
+        height="115"
+        rx="8"
+        class="sf-diagram__seg sf-diagram__seg--gray"></rect>
+      <text class="sf-diagram__seg-badge" x="35" y="26" text-anchor="middle"
+        >1 BIT</text
+      >
+      <text class="sf-diagram__seg-code" x="35" y="58" text-anchor="middle"
+        >0</text
+      >
+      <text class="sf-diagram__seg-label" x="35" y="85" text-anchor="middle"
+        >符號位</text
+      >
+      <text class="sf-diagram__seg-sub" x="35" y="103" text-anchor="middle"
+        >恆為正數</text
+      >
+    </g>
+
+    <!-- Segment 2: Timestamp (41 bits) -->
+    <g transform="translate(100, 65)">
+      <rect
+        width="320"
+        height="115"
+        rx="8"
+        class="sf-diagram__seg sf-diagram__seg--green"></rect>
+      <text
+        class="sf-diagram__seg-badge sf-diagram__seg-badge--green"
+        x="160"
+        y="26"
+        text-anchor="middle">41 BITS</text
+      >
+      <text
+        class="sf-diagram__seg-title sf-diagram__seg-title--green"
+        x="160"
+        y="56"
+        text-anchor="middle">毫秒時間戳差值 (Timestamp)</text
+      >
+      <text class="sf-diagram__seg-label" x="160" y="82" text-anchor="middle"
+        >相對於自定義 Epoch 基準時間</text
+      >
+      <text
+        class="sf-diagram__seg-highlight"
+        x="160"
+        y="103"
+        text-anchor="middle">2⁴¹ - 1 毫秒 ≈ 69 年壽命保證</text
+      >
+    </g>
+
+    <!-- Segment 3: Worker ID (10 bits) -->
+    <g transform="translate(430, 65)">
+      <rect
+        width="180"
+        height="115"
+        rx="8"
+        class="sf-diagram__seg sf-diagram__seg--purple"></rect>
+      <text
+        class="sf-diagram__seg-badge sf-diagram__seg-badge--purple"
+        x="90"
+        y="26"
+        text-anchor="middle">10 BITS</text
+      >
+      <text
+        class="sf-diagram__seg-title sf-diagram__seg-title--purple"
+        x="90"
+        y="56"
+        text-anchor="middle">節點 ID (Worker)</text
+      >
+      <text class="sf-diagram__seg-label" x="90" y="82" text-anchor="middle"
+        >5b DC + 5b Worker</text
+      >
+      <text
+        class="sf-diagram__seg-highlight"
+        x="90"
+        y="103"
+        text-anchor="middle">支援 1024 個獨立實例</text
+      >
+    </g>
+
+    <!-- Segment 4: Sequence (12 bits) -->
+    <g transform="translate(620, 65)">
+      <rect
+        width="180"
+        height="115"
+        rx="8"
+        class="sf-diagram__seg sf-diagram__seg--blue"></rect>
+      <text
+        class="sf-diagram__seg-badge sf-diagram__seg-badge--blue"
+        x="90"
+        y="26"
+        text-anchor="middle">12 BITS</text
+      >
+      <text
+        class="sf-diagram__seg-title sf-diagram__seg-title--blue"
+        x="90"
+        y="56"
+        text-anchor="middle">遞增序列 (Sequence)</text
+      >
+      <text class="sf-diagram__seg-label" x="90" y="82" text-anchor="middle"
+        >同毫秒內計數累加</text
+      >
+      <text
+        class="sf-diagram__seg-highlight"
+        x="90"
+        y="103"
+        text-anchor="middle">4096 個 ID / 毫秒 / 節點</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="sf-diagram__mobile">
+    <div class="sf-mobile-card">
+      <span class="sf-mobile-badge">01. SIGN BIT (1 BIT)</span>
+      <h4>固定符號位：0</h4>
+      <p>
+        最高位固定為 0，確保在 Java/C++ 中轉為帶符號 64-bit
+        整數（Long）時永遠為正數。
+      </p>
+    </div>
+
+    <div class="sf-mobile-card sf-mobile-card--green">
+      <span class="sf-mobile-badge sf-mobile-badge--green"
+        >02. TIMESTAMP (41 BITS)</span
+      >
+      <h4>41 位元毫秒級時間戳</h4>
+      <p>
+        記錄目前時間相對於系統自定義 Epoch 的差值，支援長達 69
+        年的單調遞增時間順序。
+      </p>
+    </div>
+
+    <div class="sf-mobile-card sf-mobile-card--purple">
+      <span class="sf-mobile-badge sf-mobile-badge--purple"
+        >03. WORKER ID (10 BITS)</span
+      >
+      <h4>10 位元工作節點識別碼</h4>
+      <p>
+        通常配置為 5-bit 資料中心 ID + 5-bit 機器節點 ID，在分散式叢集中支援最多
+        1,024 個發號節點完全去中心化運作。
+      </p>
+    </div>
+
+    <div class="sf-mobile-card sf-mobile-card--blue">
+      <span class="sf-mobile-badge sf-mobile-badge--blue"
+        >04. SEQUENCE (12 BITS)</span
+      >
+      <h4>12 位元毫秒內計數序列號</h4>
+      <p>
+        單機每毫秒支援 0 ~ 4,095 計數；單機極限產能高達 409.6 萬
+        TPS，叢集容量可輕易突破數十億 QPS。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="sf-diagram-caption">
+    圖：Twitter Snowflake 64-bit 二進位拓撲結構 —— 41-bit 時間戳、10-bit 節點與
+    12-bit 序列號
+  </figcaption>
+</figure>
+
+<style>
+  .sf-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .sf-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .sf-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .sf-diagram__total-bar {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .sf-diagram__total-text {
+    font-size: 13px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .sf-diagram__seg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .sf-diagram__seg-badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    fill: var(--dg-muted);
+  }
+
+  .sf-diagram__seg-code {
+    font-size: 26px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .sf-diagram__seg-title {
+    font-size: 15px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+
+  .sf-diagram__seg-label {
+    font-size: 12px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .sf-diagram__seg-sub {
+    font-size: 11px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-muted);
+  }
+
+  .sf-diagram__seg-highlight {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Color Variations */
+  .sf-diagram__seg--gray {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .sf-diagram__seg--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.05);
+  }
+  .sf-diagram__seg-badge--green {
+    fill: #16a34a;
+  }
+  .sf-diagram__seg-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-badge--green {
+    fill: #86efac;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-title--green {
+    fill: #86efac;
+  }
+
+  .sf-diagram__seg--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.05);
+  }
+  .sf-diagram__seg-badge--purple {
+    fill: #8b5cf6;
+  }
+  .sf-diagram__seg-title--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-badge--purple {
+    fill: #c4b5fd;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-title--purple {
+    fill: #c4b5fd;
+  }
+
+  .sf-diagram__seg--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.05);
+  }
+  .sf-diagram__seg-badge--blue {
+    fill: #3b82f6;
+  }
+  .sf-diagram__seg-title--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-badge--blue {
+    fill: #93c5fd;
+  }
+  :global(:root[data-theme="dark"]) .sf-diagram__seg-title--blue {
+    fill: #93c5fd;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .sf-diagram__desktop {
+      display: none !important;
+    }
+
+    .sf-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sf-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .sf-mobile-card--green {
+      border-left: 4px solid #16a34a;
+    }
+    .sf-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+    .sf-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .sf-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .sf-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .sf-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .sf-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .sf-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .sf-mobile-badge--blue {
+      color: #3b82f6;
+    }
+    :global(:root[data-theme="dark"]) .sf-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .sf-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .sf-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>

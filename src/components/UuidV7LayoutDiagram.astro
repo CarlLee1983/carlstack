@@ -1,0 +1,424 @@
+---
+// UUIDv7 (RFC 9562) 128-bit Binary Layout Diagram Component
+---
+
+<figure class="u7-diagram" aria-labelledby="u7-diagram-caption">
+  <!-- Desktop SVG layout (ViewBox 820x220, spacious layout, large fonts) -->
+  <svg
+    class="u7-diagram__desktop"
+    viewBox="0 0 820 220"
+    role="img"
+    aria-labelledby="u7-diagram-title u7-diagram-desc"
+  >
+    <title id="u7-diagram-title">UUIDv7 (RFC 9562) 128-bit 二進位結構圖</title>
+    <desc id="u7-diagram-desc">
+      展示 48-bit Unix 毫秒時間戳、4-bit 版本號 (0111)、12-bit
+      隨機/計數序列號、2-bit 變體 (10) 與 62-bit 隨機熵的完整二進位拓撲分佈。
+    </desc>
+
+    <!-- Top Total Bit Bar -->
+    <g transform="translate(20, 25)">
+      <rect width="780" height="28" rx="6" class="u7-diagram__total-bar"></rect>
+      <text class="u7-diagram__total-text" x="390" y="19" text-anchor="middle">
+        128-bit 標準 UUID (16 Bytes) ➔ 嚴格時間單調遞增 ＋ 全域零協調去中心化
+      </text>
+    </g>
+
+    <!-- Bit Segments Grid (Y: 65, Height: 115, Bottom padding to 220 is 40px) -->
+    <!-- Segment 1: 48-bit Timestamp -->
+    <g transform="translate(20, 65)">
+      <rect
+        width="270"
+        height="115"
+        rx="8"
+        class="u7-diagram__seg u7-diagram__seg--green"></rect>
+      <text
+        class="u7-diagram__seg-badge u7-diagram__seg-badge--green"
+        x="135"
+        y="26"
+        text-anchor="middle">48 BITS</text
+      >
+      <text
+        class="u7-diagram__seg-title u7-diagram__seg-title--green"
+        x="135"
+        y="56"
+        text-anchor="middle">Unix 毫秒時間戳</text
+      >
+      <text class="u7-diagram__seg-label" x="135" y="82" text-anchor="middle"
+        >unix_ts_ms (時間有序)</text
+      >
+      <text
+        class="u7-diagram__seg-highlight"
+        x="135"
+        y="103"
+        text-anchor="middle">消除 B+ Tree 頁分裂</text
+      >
+    </g>
+
+    <!-- Segment 2: 4-bit Ver -->
+    <g transform="translate(295, 65)">
+      <rect width="80" height="115" rx="8" class="u7-diagram__seg"></rect>
+      <text class="u7-diagram__seg-badge" x="40" y="26" text-anchor="middle"
+        >4 BITS</text
+      >
+      <text class="u7-diagram__seg-code" x="40" y="58" text-anchor="middle"
+        >0111</text
+      >
+      <text class="u7-diagram__seg-label" x="40" y="85" text-anchor="middle"
+        >版本號</text
+      >
+      <text class="u7-diagram__seg-sub" x="40" y="103" text-anchor="middle"
+        >UUID v7</text
+      >
+    </g>
+
+    <!-- Segment 3: 12-bit Sequence -->
+    <g transform="translate(380, 65)">
+      <rect
+        width="140"
+        height="115"
+        rx="8"
+        class="u7-diagram__seg u7-diagram__seg--blue"></rect>
+      <text
+        class="u7-diagram__seg-badge u7-diagram__seg-badge--blue"
+        x="70"
+        y="26"
+        text-anchor="middle">12 BITS</text
+      >
+      <text
+        class="u7-diagram__seg-title u7-diagram__seg-title--blue"
+        x="70"
+        y="56"
+        text-anchor="middle">隨機計數</text
+      >
+      <text class="u7-diagram__seg-label" x="70" y="82" text-anchor="middle"
+        >sub-ms / seq</text
+      >
+      <text
+        class="u7-diagram__seg-highlight"
+        x="70"
+        y="103"
+        text-anchor="middle">毫秒內防碰撞</text
+      >
+    </g>
+
+    <!-- Segment 4: 2-bit Var -->
+    <g transform="translate(525, 65)">
+      <rect width="75" height="115" rx="8" class="u7-diagram__seg"></rect>
+      <text class="u7-diagram__seg-badge" x="37" y="26" text-anchor="middle"
+        >2 BITS</text
+      >
+      <text class="u7-diagram__seg-code" x="37" y="58" text-anchor="middle"
+        >10</text
+      >
+      <text class="u7-diagram__seg-label" x="37" y="85" text-anchor="middle"
+        >變體位</text
+      >
+      <text class="u7-diagram__seg-sub" x="37" y="103" text-anchor="middle"
+        >RFC 9562</text
+      >
+    </g>
+
+    <!-- Segment 5: 62-bit Random Entropy -->
+    <g transform="translate(605, 65)">
+      <rect
+        width="195"
+        height="115"
+        rx="8"
+        class="u7-diagram__seg u7-diagram__seg--purple"></rect>
+      <text
+        class="u7-diagram__seg-badge u7-diagram__seg-badge--purple"
+        x="97"
+        y="26"
+        text-anchor="middle">62 BITS</text
+      >
+      <text
+        class="u7-diagram__seg-title u7-diagram__seg-title--purple"
+        x="97"
+        y="56"
+        text-anchor="middle">密碼級隨機熵</text
+      >
+      <text class="u7-diagram__seg-label" x="97" y="82" text-anchor="middle"
+        >CSPRNG 偽隨機數</text
+      >
+      <text
+        class="u7-diagram__seg-highlight"
+        x="97"
+        y="103"
+        text-anchor="middle">全域無協調防重複</text
+      >
+    </g>
+  </svg>
+
+  <!-- Mobile vertical layout -->
+  <div class="u7-diagram__mobile">
+    <div class="u7-mobile-card u7-mobile-card--green">
+      <span class="u7-mobile-badge u7-mobile-badge--green"
+        >01. 48-BIT UNIX TIMESTAMP</span
+      >
+      <h4>Unix 毫秒時間戳 (最高位)</h4>
+      <p>
+        採用 UTC 毫秒數佔據最高 48
+        位元，確保字串與二進位排序完全吻合時間先後，徹底修復資料庫 B+ Tree
+        頁分裂難題。
+      </p>
+    </div>
+
+    <div class="u7-mobile-card">
+      <span class="u7-mobile-badge">02. 4-BIT VER (0111)</span>
+      <h4>UUID Version 7 標識</h4>
+      <p>
+        固定二進位值為 0111，宣告符合 RFC 9562 規範的最新時間有序 UUID 標準。
+      </p>
+    </div>
+
+    <div class="u7-mobile-card u7-mobile-card--blue">
+      <span class="u7-mobile-badge u7-mobile-badge--blue"
+        >03. 12-BIT SUB-MS / SEQUENCE</span
+      >
+      <h4>毫秒內隨機計數序列</h4>
+      <p>
+        在高併發同毫秒內遞增或生成隨機數，確保同一毫秒產生的大量 ID
+        依然維持單調遞增且不碰撞。
+      </p>
+    </div>
+
+    <div class="u7-mobile-card u7-mobile-card--purple">
+      <span class="u7-mobile-badge u7-mobile-badge--purple"
+        >04. 62-BIT RANDOM ENTROPY</span
+      >
+      <h4>62 位元隨機熵 (去中心化保證)</h4>
+      <p>
+        由密碼學安全偽隨機數生成器（CSPRNG）填充，完全不需像 Snowflake 那樣協調
+        Worker ID，全球任一節點皆可獨立發號。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="u7-diagram-caption">
+    圖：UUIDv7 (RFC 9562) 128-bit 結構 —— 48-bit 時間戳有序性 ＋ 62-bit
+    隨機熵去中心化
+  </figcaption>
+</figure>
+
+<style>
+  .u7-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .u7-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .u7-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG Base Tokens */
+  .u7-diagram__total-bar {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .u7-diagram__total-text {
+    font-size: 13px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .u7-diagram__seg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .u7-diagram__seg-badge {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    fill: var(--dg-muted);
+  }
+
+  .u7-diagram__seg-code {
+    font-size: 24px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .u7-diagram__seg-title {
+    font-size: 15px;
+    font-family: var(--font-display, sans-serif);
+    font-weight: 700;
+  }
+
+  .u7-diagram__seg-label {
+    font-size: 12px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-ink-2);
+  }
+
+  .u7-diagram__seg-sub {
+    font-size: 11px;
+    font-family: var(--font-body, sans-serif);
+    fill: var(--dg-muted);
+  }
+
+  .u7-diagram__seg-highlight {
+    font-size: 12px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Color Variations */
+  .u7-diagram__seg--green {
+    stroke: #16a34a;
+    fill: rgba(22, 163, 74, 0.05);
+  }
+  .u7-diagram__seg-badge--green {
+    fill: #16a34a;
+  }
+  .u7-diagram__seg-title--green {
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg--green {
+    stroke: #4ade80;
+    fill: rgba(22, 163, 74, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-badge--green {
+    fill: #86efac;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-title--green {
+    fill: #86efac;
+  }
+
+  .u7-diagram__seg--blue {
+    stroke: #3b82f6;
+    fill: rgba(59, 130, 246, 0.05);
+  }
+  .u7-diagram__seg-badge--blue {
+    fill: #3b82f6;
+  }
+  .u7-diagram__seg-title--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg--blue {
+    stroke: #60a5fa;
+    fill: rgba(59, 130, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-badge--blue {
+    fill: #93c5fd;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-title--blue {
+    fill: #93c5fd;
+  }
+
+  .u7-diagram__seg--purple {
+    stroke: #8b5cf6;
+    fill: rgba(139, 92, 246, 0.05);
+  }
+  .u7-diagram__seg-badge--purple {
+    fill: #8b5cf6;
+  }
+  .u7-diagram__seg-title--purple {
+    fill: #7c3aed;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg--purple {
+    stroke: #a78bfa;
+    fill: rgba(139, 92, 246, 0.12);
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-badge--purple {
+    fill: #c4b5fd;
+  }
+  :global(:root[data-theme="dark"]) .u7-diagram__seg-title--purple {
+    fill: #c4b5fd;
+  }
+
+  figcaption {
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--dg-muted);
+    margin-top: 1rem;
+  }
+
+  /* Mobile Breakpoint (≤ 48rem / 768px) */
+  @media (max-width: 48rem) {
+    .u7-diagram__desktop {
+      display: none !important;
+    }
+
+    .u7-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .u7-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.875rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .u7-mobile-card--green {
+      border-left: 4px solid #16a34a;
+    }
+    .u7-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+    .u7-mobile-card--purple {
+      border-left: 4px solid #8b5cf6;
+    }
+
+    .u7-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .u7-mobile-badge--green {
+      color: #16a34a;
+    }
+    :global(:root[data-theme="dark"]) .u7-mobile-badge--green {
+      color: #86efac;
+    }
+
+    .u7-mobile-badge--blue {
+      color: #3b82f6;
+    }
+    :global(:root[data-theme="dark"]) .u7-mobile-badge--blue {
+      color: #93c5fd;
+    }
+
+    .u7-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+    :global(:root[data-theme="dark"]) .u7-mobile-badge--purple {
+      color: #c4b5fd;
+    }
+
+    .u7-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .u7-mobile-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>
