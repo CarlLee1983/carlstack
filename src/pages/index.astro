@@ -400,6 +400,7 @@ const projects = (await getCollection("projects"))
     height: 6px;
     background: var(--color-accent);
     border-radius: 50%;
+    animation: status-pulse 2.8s ease-in-out infinite;
   }
 
   .home-hero h1 {
@@ -583,6 +584,21 @@ const projects = (await getCollection("projects"))
     border-block-start: 0;
   }
 
+  .home .section-head h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .home .section-head h2::after {
+    width: 1.75rem;
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    content: "";
+    transform-origin: left;
+  }
+
   .home-latest {
     padding-block: var(--space-3xl) var(--space-2xl);
   }
@@ -596,8 +612,28 @@ const projects = (await getCollection("projects"))
     padding-block: var(--space-3xl) var(--space-2xl);
   }
 
+  .home-topics .topic-cloud a span.muted {
+    transition:
+      color var(--dur-micro) var(--ease-out),
+      background-color var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
+  }
+
+  .home-topics .topic-cloud a:hover span.muted {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    transform: translateX(-0.2rem);
+  }
+
+  .home-topics .topic-cloud a:active {
+    transform: scale(0.98);
+  }
+
   /* Connect CTA */
   .home-connect {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -609,6 +645,22 @@ const projects = (await getCollection("projects"))
     border-radius: var(--radius-lg);
     background: var(--color-card);
     box-shadow: var(--shadow-sm);
+  }
+
+  .home-connect::before {
+    position: absolute;
+    z-index: -1;
+    top: -7rem;
+    right: -3rem;
+    width: 16rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--color-accent-soft);
+    content: "";
+    filter: blur(20px);
+    opacity: 0.8;
+    pointer-events: none;
+    animation: cta-drift 8s ease-in-out infinite alternate;
   }
 
   .home-connect h2 {
@@ -664,6 +716,13 @@ const projects = (await getCollection("projects"))
     }
   }
 
+  @keyframes status-pulse {
+    50% {
+      opacity: 0.55;
+      transform: scale(0.72);
+    }
+  }
+
   @keyframes hero-card-in {
     from {
       opacity: 0;
@@ -690,6 +749,27 @@ const projects = (await getCollection("projects"))
     }
   }
 
+  @keyframes heading-rule-reveal {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes card-reveal {
+    from {
+      opacity: 0;
+      scale: 0.99;
+      translate: 0 1rem;
+    }
+  }
+
+  @keyframes cta-drift {
+    to {
+      transform: translate3d(-2rem, 1rem, 0) scale(1.08);
+    }
+  }
+
   @supports (animation-timeline: view()) {
     .home-latest,
     .home-pair,
@@ -699,6 +779,26 @@ const projects = (await getCollection("projects"))
       animation-duration: 1ms;
       animation-timeline: view();
       animation-range: entry 8% cover 28%;
+    }
+
+    .home .section-head h2::after,
+    .home :global(.article-card-item),
+    .home :global(.project-card-item) {
+      animation-duration: 1ms;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-timing-function: var(--ease-out);
+    }
+
+    .home .section-head h2::after {
+      animation-name: heading-rule-reveal;
+      animation-range: entry 12% cover 30%;
+    }
+
+    .home :global(.article-card-item),
+    .home :global(.project-card-item) {
+      animation-name: card-reveal;
+      animation-range: entry 4% cover 18%;
     }
   }
 
@@ -718,6 +818,7 @@ const projects = (await getCollection("projects"))
 
   @media (prefers-reduced-motion: reduce) {
     .hero-eyebrow,
+    .eyebrow-dot,
     .home-hero h1,
     .home-hero__lede,
     .home-hero__actions,
@@ -731,11 +832,23 @@ const projects = (await getCollection("projects"))
       animation: none;
     }
 
+    .home .section-head h2::after,
+    .home :global(.article-card-item),
+    .home :global(.project-card-item),
+    .home-connect::before {
+      animation: none;
+    }
+
     .hero-spec-card::before,
     .btn-primary:hover,
     .btn-primary:active,
     .btn-secondary:hover,
-    .btn-secondary:active {
+    .btn-secondary:active,
+    .home :global(.article-card-item:hover),
+    .home :global(.project-card-item:hover),
+    .home-topics .topic-cloud a:hover,
+    .home-topics .topic-cloud a:active,
+    .home-topics .topic-cloud a:hover span.muted {
       transform: none;
     }
 
