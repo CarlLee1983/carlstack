@@ -1,0 +1,72 @@
+---
+title: "DHH 談 Agentic Engineering：當實作不再稀缺，決策如何成為工程瓶頸"
+description: "從 DHH 在 Lex Fridman Podcast #501 對 Omarchy、vibe coding 與小團隊的觀察，整理 Agent 加速後仍必須由人承擔的產品判斷、架構責任與決策節奏。"
+publishDate: 2026-09-05T16:00:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 軟體品質
+cover: ../../assets/covers/dhh-agentic-engineering-podcast.png
+coverAlt: "人類在草圖與系統方塊旁引導多條代理路徑，呈現從手寫程式轉向設計與驗證的工程工作。"
+---
+
+## Agent 把「能不能做」變快後，問題回到「該不該做」
+
+Lex Fridman 在 Podcast #501 開場時，把 DHH 過去一年對 AI 的轉變稱為從懷疑到投入；訪談逐段記錄的是一種更具體的工作改變：人不再總是指定每個實作步驟，而是描述問題、判斷結果，並決定哪一條路值得投入。[訪談逐字稿，00:02:56](https://lexfridman.com/dhh-2-transcript/#programming-with-ai-agents)
+
+這不代表工程只剩下寫 prompt。DHH 在訪談裡把早期 Agent 使用經驗說成「人仍在駕駛座」：人指定目標、指引查找位置、審閱產出；但他認為較新的模型與 harness 已讓自己能先說明模糊問題，再由 Agent 提出路徑。[00:10:37–00:12:09](https://lexfridman.com/dhh-2-transcript/#programming-with-ai-agents) 無論是否同意這個速度判斷，工程團隊都可以採取一個較穩健的結論：**實作速度提高後，決策品質、邊界與驗證會比打字速度更早成為限制。**
+
+## DHH 對「vibe coding」的區分，其實是責任分配
+
+DHH 不喜歡「agentic engineering」成為行銷標籤，也把 vibe coding 定義為：告訴 Agent 做出軟體、卻不看實作；相對地，程式設計仍包含理解迴圈、條件與變數等基本原理。[00:49:09–00:51:05](https://lexfridman.com/dhh-2-transcript/#vibe-coding-vs-agentic-engineering) 這個說法不必被當成職稱資格考，它比較有用的地方在於指出責任沒有消失。
+
+當人不讀每一行程式碼，仍要能回答三件事：
+
+1. **結果是什麼？** 使用者能看到的行為、資料正確性、效能或可用性要如何觀察。
+2. **哪些約束不能被 Agent 自行改寫？** 包括資料模型、公開 API、權限、成本上限與既有架構的邊界。
+3. **誰有權接受風險？** 測試綠燈不等於產品可發布；涉及不可逆資料、資安或對外承諾時，仍需要明確的責任人。
+
+這三題讓「讓 Agent 做」從一個工具選擇，變成可交付的工程決策。若答案是「不知道」，把任務切小、先做可逆實驗，通常比增加更多 Agent 更合理。
+
+## Omarchy 是速度實驗，不是桌面環境教學
+
+Omarchy 很適合當案例，因為它不是抽象 demo。DHH 在訪談中說，Quattro 最近兩個月的程式碼沒有由他手寫；他仍檢視系統 model layer 的關鍵行，卻沒有逐一閱讀部分 UI 與輔助程式碼。[00:15:14–00:16:44](https://lexfridman.com/dhh-2-transcript/#programming-with-ai-agents) 訪談也提到，Omarchy 的外掛機制與提供給 Agent 的 skills，讓使用者能把需求做成可分享的延伸。[00:47:26–00:48:23](https://lexfridman.com/dhh-2-transcript/#vibe-coding-vs-agentic-engineering)
+
+這個案例的重點不是「任何團隊都該把 OS 交給 Agent」，而是 DHH 把產品方向保持在單一且具體的目標：他稱之為打造理想電腦，並讓 AI 的探索集中服務這個結果。[約 00:41:00](https://lexfridman.com/dhh-2-transcript/#building-omarchy-linux-distro) 當取捨有中心，Agent 產生的選項才有尺度可判斷；沒有中心時，快速產生只會快速累積分岔。
+
+Omarchy 的技術棧、安裝方式與系統級 Agent 整合，已在站內的 [Omarchy 全景解析](/blog/omarchy-dhh-omakase-linux-desktop/) 詳談。本文只取其工程意義：高速迭代需要一個能拒絕不相關功能、能判定品質的產品觀點。
+
+## 小團隊的優勢不是人少，而是訊號不用層層轉譯
+
+在談既有大型產品時，DHH 提出一個值得檢驗的觀察：人開始協作後，瓶頸常常是溝通頻寬，而不是實作；層層 shaping 與核准會耗掉速度。[00:18:44–00:20:46](https://lexfridman.com/dhh-2-transcript/#how-software-will-change) 他也提到 37signals 早期讓設計師直接以 Agent 開發，曾累積許多單獨合理、合在一起卻破壞系統架構的 PR，最後得由人手清理。[00:16:44–00:17:38](https://lexfridman.com/dhh-2-transcript/#programming-with-ai-agents)
+
+這正好校正「人越少越好」的誤讀。小團隊真正節省的是轉譯：提需求的人離使用情境近，做取捨的人能直接看到結果，修改的人也聽得到同一套優先順序。但架構守門人、驗證與發布責任不會因此自動出現。若每個人都能平行產 PR，卻沒有人維護共同的資料模型、設計語言與刪除權，Agent 只是把協調債務加速送達。
+
+37signals 在 2026 年 8 月的 REWORK #199 到 #201，依序以即席問答、和巨頭競爭與「單向門」談創業與決策；官方節目索引把 #201 的摘要寫成：少數真正不可逆的決策，才值得長時間審議。[REWORK #199（8 月 12 日）](https://37signals.com/podcast/rapid-fire-q-and-a/)、[REWORK #200（8 月 19 日）](https://37signals.com/podcast/competing-with-giants/)、[REWORK #201（8 月 26 日）](https://37signals.com/podcast/one-way-doors/) 這個脈絡可轉成很實際的 Agent 規則：把可逆工作交給快速迴圈，把不可逆工作留給明確的人類決策點。
+
+## 用「決策門」取代無限審查
+
+不是每個 PR 都需要更多會議，但每個高風險變更都該在正確位置停下。可把工作分成三種門：
+
+| 決策類型       | 例子                                | Agent 可以先做什麼              | 人必須判斷什麼           |
+| -------------- | ----------------------------------- | ------------------------------- | ------------------------ |
+| 可逆           | 文案、內部工具 UI、可刪除的測試資料 | 實作、執行檢查、提出 diff       | 是否達成使用情境         |
+| 可回滾但有成本 | 資料 migration、相依套件升級        | 做 dry-run、整理影響與 rollback | 時機、風險是否可接受     |
+| 難以回復       | 對外 API、權限模型、刪除真實資料    | 蒐集證據、產生方案與驗證計畫    | 是否採用，以及誰承擔後果 |
+
+這張表不是流程框架，而是一個停止規則。它避免兩個極端：一是讓人審查每個微小實作細節，二是因為 Agent 看似可靠便把所有寫入權限打開。站內的 [Coding Agent 不是自動駕駛](/blog/coding-agent-feedback-loop/) 可延伸閱讀權限與證據如何對應；[AI-native SDLC：超越程式碼生成](/blog/ai-native-sdlc-beyond-code-generation/) 則把這些 gate 放回 plan、build、review 與 deploy 的全程。
+
+## 讓 Agent 變快前，先讓決策變清楚
+
+DHH 的訪談並沒有保證每個程式庫都能 100% 自動化。他自己也承認，在已有大量使用者、規模較大的 Basecamp 與 HEY 上，完整的 Agent 加速更棘手。[00:15:43–00:16:44](https://lexfridman.com/dhh-2-transcript/#programming-with-ai-agents) 因此可操作的起點不是挑最新模型，而是挑一個可逆任務，先寫下成果、不可碰的邊界、外部驗證器，以及最後拍板的人。
+
+Agent 最適合放大已經存在的清楚判斷。它能縮短從想法到可測試結果的距離，卻不能替團隊決定什麼值得長期維護。DHH 的 Omarchy 經驗與 REWORK 的小團隊觀點放在一起看，真正稀缺的能力或許不是發出更多指令，而是讓每一次快速產出都回到同一個產品方向，並在需要時果斷說「不做」。
+
+### 參考資料
+
+- [Lex Fridman Podcast #501：DHH 逐字稿](https://lexfridman.com/dhh-2-transcript/)
+- [The REWORK Podcast 官方索引](https://37signals.com/podcast/)
+- [DHH 的 GitHub 個人頁](https://github.com/dhh)
