@@ -2,6 +2,7 @@
 name: dbcli
 description: "提供 coding agents 使用的權限控管資料庫 CLI，支援 PostgreSQL、MySQL、MariaDB、MongoDB、Redis 與 Elasticsearch。"
 repositoryUrl: https://github.com/CarlLee1983/dbcli
+homepageUrl: https://carllee1983.github.io/dbcli/dbcli-intro.html
 status: 開源
 featured: true
 cover: ../../assets/projects/dbcli.webp

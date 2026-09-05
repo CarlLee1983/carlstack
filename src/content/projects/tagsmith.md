@@ -2,6 +2,7 @@
 name: Tagsmith
 description: "Git tag 規格與發布護欄工具，支援 SemVer、CalVer、build number、自訂格式與零設定推斷。"
 repositoryUrl: https://github.com/CarlLee1983/Tagsmith
+homepageUrl: https://carllee1983.github.io/Tagsmith/
 status: 開源
 featured: false
 cover: ../../assets/projects/tagsmith.webp

@@ -19,6 +19,7 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
 
 Before generating covers, inspect the nearest published covers and make a compact cover matrix with one row per target: visual metaphor, medium, composition, dominant palette, and lighting or mood.
 
+- Project covers use a Tarot or collectible trading-card visual: an ornate 4:5 card frame and one project-specific archetype or metaphor. Generate this representative card art rather than a generic product illustration; avoid text, logos, and copyrighted characters.
 - Keep series cohesion to at most two anchors, such as aspect ratio and one accent color.
 - For a series, make neighboring rows differ on at least three matrix columns before generation. For one cover, choose a combination that does not repeat the nearest cover's medium, composition, and palette together.
 - Generate one prompt per cover with the `imagegen` skill after the matrix is distinct.

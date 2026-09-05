@@ -2,6 +2,7 @@
 name: loop-apidoc
 description: "為 Loop Engineering 建立以來源為依據的 API 文件產生管線。"
 repositoryUrl: https://github.com/CarlLee1983/loop-apidoc
+homepageUrl: https://carllee1983.github.io/loop-apidoc/
 status: 開源
 featured: true
 cover: ../../assets/projects/loop-apidoc.webp

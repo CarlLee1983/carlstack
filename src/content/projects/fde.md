@@ -5,6 +5,8 @@ repositoryUrl: https://github.com/CarlLee1983/FDE
 homepageUrl: https://carllee1983.github.io/FDE/
 status: 開源
 featured: true
+cover: ../../assets/projects/fde.png
+coverAlt: "塔羅牌式卡框中，手持透明地圖的分析師沿著六枚發光證據印記，望向遠方的行動信標"
 tags:
   - AI Agent Workflow
   - 系統設計
