@@ -1,0 +1,84 @@
+---
+title: "Uncle Bob 不看 Agent 寫的 code：真正被審查的是哪一層？"
+description: "Robert C. Martin 的 Agentic Discipline 把高層規格、專職 agent、Gherkin、coverage、mutation testing 與 UI QA 串成品質閘門；本文拆解它如何落地，以及哪些責任仍不能交給指標。"
+publishDate: 2026-09-06T09:00:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 軟體品質
+  - 系統設計
+cover: ../../assets/covers/uncle-bob-agentic-discipline.png
+coverAlt: "六個以規格、程式、清理、架構、盾牌與測試符號代表的 agent 工作台，圍繞中央規格文件與品質閘門連線。"
+---
+
+「我不再看 code」很容易被讀成放棄 code review。Robert C. Martin（Uncle Bob）真正提出的，是把審查面往上移：人先定義一份可驗證的 source，agent 再負責產生與整理實作，最後由測試、架構與品質閘門留下證據。
+
+這個說法在最近一個月的討論裡重新爆開；例如 [r/ExperiencedDevs 的討論](https://www.reddit.com/r/ExperiencedDevs/comments/1vvj60z/new_codebase_ai_code_smells/)在 2026 年 8 月 22 日累積 201 分、203 則留言，焦點卻不是「哪個模型最強」，而是大 PR 如何讓人類根本無法審查。至於 7 月 23 日那則常被轉述的回覆與完整流程，主要細節可先看 [Quid Pro Quo 的整理](https://quidproquo.cc/posts/ai/2026-07-25-uncle-bob-agent-code-review-en/)；它是二手重建，不是 Martin 的原始頁面。
+
+## 他改的不是責任，是審查面
+
+在 [Clean Coders Agentic Discipline Part 2](https://cleancoders.com/episode/agentic-discipline-2) 裡，Martin 把「source」定義成建立系統的高層文件，並示範同一份描述如何被重建成五種語言與平台。他的前提是：實作 code 已經是 AI 的領域，人應該守住意圖、限制與可觀察結果。
+
+所以 review 不會消失，只是從逐行閱讀改成檢查幾個外部訊號：需求是否完整、測試是否真的能失敗、模組依賴是否合理、變異測試是否抓得到錯誤、最終 UI 是否符合原始程序。這些訊號能減少注意力成本，但不能自動回答商業規則、資安、效能或可用性問題。
+
+## Swarm Forge 的六段品質閘門
+
+[Part 6](https://cleancoders.com/episode/agentic-discipline-6) 描述一條由六種角色接力的 pipeline。每個角色在隔離的 Git worktree 工作，交付的是下一個角色可以重跑的證據：
+
+| 角色      | 做什麼                                                          | 交付證據                         |
+| --------- | --------------------------------------------------------------- | -------------------------------- |
+| Specifier | 把 Story 寫成 Gherkin acceptance tests，並補一份手動 UI QA 程序 | 可重跑的情境與 QA checklist      |
+| Coder     | 實作功能、unit tests 與 acceptance harness                      | 所有 Gherkin 測試通過的 worktree |
+| Cleaner   | 以 DRY 與 CRAP 等品質規則反覆重構 production code 和 tests      | 品質報告與通過的測試             |
+| Architect | 檢查模組邊界、dependency graph，必要時補 property-based tests   | 邊界審查與 invariant tests       |
+| Hardener  | 對語言層與 Gherkin 層執行 mutation testing                      | survivor mutants 與處置決策      |
+| QA        | 把原始 QA 程序轉成自動化 UI 操作並驗證成品                      | UI 執行結果對應原始程序          |
+
+這不是「六個聊天視窗一起寫 code」。它比較像一串品質閘門：前一關沒有可驗證的輸出，下一關就沒有資格開始。
+
+## 接進 ForgeFlow，而不是複製一個 swarm
+
+ForgeFlow 已經把這個精神收斂成更小的核心：Small Story、repository 自己擁有的 `make verify`，以及最後的 Human Review。下面是我會採用的對照，**不是 Martin 的固定設定，也不會改 ForgeFlow protocol**：
+
+```yaml
+story: "一個可回滾、帶 acceptance criteria 的小變更"
+source: "approved Story + business rules + constraints"
+roles:
+  specifier: "補齊可重跑情境與必要的 QA procedure"
+  coder: "實作與測試，直到 acceptance 通過"
+  cleaner: "只在有明確品質訊號時重構"
+  architect: "檢查邊界與依賴，不替人做產品決策"
+  hardener: "repository 能支援才執行 mutation/property checks"
+  qa: "用原始程序驗證使用者可觀察行為"
+canonical_gate: "make verify"
+human_gate: "確認產品意圖、架構與風險後才 merge"
+```
+
+落地時先只做一個 Story。若 `make verify` 已能阻擋一種錯誤，就不為了湊角色增加 agent；若某種失敗重複出現，才新增一個能留下獨立證據的 specialist。這也符合 ForgeFlow 的 [concepts](https://github.com/CarlLee1983/ForgeFlowV2/blob/main/docs/concepts.md) 與 [handoff contract](https://github.com/CarlLee1983/ForgeFlowV2/blob/main/protocol/handoff.md)：流程存在普通 repository artifacts 裡，不依賴特定 runtime。
+
+## 指標是閘門，不是判決
+
+社群反彈其實指出同一個盲點。那篇 8 月的 Reddit 討論裡，`u/siktech101` 留下「Software development just keeps getting worse.」（359 分）；`u/jvlomax` 則說自己曾經收進 3,000 行 PR，後來改成超過約 600 行就關掉（164 分）。[Hacker News 的「Uncle Bob: It's Over」討論](https://news.ycombinator.com/item?id=47998601)也有人提醒，重構、非同步 bug 與錯誤 mock 仍需要人類追問。
+
+我的判斷是：PR 大小、coverage、CRAP 或 mutation score 都是很好的停止訊號，卻不是「可以不用理解系統」的通行證。指標只知道它被定義的失敗；產品語意與未定義的風險，仍要由熟悉上下文的人負責。這也是 [Grady Booch 的批評整理](https://cctest.ai/blog/uncle-bob-ai-code-review/)所指出的界線：metrics 看不到完整的 business context、security 與 performance。
+
+## 下一步：先做一個可回滾 Story
+
+挑一個兩小時內能完成、失敗可撤回的 Story，留下四樣東西：
+
+1. 一份寫清楚規則與錯誤情境的 source。
+2. 一個模型外可執行的 acceptance gate（先用既有 `make verify`）。
+3. 一份記錄 changed paths、指令輸出與未解風險的 handoff。
+4. 一個明確的 human stop：意圖、架構、資安或效能有疑問就停止，不讓 agent 自己批准。
+
+做完再問：哪一種錯誤仍只能靠人看？那個答案，才是下一個值得加入的 agent。
+
+### 參考資料
+
+- [Clean Coders: Agentic Discipline, Part 2](https://cleancoders.com/episode/agentic-discipline-2)
+- [Clean Coders: Agentic Discipline, Part 4](https://cleancoders.com/episode/agentic-discipline-4)
+- [Clean Coders: Agentic Discipline, Part 6](https://cleancoders.com/episode/agentic-discipline-6)
+- [O'Reilly: Clean AI Agentic](https://www.oreilly.com/videos/clean-ai-agentic/9780135968819/)
+- [Quid Pro Quo 的二手整理](https://quidproquo.cc/posts/ai/2026-07-25-uncle-bob-agent-code-review-en/)
