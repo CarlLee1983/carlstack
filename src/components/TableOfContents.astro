@@ -15,25 +15,42 @@ const shouldRender = entries.length >= minEntries;
 {
   shouldRender && (
     <nav class="toc" aria-labelledby="toc-title">
-      <h2 class="toc__title" id="toc-title">
-        目錄
-      </h2>
-      <ol class="toc__list">
-        {entries.map((entry) => (
-          <li>
-            <a href={`#${entry.slug}`}>{entry.text}</a>
-            {entry.children.length > 0 && (
-              <ol class="toc__list toc__list--nested">
-                {entry.children.map((child) => (
-                  <li>
-                    <a href={`#${child.slug}`}>{child.text}</a>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </li>
-        ))}
-      </ol>
+      <details class="toc__details" open>
+        <summary class="toc__summary">
+          <svg
+            class="toc__toggle"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+          <span class="toc__title" id="toc-title">
+            本篇目錄
+          </span>
+          <span class="toc__count">{entries.length} 節</span>
+        </summary>
+        <ol class="toc__list">
+          {entries.map((entry) => (
+            <li>
+              <a href={`#${entry.slug}`}>{entry.text}</a>
+              {entry.children.length > 0 && (
+                <ol class="toc__list toc__list--nested">
+                  {entry.children.map((child) => (
+                    <li>
+                      <a href={`#${child.slug}`}>{child.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          ))}
+        </ol>
+      </details>
     </nav>
   )
 }
@@ -46,13 +63,49 @@ const shouldRender = entries.length >= minEntries;
     background: var(--color-card);
   }
 
+  .toc__summary {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: var(--space-xs);
+    cursor: pointer;
+    color: var(--color-muted);
+    list-style: none;
+  }
+
+  .toc__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc__toggle {
+    width: 1rem;
+    height: 1rem;
+    flex: 0 0 auto;
+    color: var(--color-accent);
+    transition: transform var(--dur-micro) var(--ease-out);
+  }
+
+  .toc__details[open] .toc__toggle {
+    transform: rotate(180deg);
+  }
+
+  .toc__summary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
   .toc__title {
-    margin-block-end: var(--space-sm);
-    color: var(--color-faint);
+    color: var(--color-ink-2);
     font-size: var(--text-xs);
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+  }
+
+  .toc__count {
+    color: var(--color-muted);
+    font-size: var(--text-xs);
   }
 
   .toc__list {
@@ -72,7 +125,9 @@ const shouldRender = entries.length >= minEntries;
 
   .toc a {
     display: block;
-    color: var(--color-muted);
+    min-height: 2.5rem;
+    padding-block: 0.35rem;
+    color: var(--color-ink-2);
     font-size: var(--text-sm);
     line-height: 1.55;
     text-decoration: none;
@@ -90,7 +145,7 @@ const shouldRender = entries.length >= minEntries;
   }
 
   .toc__list--nested a {
-    color: var(--color-faint);
+    color: var(--color-muted);
     font-size: var(--text-xs);
   }
 
@@ -122,6 +177,11 @@ const shouldRender = entries.length >= minEntries;
       border-radius: 0;
       background: none;
     }
+
+    .toc__summary {
+      min-height: auto;
+      margin-block-end: var(--space-sm);
+    }
   }
 </style>
 
@@ -130,6 +190,14 @@ const shouldRender = entries.length >= minEntries;
   // 用 scroll 事件而非 IntersectionObserver，跳躍式捲動（點目錄、拉捲軸）也能對上。
   const toc = document.querySelector<HTMLElement>(".toc");
   if (toc) {
+    const details = toc.querySelector<HTMLDetailsElement>(".toc__details");
+    const desktop = window.matchMedia("(min-width: 72rem)");
+    const setDetailsState = () => {
+      if (details) details.open = desktop.matches;
+    };
+    desktop.addEventListener("change", setDetailsState);
+    setDetailsState();
+
     const links = [...toc.querySelectorAll<HTMLAnchorElement>("a[href^='#']")];
     const pairs = links.flatMap((link) => {
       // 中文標題的 hash 會被百分號編碼，要先解碼才對得到 id

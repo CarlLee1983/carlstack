@@ -21,48 +21,45 @@
     </svg>
     <span class="control-label">字級</span>
   </div>
-  <div class="font-size-group" role="radiogroup" aria-label="選擇文章字體大小">
-    <button
-      type="button"
-      class="font-size-btn"
-      data-scale="sm"
-      role="radio"
-      aria-checked="false"
+  <fieldset class="font-size-group" aria-label="選擇文章字體大小">
+    <input
+      class="font-size-input"
+      id="font-size-sm"
+      type="radio"
+      name="font-size"
+      value="sm"
       title="緊湊字級 (16px)"
-    >
-      小
-    </button>
-    <button
-      type="button"
-      class="font-size-btn"
-      data-scale="md"
-      role="radio"
-      aria-checked="true"
+    />
+    <label class="font-size-btn" for="font-size-sm">小</label>
+    <input
+      class="font-size-input"
+      id="font-size-md"
+      type="radio"
+      name="font-size"
+      value="md"
+      checked
       title="預設黃金閱讀字級 (18px)"
-    >
-      標準
-    </button>
-    <button
-      type="button"
-      class="font-size-btn"
-      data-scale="lg"
-      role="radio"
-      aria-checked="false"
+    />
+    <label class="font-size-btn" for="font-size-md">標準</label>
+    <input
+      class="font-size-input"
+      id="font-size-lg"
+      type="radio"
+      name="font-size"
+      value="lg"
       title="放大字級 (21px)"
-    >
-      大
-    </button>
-    <button
-      type="button"
-      class="font-size-btn"
-      data-scale="xl"
-      role="radio"
-      aria-checked="false"
+    />
+    <label class="font-size-btn" for="font-size-lg">大</label>
+    <input
+      class="font-size-input"
+      id="font-size-xl"
+      type="radio"
+      name="font-size"
+      value="xl"
       title="特大字級 (24px)"
-    >
-      特大
-    </button>
-  </div>
+    />
+    <label class="font-size-btn" for="font-size-xl">特大</label>
+  </fieldset>
 </div>
 
 <script>
@@ -70,11 +67,13 @@
     const group = document.querySelector(".font-size-group");
     if (!group) return;
 
-    const buttons = group.querySelectorAll<HTMLButtonElement>(".font-size-btn");
+    const inputs = group.querySelectorAll<HTMLInputElement>(".font-size-input");
+    let savedScale: string | null = null;
+    try {
+      savedScale = localStorage.getItem("carlstack-font-scale");
+    } catch {}
     const currentScale =
-      document.documentElement.dataset.fontScale ||
-      localStorage.getItem("carlstack-font-scale") ||
-      "md";
+      document.documentElement.dataset.fontScale || savedScale || "md";
 
     function setActive(scale: string) {
       document.documentElement.dataset.fontScale = scale;
@@ -82,20 +81,17 @@
         localStorage.setItem("carlstack-font-scale", scale);
       } catch {}
 
-      buttons.forEach((btn) => {
-        const isMatch = btn.dataset.scale === scale;
-        btn.setAttribute("aria-checked", isMatch ? "true" : "false");
-        btn.classList.toggle("is-active", isMatch);
+      inputs.forEach((input) => {
+        input.checked = input.value === scale;
       });
     }
 
     setActive(currentScale);
 
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const scale = btn.dataset.scale;
-        if (scale) {
-          setActive(scale);
+    inputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        if (input.checked) {
+          setActive(input.value);
         }
       });
     });
@@ -133,13 +129,27 @@
     display: flex;
     align-items: center;
     gap: 2px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .font-size-input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .font-size-btn {
-    appearance: none;
-    border: none;
-    background: transparent;
-    padding: 0.25rem 0.65rem;
+    display: grid;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    place-items: center;
     border-radius: var(--radius-pill);
     color: var(--color-muted);
     font-family: var(--font-display);
@@ -155,21 +165,20 @@
     background: var(--color-card);
   }
 
-  .font-size-btn.is-active,
-  .font-size-btn[aria-checked="true"] {
+  .font-size-input:checked + .font-size-btn {
     background: var(--color-card);
     color: var(--color-accent);
     font-weight: 700;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
 
-  @media (max-width: 40rem) {
-    .font-size-control {
-      padding: 0.2rem 0.3rem 0.2rem 0.5rem;
-    }
+  .font-size-input:focus-visible + .font-size-btn {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
 
+  @media (max-width: 40rem) {
     .font-size-btn {
-      padding: 0.2rem 0.5rem;
       font-size: 0.78rem;
     }
   }

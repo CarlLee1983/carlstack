@@ -110,10 +110,12 @@ const pad = (value: number) => String(value).padStart(2, "0");
   }
 
   .pager__page {
-    display: block;
-    padding-block-end: 0.35rem;
+    display: grid;
+    place-items: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     border-block-end: 2px solid transparent;
-    color: var(--color-faint);
+    color: var(--color-muted);
     font-family: var(--font-mono);
     font-size: var(--text-sm);
     font-variant-numeric: tabular-nums;

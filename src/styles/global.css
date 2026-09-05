@@ -25,6 +25,14 @@ html {
   scroll-behavior: smooth;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 /* 紙質顆粒：極低透明度的 SVG 噪點蓋在最上層，讓大面積底色不像數位平面。
    fixed + pointer-events:none，不影響互動與排版。 */
 body::before {
@@ -1087,9 +1095,9 @@ mark {
   *,
   *::before,
   *::after {
-    animation-duration: 150ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 150ms !important;
+    transition-duration: 0.01ms !important;
   }
 
   .button:hover,

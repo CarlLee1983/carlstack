@@ -40,7 +40,7 @@ const primaryTag =
         widths={[220, 440]}
         sizes={
           variant === "row"
-            ? "(min-width: 40rem) 8.5rem, 5.5rem"
+            ? "(min-width: 40rem) 8.5rem, 4rem"
             : "(min-width: 40rem) 9rem, 100vw"
         }
         loading="lazy"
@@ -234,7 +234,7 @@ const primaryTag =
 
   .article-card-item:hover .article-card-item__action {
     background: var(--color-accent);
-    color: #ffffff;
+    color: var(--color-accent-ink);
     transform: translateX(3px);
   }
 
@@ -302,6 +302,32 @@ const primaryTag =
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+  }
+
+  @media (max-width: 39.99rem) {
+    .article-card-item--row {
+      grid-template-columns: 4rem minmax(0, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .article-card-item--row .article-card-item__content {
+      display: contents;
+    }
+
+    .article-card-item--row .article-card-item__meta {
+      grid-area: content;
+      align-self: center;
+      margin: 0;
+    }
+
+    .article-card-item--row .article-card-item__title,
+    .article-card-item--row .article-card-item__desc {
+      grid-column: 1 / -1;
+    }
+
+    .article-card-item--row .article-card-item__title {
+      line-height: 1.5;
+    }
   }
 
   @media (min-width: 40rem) {

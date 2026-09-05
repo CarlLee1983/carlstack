@@ -1,5 +1,11 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
+import { sortByPostCount } from "../../utils/content";
+
+const topics = sortByPostCount(
+  collectTaxonomy(await getVisiblePosts(), "tags"),
+).slice(0, 5);
 ---
 
 <BaseLayout
@@ -10,22 +16,34 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   <div class="page shell search-shell">
     <header class="page-header">
       <h1>全文搜尋</h1>
-      <p>
-        Pagefind 索引在 production build
-        後產生；搜尋完全在瀏覽器執行，不需要資料庫。
-      </p>
+      <p>輸入技術名詞或問題關鍵字，搜尋文章與專案內容。</p>
     </header>
-    <form class="search-form" data-search-form>
+    <form class="search-form" role="search" data-search-form>
       <label for="pagefind-query">關鍵字</label>
       <input
         id="pagefind-query"
         name="q"
         type="search"
+        placeholder="例如：資料庫索引、快取、AI Agent"
         autocomplete="off"
         required
       />
       <button class="button" type="submit">搜尋</button>
     </form>
+    <nav class="search-topics" aria-label="依熱門主題瀏覽">
+      <span class="muted">也可以從主題開始</span>
+      <ul class="tag-list">
+        {
+          topics.map((topic) => (
+            <li>
+              <a class="tag" href={`/tags/${topic.slug}/`}>
+                {topic.name}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
     <p class="muted" role="status" aria-live="polite" data-search-status>
       輸入關鍵字開始搜尋。
     </p>
@@ -87,7 +105,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       );
       status.textContent =
         results.length > 0
-          ? `找到 ${results.length} 筆結果。`
+          ? `找到 ${search.results.length} 筆結果${search.results.length > results.length ? `，顯示前 ${results.length} 筆；加入更多關鍵字可縮小範圍` : ""}。`
           : `找不到包含「${query}」的內容。請縮短關鍵字或改用相關技術名詞。`;
       for (const result of results) {
         const article = document.createElement("article");
@@ -106,8 +124,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         container.append(article);
       }
     } catch {
-      status.textContent =
-        "搜尋索引尚未產生。請先執行 pnpm build，再用 pnpm preview 檢視搜尋。";
+      status.textContent = import.meta.env.DEV
+        ? "搜尋索引尚未產生。請先執行 pnpm build，再用 pnpm preview 檢視搜尋。"
+        : "暫時無法載入搜尋結果，請稍後再試，或從上方主題瀏覽文章。";
     }
   }
 
@@ -127,3 +146,25 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
     });
   }
 </script>
+
+<style>
+  .search-shell {
+    align-content: start;
+  }
+
+  .search-shell .page-header {
+    margin-block-end: var(--space-sm);
+  }
+
+  .search-topics {
+    display: grid;
+    gap: var(--space-sm);
+    padding-block-end: var(--space-lg);
+    border-block-end: var(--rule-hair) solid var(--color-rule);
+    font-size: var(--text-sm);
+  }
+
+  .search-topics .tag {
+    min-height: 2.75rem;
+  }
+</style>

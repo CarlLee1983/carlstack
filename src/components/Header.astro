@@ -244,7 +244,7 @@ const currentState = (href: string) =>
     height: 26px;
     border-radius: var(--radius-sm);
     background: var(--color-accent);
-    color: #ffffff;
+    color: var(--color-accent-ink);
     font-family: var(--font-mono);
     font-size: 0.75rem;
     font-weight: 800;
@@ -293,7 +293,7 @@ const currentState = (href: string) =>
   .theme-toggle,
   .mobile-nav > summary,
   .cmdk__head button {
-    min-height: 2.35rem;
+    min-height: 2.75rem;
     border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-pill);
     background: var(--color-paper-2);
@@ -323,7 +323,7 @@ const currentState = (href: string) =>
   }
 
   .theme-toggle {
-    width: 2.35rem;
+    width: 2.75rem;
     display: grid;
     place-items: center;
     padding: 0;
@@ -360,7 +360,7 @@ const currentState = (href: string) =>
 
   .mobile-nav > summary {
     display: grid;
-    width: 2.35rem;
+    width: 2.75rem;
     place-items: center;
     padding: 0;
     list-style: none;
@@ -386,6 +386,9 @@ const currentState = (href: string) =>
   }
 
   .mobile-nav nav a {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
     padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-md);
     color: var(--color-ink);
@@ -394,7 +397,8 @@ const currentState = (href: string) =>
     text-decoration: none;
   }
 
-  .mobile-nav nav a:hover {
+  .mobile-nav nav a:hover,
+  .mobile-nav nav a[aria-current] {
     background: var(--color-paper-2);
     color: var(--color-accent);
   }
@@ -487,9 +491,14 @@ const currentState = (href: string) =>
     }
 
     .search-pill {
-      width: 2.35rem;
+      width: 2.75rem;
       justify-content: center;
       padding: 0;
+    }
+
+    .site-header__inner,
+    .site-header__actions {
+      gap: var(--space-2xs);
     }
   }
 </style>

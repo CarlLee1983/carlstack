@@ -41,6 +41,22 @@ const { pagination, totalPosts } = Astro.props;
       </svg>
     </a>
   </header>
+  <div class="blog-toolbar">
+    <form class="search-form" action="/search/" method="get" role="search">
+      <label for="archive-query">搜尋文章</label>
+      <input
+        id="archive-query"
+        name="q"
+        type="search"
+        placeholder="輸入文章關鍵字"
+        required
+      />
+      <button class="button" type="submit">搜尋</button>
+    </form>
+    <p class="muted">
+      共 {totalPosts} 篇 · 第 {pagination.current} / {pagination.total} 頁 · 最新發布優先
+    </p>
+  </div>
   {
     pagination.items.length > 0 ? (
       <div class="blog-list">
@@ -63,7 +79,7 @@ const { pagination, totalPosts } = Astro.props;
 <style>
   .blog-page {
     display: grid;
-    gap: var(--space-2xl);
+    gap: var(--space-xl);
   }
 
   .blog-header {
@@ -103,6 +119,20 @@ const { pagination, totalPosts } = Astro.props;
     gap: 0;
   }
 
+  .blog-toolbar {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .blog-toolbar p {
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .blog-toolbar .search-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .blog-list > :last-child {
     border-block-end: var(--rule-hair) solid var(--color-rule);
   }
@@ -114,6 +144,10 @@ const { pagination, totalPosts } = Astro.props;
 
     .blog-header .text-link {
       justify-self: start;
+    }
+
+    .blog-header__copy p {
+      font-size: var(--text-base);
     }
   }
 </style>

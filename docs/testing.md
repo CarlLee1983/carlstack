@@ -25,6 +25,7 @@ CI（`.github/workflows/ci.yml`）在 pull request 執行前兩者；`deploy.yml
 | 表格包進水平捲動容器，不重複包裝                     | `tests/rehype-table-scroll.test.ts`   |
 | callout 標記轉 `aside`                               | `tests/remark-callout.test.ts`        |
 | 目錄只收 h2／h3，h3 掛在前一個 h2 底下               | `tests/toc.test.ts`                   |
+| 深淺色一般文字、連結與主色按鈕的對比至少 4.5:1       | `tests/color-contrast.test.ts`        |
 
 ## 慣例
 

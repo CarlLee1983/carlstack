@@ -26,7 +26,7 @@
 - **主文字色 (`--color-ink`)**：`#212328`
 - **內文文字 (`--color-ink-2`)**：`#3A3E47`
 - **次要文字 (`--color-muted`)**：`#6C727F`
-- **陶土暖橘 (`--color-accent`)**：`#D95D39`（Hover: `#C04A26`）
+- **陶土暖橘 (`--color-accent`)**：`#B94A2B`（Hover: `#A53E23`）；小字連結與按鈕文字對比至少 4.5:1。
 - **鼠尾草綠 (`--color-secondary`)**：`#4A7C59`（Soft: `rgba(74, 124, 89, 0.12)`）
 
 ### 2.2 深色模式 (Dark Mode / Obsidian Charcoal)
@@ -117,6 +117,7 @@
 - **紙質顆粒**：`body::before` 蓋一層 fixed 的 SVG feTurbulence 噪點，淺色 `multiply` 4.5%、深色 `soft-light` 6%，讓大面積底色不像數位平面；`pointer-events: none`，不影響互動。
 - **閱讀進度**：文章頁 `.reading-progress` 是貼在頂端 2px 的主色細線，以 `--reading-progress` 變數驅動 `scaleX`；範圍只算正文（捲到內文開頭為 0、內文底部為 1）。
 - **目錄目前章節**：`TableOfContents` 用 scroll 事件（rAF 節流）標記最後一個捲過 header 的標題為 `aria-current="true"`，左側補 2px 主色記號；不用 IntersectionObserver，跳躍式捲動才對得上。
+- **響應式目錄**：使用原生 `details`／`summary`，顯示「本篇目錄」與章節數；小於 72rem 預設收合，桌面預設展開，切換斷點時同步。JavaScript 停用時保留展開內容。
 - **導言與文末記號**：`.prose` 第一段放大到 1.08em、用主文字色；正文結尾以 `.prose::after` 畫一小段主色短線（60% 實線 + 斷點），告訴讀者正文到此為止。
 - **程式碼語言標籤**：`pre[data-language]::before` 在右上角顯示 Shiki 給的語言名（等寬、大寫、低對比）；`plaintext` / `text` 不顯示。
 - **引言記號**：`blockquote::before` 在左上以 display 字體放一個 35% 透明度的主色引號，與 callout 區隔。
@@ -126,8 +127,10 @@
 
 - **文章卡片 (`ArticleCard.astro`)**，兩種 `variant`：
   - `card`（預設）：獨立盒子，給格狀精選；微上浮（`translateY(-3px)`）與陰影加深懸浮微動態，整合標籤膠囊、SVG 時鐘閱讀時間與右側箭頭圓形按鈕。
-  - `row`：編輯式列表，給時序清單（首頁最新文章、文章索引、標籤頁、系列頁）。去掉盒子與陰影，只用髮絲線分段；縮圖在窄視窗仍留在左側（`5.5rem` 正方），避免封面把清單撐長；箭頭在寬視窗 hover 才浮現。容器 `.article-list` / `.blog-list` 的 gap 為 0，最後一列補底線收尾。
+  - `row`：編輯式列表，給時序清單（首頁最新文章、文章索引、標籤頁、系列頁）。去掉盒子與陰影，只用髮絲線分段；窄視窗以 `4rem` 正方縮圖搭配 metadata，標題與摘要在下方跨滿列寬；箭頭在寬視窗 hover 或鍵盤聚焦才浮現。容器 `.article-list` / `.blog-list` 的 gap 為 0，最後一列補底線收尾。
 - **首頁側欄「站點速覽」**：文章數、標籤數、專案數與最近更新日期全部從 content collections 算出，不維護會過期的描述文案。
+- **首頁手機版**：縮小前導區與速覽卡內距，數字維持三欄可辨識；文章內容直接顯示，不以捲動淡入控制可見性。
+- **文章索引與搜尋**：索引提供原生 GET 搜尋入口及頁次；搜尋頁顯示讀者使用說明、由內容集合計算的熱門主題，以及完整結果數與顯示上限。
 - **主題排序**：首頁「主要技術主題」與標籤頁一律依文章數倒序（`sortByPostCount`），同數量依名稱；標籤頁再依數量分三階（`data-tier`：`major` ≥ 10、`minor` ≥ 3、`single`），讓站點重心一眼可見。
 - **專案卡片 (`ProjectCard.astro`)**：
   - 固定 4:5 比例、實體厚邊與雙層細框組成收藏卡語彙；預設以主視覺與專案名稱為主，hover 或鍵盤聚焦才揭露摘要與標籤。
@@ -142,7 +145,8 @@
 
 ### 5.4 文章工具列與字級控制 (`FontSizeControl.astro`)
 
-- 位於文章 Header 工具列右側，提供 `[ 小 | 標準 | 大 | 特大 ]` 4 段無縫單選膠囊按鈕，具備完整的鍵盤與無障礙（ARIA）支援。
+- 位於文章 Header 工具列右側，提供 `[ 小 | 標準 | 大 | 特大 ]` 四段原生 radio 與 label；Tab 進出群組、方向鍵切換，選取及焦點由原生狀態驅動，點擊區至少 44 × 44px。
+- 導覽列圖示與分頁頁碼同樣保留至少 44 × 44px 操作範圍。原生表單的 `color-scheme` 跟隨解析後的 `data-theme`；`prefers-reduced-motion` 停用非必要過場。
 
 ### 5.5 表格、引用塊與代碼塊
 
