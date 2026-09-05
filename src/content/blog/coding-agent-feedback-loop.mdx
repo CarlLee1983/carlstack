@@ -1,0 +1,96 @@
+---
+title: "Coding Agent 不是自動駕駛：用權限與證據管理自治"
+description: "Andrew Ng 的 Coding Agent 技能地圖提醒我們，真正要設計的是責任邊界：哪些工作可委派、哪些權限要收回，以及什麼證據才足以交付。"
+publishDate: 2026-09-05T09:00:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 軟體品質
+  - 系統設計
+cover: ../../assets/covers/coding-agent-feedback-loop.png
+coverAlt: "深色木桌上的規劃卡、終端螢幕與檢查電路板由銅線連成迴路，中央羅盤指向下一個工程決策。"
+---
+
+當 Coding Agent 同時拿得到 repository、terminal 和部署憑證時，「讓它自己跑」就不只是效率選項。它代表有人決定了 Agent 可以改哪些檔案、執行哪些指令、把結果交給誰，以及發生錯誤時誰承擔後果。
+
+DeepLearning.AI 在 2026 年 9 月 4 日刊出一封以 Andrew Ng 名義署名的 [Coding Agent letter](https://charonhub.deeplearning.ai/the-ai-engineering-skills-map-in-detail-using-coding-agents/)。文中把 Coding Agent 的工作放回規劃、執行、部署與監控的迴路，並列出五項核心能力：導向工作流、啟用自治、審查成果、客製化 Agent 與環境、理解 Agent 基礎。這篇文章的 [X 貼文](https://x.com/andrewyng/status/2095890279865721217)給了同一個提醒：工程師的稀缺工作會逐漸從逐行輸入，移到決定要建什麼、如何驗證，以及何時停止。
+
+這五項能力可以濃縮成一個實作問題：**責任、權限與證據是否對得上？**
+
+## 五項能力其實是在管理五種責任
+
+| Ng 的能力           | 工程上要回答的問題                       |
+| ------------------- | ---------------------------------------- |
+| 導向工作流          | 目標、範圍與下一個可觀察結果是什麼？     |
+| 啟用自治            | Agent 可以連續做多大一段？哪裡必須停下？ |
+| 審查成果            | 哪個外部檢查能證明行為符合需求？         |
+| 客製化 Agent 與環境 | Agent 能讀取哪些脈絡，能使用哪些工具？   |
+| 理解 Agent 基礎     | 偏離來自模型、context、工具還是環境？    |
+
+清單本身不是流程，也不會自動產生安全邊界。它的價值在於逼我們為每個答案留下可檢查的產物。
+
+## 把技能清單翻成權限矩陣
+
+下面這張矩陣是本文的工程化延伸，不是 Ng 提出的正式框架。它把「可委派」拆成三個欄位：Agent 能做的動作、人要保留的決策，以及交付前必須出現的證據。
+
+| 工作                           | Agent 可以做的事                           | 人要保留的決策                               | 交付證據                               |
+| ------------------------------ | ------------------------------------------ | -------------------------------------------- | -------------------------------------- |
+| 文件或內容更新                 | 讀取來源、編輯限定檔案、執行格式與內容檢查 | 來源是否可信、敘事是否正確、是否符合發布政策 | diff、來源連結、policy 與 build 結果   |
+| 小型 bug fix                   | 讀程式與測試、修改限定範圍、執行回歸檢查   | 預期行為、相容性與變更範圍                   | 可重現案例、回歸測試、人工 review      |
+| migration 或 production deploy | 讀取計畫與 log、做 dry-run、準備 rollback  | 資料風險、發布時機、最終寫入與批准           | dry-run、備份、rollback、CI 與批准紀錄 |
+
+因此，Prompt 裡的「不要碰 production」不能取代權限控制。sandbox、憑證範圍、CI gate 與 deploy approval 才是能被系統執行的邊界；Prompt 只是在邊界內提供意圖。
+
+## 四個檢查，讓自治可以撤回
+
+把任務交給 Agent 前，先寫一張短任務卡。它不需要描述每一行程式碼，只要讓責任與驗證可追蹤：
+
+```yaml
+result: "新增內容政策規則，且既有文章行為不變"
+agent_scope: "scripts/validate-content-policy.mjs, tests/content-policy.test.ts"
+verifier: "pnpm content:policy -- HEAD && pnpm test"
+human_gate: "檢查 diff、來源與發布設定後才提交"
+receipt: "保留指令輸出、未解問題與批准者"
+```
+
+這張卡對應四個檢查：
+
+1. **結果可觀察**：用頁面、測試、資料或 log 描述完成狀態。
+2. **工具與路徑受限**：只開放完成工作所需的檔案、指令與外部動作。
+3. **驗證器在模型之外**：用測試、policy、CI 或人工流程拒絕錯誤結果。
+4. **證據決定交付**：證據不足就交回人處理，不用 Agent 的自我宣告代替批准。
+
+Ng 也提醒，社群常把「長時間運行」當成自治成熟的證明；實務上，長迴圈若沒有強驗證，只會讓錯誤累積。短迭代、清楚的 handoff 和可回溯的 receipt，通常更容易找到第一次偏離的位置。
+
+## 三個常見失敗模式
+
+**把 Prompt 當成權限。** Agent 被要求不要改生產資料，但 token 仍能連到 production；這不是流程，是願望。把限制放進 sandbox、帳號與 CI gate。
+
+**讓產生器自己驗收。** 同一個模型寫程式、判斷測試是否足夠，再宣告完成，會把錯誤藏在同一個盲點裡。驗證器要能從模型外部觀察行為。
+
+**沒有責任人的平行化。** 多個 Agent 同時改同一個邊界，最後只留下更多 diff，沒有人知道哪個決策需要保留。每個平行工作都要有檔案範圍、owner 與合併證據。
+
+## 和站內文章的分工
+
+本文只處理「誰能做什麼、如何批准」。需要更完整的實作脈絡時，可以接到既有文章：
+
+| 要深入的問題                                | 站內文章                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 如何把 tools、state、trace 放到模型外       | [Harness Engineering：讓 Agent 在可觀測邊界內工作](/blog/harness-engineering-for-reliable-agents/) |
+| 如何用 AGENTS、Skills 與 hooks 建立工作環境 | [Claude Code 的自駕工作流](/blog/claude-code-self-driving-workflows/)                              |
+| 如何串起 plan、spec、build、review、deploy  | [AI-native SDLC：超越程式碼生成](/blog/ai-native-sdlc-beyond-code-generation/)                     |
+| 如何分配注意力與隔離平行工作                | [多代理工作站的控制平面](/blog/multi-agent-workstation-control-plane/)                             |
+
+它們分別補足控制面、環境面、生命週期與協作面；本文提供的是判斷每一層應開多少權限、要收什麼證據的入口。
+
+## 從下一個任務開始
+
+先挑一個可撤回的工作，寫出結果、Agent 範圍、外部驗證器和 human gate。讓 Agent 執行限定範圍，保存 diff 與檢查輸出，再依證據決定交付或退回規劃。當失敗模式重複出現時，優先補權限或 verifier；只有在邊界清楚後，才值得把迴圈拉長。
+
+### 參考資料
+
+- [Andrew Ng 的 X 貼文](https://x.com/andrewyng/status/2095890279865721217)
+- [How to Use Coding Agents Effectively from Planning to Execution and Monitoring](https://charonhub.deeplearning.ai/the-ai-engineering-skills-map-in-detail-using-coding-agents/)
+- [The AI Engineering Skills Map](https://www.linkedin.com/pulse/ai-engineering-skills-map-andrew-ng-m479c)
