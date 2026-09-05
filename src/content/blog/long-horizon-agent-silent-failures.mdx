@@ -2,6 +2,7 @@
 title: "Agent 還在跑，不代表任務還活著：長時間 AI Agent 的五種靜默失敗"
 description: "Google Cloud Tech 的 Long Horizon harness 整理五種不一定拋錯的失敗模式，本文把它們改寫成可注入、可量測的 failure probes。"
 publishDate: 2026-09-05T10:30:00+08:00
+updatedDate: 2026-09-05T10:31:00+08:00
 draft: false
 featured: false
 tags:
@@ -33,13 +34,13 @@ Google Cloud Tech 在 2026 年 8 月 20 日發布的 [〈5 design patterns for l
 
 Prompt cache 需要前段保持位元組級穩定。若每輪都把 recalled memories 或 runtime counters 放到 system prompt 最前面，內容雖然只是多幾行，整個 prefix hash 仍會改變，cache 就無法形成。這種失敗很容易被正常的延遲與 API 帳單掩蓋。
 
-做法是按變動速度排列 prompt：system instructions、persona 與 tool definitions 放在最前；profile 和較慢變動的 context 放中間；記憶、步數與 runtime warning 放最後。不要用「看起來相同」推測 cache 有效，直接在第二輪讀 response metadata。Google 的 [Gemini context caching 文件](https://ai.google.dev/gemini-api/docs/caching)也把 cache 命中與 token usage 當成應觀察的訊號。
+做法是按變動速度排列 prompt：system instructions、persona 與 tool definitions 放在最前；profile 和較慢變動的 context 放中間；記憶、步數與 runtime warning 放最後。同一篇 [X 長文](https://x.com/googlecloudtech/status/2090248297214525569)中，作者回報把 dynamic memories 移到尾端後，自己的 cache hit rate 到了約 95%，prompt 也從 70,000 字元縮到 22,000；這是該團隊的案例，不是供應商保證。不要用「看起來相同」推測 cache 有效，直接在第二輪讀 `usage.total_cached_tokens`。Google 的 [Gemini context caching 文件](https://ai.google.dev/gemini-api/docs/caching)也把 cache 命中與 token usage 當成應觀察的訊號。
 
 ## Background learning：回覆完成不等於背景寫入完成
 
 長時間 Agent 往往需要在 session 之間保存記憶或整理技能。若把抽取工作放在回覆之前，每一輪都會支付使用者看不見的延遲；若丟出沒有強 reference 的 asyncio task，寫入又可能在 runtime 清理時無聲消失。Python 官方文件提醒，`asyncio.create_task()` 建立的 task 應保留強參考直到完成。[asyncio task 文件](https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task)
 
-較小的設計是 write-behind：先把答案交給使用者，再讓隔離的 sibling worker 以同一個 user identity 寫回受限的 memory directory。worker 要有明確完成／失敗狀態、節流與 shutdown drain；如果這些狀態無法被查詢，背景工作只是把錯誤移到視線之外。
+較小的設計是 write-behind：先把答案交給使用者，再讓隔離的 sibling worker 以同一個 user identity 寫回受限的 memory directory。worker 要有明確完成／失敗狀態、節流與 shutdown drain；[原文](https://x.com/googlecloudtech/status/2090248297214525569)把背景抽取 pass 的間隔描述為 120 秒，而官方 [Long Horizon sample](https://github.com/google/adk-samples/tree/main/core/python/long-horizon-harness) 對應的是 post-turn auto-capture／review fork 的 cooldown，nightly Memory Bank consolidation 是另一條路徑。它也在 5 秒的 runtime cleanup 前只等待 4 秒收尾。這些是實作參數，不是通用的最佳值；如果狀態無法被查詢，背景工作只是把錯誤移到視線之外。
 
 ## Persistent workspace：跨 session 保存的不只是檔案
 
@@ -51,7 +52,7 @@ Prompt cache 需要前段保持位元組級穩定。若每輪都把 recalled mem
 
 當一個 Agent 的輸出會成為另一個 Agent 的輸入，純文字摘要不是可靠的協定。timeout、step limit、crash、等待批准與正常完成若共享同一種 envelope，parent 就只能把部分 commentary 猜成結果。
 
-最小修正是把 terminal state 寫成明確值，例如 `completed`、`timeout`、`halted` 與 `pending`，並在摘要中重寫成模型不能誤讀的訊息：`INCOMPLETE: child timed out; no tests ran`。probe 應故意讓 child 逾時，再確認 parent 的路徑會停下或升級，而不是製造一個漂亮的成功報告。
+最小修正是把 terminal state 寫成明確值，例如 `completed`、`timeout`、`halted` 與 `pending`，並在摘要中重寫成模型不能誤讀的訊息：`INCOMPLETE: child timed out; no tests ran`。probe 應故意讓 child 逾時，再確認 parent 的路徑會停下或升級，而不是製造一個漂亮的成功報告。若 loop 仍會在「看起來有進展」時無限執行，原文的參考實作把每輪 tool call 上限設為 200、每個 session 的 iteration 上限設為 50，然後在乾淨邊界產生 handoff；你的上限應依任務成本與驗收時間重新量測。
 
 ## Guard chain：先消除確定的危險，再使用人的注意力
 
