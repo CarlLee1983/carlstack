@@ -112,6 +112,16 @@
 - **頁尾 (`Footer.astro`)**：
   - 整合 SVG RSS 與 GitHub 連結，版權聲明精簡典雅。
 
+### 5.1b 閱讀輔助與編輯記號 (Reading Aids & Editorial Marks)
+
+- **紙質顆粒**：`body::before` 蓋一層 fixed 的 SVG feTurbulence 噪點，淺色 `multiply` 4.5%、深色 `soft-light` 6%，讓大面積底色不像數位平面；`pointer-events: none`，不影響互動。
+- **閱讀進度**：文章頁 `.reading-progress` 是貼在頂端 2px 的主色細線，以 `--reading-progress` 變數驅動 `scaleX`；範圍只算正文（捲到內文開頭為 0、內文底部為 1）。
+- **目錄目前章節**：`TableOfContents` 用 scroll 事件（rAF 節流）標記最後一個捲過 header 的標題為 `aria-current="true"`，左側補 2px 主色記號；不用 IntersectionObserver，跳躍式捲動才對得上。
+- **導言與文末記號**：`.prose` 第一段放大到 1.08em、用主文字色；正文結尾以 `.prose::after` 畫一小段主色短線（60% 實線 + 斷點），告訴讀者正文到此為止。
+- **程式碼語言標籤**：`pre[data-language]::before` 在右上角顯示 Shiki 給的語言名（等寬、大寫、低對比）；`plaintext` / `text` 不顯示。
+- **引言記號**：`blockquote::before` 在左上以 display 字體放一個 35% 透明度的主色引號，與 callout 區隔。
+- **首頁區塊序號**：`.home .section-head h2::before` 用 CSS counter 印 `01`、`02`… 等寬主色序號，把首頁讀成一份年鑑索引。
+
 ### 5.2 文章與專案卡片 (Cards)
 
 - **文章卡片 (`ArticleCard.astro`)**，兩種 `variant`：

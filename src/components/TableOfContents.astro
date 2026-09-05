@@ -80,13 +80,33 @@ const shouldRender = entries.length >= minEntries;
     transition: color var(--dur-micro) var(--ease-out);
   }
 
-  .toc a:hover {
+  .toc a:hover,
+  .toc a[aria-current="true"] {
     color: var(--color-accent);
+  }
+
+  .toc__list > li > a[aria-current="true"] {
+    font-weight: 700;
   }
 
   .toc__list--nested a {
     color: var(--color-faint);
     font-size: var(--text-xs);
+  }
+
+  .toc a {
+    position: relative;
+  }
+
+  /* 目前章節：左側一小段主色，配合 sticky 側欄的髮絲線 */
+  .toc a[aria-current="true"]::before {
+    content: "";
+    position: absolute;
+    inset-block: 0.35em;
+    inset-inline-start: calc(-1 * var(--space-lg) - 1px);
+    width: 2px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
   }
 
   @media (min-width: 72rem) {
@@ -104,3 +124,48 @@ const shouldRender = entries.length >= minEntries;
     }
   }
 </style>
+
+<script>
+  // 依「最後一個已經捲過 header 的標題」標記目錄目前章節；
+  // 用 scroll 事件而非 IntersectionObserver，跳躍式捲動（點目錄、拉捲軸）也能對上。
+  const toc = document.querySelector<HTMLElement>(".toc");
+  if (toc) {
+    const links = [...toc.querySelectorAll<HTMLAnchorElement>("a[href^='#']")];
+    const pairs = links.flatMap((link) => {
+      // 中文標題的 hash 會被百分號編碼，要先解碼才對得到 id
+      const target = document.getElementById(
+        decodeURIComponent(link.hash.slice(1)),
+      );
+      return target ? [{ link, target }] : [];
+    });
+    const threshold = 120;
+    let ticking = false;
+
+    const paint = () => {
+      ticking = false;
+      const atEnd =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 2;
+      const current = atEnd
+        ? pairs.at(-1)
+        : [...pairs]
+            .reverse()
+            .find(
+              ({ target }) => target.getBoundingClientRect().top < threshold,
+            );
+      for (const { link } of pairs) {
+        if (link === current?.link) link.setAttribute("aria-current", "true");
+        else link.removeAttribute("aria-current");
+      }
+    };
+    const schedule = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(paint);
+    };
+
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    paint();
+  }
+</script>

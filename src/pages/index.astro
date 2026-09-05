@@ -523,10 +523,26 @@ const latestLabel = latestDate
     border-block-start: 0;
   }
 
+  .home {
+    counter-reset: home-section;
+  }
+
+  /* 年鑑式編號：每個區塊標題前一組等寬序號，把首頁讀成一份索引 */
   .home .section-head h2 {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+    counter-increment: home-section;
+  }
+
+  .home .section-head h2::before {
+    content: counter(home-section, decimal-leading-zero);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    transform: translateY(-0.35em);
   }
 
   .home .section-head h2::after {
