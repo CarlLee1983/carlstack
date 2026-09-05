@@ -2,8 +2,12 @@
 import EmptyState from "../../components/EmptyState.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
+import { sortByPostCount } from "../../utils/content";
 
-const tags = collectTaxonomy(await getVisiblePosts(), "tags");
+const tags = sortByPostCount(collectTaxonomy(await getVisiblePosts(), "tags"));
+// 文章數決定視覺階層：主題級標籤放大，單篇標籤退成次要，一眼看出站點重心。
+const tierOf = (count: number) =>
+  count >= 10 ? "major" : count >= 3 ? "minor" : "single";
 ---
 
 <BaseLayout
@@ -26,6 +30,7 @@ const tags = collectTaxonomy(await getVisiblePosts(), "tags");
               <a
                 class="tag"
                 data-count={tag.posts.length}
+                data-tier={tierOf(tag.posts.length)}
                 href={`/tags/${tag.slug}/`}
               >
                 {tag.name}
@@ -83,6 +88,23 @@ const tags = collectTaxonomy(await getVisiblePosts(), "tags");
     border-radius: var(--radius-pill);
     background: var(--color-accent);
     transform-origin: left;
+  }
+
+  .tags-cloud :global(.tag[data-tier="major"]) {
+    min-height: 2.5rem;
+    padding-inline: var(--space-md);
+    background: var(--color-card);
+    border: var(--rule-hair) solid var(--color-rule-2);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .tags-cloud :global(.tag[data-tier="single"]) {
+    background: transparent;
+    border: var(--rule-hair) solid var(--color-rule);
+    color: var(--color-muted);
+    font-weight: 500;
   }
 
   .tags-cloud :global(.tag[data-count])::after {

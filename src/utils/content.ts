@@ -57,3 +57,17 @@ export function estimateReadingMinutes(markdown: string): number {
     .filter(Boolean).length;
   return Math.max(1, Math.ceil(cjkCount / 400 + latinCount / 200));
 }
+
+export interface WithPosts {
+  name: string;
+  posts: unknown[];
+}
+
+/** 分類依文章數倒序；同數量時依名稱，讓首頁與標籤頁先露出真正的主題。 */
+export function sortByPostCount<T extends WithPosts>(groups: T[]): T[] {
+  return [...groups].sort(
+    (left, right) =>
+      right.posts.length - left.posts.length ||
+      left.name.localeCompare(right.name, "zh-Hant"),
+  );
+}

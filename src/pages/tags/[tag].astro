@@ -25,7 +25,7 @@ const { tag } = Astro.props;
       <p>{tag.posts.length} 篇文章</p>
     </header>
     <div class="article-list">
-      {tag.posts.map((post) => <ArticleCard post={post} />)}
+      {tag.posts.map((post) => <ArticleCard post={post} variant="row" />)}
     </div>
   </div>
 </BaseLayout>

@@ -6,15 +6,31 @@ import ProjectCard from "../components/ProjectCard.astro";
 import { siteConfig } from "../config/site";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { collectTaxonomy, getVisiblePosts } from "../utils/collections";
+import { sortByPostCount } from "../utils/content";
 
 const posts = await getVisiblePosts();
 const latest = posts.slice(0, 5);
 const featured = posts.filter((post) => post.data.featured).slice(0, 3);
 const tags = collectTaxonomy(posts, "tags");
-const projects = (await getCollection("projects"))
+const topics = sortByPostCount(tags).slice(0, 8);
+const allProjects = await getCollection("projects");
+const projects = allProjects
   .filter((project) => project.data.featured)
   .sort((left, right) => left.data.name.localeCompare(right.data.name))
   .slice(0, 3);
+
+// 側欄數字直接從內容集合算出，不另外維護一份會過期的描述文案。
+const latestDate = latest[0]?.data.updatedDate ?? latest[0]?.data.publishDate;
+const stats = [
+  { value: posts.length, label: "篇文章" },
+  { value: tags.length, label: "個主題標籤" },
+  { value: allProjects.length, label: "個開源專案" },
+];
+const latestLabel = latestDate
+  ? new Intl.DateTimeFormat("zh-TW", { month: "long", day: "numeric" }).format(
+      latestDate,
+    )
+  : null;
 ---
 
 <BaseLayout title={siteConfig.name}>
@@ -69,82 +85,27 @@ const projects = (await getCollection("projects"))
         </div>
       </div>
 
-      <!-- Publishing Spec Side Widget (Clean SVG bullets, NO emojis) -->
-      <div class="hero-spec-card">
+      <!-- 站點速覽：數字來自內容集合 -->
+      <aside class="hero-spec-card" aria-label="站點速覽">
         <div class="hero-spec-card__header">
-          <span>發布原則與架構</span>
+          <span>站點速覽</span>
           <span class="spec-tag">GIT-NATIVE</span>
         </div>
+        <dl class="hero-stats">
+          {
+            stats.map((stat) => (
+              <div class="hero-stats__item">
+                <dd>{stat.value}</dd>
+                <dt>{stat.label}</dt>
+              </div>
+            ))
+          }
+        </dl>
         <p class="hero-spec-card__desc">
-          所有內容保存在 Git repository
-          中；每一次發布皆為純靜態產物，可隨時驗證、離線重建與跨平台遷移。
+          {latestLabel && <span>最近更新 {latestLabel}。</span>}
+          全部內容保存在 Git repository，每次發布皆為純靜態產物，可驗證、可離線重建。
         </p>
-        <ul class="hero-spec-card__list">
-          <li>
-            <div class="spec-icon-box">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-            <div>
-              <strong>Markdown / MDX</strong>
-              <span>乾淨一手文字與程式碼原始碼</span>
-            </div>
-          </li>
-          <li>
-            <div class="spec-icon-box">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-            <div>
-              <strong>Astro 靜態渲染</strong>
-              <span>輕量零膨脹、極致讀取速度</span>
-            </div>
-          </li>
-          <li>
-            <div class="spec-icon-box">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline pathLength="1" points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-            <div>
-              <strong>Edge 邊緣部署</strong>
-              <span>全站純靜態，全球快速分發</span>
-            </div>
-          </li>
-        </ul>
-      </div>
+      </aside>
     </section>
 
     <!-- Latest Articles Section -->
@@ -173,7 +134,7 @@ const projects = (await getCollection("projects"))
         latest.length > 0 ? (
           <div class="article-list">
             {latest.map((post) => (
-              <ArticleCard post={post} headingLevel="h3" />
+              <ArticleCard post={post} headingLevel="h3" variant="row" />
             ))}
           </div>
         ) : (
@@ -234,7 +195,7 @@ const projects = (await getCollection("projects"))
         {
           tags.length > 0 ? (
             <ul class="topic-cloud">
-              {tags.slice(0, 8).map((tag) => (
+              {topics.map((tag) => (
                 <li>
                   <a href={`/tags/${tag.slug}/`}>
                     <span>{tag.name}</span>
@@ -405,9 +366,9 @@ const projects = (await getCollection("projects"))
 
   .home-hero h1 {
     font-size: var(--text-display);
-    font-weight: 800;
-    line-height: 1.12;
-    letter-spacing: -0.035em;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
     margin-bottom: var(--space-md);
   }
 
@@ -516,67 +477,45 @@ const projects = (await getCollection("projects"))
   }
 
   .hero-spec-card__desc {
+    margin-block-start: var(--space-lg);
+    padding-block-start: var(--space-md);
+    border-block-start: var(--rule-hair) solid var(--color-rule);
     color: var(--color-muted);
     font-size: var(--text-xs);
-    line-height: 1.6;
-    margin-bottom: var(--space-lg);
+    line-height: 1.7;
   }
 
-  .hero-spec-card__list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-    padding: 0;
-  }
-
-  .hero-spec-card__list li {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-sm);
-  }
-
-  .spec-icon-box {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--color-secondary-soft);
-    color: var(--color-secondary);
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .hero-spec-card__list strong {
-    display: block;
-    font-size: var(--text-xs);
-    font-weight: 700;
+  .hero-spec-card__desc span {
     color: var(--color-ink);
+    font-weight: 600;
   }
 
-  .hero-spec-card__list span {
-    display: block;
-    font-size: var(--text-xs);
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin: var(--space-md) 0 0;
+  }
+
+  .hero-stats__item {
+    display: grid;
+    gap: var(--space-3xs);
+  }
+
+  .hero-stats dd {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hero-stats dt {
     color: var(--color-muted);
-  }
-
-  .spec-icon-box polyline {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: draw-check 520ms var(--ease-out) forwards;
-  }
-
-  .hero-spec-card__list li:nth-child(1) polyline {
-    animation-delay: 720ms;
-  }
-
-  .hero-spec-card__list li:nth-child(2) polyline {
-    animation-delay: 840ms;
-  }
-
-  .hero-spec-card__list li:nth-child(3) polyline {
-    animation-delay: 960ms;
+    font-size: var(--text-xs);
   }
 
   /* Sections */
@@ -600,7 +539,7 @@ const projects = (await getCollection("projects"))
   }
 
   .home-latest {
-    padding-block: var(--space-3xl) var(--space-2xl);
+    padding-block: var(--space-2xl);
   }
 
   .home-pair {
@@ -736,12 +675,6 @@ const projects = (await getCollection("projects"))
     }
   }
 
-  @keyframes draw-check {
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
   @keyframes section-reveal {
     from {
       opacity: 0;
@@ -804,9 +737,9 @@ const projects = (await getCollection("projects"))
 
   @media (min-width: 54rem) {
     .home-hero {
-      grid-template-columns: minmax(0, 1.25fr) minmax(22rem, 0.85fr);
+      grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.8fr);
       gap: var(--space-3xl);
-      padding-block: var(--space-3xl) var(--space-4xl);
+      padding-block: var(--space-3xl);
     }
 
     .home-pair {
@@ -824,7 +757,6 @@ const projects = (await getCollection("projects"))
     .home-hero__actions,
     .hero-spec-card,
     .hero-spec-card::before,
-    .spec-icon-box polyline,
     .home-latest,
     .home-pair,
     .home-projects,
@@ -850,10 +782,6 @@ const projects = (await getCollection("projects"))
     .home-topics .topic-cloud a:active,
     .home-topics .topic-cloud a:hover span.muted {
       transform: none;
-    }
-
-    .spec-icon-box polyline {
-      stroke-dashoffset: 0;
     }
   }
 </style>

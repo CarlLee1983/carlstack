@@ -4,6 +4,7 @@ import {
   filterDrafts,
   normalizeTaxonomy,
   sortByPublishDate,
+  sortByPostCount,
   sortSeries,
   type BlogDataShape,
   type WithBlogData,
@@ -64,4 +65,18 @@ test("系列依 seriesOrder 排序，未設定者置後", () => {
     sortSeries(entries).map((item) => item.data.seriesOrder),
     [1, 2, undefined],
   );
+});
+
+test("sortByPostCount 依文章數倒序、同數量依名稱，且不修改原陣列", () => {
+  const original = [
+    { name: "乙", posts: [entry("2026-01-01")] },
+    { name: "甲", posts: [entry("2026-01-01"), entry("2026-01-02")] },
+    { name: "丙", posts: [entry("2026-01-01")] },
+  ];
+  const sorted = sortByPostCount(original);
+  assert.deepEqual(
+    sorted.map((item) => item.name),
+    ["甲", "乙", "丙"],
+  );
+  assert.equal(original[0]?.name, "乙");
 });

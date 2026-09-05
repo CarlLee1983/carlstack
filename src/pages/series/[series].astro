@@ -29,7 +29,7 @@ const { series } = Astro.props;
       <p>依系列順序閱讀，共 {series.posts.length} 篇。</p>
     </header>
     <div class="article-list">
-      {series.posts.map((post) => <ArticleCard post={post} />)}
+      {series.posts.map((post) => <ArticleCard post={post} variant="row" />)}
     </div>
   </div>
 </BaseLayout>

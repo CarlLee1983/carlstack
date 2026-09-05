@@ -7,9 +7,11 @@ import { estimateReadingMinutes } from "../utils/content";
 interface Props {
   post: CollectionEntry<"blog">;
   headingLevel?: "h2" | "h3";
+  /** card：獨立盒子，給格狀精選；row：以髮絲線分隔的編輯式列表，給時序清單 */
+  variant?: "card" | "row";
 }
 
-const { post, headingLevel: Heading = "h2" } = Astro.props;
+const { post, headingLevel: Heading = "h2", variant = "card" } = Astro.props;
 const cover = post.data.cover;
 const body = "body" in post && typeof post.body === "string" ? post.body : "";
 const date = new Intl.DateTimeFormat("zh-TW", {
@@ -22,7 +24,11 @@ const primaryTag =
 ---
 
 <a
-  class:list={["article-card-item", cover && "article-card-item--with-cover"]}
+  class:list={[
+    "article-card-item",
+    `article-card-item--${variant}`,
+    cover && "article-card-item--with-cover",
+  ]}
   href={postHref(post)}
 >
   {
@@ -32,7 +38,11 @@ const primaryTag =
         src={cover}
         alt=""
         widths={[220, 440]}
-        sizes="(min-width: 40rem) 9rem, 100vw"
+        sizes={
+          variant === "row"
+            ? "(min-width: 40rem) 8.5rem, 5.5rem"
+            : "(min-width: 40rem) 9rem, 100vw"
+        }
         loading="lazy"
       />
     )
@@ -229,11 +239,108 @@ const primaryTag =
   }
 
   @media (max-width: 36rem) {
-    .article-card-item {
+    .article-card-item--card {
       grid-template-columns: minmax(0, 1fr);
     }
-    .article-card-item__action {
+    .article-card-item--card .article-card-item__action {
       display: none;
+    }
+  }
+
+  /* Row：去掉盒子，靠髮絲線與留白分段；縮圖在窄視窗也留在左側，清單才不會被封面撐長 */
+  .article-card-item--row {
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    grid-template-areas: "cover content";
+    align-items: start;
+    gap: var(--space-md) var(--space-lg);
+    padding: var(--space-lg) 0;
+    border: 0;
+    border-block-start: var(--rule-hair) solid var(--color-rule);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .article-card-item--row:not(.article-card-item--with-cover) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "content";
+  }
+
+  .article-card-item--row:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--color-rule);
+    background: transparent;
+  }
+
+  .article-card-item--row .article-card-item__cover {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    transition: transform var(--dur-short) var(--ease-out);
+  }
+
+  .article-card-item--row:hover .article-card-item__cover {
+    transform: scale(1.03);
+  }
+
+  .article-card-item--row .article-card-item__action {
+    display: none;
+  }
+
+  /* 窄視窗 meta 會折行，分隔點落單反而像錯字，改用間距分隔 */
+  .article-card-item--row .meta-dot {
+    display: none;
+  }
+
+  .article-card-item--row .article-card-item__title {
+    font-size: var(--text-md);
+    line-height: 1.4;
+  }
+
+  .article-card-item--row .article-card-item__desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  @media (min-width: 40rem) {
+    .article-card-item--row {
+      grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+      grid-template-areas: "cover content action";
+      align-items: center;
+      padding-block: var(--space-xl);
+    }
+
+    .article-card-item--row .article-card-item__cover {
+      aspect-ratio: 4 / 3;
+      border-radius: var(--radius-md);
+    }
+
+    .article-card-item--row .article-card-item__action {
+      display: grid;
+      opacity: 0;
+      transform: translateX(-0.35rem);
+    }
+
+    .article-card-item--row:hover .article-card-item__action,
+    .article-card-item--row:focus-visible .article-card-item__action {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .article-card-item--row .article-card-item__title {
+      font-size: var(--text-lg);
+    }
+
+    .article-card-item--row .meta-dot {
+      display: inline;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .article-card-item--row:hover .article-card-item__cover {
+      transform: none;
     }
   }
 </style>
