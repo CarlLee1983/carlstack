@@ -1,8 +1,8 @@
 ---
-title: "Agentic Coding 能加速實作，工程基本功決定你怎麼驗收"
-description: "從 2026 年 8 月三份調查與研究，拆解 Vibe Coding 迷因背後的速度感、脈絡落差與語意理解問題，整理四個能用在下一次變更的驗收問題。"
+title: "AI 能生成程式碼後，工程基本功決定你怎麼驗收"
+description: "從 Bilgin Ibryam 的八本軟體書閱讀地圖出發，將 AI coding 後仍須由工程師承擔的產品、規格、架構、資料、安全、韌性與交付決策，收斂成八個可驗收問題。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-06
+updatedDate: 2026-09-06T20:18:22+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/agentic-coding-verification-v2.png
@@ -15,9 +15,24 @@ tags:
 
 「AI 已經能自己寫 Code、修 Bug、跑測試，工程師還需要學系統架構嗎？」
 
-這次讀到的一張迷因把兩條曲線畫得很直白：普通開發者的知識慢慢增加，Vibe Developer 的自信先衝高，進入 production 和 debug 後又急速跌落。這張圖適合當提醒，不適合當數據。它沒有定義「普通」或「自信」，也沒有證明每個使用 AI 的人都會走同一條曲線。
+Bilgin Ibryam 在〈[8 Software Books AI Has Made More Relevant](https://www.generativeprogrammer.com/p/8-software-books-ai-has-made-more)〉列出八本書，對應產品價值、規格、領域、架構、資料、安全、韌性與交付流。這不是「AI 讓舊書變成定理」的實證；那是作者對工作重心的判斷。但它抓到一個很實際的變化：程式碼產出變快，不代表系統理解、驗證與營運也變快。
 
-但它抓到一個值得工程師處理的問題：程式碼產出變快，不代表系統理解、驗證與營運也變快。
+我的立場是：**AI 把稀缺工作從輸入程式碼，移到替決策留下可反駁的證據。**以下八個問題不是必讀書單或每次小修改都要填完的 checklist；它們是判斷「這次變更還缺哪種證據」的索引。
+
+## 八本書不是書單，而是八個不能交給生成器猜的問題
+
+| AI 產出前要先問的問題        | Ibryam 對應的書                                         | 本次變更應留下的最小證據           |
+| ---------------------------- | ------------------------------------------------------- | ---------------------------------- |
+| 這件事真的值得做嗎？         | _Escaping the Build Trap_                               | 使用者結果、非目標與完成訊號       |
+| 正確行為是什麼？             | _Specification by Example_                              | 正常、邊界與失敗案例               |
+| 名詞與規則由誰定義？         | _Learning Domain-Driven Design_                         | 共同詞彙、owner 與不變條件         |
+| 為什麼採用這個設計？         | _Software Architecture: The Hard Parts_                 | 被拒絕的選項與 trade-off           |
+| 舊資料與其他消費者仍相容嗎？ | _Designing Data-Intensive Applications, Second Edition_ | schema／事件契約與 migration 策略  |
+| 哪裡跨越信任邊界？           | _Threat Modeling: Designing for Security_               | 資料流、權限與威脅回應             |
+| 依賴變慢或失效時會怎樣？     | _Release It!, Second Edition_                           | timeout、重試、退化與回退行為      |
+| 整個交付流真的變好嗎？       | _Accelerate_                                            | 從需求到可接受結果的時間與返工證據 |
+
+這個表把原文的閱讀地圖改成審查面，而非宣稱讀完八本書就能安全使用 AI。O'Reilly 對 _Designing Data-Intensive Applications_ 第二版列出的內容，正包含 schema evolution、replication、transactions、partial failure 與 dataflow；這些都是「測試綠燈」仍可能漏掉的跨系統問題。[書籍目錄](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/)
 
 ## 速度感和證據是兩件事
 
@@ -41,19 +56,23 @@ Nature 旗下 Communications AI & Computing 在 2026 年 8 月 13 日刊出的 [
 
 ## 把 Agent 放進一個可驗證的工作流
 
-我會用下面四個問題審查一次 Agent 產生的變更：
+我會用下面八個問題審查一次 Agent 產生的變更：
 
-| 審查問題                     | 可留下的證據                       |
-| ---------------------------- | ---------------------------------- |
-| 哪些行為必須維持、哪些要改？ | 變更前後的規格或測試               |
-| 它依賴了哪些脈絡？           | ADR、資料流、錯誤處理說明          |
-| 測試沒有覆蓋什麼？           | 明列未測的外部服務、併發與資料案例 |
-| 出錯時怎麼知道該停？         | log、metric、trace、告警與回退程序 |
+| 審查問題                         | 可留下的證據                               |
+| -------------------------------- | ------------------------------------------ |
+| 這件事要改變哪個使用者結果？     | 目標、非目標與完成訊號                     |
+| 哪些行為必須維持、哪些要改？     | 變更前後的規格、範例或測試                 |
+| 名詞、規則與例外由誰決定？       | 領域詞彙、owner 與不變條件                 |
+| 為何採用這個架構而不是另一個？   | ADR 或 trade-off 紀錄                      |
+| 資料、事件與舊消費者是否仍相容？ | schema 契約、migration 與 rollback 策略    |
+| 哪裡跨過信任邊界？               | 資料流、權限檢查與 threat model            |
+| 測試沒有覆蓋什麼、故障時怎麼停？ | 明列外部服務、併發案例、告警與回退程序     |
+| 交付真的更好，還是只更快產生？   | 交付時間、審查輪數、返工與 production 訊號 |
 
-**說不清預期行為或驗收方式，就先停止擴大修改。** 四題有一題答不出來，先縮小範圍或補齊條件，再讓 Agent 繼續；不適用的項目則寫明原因。這是本文建議的停止規則，讓下一步取決於可檢查的證據。
+**說不清預期行為、資料相容性或失敗處理，就先停止擴大修改。** 八題不必全部適用，但每一題都必須有答案或明確的「不適用」理由；否則先縮小範圍或補齊條件，再讓 Agent 繼續。這是本文建議的停止規則，讓下一步取決於可檢查的證據。
 
 ## 下一步：量測一個小變更
 
 挑一個低風險、可回退的 issue，先記錄人工完成它需要的時間、審查輪數、測試結果與回退方式，再讓 Agent 完成同一類工作。比較交付結果與維運成本，而不是只比較產生 diff 的速度。
 
-先拿下一個 issue 寫下這四題的答案，再開始產生程式碼。
+先拿下一個 issue 寫下適用問題的答案，再開始產生程式碼。
