@@ -2,7 +2,7 @@
 title: "AI 能生成程式碼後，工程基本功決定你怎麼驗收"
 description: "從 Bilgin Ibryam 的八本軟體書閱讀地圖出發，將 AI coding 後仍須由工程師承擔的產品、規格、架構、資料、安全、韌性與交付決策，收斂成八個可驗收問題。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-06T20:18:22+08:00
+updatedDate: 2026-09-06T20:45:01+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/agentic-coding-verification-v2.png
@@ -33,6 +33,23 @@ Bilgin Ibryam 在〈[8 Software Books AI Has Made More Relevant](https://www.gen
 | 整個交付流真的變好嗎？       | _Accelerate_                                            | 從需求到可接受結果的時間與返工證據 |
 
 這個表把原文的閱讀地圖改成審查面，而非宣稱讀完八本書就能安全使用 AI。O'Reilly 對 _Designing Data-Intensive Applications_ 第二版列出的內容，正包含 schema evolution、replication、transactions、partial failure 與 dataflow；這些都是「測試綠燈」仍可能漏掉的跨系統問題。[書籍目錄](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781098119058/)
+
+## 不買書，也能先用公開資料補齊這八個面向
+
+書本能提供完整的論述與案例；下列資料不是逐章替代品，而是可公開查核、可直接拿來做一次變更審查的最短路徑。
+
+| 決策面     | 公開資料                                                                                                                             | 先做的事                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| 產品價值   | [_Escaping the Build Trap_ 線上預覽](https://www.oreilly.com/library/view/escaping-the-build/9781491973783/part01.html)              | 把「要交付的功能」改寫成一個使用者結果與停止條件。                   |
+| 行為規格   | [Gojko Adzic 的 Specification by Example 文章庫](https://gojko.net/lists/specification-by-example.html)                              | 為正常、邊界與失敗情況各寫一個範例，再讓 Agent 產生測試。            |
+| 領域語言   | [Microsoft 的 DDD 與 bounded context 指引](https://learn.microsoft.com/zh-tw/azure/architecture/microservices/model/domain-analysis) | 列出這次變更的名詞、owner 與不可變條件；有歧義就先問 domain expert。 |
+| 架構取捨   | [Architecture Decision Records 原始格式](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)                   | 用一頁 ADR 寫下 context、選擇、後果與未選方案。                      |
+| 資料相容   | [Apache Avro schema resolution 規格](https://avro.apache.org/docs/current/specification/#schema-resolution)                          | 對 producer 與每個 consumer 跑一次舊／新 schema 相容測試。           |
+| 信任邊界   | [W3C Threat Modeling Guide](https://www.w3.org/TR/threat-modeling-guide/)                                                            | 畫出資料流與邊界，列出威脅、回應與殘餘風險。                         |
+| 故障與退化 | [Google SRE：Addressing Cascading Failures](https://sre.google/sre-book/addressing-cascading-failures/)                              | 指定 timeout、retry budget、degraded response 與何時停止重試。       |
+| 交付成效   | [DORA Core Model 與公開研究](https://dora.dev/research/)                                                                             | 同時記錄 flow、返工與使用者／營運結果，不只計算產出量。              |
+
+這些來源都能公開閱讀，但仍要把它們套回本系統的資料、依賴與風險。**找不到對應的 owner、consumer 或失敗行為時，不要以通用文章代替這次變更的證據。**
 
 ## 速度感和證據是兩件事
 
