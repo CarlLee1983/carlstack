@@ -49,7 +49,19 @@ CarlStack 的文章要讓讀者記住作者的工程判斷，而不只是來源�
 
 建議起始主題：AI 工程化、AI Agent Workflow、系統設計、API 整合、DDD 與 Clean Architecture、開源專案、技術選型、專案復盤。這份清單只提供作者選詞；網站顯示的 taxonomy 仍完全來自已發布文章。
 
-系列文章應設定連續 `seriesOrder`。頁面依此欄位排序，未設定 order 的同系列內容會排在最後。
+系列文章應設定連續 `seriesOrder`。頁面依此欄位排序，未設定 order 的同系列內容會排在最後。新文章發布時應先對照既有系列，評估是否納入：
+
+- **系統設計面試與架構方法論**：PEDALS 方法論、容量估算與經典系統面試題（TinyURL、Crawler、Dropbox、Stack Overflow）
+- **分散式系統共識與事務架構**：CAP/PACELC、Raft、分散式唯一 ID、2PC/3PC/TCC、Saga 與消息交付語義
+- **金融級架構與交易系統**：雙式記帳、Stripe 智慧路由、Shopify 彈性架構、清算對帳與即時風控
+- **現代資料庫與儲存引擎內核**：B+ Tree/LSM-Tree 索引、MVCC 隔離級別、SQL 執行器、複製延遲、分庫分表與 TSDB
+- **高併發快取與訊息中介軟體**：Redis 內核、快取淘汰演算法、快取叢集與模式、Kafka 高吞吐與延遲死信隊列
+- **現代網路協定與 API 平台架構**：URL 解析全鏈路、TCP/UDP/QUIC、HTTP 演進、API 風格、反向代理/網關與 Webhook
+- **AI Agent 工程化與工作流實戰**：開源 AI 技術棧、vLLM 推理優化、Agent 狀態機沙盒、Trace、Memory、Harness 與 Runtime
+- **矽谷巨頭高併發架構復盤**：Slack、Twitter、Reddit、YouTube、Netflix、Airbnb、Discord、Figma 架構演進復盤
+- **Claude Prompt Engineering 實戰**：提示詞契約、可維護模板、降低幻覺與工作流串接
+
+若新主題具備連續閱讀或進階學習價值，可開創新系列，並確保系列名稱精確反映主軸、設定遞增的 `seriesOrder`。
 
 ## Markdown 與 MDX
 
@@ -104,10 +116,11 @@ CarlStack 的文章要讓讀者記住作者的工程判斷，而不只是來源�
 1. 新檔設 `draft: true`。
 2. `pnpm dev` 檢查內容、程式碼、圖片、SVG 圖解、深淺色與手機版。
 3. 依 Cover Direction 生成、檢視並驗收封面；將圖片放進 `src/assets`，設定 `cover` 與 `coverAlt`。
-4. 先執行 `pnpm format`，再將文章檔案 stage；接著執行 `pnpm content:policy -- HEAD && pnpm check && pnpm test`。前者會拒絕本次新增或修改文章中的 Mermaid；`astro check` 會拒絕缺少封面或 `coverAlt` 的正式文章。
-5. 設定正確 `publishDate`，將 `draft` 改為 `false`。新正式文章不得在此步驟前缺少封面。
-6. 再次執行 production build，確認文章出現在 RSS、Sitemap 與 Pagefind。
-7. merge 到 `main` 後由 GitHub Actions 自動部署。
+4. **系列檢查**：檢視本文主題是否屬於現有系列，或與站內既有文章形成多篇連續學習路徑。若屬於系列，在 frontmatter 設定對應的 `series` 名稱與遞增的 `seriesOrder`；若開創新系列，應確保同系列有清晰的進階順序。
+5. 先執行 `pnpm format`，再將文章檔案 stage；接著執行 `pnpm content:policy -- HEAD && pnpm check && pnpm test`。前者會拒絕本次新增或修改文章中的 Mermaid；`astro check` 會拒絕缺少封面或 `coverAlt` 的正式文章，並校驗 `seriesOrder` 是否伴隨 `series`。
+6. 設定正確 `publishDate`，將 `draft` 改為 `false`。新正式文章不得在此步驟前缺少封面。
+7. 再次執行 production build，確認文章出現在 RSS、Sitemap、Pagefind 以及 `/series/` 系列清單（若有設定）。
+8. merge 到 `main` 後由 GitHub Actions 自動部署。
 
 ## SEO 與 cross-post
 

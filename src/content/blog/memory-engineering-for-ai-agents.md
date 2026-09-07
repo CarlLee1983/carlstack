@@ -11,6 +11,8 @@ tags:
   - 知識管理
 cover: ../../assets/covers/memory-engineering-for-ai-agents.png
 coverAlt: "五個保存、整理、取回、比對與衰減站圍繞中央記憶檔庫形成環形機構。"
+series: AI Agent 工程化與工作流實戰
+seriesOrder: 5
 ---
 
 AI Agent 可以在單次對話裡展現很強的推理能力，卻不代表它真正擁有「過去」。只要 session 結束、context 被壓縮，或工作轉交給另一個 Agent，先前談過的偏好、限制與決策便可能一起消失。

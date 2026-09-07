@@ -12,7 +12,7 @@
 
 ## 文章發布控制
 
-文章發布以 [`docs/content-guide.md`](docs/content-guide.md) 為內容規格；`AGENTS.md` 只負責觸發 workflow，不作為唯一控制面。發布或更新文章時，先 format、再 stage 目標文章，接著取得以下綠燈才可 commit：`pnpm content:policy -- HEAD`、`pnpm check`、`pnpm test`。有流程或架構圖時，還要在桌面與 320 px 視窗檢視 SVG 成品。
+文章發布以 [`docs/content-guide.md`](docs/content-guide.md) 為內容規格；`AGENTS.md` 只負責觸發 workflow，不作為唯一控制面。發布或更新文章時，先確認是否納入或開創新系列（設定連續 `seriesOrder` 與 `series`），接著先 format、再 stage 目標文章，取得以下綠燈才可 commit：`pnpm content:policy -- HEAD`、`pnpm check`、`pnpm test`。有流程或架構圖時，還要在桌面與 320 px 視窗檢視 SVG 成品。
 
 動到 [`docs/architecture.md`](docs/architecture.md) 邊界清單上的檔案時，先讀該文件與 [`docs/adr/`](docs/adr/)，並回報狀態為 `proposed` 的未決問題。
 

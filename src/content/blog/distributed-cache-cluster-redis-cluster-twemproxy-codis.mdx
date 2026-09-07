@@ -13,6 +13,8 @@ tags:
   - "叢集架構"
   - "高可用"
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
+series: 高併發快取與訊息中介軟體
+seriesOrder: 3
 ---
 
 當單一 Redis 實例的記憶體容量達到數十 GB（受限於單機記憶體與 RDB/AOF 巨量 Fork 停頓開銷），或者讀寫 QPS 突破百萬級別時，單體 Redis 實例便無法滿足需求，系統必須邁向**分散式快取叢集（Distributed Cache Cluster）**。
