@@ -2,6 +2,7 @@
 title: "KV Cache 不是一個優化項：先分清楚你要減少的是容量、頻寬還是重複"
 description: "從 Avi Chawla 的 KV cache 分類出發，將模型架構、token 保留、位元精度、配置重用與 offloading 變成一張 production capacity ledger，避免把不同代價誤當成同一個開關。"
 publishDate: 2026-09-07T11:12:11+08:00
+updatedDate: 2026-09-07T22:00:32+08:00
 draft: false
 featured: false
 tags:
@@ -15,7 +16,7 @@ series: AI Agent 工程化與工作流實戰
 seriesOrder: 10
 ---
 
-Avi Chawla 在〈[KV Cache Engineering for LLM Serving, clearly explained](https://x.com/_avichawla/status/2096491130489872479)〉列出一長串 KV cache 技術。最容易犯的錯不是漏掉某個名詞，而是把它們都歸成「降低 KV cache」：有些真的釋放 GPU 容量，有些只減少每次 decode 讀取的資料；有些能改 engine 設定，有些必須在訓練 checkpoint 時就已經決定。
+Avi Chawla 在〈[KV Cache Engineering for LLM Serving, clearly explained](https://x.com/_avichawla/status/2096491130489872479)〉列出一長串 KV cache 技術。Tech with Mak 的[原始貼文](https://x.com/techNmak/status/2096732946405417130)則把同一問題拉回 serving 路徑：prefill、decode、batching 與快取不是可任意混搭的清單。最容易犯的錯不是漏掉某個名詞，而是把它們都歸成「降低 KV cache」：有些真的釋放 GPU 容量，有些只減少每次 decode 讀取的資料；有些能改 engine 設定，有些必須在訓練 checkpoint 時就已經決定。
 
 我的立場是：**先把容量、頻寬、重複與延遲分成不同帳本，再選優化。**否則看到 OOM 就開 sparse attention，或看到慢就做 CPU offloading，通常只會把瓶頸搬到下一個指標。
 

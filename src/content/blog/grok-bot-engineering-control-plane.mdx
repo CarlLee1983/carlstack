@@ -2,6 +2,7 @@
 title: "Grok Bot 真正放大的不是 Agent 數量，而是工程管理迴路"
 description: "從五個專責 Bot、Notion 任務帳本、定期巡檢與證據式驗收，拆解如何把雲端 Coding Agents 組成可持續運作的工程控制平面。"
 publishDate: 2026-09-01
+updatedDate: 2026-09-07T22:00:32+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/grok-bot-engineering-control-plane.png
@@ -19,6 +20,8 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 [Lingxi Li 在〈Grok Bot for Engineering〉](https://x.com/lingxi/status/2094493172516966781)描述了她如何用 Grok Bot 管理五個專責工程 Bot，再由這些 Bot 啟動、監看與推進 Cursor Cloud Agents。她自述，人工管理的上限原本約為 15 個 Cloud Agents，加入這層管理後可同時處理超過 200 個；團隊也曾在一個月內交付超過 2,000 個 PR。這些數字是作者的實務紀錄，不是跨團隊可直接套用的效能基準。
 
 這套做法最值得拆解的，不是替 Bot 取名字，也不是追求 Agent 數量，而是它把工程師原本反覆做的協調工作做成一個**管理平面（control plane）**：執行任務的 Agent 可以來去，任務狀態、驗收證據、風險規則與失敗後的修正則留在外部系統。
+
+Noisy 的[原始貼文](https://x.com/noisyb0y1/status/2095792235417620800)提出一個實用的分工：讓持久的 Grok Bot 管理例行工作，再把需要大範圍平行探索的任務交給 Kimi Agent Swarm。這不應被解讀為「多開 Agent 就等於團隊」：xAI 明確說同一使用者的 Grok Bots 共用雲端電腦、檔案與登入狀態，而 Kimi 對 Swarm 的速度與規模數字是產品主張，且會消耗更多 credits。[Grok Bot security](https://docs.x.ai/grok-bot/approvals-security-and-privacy) [Kimi Agent Swarm](https://www.kimi.ai/help/agent/agent-swarm) 因此，持久 owner、彈性 worker 與人類審批仍是三個不同責任。
 
 本站先前整理的 [Grok Bot 雲端電腦工作流](/blog/grok-bot-cloud-computer-workflows/)談的是執行環境、共享登入與審批邊界；本文只聚焦下一層問題：當可並行的執行環境已經存在，如何避免人類成為兩百條工作線的排程器與監控台？
 
@@ -191,6 +194,7 @@ Grok Bot 的這個案例，展示的不是 AI 已經能取代整個工程組織�
 ## 延伸閱讀
 
 - [Lingxi Li：Grok Bot for Engineering](https://x.com/lingxi/status/2094493172516966781)
+- [Noisy：單人 AI 運維架構原始貼文](https://x.com/noisyb0y1/status/2095792235417620800)
 - [Cursor：Automations](https://prod.cursor.com/help/ai-features/automations)
 - [Cursor：Agents can now control their own computers](https://cursor.com/blog/agent-computer-use)
 - [Cursor：Run cloud agents in your own infrastructure](https://cursor.com/blog/self-hosted-cloud-agents)

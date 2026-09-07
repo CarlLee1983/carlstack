@@ -2,6 +2,7 @@
 title: "模型變強後，Harness 該先刪什麼：保留外部狀態與可驗收證據"
 description: "把模型升級當成一次 Harness 消融測試：刪除只補模型弱點的固定流程，保留外部狀態、權限與獨立驗收，並用四組對照量出真正收益。"
 publishDate: 2026-09-07T11:39:17+08:00
+updatedDate: 2026-09-07T22:00:32+08:00
 draft: false
 featured: false
 tags:
@@ -114,6 +115,7 @@ OpenAI 對 agent-first repository 的經驗也把人放在優先級、驗收條�
 ## 來源
 
 - [使用者提供的原始 X Article：GPT-6 Astra 之後，哪些 Harness 還值得做？](https://x.com/teach_fireworks/status/2096235572331520200)
+- [SONIA：GPT-6 Astra、Codex 與模型路由原始貼文](https://x.com/S0N_IA/status/2096673944548065591)
 - [OpenAI：GPT-6 Astra](https://openai.com/index/gpt-6-astra/)
 - [OpenAI：Model guidance](https://developers.openai.com/api/docs/guides/latest-model)
 - [OpenAI：Harness engineering](https://openai.com/index/harness-engineering/)
