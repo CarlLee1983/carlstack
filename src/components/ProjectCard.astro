@@ -172,6 +172,7 @@ const descriptionId = `${detailId}-description`;
   document
     .querySelectorAll<HTMLElement>("[data-project-card]")
     .forEach((root) => {
+      const card = root.querySelector<HTMLElement>(".project-card-item");
       const openButton = root.querySelector<HTMLButtonElement>(
         "[data-project-open]",
       );
@@ -194,6 +195,28 @@ const descriptionId = `${detailId}-description`;
         if (outside) dialog.close();
       });
       dialog?.addEventListener("close", () => openButton?.focus());
+
+      if (
+        !card ||
+        !window.matchMedia("(hover: hover) and (pointer: fine)").matches
+      )
+        return;
+
+      card.addEventListener("pointermove", (event) => {
+        const bounds = card.getBoundingClientRect();
+        const x = (event.clientX - bounds.left) / bounds.width;
+        const y = (event.clientY - bounds.top) / bounds.height;
+        card.style.setProperty("--holo-x", `${x * 100}%`);
+        card.style.setProperty("--holo-y", `${y * 100}%`);
+        card.style.setProperty("--tilt-x", `${(0.5 - y) * 8}deg`);
+        card.style.setProperty("--tilt-y", `${(x - 0.5) * 10}deg`);
+      });
+      card.addEventListener("pointerleave", () => {
+        card.style.removeProperty("--holo-x");
+        card.style.removeProperty("--holo-y");
+        card.style.removeProperty("--tilt-x");
+        card.style.removeProperty("--tilt-y");
+      });
     });
 </script>
 
@@ -201,6 +224,7 @@ const descriptionId = `${detailId}-description`;
   .project-card-shell {
     display: grid;
     min-width: 0;
+    perspective: 56rem;
   }
 
   .project-card-item {
@@ -224,6 +248,7 @@ const descriptionId = `${detailId}-description`;
       0 0.3rem 0 color-mix(in srgb, var(--color-ink) 16%, var(--color-paper-3)),
       0 1.15rem 2.4rem color-mix(in srgb, var(--color-ink) 14%, transparent);
     transform-origin: 50% 85%;
+    transform-style: preserve-3d;
     transition:
       transform var(--dur-short) var(--ease-out),
       box-shadow var(--dur-short) var(--ease-out),
@@ -251,12 +276,27 @@ const descriptionId = `${detailId}-description`;
     inset: 0.58rem;
     overflow: hidden;
     border-radius: calc(var(--radius-lg) - 0.36rem);
-    background: linear-gradient(
-      112deg,
-      transparent 20%,
-      color-mix(in srgb, var(--color-accent-ink) 32%, transparent) 45%,
-      transparent 68%
-    );
+    background:
+      radial-gradient(
+        circle at var(--holo-x, 50%) var(--holo-y, 50%),
+        color-mix(in srgb, var(--color-card) 68%, transparent),
+        transparent 32%
+      ),
+      repeating-linear-gradient(
+        115deg,
+        transparent 0 0.34rem,
+        color-mix(in srgb, var(--color-accent-ink) 30%, transparent) 0.38rem,
+        transparent 0.5rem
+      ),
+      linear-gradient(
+        112deg,
+        transparent 18%,
+        hsl(332 78% 74% / 0.3) 32%,
+        hsl(50 88% 75% / 0.3) 43%,
+        hsl(193 76% 73% / 0.3) 54%,
+        transparent 70%
+      );
+    background-blend-mode: screen;
     transform: translateX(-135%);
     transition: transform 760ms var(--ease-out);
   }
@@ -603,7 +643,8 @@ const descriptionId = `${detailId}-description`;
         0 0.42rem 0
           color-mix(in srgb, var(--color-ink) 18%, var(--color-paper-3)),
         0 1.7rem 3rem color-mix(in srgb, var(--color-ink) 20%, transparent);
-      transform: translateY(-0.5rem) rotate(0.35deg);
+      transform: translateY(-0.5rem) rotate(0.35deg)
+        rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
     }
 
     .project-card-item:hover::after {
@@ -611,7 +652,7 @@ const descriptionId = `${detailId}-description`;
     }
 
     .project-card-item:hover .project-card-item__cover {
-      transform: scale(1.045);
+      transform: scale(1.06);
     }
 
     .project-card-item:hover .project-card-item__reveal {
