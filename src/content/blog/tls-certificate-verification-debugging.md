@@ -95,4 +95,4 @@ openssl x509 -in certificate.pem -noout \\
 
 我的立場是：TLS 不應只由平台或 ingress 團隊「處理掉」。API client 的 endpoint、SNI、trust store、憑證輪換與告警都是服務正確性的一部分。下一次 CI 或部署檢查，至少對每個公開 endpoint 執行一次上述 `s_client` 驗證，並在到期日前告警。這比事故當下把 `verify=false` 寫進程式碼少得多。
 
-若你要再往底層看握手延遲、前向保密與 0-RTT 的取捨，可接著閱讀本站的 [TLS 1.3 握手與 0-RTT 安全](./tls-1-3-handshake-zero-rtt-security/)。
+若你要再往底層看握手延遲、前向保密與 0-RTT 的取捨，可接著閱讀本站的 [TLS 1.3 握手與 0-RTT 安全](/blog/tls-1-3-handshake-zero-rtt-security/)。
