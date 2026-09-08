@@ -106,5 +106,6 @@ MCP 讓 AI 接觸數位世界，MHS 開始給它操作實體世界的介面。�
 ## 延伸閱讀
 
 - [@Smartpigai：MCP + MHS，會成為 AI 時代的操作系統嗎？](https://x.com/Smartpigai/status/2094377300062245129)
+- [MCP 接得上不等於能放心執行：先把介面、授權與核准分開](/blog/mcp-interface-needs-control-plane/)
 - [Model Context Protocol：What is MCP?](https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro)
 - [Anthropic：Previewing the Model Hardware Standard](https://www.anthropic.com/news/model-hardware-standard-research-preview)
