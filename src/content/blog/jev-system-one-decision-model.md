@@ -55,7 +55,6 @@ Jev 的核心設計哲學在於「完全不輸出自由文字」。它接收非�
   <svg viewBox="0 0 800 240" width="100%" height="auto" style="min-width: 640px; background: #0d1117; border-radius: 8px; border: 1px solid #30363d; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
     <title>Jev 與 Agentic System 1/2 混合架構資料流</title>
     <desc>架構展示外部請求進入後，先由 Jev 決策模型執行平行毫秒級分類，低信心交由人工或回退，高信心則分流至確定性工具或大型 LLM 慢想生成。</desc>
-
     <defs>
       <marker id="arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
         <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
@@ -64,50 +63,39 @@ Jev 的核心設計哲學在於「完全不輸出自由文字」。它接收非�
         <path d="M 0 1 L 8 5 L 0 9 z" fill="#d29922"/>
       </marker>
     </defs>
-
     <!-- 輸入區塊 -->
     <rect x="20" y="85" width="130" height="70" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <text x="85" y="115" fill="#f0f6fc" font-size="12" font-weight="700" text-anchor="middle">非結構化輸入</text>
     <text x="85" y="135" fill="#8b949e" font-size="10" text-anchor="middle">事件、日誌、狀態</text>
-
     <!-- 箭頭 -->
     <path d="M 150 120 L 190 120" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
-
     <!-- Jev 核心區塊 (System 1) -->
     <rect x="195" y="45" width="220" height="150" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
     <text x="305" y="75" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">Jev 決策引擎 (System 1)</text>
     <text x="305" y="95" fill="#8b949e" font-size="10" text-anchor="middle">單次平行前向計算 (70-500ms)</text>
-
     <!-- 原語小框 -->
     <rect x="210" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
     <text x="237" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Noul</text>
-
     <rect x="277" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
     <text x="304" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Choice</text>
-
     <rect x="345" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
     <text x="372" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Score</text>
-
     <text x="305" y="165" fill="#3fb950" font-size="10" text-anchor="middle">全量機率校準 (RLCD)</text>
-
     <!-- 輸出分支 1: 確定性流程 -->
     <path d="M 415 90 L 490 60" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
     <rect x="495" y="35" width="260" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <text x="625" y="58" fill="#f0f6fc" font-size="11" font-weight="700" text-anchor="middle">確定性路徑 (高信心直通)</text>
     <text x="625" y="74" fill="#8b949e" font-size="9" text-anchor="middle">呼叫本機函式 / 拒絕非法請求 / 靜態過濾</text>
-
     <!-- 輸出分支 2: System 2 深入推理 -->
     <path d="M 415 120 L 490 120" fill="none" stroke="#d29922" stroke-width="1.5" marker-end="url(#arr-amber)"/>
     <rect x="495" y="95" width="260" height="50" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
     <text x="625" y="118" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">大型生成模型 (System 2 慢想)</text>
     <text x="625" y="134" fill="#8b949e" font-size="9" text-anchor="middle">Claude / GPT-4 / Gemini (合成複雜內容)</text>
-
     <!-- 輸出分支 3: 人工介入 -->
     <path d="M 415 150 L 490 180" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
     <rect x="495" y="155" width="260" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <text x="625" y="178" fill="#f0f6fc" font-size="11" font-weight="700" text-anchor="middle">Human-in-the-loop (低信心安全閥)</text>
     <text x="625" y="194" fill="#8b949e" font-size="9" text-anchor="middle">觸發告警 / 轉交人工審核 (P &lt; 閾值)</text>
-
   </svg>
 </div>
 
