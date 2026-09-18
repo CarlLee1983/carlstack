@@ -1,0 +1,534 @@
+---
+// Shopify Inventory Reservations MySQL Architecture Diagram Component
+---
+
+<figure class="sir-diag" aria-labelledby="sir-diag-caption">
+  <svg
+    class="sir-diag__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="sir-diag-title sir-diag-desc"
+  >
+    <title id="sir-diag-title">
+      Shopify 庫存預扣架構：從 Redis 雙寫到 MySQL 8 SKIP LOCKED 演進
+    </title>
+    <desc id="sir-diag-desc">
+      展示 Shopify 如何藉由將單一數量槽位重構為 1000
+      上限的有界可用單元池，搭配複合主鍵、READ COMMITTED 隔離級別、SKIP LOCKED
+      與 ProxySQL 連線標記治理，達成與總帳的單庫 ACID 一致性。
+    </desc>
+
+    <defs>
+      <marker
+        id="sir-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="sir-diag__arrow-head"></path>
+      </marker>
+      <marker
+        id="sir-arrow-cyan"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="sir-diag__arrow-head--cyan"
+        ></path>
+      </marker>
+      <marker
+        id="sir-arrow-gold"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="sir-diag__arrow-head--gold"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Block 1: Redis Legacy Pain (Why Migrate) -->
+    <g class="sir-diag__card" transform="translate(30, 40)">
+      <rect width="260" height="390" rx="12"></rect>
+      <text class="sir-diag__badge sir-diag__badge--rose" x="18" y="28"
+        >LEGACY ARCHITECTURE</text
+      >
+      <text class="sir-diag__title" x="18" y="58">舊架構：Redis 雙系統痛點</text
+      >
+      <text class="sir-diag__desc" x="18" y="86"
+        >• 預扣在 Redis (DECR/INCR)</text
+      >
+      <text class="sir-diag__desc" x="18" y="108">• 最終總帳在 MySQL</text>
+      <text class="sir-diag__desc" x="18" y="130">• 缺乏原子跨系統事務</text>
+
+      <g transform="translate(14, 150)">
+        <rect
+          width="232"
+          height="216"
+          rx="8"
+          class="sir-diag__subcard sir-diag__subcard--danger"></rect>
+        <text class="sir-diag__subhead sir-diag__subhead--rose" x="14" y="26"
+          >跨系統非同步失步風險</text
+        >
+        <text class="sir-diag__code" x="14" y="52"
+          >1. 支付成功 ➔ 扣 MySQL 失敗</text
+        >
+        <text class="sir-diag__subdesc" x="24" y="74"
+          >導致超賣 (Overselling)</text
+        >
+        <text class="sir-diag__code" x="14" y="104"
+          >2. 扣 MySQL 成功 ➔ 釋放 Redis 失敗</text
+        >
+        <text class="sir-diag__subdesc" x="24" y="126"
+          >導致少賣 (Underselling)</text
+        >
+        <text class="sir-diag__code" x="14" y="156"
+          >3. 多倉履約無感知 (Multi-Location)</text
+        >
+        <text class="sir-diag__subdesc" x="24" y="178"
+          >獨立 Redis 叢集昂貴維運成本</text
+        >
+      </g>
+    </g>
+
+    <!-- Block 2: MySQL Unit Pool & SKIP LOCKED -->
+    <g class="sir-diag__card" transform="translate(330, 40)">
+      <rect width="330" height="390" rx="12"></rect>
+      <text class="sir-diag__badge sir-diag__badge--cyan" x="18" y="28"
+        >CORE INNOVATION</text
+      >
+      <text class="sir-diag__title" x="18" y="58"
+        >MySQL 8: 單元池與非阻塞鎖</text
+      >
+      <text class="sir-diag__desc" x="18" y="86"
+        >• 一件可賣單元 = 一筆資料列 (Unit Row)</text
+      >
+      <text class="sir-diag__desc" x="18" y="108"
+        >• 1,000 上限有界單元池 (Bounded Pool)</text
+      >
+      <text class="sir-diag__desc" x="18" y="130"
+        >• 單一資料庫同享完整 ACID 保障</text
+      >
+
+      <!-- Subcard: Database Schema & Locking -->
+      <g transform="translate(14, 150)">
+        <rect width="302" height="216" rx="8" class="sir-diag__subcard"></rect>
+        <text class="sir-diag__subhead sir-diag__subhead--cyan" x="14" y="26"
+          >關鍵技術決策矩陣</text
+        >
+
+        <!-- Step 1 -->
+        <circle cx="24" cy="52" r="10" class="sir-diag__dot sir-diag__dot--cyan"
+        ></circle>
+        <text class="sir-diag__dot-text" x="24" y="56" text-anchor="middle"
+          >1</text
+        >
+        <text class="sir-diag__item-title" x="42" y="50"
+          >複合主鍵 (Composite PK)</text
+        >
+        <text class="sir-diag__item-desc" x="42" y="66"
+          >(shop_id, item_id, group_id, id) 僅 1 個行鎖</text
+        >
+
+        <!-- Step 2 -->
+        <circle cx="24" cy="98" r="10" class="sir-diag__dot sir-diag__dot--cyan"
+        ></circle>
+        <text class="sir-diag__dot-text" x="24" y="102" text-anchor="middle"
+          >2</text
+        >
+        <text class="sir-diag__item-title" x="42" y="96"
+          >READ COMMITTED 隔離</text
+        >
+        <text class="sir-diag__item-desc" x="42" y="112"
+          >消除 supremum 間隙鎖，避開補貨死鎖</text
+        >
+
+        <!-- Step 3 -->
+        <circle
+          cx="24"
+          cy="144"
+          r="10"
+          class="sir-diag__dot sir-diag__dot--cyan"></circle>
+        <text class="sir-diag__dot-text" x="24" y="148" text-anchor="middle"
+          >3</text
+        >
+        <text class="sir-diag__item-title" x="42" y="142"
+          >固定加鎖順序 (Orderly Locking)</text
+        >
+        <text class="sir-diag__item-desc" x="42" y="158"
+          >Reserve: DELETE pool ➔ INSERT reserve</text
+        >
+
+        <!-- Step 4 -->
+        <circle
+          cx="24"
+          cy="190"
+          r="10"
+          class="sir-diag__dot sir-diag__dot--cyan"></circle>
+        <text class="sir-diag__dot-text" x="24" y="194" text-anchor="middle"
+          >4</text
+        >
+        <text class="sir-diag__item-title" x="42" y="188"
+          >UNION ALL 跨商品批次合併</text
+        >
+        <text class="sir-diag__item-desc" x="42" y="204"
+          >單次 RTT 完成整台購物車多項預扣</text
+        >
+      </g>
+    </g>
+
+    <!-- Block 3: Production Bottleneck & ProxySQL Governance -->
+    <g class="sir-diag__card" transform="translate(700, 40)">
+      <rect width="230" height="390" rx="12"></rect>
+      <text class="sir-diag__badge sir-diag__badge--gold" x="18" y="28"
+        >SYSTEM PLUMBING</text
+      >
+      <text class="sir-diag__title" x="18" y="58">連線治理與平滑切換</text>
+      <text class="sir-diag__desc" x="18" y="86"
+        >• 真正瓶頸在連線池持有時間</text
+      >
+      <text class="sir-diag__desc" x="18" y="108"
+        >• 不是 CPU，而是管線水管塞滿</text
+      >
+
+      <g transform="translate(14, 150)">
+        <rect
+          width="202"
+          height="216"
+          rx="8"
+          class="sir-diag__subcard sir-diag__subcard--gold"></rect>
+        <text class="sir-diag__subhead sir-diag__subhead--gold" x="14" y="26"
+          >管線觀測與影子切換</text
+        >
+
+        <text class="sir-diag__code" x="14" y="52">/* conn_tag:process */</text>
+        <text class="sir-diag__subdesc" x="14" y="72">SQL 註解歸因持有時間</text
+        >
+
+        <text class="sir-diag__code" x="14" y="102">ProxySQL 聚合分析</text>
+        <text class="sir-diag__subdesc" x="14" y="122"
+          >精確抓出偷佔連線的業務鏈路</text
+        >
+
+        <text class="sir-diag__code" x="14" y="152">影子雙寫 (Shadow Mode)</text
+        >
+        <text class="sir-diag__subdesc" x="14" y="172"
+          >雙寫比對結果，秒級 Kill-switch</text
+        >
+      </g>
+    </g>
+
+    <!-- Flow Arrows -->
+    <path
+      d="M 290 230 L 330 230"
+      class="sir-diag__arrow"
+      marker-end="url(#sir-arrow-cyan)"></path>
+    <path
+      d="M 660 230 L 700 230"
+      class="sir-diag__arrow"
+      marker-end="url(#sir-arrow-gold)"></path>
+  </svg>
+
+  <!-- Mobile Layout: Vertical Semantic Cards -->
+  <div class="sir-diag__mobile">
+    <div class="sir-diag__card-mobile sir-diag__card-mobile--danger">
+      <div class="sir-diag__badge sir-diag__badge--rose">01 · 舊架構痛點</div>
+      <h4>Redis 雙系統一致性困局</h4>
+      <p>
+        預扣在 Redis (DECR)，扣減總帳在
+        MySQL。兩者跨越兩個獨立叢集，缺乏分散式原子保證。極端併發或中斷時，可能導致超賣（扣款成功但總帳扣除失敗）或少賣（總帳扣除成功但預扣殘留）。此外缺乏多倉位感知。
+      </p>
+    </div>
+
+    <div class="sir-diag__card-mobile sir-diag__card-mobile--cyan">
+      <div class="sir-diag__badge sir-diag__badge--cyan">
+        02 · MySQL 8 核心創新
+      </div>
+      <h4>單元池化與 SKIP LOCKED 解法</h4>
+      <p>
+        摒棄單一 row 數字累減爭搶，改採「每個庫存單位獨立一列」。建立上限 1,000
+        的有界可用單元池，搭配 <code>SELECT ... FOR UPDATE SKIP LOCKED</code> 消除排隊阻塞。引進四大關鍵技術決策：
+      </p>
+      <ul>
+        <li>
+          <strong>複合主鍵</strong>：(shop_id, item_id, group_id, id)
+          將二級索引與聚簇索引鎖合一，降至單一鎖。
+        </li>
+        <li>
+          <strong>READ COMMITTED</strong>：消除 supremum
+          間隙鎖，避開補貨事務死鎖。
+        </li>
+        <li>
+          <strong>固定鎖順序</strong>：Reserve 與 Claim
+          統一鎖順序，打破循環等待。
+        </li>
+        <li><strong>UNION ALL 批次化</strong>：單次往返完成多項商品預扣。</li>
+      </ul>
+    </div>
+
+    <div class="sir-diag__card-mobile sir-diag__card-mobile--gold">
+      <div class="sir-diag__badge sir-diag__badge--gold">
+        03 · 管線水利學與安全切換
+      </div>
+      <h4>連線治理與零中斷影子灰度</h4>
+      <p>
+        瓶頸往往不在 SQL
+        執行時間，而在於非預扣邏輯佔用連線過久引發的連線池枯竭。Shopify 藉由 SQL
+        標籤 (/* conn_tag */) 與 ProxySQL 聚合歸因，清理非必要查詢並調校 MySQL
+        執行緒併發參數；並透過 Shadow Mode
+        雙寫驗證業務正確性後平滑切換，保留隨時切回 Redis 的 Kill Switch。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="sir-diag-caption">
+    圖解：Shopify
+    庫存預扣架構演進歷程——從跨系統一致性困境到單一資料庫有界單元池與連線治理。
+  </figcaption>
+</figure>
+
+<style>
+  .sir-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .sir-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .sir-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Styles */
+  .sir-diag__card > rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .sir-diag__badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .sir-diag__badge--rose {
+    fill: #e11d48;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__badge--rose {
+    fill: #fb7185;
+  }
+
+  .sir-diag__badge--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__badge--cyan {
+    fill: #38bdf8;
+  }
+
+  .sir-diag__badge--gold {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__badge--gold {
+    fill: #fbbf24;
+  }
+
+  .sir-diag__title {
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .sir-diag__desc {
+    font-family: var(--font-body);
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+  }
+
+  .sir-diag__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .sir-diag__subcard--danger {
+    stroke: rgba(225, 29, 72, 0.3);
+  }
+
+  .sir-diag__subcard--gold {
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+
+  .sir-diag__subhead {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .sir-diag__subhead--rose {
+    fill: #e11d48;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__subhead--rose {
+    fill: #fb7185;
+  }
+
+  .sir-diag__subhead--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__subhead--cyan {
+    fill: #38bdf8;
+  }
+
+  .sir-diag__subhead--gold {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__subhead--gold {
+    fill: #fbbf24;
+  }
+
+  .sir-diag__code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .sir-diag__subdesc {
+    font-family: var(--font-body);
+    font-size: 11px;
+    fill: var(--dg-muted);
+  }
+
+  .sir-diag__dot--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__dot--cyan {
+    fill: #38bdf8;
+  }
+
+  .sir-diag__dot-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    fill: #ffffff;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__dot-text {
+    fill: #0f172a;
+  }
+
+  .sir-diag__item-title {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .sir-diag__item-desc {
+    font-family: var(--font-body);
+    font-size: 11px;
+    fill: var(--dg-muted);
+  }
+
+  .sir-diag__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .sir-diag__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .sir-diag__arrow-head--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__arrow-head--cyan {
+    fill: #38bdf8;
+  }
+
+  .sir-diag__arrow-head--gold {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .sir-diag__arrow-head--gold {
+    fill: #fbbf24;
+  }
+
+  /* Mobile Semantic Cards */
+  @media (max-width: 48rem) {
+    .sir-diag__desktop {
+      display: none !important;
+    }
+
+    .sir-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .sir-diag__card-mobile {
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+    }
+
+    .sir-diag__card-mobile--danger {
+      border-left: 4px solid #e11d48;
+    }
+
+    .sir-diag__card-mobile--cyan {
+      border-left: 4px solid #0284c7;
+    }
+
+    .sir-diag__card-mobile--gold {
+      border-left: 4px solid #d97706;
+    }
+
+    .sir-diag__card-mobile h4 {
+      margin: 0.5rem 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .sir-diag__card-mobile p {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2);
+    }
+
+    .sir-diag__card-mobile ul {
+      margin: 0;
+      padding-left: 1.2rem;
+      font-size: 0.85rem;
+      color: var(--dg-ink-2);
+    }
+
+    .sir-diag__card-mobile li {
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  figcaption {
+    margin-top: 0.75rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+  }
+</style>

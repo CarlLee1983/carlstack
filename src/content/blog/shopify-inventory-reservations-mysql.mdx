@@ -1,0 +1,273 @@
+---
+title: "告別 Redis：Shopify 如何用 MySQL 8 SKIP LOCKED 扛住黑五百萬級庫存預扣"
+description: "深度剖析 Shopify 捨棄 Redis 轉向 MySQL 統一儲存架構的庫存預扣（Oversell Protection）演進：藉由有界單元池、複合主鍵、READ COMMITTED 隔離級別消除間隙鎖，並透過 ProxySQL 連線標記治理找出真正的系統水力學瓶頸。"
+publishDate: 2026-09-18T14:45:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 高併發
+  - 資料庫
+  - MySQL
+  - 後端架構
+repositoryUrl: https://shopify.engineering/scaling-inventory-reservations
+cover: ../../assets/covers/shopify-inventory-reservations-mysql.png
+coverAlt: "高併發資料庫預扣系統立體架構圖：巨量結帳流量經過 ProxySQL 連線路由層，精準非阻塞地鎖定由有界單元池維護的庫存列，兩側連接著總帳與影子比對模組。"
+series: 金融級架構與交易系統
+seriesOrder: 6
+---
+
+import ShopifyInventoryReservationsDiagram from "../../components/ShopifyInventoryReservationsDiagram.astro";
+
+在電商交易的核心鏈路中，**「庫存預扣（Inventory Reservation）」** 是決定結帳體驗與交易正確性的生命線。
+
+當買家點擊「完成購買（Complete purchase）」時，系統必須百分之百保證其欲購買的商品數量仍有庫存。如果預扣機制出現毫秒級失步，可能導致兩位買家同時買走最後一件商品（超賣 Overselling），商家被迫取消訂單並承擔客訴與品牌信譽損失；若因防禦過度或釋放延遲而向買家誤報售罄（少賣 Underselling），商家則會蒙受實質的營收損失。
+
+在每年的黑色星期五與網路星期一（BFCM）購物節中，Shopify 平台上的百萬商家於巔峰時刻曾創下每分鐘超過 510 萬美元的成交紀錄。每一筆交易都牽動著底層庫存的狀態流轉。
+
+過去數年，Shopify 的防超賣預扣系統建立在獨立的 Redis 叢集上。然而，隨著架構演進至統一資料庫策略，工程團隊成功將預扣服務徹底遷移回關聯式資料庫 MySQL 8。這項遷移不僅打破了「高吞吐互斥鎖必須依賴專用記憶體快取」的既定思維，更在 2025 年的實戰峰值中，將資料庫 Writer CPU 壓制在 50% 以下、Reader CPU 維持在 16% 以下。
+
+本文深入復盤 [Shopify Engineering 官方專文](https://shopify.engineering/scaling-inventory-reservations) 揭露的技術細節、鎖設計取捨，以及在超大規模流量下所遭遇的真正瓶頸——**「連線水利學（Connection Plumbing）」**。
+
+<ShopifyInventoryReservationsDiagram />
+
+---
+
+## 一、Redis 舊架構的一致性困局
+
+Shopify 的防超賣保護（Oversell Protection）主要由兩大階段組成：
+
+1. **預扣（Reserve）**：當買家進入支付流程時，系統對目標商品進行短暫保留（例如數分鐘的鎖定期），防止併發結帳者重複搶佔。
+2. **扣減認領（Claim）**：當第三方支付確認扣款成功，系統自永久庫存總帳（Inventory Ledger）中正式劃扣庫存。
+
+### 雙系統間的分散式撕裂
+
+在舊有模型中，預扣邏輯由 Redis 承載。每個商品品項維護一個數量鍵值（Key），預扣時執行 `DECR`，超時或取消時執行 `INCR`。
+
+Redis 在單純的記憶體併發扣減上效能極高，但**預扣（Redis）與庫存總帳（MySQL）位處兩個實體獨立的分散式系統中**。在最後的 `Claim` 步驟中，應用程式必須同時更新 MySQL 並清理 Redis 預扣鍵：
+
+- **若先寫 MySQL 再清 Redis**：當應用程式在兩者之間崩潰或網路中斷，MySQL 雖已扣減，但 Redis 預扣紀錄殘留，導致商品明明有存貨卻顯示已售罄（少賣）。
+- **若先清 Redis 再寫 MySQL**：若 MySQL 扣減事務失敗回滾，釋放出的庫存可能被其他併發結帳搶走，引發雙重承諾甚至超賣。
+
+這兩項跨儲存引擎的操作無法被包裹在單一原子事務（ACID Transaction）中。此外，純粹基於數值的 Redis 鍵缺乏多履約倉位（Multi-Location Inventory）的維度感知能力，且需要團隊維運龐大的專用 Redis 叢集。
+
+若能將預扣完全移入掌管庫存總帳的 MySQL 中，**以資料庫原生 ACID 事務包覆 Reserve 與 Claim**，上述跨系統邊界的不一致 bug 將從架構層面徹底消失。
+
+---
+
+## 二、MySQL 8 突破口：從「單列計數」到「單元池化（Unit Pool）」
+
+在過去，關聯式資料庫處理秒殺預扣的最常見痛點在於熱點爭搶（Row Contention）。
+
+若資料表採用單一行記錄庫存數量：
+
+```sql
+-- 傳統單列爭搶模式：所有併發請求均在等待同一列的行級排他鎖（X Lock）
+SELECT quantity FROM inventory WHERE item_id = 1001 FOR UPDATE;
+UPDATE inventory SET quantity = quantity - 1 WHERE item_id = 1001;
+```
+
+當成千上萬的結帳請求湧向熱門商品時，資料庫連線池會瞬間因排隊等待同一筆 Row Lock 而塞滿崩潰。
+
+### 核心創新：一件商品一個 Row（One Row per Unit）
+
+受到 37signals 基於資料庫進行負載分配的啟發，Shopify 團隊採取了截然不同的模型：**放棄「數量」欄位，改以「實體單元列」來表達可售庫存**。
+
+若一個商品品項有 10 件庫存，資料庫中便儲存 10 筆獨立資料列。預扣 3 件商品，等於在單一事務中選取並移轉 3 筆獨立資料列。
+
+透過 MySQL 8 引進的 `FOR UPDATE SKIP LOCKED` 語法，系統在選取單元時，若發現某些列已被其他進行中的結帳事務鎖定，**MySQL 會直接跳過被鎖住的行，轉而選取下一批空閒列回傳**。所有併發事務彼此不需排隊等待，完全消除了熱點行鎖爭奪！
+
+### 1,000 上限的有界單元池（Bounded Pool）
+
+若將全站所有商品的百萬件庫存都展開為 Row，當某個商品跨 10 個倉庫共有 50,000 件庫存時，單一品項就會產生 50 萬筆記錄，導致 `SKIP LOCKED` 的掃描成本與索引維護開銷劇增。
+
+Shopify 的折衷之道是**「維持一個最高 1,000 列的有界單元池（Bounded Pool）」**：
+
+- 每個「商品（Item）+ 倉庫地點（Location）」維護至多 1,000 個可用單元列（Available Units）。
+- 結帳預扣時直接從此池中消耗單元列。
+- 背景與即時機制負責自庫存總帳向單元池「補貨（Replenishment）」。
+
+> [!NOTE]
+> **為什麼設定為 1,000？**
+> 1,000 是依據大促閃購期間單一商品每秒最大預扣速率所計算得出的容積。它既能吸收突發峰值衝擊、給予非同步補貨足夠的時間餘裕，又能確保資料表足夠精簡，讓 `SKIP LOCKED` 的查詢掃描始終在毫秒內完成。
+
+若在極端閃購情境下單元池被瞬間抽乾，預扣鏈路會觸發**同步補貨（Inline Replenishment）**。透過一把輕量排他鎖，保證同時間只有一個事務執行總帳補貨，其餘併發請求在鎖釋放後即可獲得充盈的單元池，避免瞬時驚群（Thundering Herd）。
+
+---
+
+## 三、關鍵資料庫工程決策
+
+將單元池化架構推向百萬級生產環境時，Shopify 團隊解決了四個極為深層的資料庫內核問題：
+
+### 1. 複合主鍵（Composite Primary Key）消除雙重加鎖
+
+在最初的原型測試中，團隊使用自增 `id` 作為單元表的主鍵：
+
+```sql
+-- 初始設計：單元表主鍵為 id
+CREATE TABLE available_units (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  shop_id INT,
+  inventory_item_id INT,
+  inventory_group_id INT,
+  INDEX idx_item (shop_id, inventory_item_id, inventory_group_id)
+);
+```
+
+當藉由 `SHOW ENGINE INNODB STATUS` 觀察鎖分配細節時，團隊震驚地發現：**每預扣 1 筆記錄，InnoDB 居然產生了 2 個行級鎖！**
+
+因為查詢條件基於 `shop_id` 與 `inventory_item_id`，InnoDB 必須先對二級索引（Secondary Index）加鎖，再循著主鍵指標對聚簇索引（Clustered Index）加鎖。在每秒數萬次的高頻扣減下，加鎖數量直接翻倍。
+
+**解法：** 改採包含過濾欄位的**複合主鍵（Composite Primary Key）**：
+
+```sql
+PRIMARY KEY (shop_id, inventory_item_id, inventory_group_id, id)
+```
+
+過濾條件即是聚簇索引本身，InnoDB 只需加鎖一次，成功將每列的鎖持有開銷減少 50%。
+
+### 2. 切換 READ COMMITTED 消除間隙鎖（Gap Lock）與死鎖
+
+在 MySQL 預設的 `REPEATABLE READ` 隔離級別下，當單元池接近耗盡、事務執行：
+
+```sql
+SELECT id FROM available_units
+WHERE shop_id = ? AND inventory_item_id = ?
+LIMIT 3 FOR UPDATE SKIP LOCKED;
+```
+
+如果未檢索到足夠記錄，InnoDB 會在索引末端打上包含 `supremum` 偽記錄的**間隙鎖（Gap Lock）**。此間隙鎖會直接阻擋補貨事務向該區間 `INSERT` 新單元，引發跨事務互相等待與死鎖（Deadlock）。
+
+**解法：** Shopify 在該代碼庫中首次引入了按事務設定隔離級別的機制，將預扣事務明確改為 **`READ COMMITTED`**。在 `READ COMMITTED` 下，InnoDB 不會對非唯一索引搜尋區間施加間隙鎖，補貨事務可順暢插入新記錄，徹底瓦解死鎖條件。
+
+### 3. 固定加鎖順序（Strict Lock Ordering）
+
+死鎖的本質是兩個事務以相反順序請求資源。在早期實作中：
+
+- **Reserve 事務**：先向 `reserved_units` 執行 `INSERT`，再從 `available_units` 執行 `DELETE`。
+- **Claim 事務**：從 `reserved_units` 執行 `DELETE`。
+
+不同的執行順序在併發交錯時引發了循環等待（Circular Wait）。
+
+**解法：** 嚴格規範加鎖生命週期：
+
+1. **Reserve 流程**：固定先對 `available_units` 執行 `DELETE`，完成後才對 `reserved_units` 執行 `INSERT`。
+2. **Claim 流程**：僅操作 `reserved_units`。
+
+兩條路徑資源獲取順序完全單向一致，在演算法上杜絕了形成環狀依賴的可能。
+
+```sql
+-- Shopify 簡化版預扣事務流程
+BEGIN;
+
+-- 1. 選取可用單元並跳過已鎖定行
+SELECT id
+FROM available_units
+WHERE shop_id = ?
+  AND inventory_item_id = ?
+  AND inventory_group_id = ?
+ORDER BY shop_id ASC, inventory_item_id ASC, inventory_group_id ASC, id ASC
+LIMIT ?
+FOR UPDATE SKIP LOCKED;
+
+-- 2. 插入預扣表
+INSERT INTO reserved_units (unit_id, cart_token, expires_at) VALUES (...);
+
+-- 3. 自可用單元池移除
+DELETE FROM available_units
+WHERE (shop_id, inventory_item_id, inventory_group_id, id) IN (...);
+
+COMMIT;
+```
+
+### 4. `UNION ALL` 購物車多商品合併查詢
+
+現實世界的購物車往往包含多個商品品項（Multi-Line Items）。如果逐項發送 SQL，網路來回往返（RTT, Round Trip Time）會使資料庫連線被佔用更久。
+
+Shopify 利用 `UNION ALL` 將整台購物車的預扣請求合併為單一查詢：
+
+```sql
+(SELECT id, inventory_item_id, inventory_group_id
+ FROM available_units
+ WHERE shop_id = 1 AND inventory_item_id = 100 AND inventory_group_id = 1
+ ORDER BY shop_id, inventory_item_id, inventory_group_id, id
+ LIMIT 2 FOR UPDATE SKIP LOCKED)
+UNION ALL
+(SELECT id, inventory_item_id, inventory_group_id
+ FROM available_units
+ WHERE shop_id = 1 AND inventory_item_id = 200 AND inventory_group_id = 1
+ ORDER BY shop_id, inventory_item_id, inventory_group_id, id
+ LIMIT 5 FOR UPDATE SKIP LOCKED);
+```
+
+一次資料庫往返即可鎖定並取回所有商品的可用單元，顯著降低請求延遲。
+
+---
+
+## 四、真正的瓶頸不是 CPU，而是管線水利學（Plumbing）
+
+當上述所有 SQL 與鎖機制最佳化完成後，Shopify 團隊在壓測時遭遇了意想不到的高牆：**吞吐量遠低於預期目標**。
+
+令人困惑的是：
+
+- 預扣查詢的 P90 延遲極低。
+- MySQL 伺服器的 CPU 使用率完全沒有達到上限。
+- 然而，MySQL 執行緒池大量排隊，ProxySQL 代理層頻繁回報後端連線耗盡（Connection Pool Exhaustion）。
+
+### 建立連線持有歸因（Connection Hold Attribution）
+
+單純知道「連線被耗盡」毫無用處，因為連線池是一個共享蓄水池，你無法確認是誰在浪費水資源。
+
+團隊採取了一項關鍵的架構觀測手段：
+
+1. **應用層標籤化**：在全站發送的每一條 SQL 語句中，注入代表所屬業務流程的註解，例如 `/* conn_tag:checkout_completion */` 或 `/* conn_tag:inventory_reserve */`。
+2. **代理層時間歸因**：在 ProxySQL 代理層增加解析器，統計每一個 `conn_tag` 從佔用連線到釋放連線的**總持有時間（Connection Hold Time）**。
+
+這項監控立即揭露了殘酷的真相：**預扣查詢本身速度極快，但結帳路徑上的其他相鄰業務（如購物車更新、促銷計算等）正緊緊佔用著資料庫連線不放！**
+
+在高吞吐量的系統中，資料庫需要每秒消化巨量短事務。當周遭程式碼在長事務中未經最佳化地持有連線時，預扣查詢就成了「壓垮駱駝的最後一根稻草」——它並非罪魁禍首，卻成了連線池枯竭的犧牲者。
+
+### 結帳鏈路大清洗與執行緒調校
+
+看清了連線分佈後，團隊針對結帳路徑展開全面整頓：
+
+- **清洗結帳熱鏈路**：移除了主庫上 **50% 的非必要讀取** 與 **33% 的長事務**，將讀取導向副本。
+- **重新調校 `innodb_thread_concurrency`**：多年以前設定的保守執行緒併發參數限制了現代硬體的並行處理潛能；在確認伺服器具備充足 Headroom 後進行擴充。
+
+當管線的連線瓶頸被疏通後，系統的吞吐天花板瞬間被打破。在隨後的 BFCM 實戰中，即便面對空前的閃購洪峰，資料庫 Writer CPU 依舊平穩運作於 50% 以下。
+
+---
+
+## 五、零停機平滑割接：影子模式（Shadow Mode）
+
+由 Redis 跨越至 MySQL，涉及億級資金的庫存系統絕不允許「一鍵切換」的豪賭。
+
+Shopify 實施了**影子模式（Shadow Mode）**雙寫架構：
+
+1. **流量雙寫**：線上每一筆預扣請求，同時寫入 Redis 與 MySQL。
+2. **Redis 維持唯一真實源（Source of Truth）**：實際結帳以 Redis 結果為準，背景非同步比對 MySQL 是否產生了完全一致的業務判定（如是否精準阻擋超賣、是否產生預扣偏差）。
+3. **無縫建置狀態**：雙寫使得 MySQL 在上線前就已經累積了即時的預扣資料，免去了複雜的「線上飛行資料移轉（In-flight Migration）」。
+4. **Pod 級漸進放量與熔斷開關**：驗證無誤後，將判定權切至 MySQL，但維持對 Redis 的雙寫同步，並保留秒級生效的 Kill Switch。一旦 MySQL 表現異常，流量可瞬間切回 Redis。
+5. **分批上線**：由低流量 Pod 逐步推展至最高吞吐的核心商家，完成平滑過渡。
+
+---
+
+## 六、工程架構啟示與決策矩陣
+
+從 Shopify 的這次成功架構遷移中，我們可以總結出三條反直覺的工程原則：
+
+| 維度             | 直覺做法                           | Shopify 實戰架構思考                                             |
+| :--------------- | :--------------------------------- | :--------------------------------------------------------------- |
+| **高頻互斥儲存** | 直覺引入 Redis、Kafka 或專屬協調層 | 善用關聯式資料庫現代特性（如 `SKIP LOCKED`），享受原生 ACID 保障 |
+| **庫存爭搶解法** | 單一 Row 數字欄位 + CAS 或樂觀鎖   | 單元列池化（1,000 上限 Bounded Pool），消除熱點排隊              |
+| **效能調優方向** | 專注調優 SQL 執行速度與查詢計畫    | 觀測連線持有時間（Connection Hold Time），治理管線水利學         |
+
+### 下一步行動指南
+
+在著手評估將分散式記憶體鎖或預扣遷移回關聯式資料庫時，請依循以下停止規則：
+
+1. **檢查資料庫引擎特性**：確保資料庫版本支援 `SKIP LOCKED`（MySQL 8.0+ 或 PostgreSQL 9.5+）。
+2. **審視事務邊界**：若「預扣」與「最終扣帳／支付」需要絕對一致性，評估合併至同一資料庫以消除跨系統補償邏輯。
+3. **為 SQL 加上業務歸因標籤**：在任何大型架構改造前，先行在應用層為 SQL 注入 `/* conn_tag */` 並於代理層（如 ProxySQL、PgBouncer）量測連線持有分佈。
+
+> 系統真正的瓶頸往往不在你盯著的查詢引擎裡，而在你未曾測量過的管線水管中。
