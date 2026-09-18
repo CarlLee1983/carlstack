@@ -1,7 +1,8 @@
 ---
 title: "Agent 工作流不要再用 Chatbot 猜路由：從 TypeSafe AI Jev 看 System 1 決策模型的工程轉向"
-description: "把龐大的生成式 LLM 拿來做布林判斷與意圖分流，是當前 Agent 工作流延遲居高不下與型別崩潰的根源。剖析 TypeSafe AI 的 Jev 模型如何以 RLCD 與三大決策原語重構快思慢想架構。"
+description: "把生成式 LLM 拿來做布林判斷、模型路由與工具風險分流，會讓 Agent 工作流承擔不必要的延遲與解析失敗。從 Jev 的三種決策原語到 LangChain middleware，拆解 System 1 決策模型如何進入 Agent harness。"
 publishDate: 2026-09-18T14:20:00+08:00
+updatedDate: 2026-09-18
 draft: false
 featured: false
 tags:
@@ -21,7 +22,9 @@ seriesOrder: 19
 
 這種做法本質上是用重型大砲打蚊子。用每秒生成幾十個 token 的自迴歸（Autoregressive）生成器，去承擔軟體工程裡只需要 1 個 bit 的布林判斷或枚舉選擇，不僅浪費了數千個 input tokens，更帶來了高達數秒的端到端延遲與非確定性的解析崩潰風險。
 
-2026 年 9 月 15 日，由前 OpenAI 研究員、RLHF 共同發明人 Diogo Almeida 創辦的 TypeSafe AI 正式推出了名為 **Jev** 的決策專用模型。社群的廣泛反響證明了一件事：**AI Agent 的架構分水嶺，在於將自迴歸文字生成（System 2）與極低延遲的強型別決策（System 1）徹底解耦。**
+2026 年 9 月 15 日，前 OpenAI 研究員、InstructGPT 論文共同作者 Diogo Almeida 創辦的 TypeSafe AI [公開 Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)。兩天後，LangChain 發布 [Jev harness 整合案例](https://www.langchain.com/blog/building-a-harness-with-jev)；Sydney Runkle 再於 9 月 18 日[整理成完整實作文章](https://x.com/sydneyrunkle/status/2100754364545761643)：Jev 不是取代負責推理與生成的模型，而是在模型選擇與工具執行前，提供可由程式消費的決策。
+
+這個案例把原本的架構主張推得更具體：**AI Agent 的分水嶺，在於把自迴歸文字生成（System 2）與低延遲、強型別的決策（System 1）拆成不同責任。** Jev 不負責完成任務；它負責回答「接下來該走哪條已知路徑，以及這個判斷有多不確定」。
 
 ## 傳統自迴歸路由的工程代價
 
@@ -31,13 +34,15 @@ seriesOrder: 19
 2. **機率校準缺位**：生成式 LLM 給出的文字是離散採樣的結果。即便輸出了某個選項，你依然難以得知模型對這個決策的精確信心水準（Confidence Calibration）。工程師只能透過提示詞硬要模型輸出 `confidence: 0.8`，但這種自評分數往往嚴重過度自信且缺乏統計學上的校準基礎。
 3. **無效上下文的成本膨脹**：在複雜工作流中，維護對話歷史與系統提示詞會讓輸入端急遽膨脹。以社群基準測試為例，使用通用程式碼模型做客服意圖分流，單次請求可能吃掉上萬個 input tokens；而實際需要處理的業務狀態，可能只有幾百個位元組。
 
-| 評估維度     | 傳統生成式 LLM 路由                    | 專用決策模型（如 Jev）               |
-| :----------- | :------------------------------------- | :----------------------------------- |
-| **運作機制** | 自迴歸逐字解碼（Token-by-token）       | 單次平行評估（Parallel evaluation）  |
-| **平均延遲** | 800 ms ~ 3500 ms                       | 70 ms ~ 500 ms                       |
-| **輸出格式** | 自然語言或被強制序列化的 JSON 文字     | 強型別標量與經校準的機率分佈         |
-| **失敗模式** | JSON 語法截斷、欄位漂移、幻覺幻思      | 結構性保證，僅存在分類信心不足       |
-| **系統定位** | System 2（慢想、多步驟推理、內容創作） | System 1（快思、狀態判定、即時路由） |
+| 評估維度         | 傳統生成式 LLM 路由                               | 專用決策模型（如 Jev）               |
+| :--------------- | :------------------------------------------------ | :----------------------------------- |
+| **運作機制**     | 自迴歸逐字解碼（Token-by-token）                  | 單次平行評估（Parallel evaluation）  |
+| **公開延遲數據** | TypeSafe 測得 3 秒至 329 秒；依模型與推理設定變動 | TypeSafe 公布 70 ms 至 500 ms        |
+| **輸出格式**     | 自然語言或被強制序列化的 JSON 文字                | 強型別標量與經校準的機率分佈         |
+| **失敗模式**     | JSON 語法截斷、欄位漂移、語意誤判                 | 不會離開 schema，但仍可能語意誤判    |
+| **系統定位**     | System 2（慢想、多步驟推理、內容創作）            | System 1（快思、狀態判定、即時路由） |
+
+表中的速度區間來自 TypeSafe 在 2026-09-15 發布的[官方比較](https://typesafe.ai/blog/introducing-system-one-models-and-jev)，不是跨供應商、跨區域的中立 benchmark。它適合用來形成測試假設，不適合直接寫進容量規劃。
 
 ## Jev 的三項決策原語（Decision Primitives）
 
@@ -45,11 +50,11 @@ Jev 的核心設計哲學在於「完全不輸出自由文字」。它接收非�
 
 在 TypeSafe AI 的抽象中，所有的控制流決策被凝練為三種基礎原語：
 
-- **Noul**：帶有機率值的二元布林判斷。例如「這筆請求是否包含未授權的操作意圖？」模型不會生成字串，而是直接回傳帶有置信度（如 `P(True) = 0.94`）的布林結果。
-- **Choice**：從預先定義的枚舉集合中挑選最佳解，並輸出完整的機率分佈。例如意圖分類路由，輸出 `{"technical_support": 0.73, "billing": 0.25, "general": 0.02}`。開發者可以直接依據 Top-1 機率是否超過門檻值來決定分流或人工介入。
-- **Score**：具備順序級別的評分指標。例如「使用者當前情緒滿意度（1 到 5 分）」，以校準後的機率分佈回傳期望值。
+- **Noul**：帶有機率值的二元布林判斷。例如「這筆請求是否包含未授權的操作意圖？」模型不會生成字串，而是直接回傳 `P(True)`（如 `0.94`）；Noul 沒有另一個獨立的 confidence 欄位。
+- **Choice**：從預先定義的枚舉集合中挑選最佳解，並輸出完整的機率分佈。例如意圖分類路由，輸出 `{"technical_support": 0.73, "billing": 0.25, "general": 0.02}`，另外附上描述整體分布集中程度的 confidence。選中項目的機率與 confidence 不是同一個訊號，門檻應分開設定。
+- **Score**：具備順序級別的評分指標。例如「使用者當前情緒滿意度（1 到 5 分）」，回傳連續 score、對應級別與 confidence。
 
-這種設計使得底層模型可以利用 **RLCD（Reinforcement Learning for Calibrated Decisions，校準決策強化學習）** 進行特化訓練。模型優化的目標不是在自然語言上取悅人類審查員，而是在機率預測的準確性（Brier Score、Expected Calibration Error）與計算邊界上達到數學極限。
+這種設計使得底層模型可以利用 **RLCD（Reinforcement Learning for Calibrated Decisions，校準決策強化學習）** 進行特化訓練。模型優化的目標不是產生人類偏好的文字，而是讓 System 1 任務的輸出機率更能反映實際正確率。TypeSafe 目前只公開方法名稱與產品評測摘要；團隊仍需用自己的標記資料量測 Brier Score、Expected Calibration Error 與門檻下的錯誤成本。
 
 <div style="overflow-x: auto; margin: 1.5rem 0;">
   <svg viewBox="0 0 800 240" width="100%" height="auto" style="min-width: 640px; background: #0d1117; border-radius: 8px; border: 1px solid #30363d; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
@@ -103,41 +108,128 @@ Jev 的核心設計哲學在於「完全不輸出自由文字」。它接收非�
 
 把 Jev 類型的模型納入生產環境，並不是要完全揚棄強大的通用大模型，而是建立清晰的責任邊界。
 
-我的立場是：**Agent 工作流的控制平面應該全部交給 System 1 模型，只有數據平面的內容產出才允許交給 System 2 模型。**
+我的立場是：**Agent 工作流中需要語意判斷、但答案空間已知的控制節點，應優先交給 System 1；權限與副作用仍由確定性程式碼執行，只有開放式推理與內容產出才交給 System 2。**
 
-在 PydanticAI 與 LangChain 的近期適配探討中，一個典範模式是將其作為前置過濾與路由中樞。以下虛擬程式碼展示了這種模式在實際工程中的應用樣貌：
+官方 Python SDK 的介面很直接：一份 `state` 搭配多個 `questions`，同一次請求回傳 Choice、Score 與 Noul 的答案。以下示例使用 [TypeSafe Quick Start](https://docs.typesafe.ai/introduction/quickstart) 的實際 client 與回應結構，示範怎麼把機率留在程式控制流裡：
 
 ```python
-from pydantic import BaseModel
-from typesafe_ai import JevClient, Choice, Noul
+from typesafe_sdk import Choice, Noul, Score, TypeSafeClient
 
-client = JevClient(api_key="typesafe_sk_...")
+client = TypeSafeClient()  # 從 TYPESAFE_API_KEY 讀取憑證
 
-class RouteDecision(BaseModel):
-    is_urgent: Noul
-    intent: Choice["refund", "tech_support", "sales", "spam"]
-    risk_score: float
 
-# 單次非自迴歸呼叫，平行評估多個決策維度
-decision = client.evaluate(
-    context=incoming_ticket.payload,
-    schema=RouteDecision
-)
+def decide_next_step(payload: dict[str, object]) -> dict[str, object]:
+    response = client.system_one(
+        state=payload,
+        questions={
+            "intent": Choice(
+                instructions="Which queue should handle this ticket?",
+                criteria={
+                    "refund": "Refund or duplicate charge",
+                    "technical": "Bug or integration problem",
+                    "sales": "Pricing or account question",
+                    "spam": "Unsolicited or malicious content",
+                },
+            ),
+            "is_urgent": Noul(
+                instructions="This ticket needs immediate attention",
+            ),
+            "risk": Score(
+                instructions="Operational risk if handled automatically",
+                criteria=["low", "medium", "high"],
+            ),
+        },
+    )
 
-# 1. 毫秒級防禦：垃圾與攻擊攔截
-if decision.intent.value == "spam" or decision.risk_score > 0.85:
-    return drop_or_quarantine(incoming_ticket)
+    intent = response.answers["intent"]
+    risk = response.answers["risk"]
+    selected_probability = intent.probabilities[intent.choice]
 
-# 2. 確定性業務分支：無須啟動任何生成模型
-if decision.intent.value == "refund" and decision.intent.confidence >= 0.90:
-    return refund_rule_engine.dispatch(incoming_ticket)
+    # 1. 模型給判斷，程式決定後續 action；此處不直接執行副作用
+    if intent.choice == "spam" or risk.score >= 1.5:
+        return {"action": "quarantine", "route": intent.choice}
 
-# 3. 真正需要深度推理時，才構造 Context 喚醒慢速 System 2
-if decision.intent.value == "tech_support":
-    return call_claude_opus_for_troubleshooting(incoming_ticket)
+    # 2. 選中項目的機率與分布集中度都通過門檻，才進入自動退款規則
+    if (
+        intent.choice == "refund"
+        and selected_probability >= 0.90
+        and intent.confidence >= 0.75
+    ):
+        return {"action": "run_refund_rules", "route": intent.choice}
+
+    # 3. 分布不集中時交給人工；其餘路由才交給 System 2
+    if intent.confidence < 0.75:
+        return {"action": "human_review", "route": intent.choice}
+
+    return {"action": "reasoning_model", "route": intent.choice}
 ```
 
-在這個架構下，系統的整體吞吐量和成本結構發生了質的變化：90% 的例行事件在第一層就被毫秒級消化完畢，昂貴且緩慢的 System 2 模型只會接收到真正需要「多步驟推理與語言合成」的複雜難題。
+這段程式刻意不宣稱「90% 的事件都能自動處理」。能安全直通多少比例，取決於你的資料分布、錯誤成本與門檻校準。真正的架構改變是：昂貴的 System 2 模型只接收需要多步驟推理或語言合成的工作；明確規則與副作用仍由程式碼掌握。
+
+## LangChain 把 Jev 放進 Agent loop 的兩個位置
+
+[Sydney Runkle 在 2026-09-18 的文章](https://x.com/sydneyrunkle/status/2100754364545761643)沒有把 Jev 包裝成另一個聊天模型，而是把它接到 Agent harness 的 middleware。LangChain 的整合先用 `TypeSafeClassifier` 暴露 `state + questions → answers`，再提供兩個實驗性 middleware：模型路由與工具風險閘門。
+
+### 模型路由：先選能力級距，再開始整個 run
+
+簡單查詢、資料擷取與局部修改，不需要和架構決策、高風險變更使用同一個推理模型。[LangChain 的 Jev harness 範例](https://www.langchain.com/blog/building-a-harness-with-jev)讓 `ModelRouterMiddleware` 先檢查最新的使用者訊息，從預先定義的模型集合中選一個，並在整個 run 期間沿用該選擇：
+
+```python
+from langchain.agents import create_agent
+from langchain_typesafe.experimental.middleware import (
+    ModelChoice,
+    ModelRouterMiddleware,
+)
+
+router = ModelRouterMiddleware(
+    choices={
+        "fast": ModelChoice(
+            model="openai:luna",
+            criteria="Direct lookups, extraction, and localized changes.",
+        ),
+        "powerful": ModelChoice(
+            model="openai:sol",
+            criteria="Architecture and high-stakes decisions.",
+        ),
+    },
+    instructions="Choose the least costly model that can complete the task.",
+)
+
+agent = create_agent("openai:gpt-5.6-luna", middleware=[router])
+```
+
+這個切入點的重要性在於「先選一次」：若每一步都重新路由，省下的模型成本可能被重複分類延遲吃掉，run 內也容易因能力與行為風格切換而漂移。路由結果的機率仍保留在 Agent state，團隊可以追蹤低信心案例，而不是只留下最後選了哪個模型。
+
+### 工具風險閘門：在副作用發生前多一道判斷
+
+第二個位置是 tool call 與真正執行之間。`AutoModeMiddleware` 可以針對指定工具檢查即將發生的呼叫，風險不符合策略時先擋住，而不是等 shell、瀏覽器或交易工具已經產生副作用才補救：
+
+```python
+from langchain.agents import create_agent
+from langchain_typesafe.experimental.middleware import AutoModeMiddleware
+
+guardrail = AutoModeMiddleware(tools=["bash"])
+agent = create_agent(
+    "openai:gpt-5.6-luna",
+    middleware=[guardrail],
+)
+```
+
+這個 pattern 適合把「明顯低風險可自動執行、模糊或高風險要停下」寫成 harness 政策。不過分類器不是授權系統。真正不可逆的動作仍需要 sandbox、最小權限、allowlist、交易邊界與人工核准；否則一次高信心誤判就可能直接變成事故。
+
+## 型別安全只解決介面，不解決真實性
+
+Jev 可以保證答案落在預先定義的型別與選項內，但不能保證語意判斷一定正確。[TypeSafe 官方 skill](https://github.com/typesafe-ai/skills/blob/main/skills/typesafe-ai/SKILL.md)也明確區分兩件事：typed output 保證介面，不保證真相；Choice 與 Score 的 confidence 描述分布集中程度，不等於整個工作流可以安全自動化。
+
+所以生產環境至少要另外保留四個控制面：
+
+1. **離線評估集**：用真實流量中的正常、邊界與攻擊案例，分別量測每個問題的誤判率與校準曲線。
+2. **按後果設門檻**：客服佇列分錯可以重派，刪除資料或付款分錯不能用同一個 confidence threshold。
+3. **服務失敗回退**：timeout、rate limit 或供應商中斷時，明確選擇 fail closed、固定規則、System 2 或人工，不讓例外默默繞過政策。
+4. **完整觀測**：記錄 state 版本、question 版本、模型版本、原始機率、最終分支與後續結果，才能知道門檻是否仍適用。
+
+> [!IMPORTANT]
+> **停止規則：只要決策會直接觸發不可逆副作用，就不能把模型 confidence 當成唯一授權。** 模型負責提供判斷訊號；程式與人類仍負責權限、政策與最終責任。
 
 ## 傑文斯悖論（Jevons Paradox）的軟體預言
 
@@ -145,7 +237,7 @@ TypeSafe AI 將這款模型命名為「Jev」，致敬的是 19 世紀經濟學�
 
 在傳統認知中，軟體工程師不敢在每一行程式碼、每一個單元測試、每一個日誌行注入 AI，因為「LLM 太貴、太慢、不可控」。
 
-但當決策模型的推論延遲降至 100 毫秒以內、單次成本幾乎趨近於零，且輸出原生具備強型別約束與機率分佈時，工程師呼叫 AI 決策的頻率不會維持在原來的低水準，而是會暴增數個數量級：
+但當決策模型把單次推論壓到 TypeSafe 公布的 70 至 500 毫秒區間、把輸出限制為強型別判斷與機率分布後，工程師呼叫 AI 決策的頻率不會維持在原來的低水準，而是可能增加數個數量級。這是廠商目前的產品與評測主張，仍需要用自己的區域、輸入長度與併發量驗證：
 
 - 過去你只在使用者按下「送出」時呼叫一次 AI；未來你可以在使用者打字的每一次停頓、背景佇列的每一個重試輪迴，全量運行決策模型。
 - 過去 CI 只能跑靜態 Lint；未來每次 Git commit 都可以掛載一個 Jev 節點即時計算語義相容性與風險指數。
@@ -156,4 +248,14 @@ TypeSafe AI 將這款模型命名為「Jev」，致敬的是 19 世紀經濟學�
 
 1. **盤點 Agent 工作流中的決策節點**：審視系統內的所有 prompt，挑出那些「輸出只需從清單二選一、多選一，或只需要評估門檻」的節點。
 2. **制定強型別原語合約**：停止在 prompt 裡編寫冗長防禦規則要求模型輸出特定 JSON，改用枚舉、布林等資料結構定義控制邊界。
-3. **建立 System 1 / System 2 的降級與回退閥門**：將機率指標（Confidence / Calibrated Probability）納入核心路由條件。當 System 1 的最高信心度低於指定閾值（如 0.70）時，才啟動慢速模型或引導人工介入。
+3. **建立 System 1 / System 2 的降級與回退閥門**：分開設定選中項目機率與 confidence 的門檻，並用離線資料校準。任一訊號不符合該動作的安全要求時，才啟動慢速模型或引導人工介入。
+
+先不要急著替換整條 Agent loop。挑一個目前由 LLM 回傳固定枚舉的節點，保留既有路徑做對照，記錄一週的正確率、P95 延遲、單次成本與人工接管率。只有在品質門檻不退步、錯誤案例可追蹤，而且回退路徑真的可用時，再把相同模式擴到模型路由或工具風險閘門。
+
+## 延伸閱讀
+
+- [Sydney Runkle：Building a Harness with Jev](https://x.com/sydneyrunkle/status/2100754364545761643)
+- [LangChain：Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)
+- [TypeSafe AI：Introducing System One Models and Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+- [TypeSafe AI：Quick Start](https://docs.typesafe.ai/introduction/quickstart)
+- [TypeSafe AI：State 與多問題請求](https://docs.typesafe.ai/concepts/state)
