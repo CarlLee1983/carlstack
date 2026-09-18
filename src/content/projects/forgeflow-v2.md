@@ -1,7 +1,7 @@
 ---
-name: ForgeFlowV2
+name: PraxisBound
 description: "讓不同 AI coding agents 共用有界 Story、儲存庫驗證與人類審查契約的開發協議。"
-repositoryUrl: https://github.com/CarlLee1983/ForgeFlowV2
+repositoryUrl: https://github.com/CarlLee1983/PraxisBound
 status: 開源
 featured: true
 cover: ../../assets/projects/forgeflow-v2.webp
