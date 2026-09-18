@@ -65,3 +65,51 @@ test("不修改傳入的陣列", () => {
   paginate(items, 2, 10);
   assert.deepEqual(items, original);
 });
+
+test("少頁數（<= 7 頁）不產生省略符號", () => {
+  const shortItems = Array.from({ length: 50 }, (_, i) => i + 1);
+  const result = paginate(shortItems, 3, 10);
+  assert.equal(result.total, 5);
+  assert.equal(result.elements.length, 5);
+  assert.ok(result.elements.every((el) => el.type === "page"));
+});
+
+test("多頁數（> 7 頁）在各個位置正確插入省略符號", () => {
+  const longItems = Array.from({ length: 150 }, (_, i) => i + 1);
+  // 共 15 頁
+
+  // 當前在第 1 頁：[1, 2, 3, '...', 15]
+  const p1 = paginate(longItems, 1, 10);
+  assert.deepEqual(
+    p1.elements.map((el) => (el.type === "page" ? el.number : "...")),
+    [1, 2, 3, "...", 15],
+  );
+
+  // 當前在第 4 頁（靠近前端）：[1, 2, 3, 4, 5, '...', 15]
+  const p4 = paginate(longItems, 4, 10);
+  assert.deepEqual(
+    p4.elements.map((el) => (el.type === "page" ? el.number : "...")),
+    [1, 2, 3, 4, 5, "...", 15],
+  );
+
+  // 當前在第 8 頁（中間）：[1, '...', 7, 8, 9, '...', 15]
+  const p8 = paginate(longItems, 8, 10);
+  assert.deepEqual(
+    p8.elements.map((el) => (el.type === "page" ? el.number : "...")),
+    [1, "...", 7, 8, 9, "...", 15],
+  );
+
+  // 當前在第 12 頁（靠近末端）：[1, '...', 11, 12, 13, 14, 15]
+  const p12 = paginate(longItems, 12, 10);
+  assert.deepEqual(
+    p12.elements.map((el) => (el.type === "page" ? el.number : "...")),
+    [1, "...", 11, 12, 13, 14, 15],
+  );
+
+  // 當前在第 15 頁（最後一頁）：[1, '...', 13, 14, 15]
+  const p15 = paginate(longItems, 15, 10);
+  assert.deepEqual(
+    p15.elements.map((el) => (el.type === "page" ? el.number : "...")),
+    [1, "...", 13, 14, 15],
+  );
+});
