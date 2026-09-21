@@ -2,7 +2,7 @@
 title: "Agent 工作流不要再用 Chatbot 猜路由：從 TypeSafe AI Jev 看 System 1 決策模型的工程轉向"
 description: "把生成式 LLM 拿來做布林判斷、模型路由與工具風險分流，會讓 Agent 工作流承擔不必要的延遲與解析失敗。從 Jev 的三種決策原語到 LangChain middleware，拆解 System 1 決策模型如何進入 Agent harness。"
 publishDate: 2026-09-18T14:20:00+08:00
-updatedDate: 2026-09-18
+updatedDate: 2026-09-21
 draft: false
 featured: false
 tags:
@@ -242,6 +242,41 @@ TypeSafe AI 將這款模型命名為「Jev」，致敬的是 19 世紀經濟學�
 - 過去你只在使用者按下「送出」時呼叫一次 AI；未來你可以在使用者打字的每一次停頓、背景佇列的每一個重試輪迴，全量運行決策模型。
 - 過去 CI 只能跑靜態 Lint；未來每次 Git commit 都可以掛載一個 Jev 節點即時計算語義相容性與風險指數。
 
+## 哪些場景該換成 System 1？10 種決策形狀的落地邊界
+
+當推論延遲從秒級縮短到數百毫秒、成本降至自迴歸生成式模型的小數點後幾位時，最關鍵的架構問題變成：**哪些工作該交給 System 1，哪些必須留在 System 2？**
+
+TypeSafe AI 在官方的 [Use Case Map](https://docs.typesafe.ai/concepts/use-case-map) 中，將軟體工程常見的語意判定依輸出結構歸納為十種「決策形狀（Decision Shapes）」。這十種形狀在系統設計上大致對應兩大應用範式：
+
+### 1. 通用驗證與防禦閘門（Universal Verification & Guardrails）
+
+在傳統 Agent harness 中，對 LLM 的輸入提示、輸出回應與 tool call 進行驗證，往往也是呼叫另一個 LLM。這意味著防禦層的成本與延遲甚至超過了被保護的業務本身。
+
+在 System 1 視角下，防禦層不需要生成任何解釋文字，只需要強型別的判定：
+
+- **Detection（存在檢測）**：以布林機率判定單一屬性是否存在，例如偵測 Prompt Injection、敏感資料洩漏、合約關鍵條款缺漏或客服退款意圖。
+- **Scoring（階梯評分）**：在固定量表上輸出順序等級，例如評估生成回答的引用支撐度（Citation Support）、工具呼叫風險指數，或客服對話的負面情緒嚴重度。
+- **Verification（工件核驗）**：驗證先前步驟的執行工件是否違反特定策略，若失敗則直接在程式層阻斷並重試，不將無效狀態傳遞至下游。
+
+### 2. 語意巨量處理與特徵萃取（Semantic Map-Reduce & Feature Extraction）
+
+過去企業難以對數百萬筆客服對話、日誌追蹤或即時網路串流做全量深度語意分析，核心阻力在於自迴歸模型的 Token 計價與慢速吞吐。
+
+System 1 決策模型能夠作為巨量非結構化資料到關聯式/向量資料庫之間的「特徵降維器」：
+
+- **Classification & Routing（分類與路由）**：在預先定義的類別集合中給出機率分佈，決定下一段程式碼路徑（如工單派發、模型階梯路由、工單嚴重度升級）。
+- **ML Feature Extraction（機器學習特徵萃取）**：從自由文字（如業務拜訪紀錄、事故復盤）中即時萃取購買意願、流失風險或詐欺訊號，輸出標準化的機率標量，直接作為下游傳統預測模型（如 XGBoost、風控評分卡）的特徵輸入。
+
+| 決策形狀 (Decision Shape) | 輸出合約 (Output Contract)      | 傳統 System 2 的痛點                          | System 1 的架構優勢                  |
+| :------------------------ | :------------------------------ | :-------------------------------------------- | :----------------------------------- |
+| **Detection**             | 單一屬性之 `P(True)`            | 容易因 prompt 幻覺輸出非預期 JSON             | 單次前向傳遞，輸出真值校準機率       |
+| **Scoring**               | 順序評級與連續 Score            | LLM 自評分數過度集中且缺乏統計校準            | 經 RLCD 特化訓練，評分具備排序單調性 |
+| **Routing**               | 枚舉機率分佈與 Confidence       | 輸出格式漂移、逐字生成延遲拖垮整體 Agent loop | 強型別枚舉，毫秒級決定下游代碼分支   |
+| **Verification**          | 規則核驗矩陣（通過 / 違規標籤） | 成本甚至高於主任務，無法全量運行              | 輕量化常駐於 harness 與 CI 管道中    |
+
+> [!IMPORTANT]
+> **邊界劃分法則：需要創造新資訊、長篇推理或合成內容的任務留給 System 2；只涉及在已知路徑與強型別邊界中做選擇、評分與篩選的任務，一律推進 System 1。**
+
 ## 團隊在架構設計上的下一步
 
 如果你正在為團隊的 Agent 系統規劃下一代架構，不要等到系統被延遲拖垮才回頭重構。現在就可以採取以下三個行動：
@@ -257,5 +292,6 @@ TypeSafe AI 將這款模型命名為「Jev」，致敬的是 19 世紀經濟學�
 - [Sydney Runkle：Building a Harness with Jev](https://x.com/sydneyrunkle/status/2100754364545761643)
 - [LangChain：Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)
 - [TypeSafe AI：Introducing System One Models and Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
+- [TypeSafe AI：Example Use Cases (Use Case Map)](https://docs.typesafe.ai/concepts/use-case-map)
 - [TypeSafe AI：Quick Start](https://docs.typesafe.ai/introduction/quickstart)
 - [TypeSafe AI：State 與多問題請求](https://docs.typesafe.ai/concepts/state)
