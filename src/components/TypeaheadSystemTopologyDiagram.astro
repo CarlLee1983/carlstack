@@ -1,0 +1,653 @@
+---
+// Component 2: Typeahead End-to-End High-Concurrency System Topology Diagram
+---
+
+<figure class="typeahead-sys-diagram" aria-labelledby="typeahead-sys-caption">
+  <svg
+    class="typeahead-sys-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="typeahead-sys-title typeahead-sys-desc"
+  >
+    <title id="typeahead-sys-title">
+      全球搜尋自動補全高併發端到端架構：多級快取、前綴分片與串流動態打分
+    </title>
+    <desc id="typeahead-sys-desc">
+      展示搜尋自動補全的全鏈路拓撲：左側為客戶端防抖與 CDN 邊緣快取；中間為 API
+      閘道器與基於前綴分片的 Top-K Trie 叢集；右側為點擊日誌收集、Kafka、Flink
+      串流聚合與非同步熱更新雙緩衝閉環。
+    </desc>
+
+    <defs>
+      <marker
+        id="typeahead-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="typeahead-sys-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Header Badge & Title -->
+    <g transform="translate(40, 30)">
+      <rect
+        class="typeahead-sys-diagram__badge-bg"
+        width="180"
+        height="26"
+        rx="6"></rect>
+      <text
+        class="typeahead-sys-diagram__badge-text"
+        x="90"
+        y="17"
+        text-anchor="middle"
+      >
+        SYSTEM TOPOLOGY
+      </text>
+      <text class="typeahead-sys-diagram__main-title" x="195" y="20">
+        全球搜尋自動補全（Typeahead）高併發架構拓撲
+      </text>
+      <text class="typeahead-sys-diagram__main-sub" x="0" y="48">
+        客戶端防抖與邊緣 CDN 消化 80% 熱門短前綴流量；Trie 叢集二級分片與 Flink
+        串流動態衰減重打分。
+      </text>
+    </g>
+
+    <!-- Layer 1: Edge & Client Ingestion -->
+    <g class="typeahead-sys-diagram__card" transform="translate(40, 95)">
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="typeahead-sys-diagram__layer-title" x="24" y="32">
+        1. 客戶端與邊緣快取層（Client &amp; Edge CDN）
+      </text>
+      <text class="typeahead-sys-diagram__layer-meta" x="24" y="54">
+        50ms 防抖 Debounce · 瀏覽器 Local Storage 快取歷史 · Cloudflare / Fastly
+        快取 Top 前綴
+      </text>
+
+      <!-- Blocks -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--client"
+          x="0"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--client"
+          x="67"
+          y="24">Client App</text
+        >
+        <text
+          class="typeahead-sys-diagram__box-sub typeahead-sys-diagram__box-sub--client"
+          x="67"
+          y="44">防抖 50ms + 本地快取</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--cdn"
+          x="148"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--cdn"
+          x="215"
+          y="24">邊緣 CDN</text
+        >
+        <text
+          class="typeahead-sys-diagram__box-sub typeahead-sys-diagram__box-sub--cdn"
+          x="215"
+          y="44">快取單/雙字元前綴</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box"
+          x="296"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text class="typeahead-sys-diagram__box-title" x="363" y="24"
+          >API Gateway</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="363" y="44"
+          >負載均衡與限流</text
+        >
+      </g>
+    </g>
+
+    <!-- Flow Arrow 1 -->
+    <path
+      d="M 480 191 L 480 220"
+      class="typeahead-sys-diagram__flow-line"
+      marker-end="url(#typeahead-arrow)"></path>
+
+    <!-- Layer 2: Core Prefix Sharding Trie Cluster -->
+    <g
+      class="typeahead-sys-diagram__card typeahead-sys-diagram__card--active"
+      transform="translate(40, 222)"
+    >
+      <rect width="880" height="106" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="typeahead-sys-diagram__layer-title" x="24" y="34">
+        2. 前綴分片 Trie 服務叢集（Prefix Sharded Trie Cluster）
+      </text>
+      <text class="typeahead-sys-diagram__layer-meta" x="24" y="56">
+        一致性雜湊 + 二級前綴分片防止熱點傾斜 · 記憶體唯讀副本 ·
+        雙緩衝無鎖指標切換
+      </text>
+
+      <!-- Storage Blocks -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--trie"
+          x="0"
+          y="0"
+          width="135"
+          height="66"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--trie"
+          x="67"
+          y="24">Shard A (a-f)</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="67" y="42"
+          >Top-K Trie 記憶體</text
+        >
+        <text class="typeahead-sys-diagram__box-tag" x="67" y="58"
+          >P99 &lt; 5ms</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--trie"
+          x="148"
+          y="0"
+          width="135"
+          height="66"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--trie"
+          x="215"
+          y="24">Shard S (s-z)</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="215" y="42"
+          >Top-K Trie 記憶體</text
+        >
+        <text class="typeahead-sys-diagram__box-tag" x="215" y="58"
+          >熱門熱點拆分</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--redis"
+          x="296"
+          y="0"
+          width="135"
+          height="66"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--redis"
+          x="363"
+          y="24">Redis Top-K</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="363" y="42"
+          >熱點前綴快取</text
+        >
+        <text class="typeahead-sys-diagram__box-tag" x="363" y="58"
+          >TTL 10 分鐘</text
+        >
+      </g>
+    </g>
+
+    <!-- Flow Arrow 2 -->
+    <path
+      d="M 480 328 L 480 357"
+      class="typeahead-sys-diagram__flow-line"
+      marker-end="url(#typeahead-arrow)"></path>
+
+    <!-- Layer 3: Dynamic Scoring & Streaming Pipeline -->
+    <g class="typeahead-sys-diagram__card" transform="translate(40, 359)">
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="typeahead-sys-diagram__layer-title" x="24" y="32">
+        3. 非同步串流熱更新管線（Analytics &amp; Streaming Pipeline）
+      </text>
+      <text class="typeahead-sys-diagram__layer-meta" x="24" y="54">
+        Kafka 日誌串流 · Flink 滑動視窗動態衰減評分 · 離線構建新 Trie
+        並推播原子替換
+      </text>
+
+      <!-- Pipeline Blocks -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--kafka"
+          x="0"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--kafka"
+          x="67"
+          y="24">Kafka Stream</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="67" y="44"
+          >搜尋/點擊事件匯總</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--flink"
+          x="148"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--flink"
+          x="215"
+          y="24">Apache Flink</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="215" y="44"
+          >半衰期權重打分</text
+        >
+
+        <rect
+          class="typeahead-sys-diagram__box typeahead-sys-diagram__box--build"
+          x="296"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="typeahead-sys-diagram__box-title typeahead-sys-diagram__box-title--build"
+          x="363"
+          y="24">Trie Builder</text
+        >
+        <text class="typeahead-sys-diagram__box-sub" x="363" y="44"
+          >原子切換指標</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="typeahead-sys-diagram__mobile">
+    <div class="typeahead-mobile-card typeahead-mobile-card--cdn">
+      <span class="typeahead-mobile-badge typeahead-mobile-badge--cdn"
+        >TIER 1 · EDGE &amp; CLIENT</span
+      >
+      <h4>1. 客戶端與邊緣快取層</h4>
+      <p>
+        <strong>客戶端防抖（Debounce）</strong>：50ms
+        延遲發送，避免每次按鍵都發起網路調用。
+      </p>
+      <p>
+        <strong>邊緣 CDN 快取</strong>：熱門的一碼/二碼前綴（如 "g", "go",
+        "a"）快取在 CDN 邊緣，抵擋 80% 全球高頻請求。
+      </p>
+      <div class="typeahead-mobile-arrow">↓ CDN 未命中，轉發至核心服務</div>
+    </div>
+
+    <div class="typeahead-mobile-card typeahead-mobile-card--trie">
+      <span class="typeahead-mobile-badge typeahead-mobile-badge--trie"
+        >TIER 2 · PREFIX SHARDING</span
+      >
+      <h4>2. 前綴分片 Trie 服務叢集</h4>
+      <p>
+        <strong>前綴二級分片</strong>：按首字母與次級字元分發至特定
+        Shard，熱點字母（如 "s"）進一步拆分為獨立子 Shard。
+      </p>
+      <p>
+        <strong>極致查詢性能</strong>：Top-K
+        字典樹常駐記憶體，單機單次查詢耗時小於 5 毫秒。
+      </p>
+      <div class="typeahead-mobile-arrow">↓ 搜尋日誌非同步推入分析管線</div>
+    </div>
+
+    <div class="typeahead-mobile-card typeahead-mobile-card--stream">
+      <span class="typeahead-mobile-badge typeahead-mobile-badge--stream"
+        >TIER 3 · STREAMING UPDATE</span
+      >
+      <h4>3. 串流動態重打分與雙緩衝切換</h4>
+      <p>
+        <strong>Kafka + Flink</strong
+        >：實時統計關鍵字點擊頻率，並引入時間半衰期衰減避免歷史詞霸榜。
+      </p>
+      <p>
+        <strong>雙緩衝無鎖替換</strong>：離線建立新 Trie
+        樹後透過原子指標切換（Atomic Swap），保證讀取無中斷。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="typeahead-sys-caption" class="typeahead-sys-diagram__caption">
+    圖 2：全球搜尋自動補全高併發端到端架構：多級快取、前綴分片與串流動態打分閉環
+  </figcaption>
+</figure>
+
+<style>
+  .typeahead-sys-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .typeahead-sys-diagram__caption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* Desktop SVG Layout */
+  .typeahead-sys-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.875rem;
+    padding: 0.5rem;
+  }
+
+  .typeahead-sys-diagram__badge-bg {
+    fill: rgba(99, 102, 241, 0.12);
+    stroke: #6366f1;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__badge-bg {
+    fill: rgba(129, 140, 248, 0.18);
+    stroke: #818cf8;
+  }
+
+  .typeahead-sys-diagram__badge-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #4f46e5;
+    letter-spacing: 0.05em;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__badge-text {
+    fill: #a5b4fc;
+  }
+
+  .typeahead-sys-diagram__main-title {
+    font-size: 17px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .typeahead-sys-diagram__main-sub {
+    font-size: 13px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+
+  /* Cards */
+  .typeahead-sys-diagram__card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.2px;
+  }
+  .typeahead-sys-diagram__card--active rect {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .typeahead-sys-diagram__layer-title {
+    font-size: 15px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .typeahead-sys-diagram__layer-meta {
+    font-size: 12.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  /* Boxes */
+  .typeahead-sys-diagram__box {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .typeahead-sys-diagram__box--client {
+    fill: rgba(2, 132, 199, 0.08);
+    stroke: #0284c7;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--client {
+    fill: rgba(56, 189, 248, 0.15);
+    stroke: #38bdf8;
+  }
+  .typeahead-sys-diagram__box--cdn {
+    fill: rgba(245, 158, 11, 0.08);
+    stroke: #f59e0b;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--cdn {
+    fill: rgba(245, 158, 11, 0.18);
+  }
+  .typeahead-sys-diagram__box--trie {
+    fill: rgba(14, 165, 233, 0.12);
+    stroke: #0ea5e9;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--trie {
+    fill: rgba(56, 189, 248, 0.22);
+    stroke: #38bdf8;
+  }
+  .typeahead-sys-diagram__box--redis {
+    fill: rgba(239, 68, 68, 0.08);
+    stroke: #ef4444;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--redis {
+    fill: rgba(239, 68, 68, 0.18);
+  }
+  .typeahead-sys-diagram__box--kafka {
+    fill: rgba(168, 85, 247, 0.1);
+    stroke: #a855f7;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--kafka {
+    fill: rgba(192, 132, 252, 0.18);
+    stroke: #c084fc;
+  }
+  .typeahead-sys-diagram__box--flink {
+    fill: rgba(5, 150, 105, 0.1);
+    stroke: #059669;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--flink {
+    fill: rgba(52, 211, 153, 0.18);
+    stroke: #34d399;
+  }
+  .typeahead-sys-diagram__box--build {
+    fill: rgba(99, 102, 241, 0.1);
+    stroke: #6366f1;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box--build {
+    fill: rgba(129, 140, 248, 0.18);
+    stroke: #818cf8;
+  }
+
+  .typeahead-sys-diagram__box-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .typeahead-sys-diagram__box-title--client {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--client {
+    fill: #38bdf8;
+  }
+  .typeahead-sys-diagram__box-title--cdn {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--cdn {
+    fill: #fbbf24;
+  }
+  .typeahead-sys-diagram__box-title--trie {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--trie {
+    fill: #38bdf8;
+  }
+  .typeahead-sys-diagram__box-title--redis {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--redis {
+    fill: #f87171;
+  }
+  .typeahead-sys-diagram__box-title--kafka {
+    fill: #9333ea;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--kafka {
+    fill: #c084fc;
+  }
+  .typeahead-sys-diagram__box-title--flink {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--flink {
+    fill: #34d399;
+  }
+  .typeahead-sys-diagram__box-title--build {
+    fill: #4f46e5;
+  }
+  :global(:root[data-theme="dark"]) .typeahead-sys-diagram__box-title--build {
+    fill: #a5b4fc;
+  }
+
+  .typeahead-sys-diagram__box-sub {
+    font-size: 10.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+    text-anchor: middle;
+  }
+  .typeahead-sys-diagram__box-tag {
+    font-size: 9.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+    text-anchor: middle;
+  }
+
+  /* Connectors */
+  .typeahead-sys-diagram__flow-line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .typeahead-sys-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 48rem) {
+    .typeahead-sys-diagram__desktop {
+      display: none !important;
+    }
+
+    .typeahead-sys-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .typeahead-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1.125rem;
+    }
+    .typeahead-mobile-card--cdn {
+      border-left: 5px solid #f59e0b;
+    }
+    .typeahead-mobile-card--trie {
+      border-left: 5px solid #0ea5e9;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-card--trie {
+      border-left-color: #38bdf8;
+    }
+    .typeahead-mobile-card--stream {
+      border-left: 5px solid #a855f7;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-card--stream {
+      border-left-color: #c084fc;
+    }
+
+    .typeahead-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .typeahead-mobile-badge--cdn {
+      color: #d97706;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-badge--cdn {
+      color: #fbbf24;
+    }
+    .typeahead-mobile-badge--trie {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-badge--trie {
+      color: #38bdf8;
+    }
+    .typeahead-mobile-badge--stream {
+      color: #9333ea;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-badge--stream {
+      color: #c084fc;
+    }
+
+    .typeahead-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .typeahead-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .typeahead-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #0284c7;
+      padding: 0.35rem 0;
+    }
+    :global(:root[data-theme="dark"]) .typeahead-mobile-arrow {
+      color: #38bdf8;
+    }
+  }
+
+  @media (min-width: 48.0625rem) {
+    .typeahead-sys-diagram__mobile {
+      display: none !important;
+    }
+  }
+</style>

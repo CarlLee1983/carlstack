@@ -87,7 +87,7 @@
 
 ### 專題 4：搜尋框即時自動補全（Typeahead / Autocomplete）高併發架構
 
-- **狀態**：📝 `待完善撰文（Pending Research & Writing）`
+- **狀態**：✅ `已發布（Published）` - 詳見 [`src/content/blog/typeahead-autocomplete-high-concurrency-architecture.mdx`](../../src/content/blog/typeahead-autocomplete-high-concurrency-architecture.mdx)
 - **對應來源**：`donnemartin/system-design-primer`, `checkcheckzz/system-design-interview`
 - **架構核心大綱**：
   1. **業務指標與邊界**：P99 延遲小於 50ms、高頻 QPS（10 萬+）、前綴匹配與動態熱門權重排序。

@@ -1,0 +1,590 @@
+---
+// Component 1: Typeahead Top-K Trie Tree Internal Diagram
+---
+
+<figure class="trie-diagram" aria-labelledby="trie-caption">
+  <svg
+    class="trie-diagram__desktop"
+    viewBox="0 0 960 520"
+    role="img"
+    aria-labelledby="trie-title trie-desc"
+  >
+    <title id="trie-title">
+      搜尋自動補全核心：Top-K 字典樹（Trie）空間換時間預存架構
+    </title>
+    <desc id="trie-desc">
+      展示 Top-K Trie 字典樹如何透過節點預存前 5
+      大熱門搜尋詞，將原本需要遍歷整棵子樹的 O(p + n) 查詢複雜度降為常數時間
+      O(p)。
+    </desc>
+
+    <defs>
+      <marker
+        id="trie-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="trie-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Header Badge & Title -->
+    <g transform="translate(40, 32)">
+      <rect class="trie-diagram__badge-bg" width="180" height="26" rx="6"
+      ></rect>
+      <text class="trie-diagram__badge-text" x="90" y="17" text-anchor="middle">
+        ALGORITHM KERNEL
+      </text>
+      <text class="trie-diagram__main-title" x="195" y="20">
+        Top-K 字典樹（Trie）前綴預存與常數時間查詢
+      </text>
+      <text class="trie-diagram__main-sub" x="0" y="48">
+        傳統 Trie 需遍歷所有子節點排序（耗時隨詞庫爆增）；Top-K Trie
+        在每個字元節點直接維護預計算的熱門列表。
+      </text>
+    </g>
+
+    <!-- Visual Trie Tree Hierarchy -->
+    <!-- Root Node -->
+    <g transform="translate(40, 105)">
+      <rect class="trie-diagram__card" width="880" height="74" rx="8"></rect>
+      <rect
+        class="trie-diagram__node-circle trie-diagram__node-circle--root"
+        x="24"
+        y="14"
+        width="46"
+        height="46"
+        rx="23"></rect>
+      <text class="trie-diagram__node-char" x="47" y="42">Root</text>
+
+      <text class="trie-diagram__tier-title" x="90" y="32"
+        >全域根節點（Root Node）</text
+      >
+      <text class="trie-diagram__tier-meta" x="90" y="52"
+        >空前綴 · 匯總全站最熱門 TOP 5 關鍵字（如：youtube, google, weather,
+        amazon, chatgpt）</text
+      >
+
+      <rect
+        class="trie-diagram__pill-tag"
+        x="735"
+        y="20"
+        width="120"
+        height="32"
+        rx="6"></rect>
+      <text class="trie-diagram__pill-text" x="795" y="40" text-anchor="middle"
+        >全站熱搜備份</text
+      >
+    </g>
+
+    <!-- Edge Branch 1 -->
+    <path
+      d="M 120 179 L 120 205"
+      class="trie-diagram__tree-line"
+      marker-end="url(#trie-arrow)"></path>
+    <rect
+      class="trie-diagram__char-badge"
+      x="135"
+      y="183"
+      width="75"
+      height="20"
+      rx="4"></rect>
+    <text class="trie-diagram__char-text" x="172" y="197" text-anchor="middle"
+      >字元 's'</text
+    >
+
+    <!-- Level 1: Node 's' -->
+    <g transform="translate(40, 210)">
+      <rect class="trie-diagram__card" width="880" height="96" rx="8"></rect>
+      <rect
+        class="trie-diagram__node-circle"
+        x="24"
+        y="25"
+        width="46"
+        height="46"
+        rx="23"></rect>
+      <text class="trie-diagram__node-char" x="47" y="53">'s'</text>
+
+      <text class="trie-diagram__tier-title" x="90" y="36"
+        >前綴「s」節點（Prefix: "s"）</text
+      >
+      <text class="trie-diagram__tier-meta" x="90" y="58"
+        >使用者鍵入第一個字母時命中此處，直接讀取快取清單</text
+      >
+
+      <!-- Top-K Preview -->
+      <g transform="translate(430, 16)">
+        <rect class="trie-diagram__list-box" width="425" height="64" rx="6"
+        ></rect>
+        <text class="trie-diagram__list-label" x="15" y="24"
+          >預存 Top 3 推薦：</text
+        >
+        <text class="trie-diagram__list-item" x="125" y="24"
+          >1. spotify (9.8M)</text
+        >
+        <text class="trie-diagram__list-item" x="250" y="24"
+          >2. speed test (6.2M)</text
+        >
+        <text class="trie-diagram__list-item" x="125" y="48"
+          >3. steam (5.4M)</text
+        >
+        <text
+          class="trie-diagram__list-item trie-diagram__list-item--dim"
+          x="250"
+          y="48">4. starbucks ...</text
+        >
+      </g>
+    </g>
+
+    <!-- Edge Branch 2 -->
+    <path
+      d="M 120 306 L 120 332"
+      class="trie-diagram__tree-line"
+      marker-end="url(#trie-arrow)"></path>
+    <rect
+      class="trie-diagram__char-badge"
+      x="135"
+      y="310"
+      width="75"
+      height="20"
+      rx="4"></rect>
+    <text class="trie-diagram__char-text" x="172" y="324" text-anchor="middle"
+      >字元 'y'</text
+    >
+
+    <!-- Level 2: Node 'sy' (系統設計關鍵目標節點) -->
+    <g transform="translate(40, 337)">
+      <rect
+        class="trie-diagram__card trie-diagram__card--highlight"
+        width="880"
+        height="120"
+        rx="8"></rect>
+      <rect
+        class="trie-diagram__node-circle trie-diagram__node-circle--highlight"
+        x="24"
+        y="35"
+        width="48"
+        height="48"
+        rx="24"></rect>
+      <text
+        class="trie-diagram__node-char trie-diagram__node-char--highlight"
+        x="48"
+        y="65">'sy'</text
+      >
+
+      <text class="trie-diagram__tier-title" x="90" y="40"
+        >目標前綴「sy」節點（Prefix: "sy"）</text
+      >
+      <text class="trie-diagram__tier-meta" x="90" y="64"
+        >查詢時間複雜度：O(p) = O(2) ➔ 僅需 2 次指標尋址，P99 延遲 &lt; 1ms！</text
+      >
+      <text class="trie-diagram__tier-status" x="90" y="90"
+        >🔥 空間換時間：無須向下遍歷整棵子樹（如 syntax, synopsis, symmetry
+        等數萬個詞）</text
+      >
+
+      <!-- Top-K Precomputed List -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="trie-diagram__list-box trie-diagram__list-box--active"
+          width="425"
+          height="80"
+          rx="6"></rect>
+        <text
+          class="trie-diagram__list-label trie-diagram__list-label--active"
+          x="15"
+          y="26">即時返回 Top-K（常數時間）：</text
+        >
+        <text class="trie-diagram__keyword" x="15" y="52">1. system design</text
+        >
+        <text class="trie-diagram__score" x="145" y="52">(8.9M 權重)</text>
+        <text class="trie-diagram__keyword" x="220" y="52">2. synonym</text>
+        <text class="trie-diagram__score" x="315" y="52">(4.1M 權重)</text>
+        <text class="trie-diagram__keyword" x="15" y="72"
+          >3. symptom checker</text
+        >
+        <text class="trie-diagram__score" x="145" y="72">(2.7M 權重)</text>
+        <text class="trie-diagram__keyword" x="220" y="72">4. syntax error</text
+        >
+        <text class="trie-diagram__score" x="315" y="72">(1.9M 權重)</text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="trie-diagram__mobile">
+    <div class="trie-mobile-card trie-mobile-card--root">
+      <span class="trie-mobile-badge trie-mobile-badge--root">ROOT LEVEL</span>
+      <h4>全域根節點（Root Node）</h4>
+      <p><strong>前綴</strong>：空字串（""）。</p>
+      <p>
+        <strong>功能</strong
+        >：當使用者剛點擊搜尋框尚未打字時，返回全站最高頻的搜尋關鍵字（Top 5
+        熱搜）。
+      </p>
+      <div class="trie-mobile-arrow">↓ 輸入字元 's'</div>
+    </div>
+
+    <div class="trie-mobile-card trie-mobile-card--mid">
+      <span class="trie-mobile-badge trie-mobile-badge--mid"
+        >PREFIX LEVEL 1</span
+      >
+      <h4>前綴「s」節點</h4>
+      <p>
+        <strong>預存推薦</strong>：spotify (9.8M)、speed test (6.2M)、steam
+        (5.4M)。
+      </p>
+      <p>
+        <strong>優勢</strong>：節點預先計算好 Top-K，無須遍歷 's'
+        底下數百萬個英文字詞。
+      </p>
+      <div class="trie-mobile-arrow">↓ 輸入字元 'y'</div>
+    </div>
+
+    <div class="trie-mobile-card trie-mobile-card--highlight">
+      <span class="trie-mobile-badge trie-mobile-badge--highlight"
+        >TARGET PREFIX</span
+      >
+      <h4>前綴「sy」目標節點</h4>
+      <p>
+        <strong>查詢代價</strong>：<code>O(p) = O(2)</code
+        >。兩次指標跳轉直接命中，P99 延遲小於 1ms。
+      </p>
+      <p>
+        <strong>返回結果</strong>：system design (8.9M)、synonym (4.1M)、symptom
+        checker (2.7M)。
+      </p>
+      <p>
+        <strong>空間換時間</strong
+        >：以微量記憶體代價，徹底消除運行時樹遍歷與排序操作。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="trie-caption" class="trie-diagram__caption">
+    圖 1：Top-K 字典樹（Trie）前綴預存架構：常數時間 O(p) 檢索與熱門詞動態排序
+  </figcaption>
+</figure>
+
+<style>
+  .trie-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .trie-diagram__caption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* Desktop SVG Layout */
+  .trie-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.875rem;
+    padding: 0.5rem;
+  }
+
+  .trie-diagram__badge-bg {
+    fill: rgba(14, 165, 233, 0.12);
+    stroke: #0ea5e9;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__badge-bg {
+    fill: rgba(56, 189, 248, 0.18);
+    stroke: #38bdf8;
+  }
+
+  .trie-diagram__badge-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #0284c7;
+    letter-spacing: 0.05em;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__badge-text {
+    fill: #38bdf8;
+  }
+
+  .trie-diagram__main-title {
+    font-size: 17px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .trie-diagram__main-sub {
+    font-size: 13px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+
+  /* Cards */
+  .trie-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.2px;
+  }
+  .trie-diagram__card--highlight {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .trie-diagram__node-circle {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5px;
+  }
+  .trie-diagram__node-circle--root {
+    fill: rgba(100, 116, 139, 0.1);
+  }
+  .trie-diagram__node-circle--highlight {
+    fill: rgba(14, 165, 233, 0.15);
+    stroke: #0ea5e9;
+    stroke-width: 2px;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__node-circle--highlight {
+    fill: rgba(56, 189, 248, 0.22);
+    stroke: #38bdf8;
+  }
+
+  .trie-diagram__node-char {
+    font-size: 14px;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .trie-diagram__node-char--highlight {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__node-char--highlight {
+    fill: #38bdf8;
+  }
+
+  .trie-diagram__tier-title {
+    font-size: 15px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .trie-diagram__tier-meta {
+    font-size: 12.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .trie-diagram__tier-status {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__tier-status {
+    fill: #34d399;
+  }
+
+  /* Tree Path Connectors */
+  .trie-diagram__tree-line {
+    stroke: #0284c7;
+    stroke-width: 2px;
+    stroke-dasharray: 4 4;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__tree-line {
+    stroke: #38bdf8;
+  }
+
+  .trie-diagram__arrow-head {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__arrow-head {
+    fill: #38bdf8;
+  }
+
+  .trie-diagram__char-badge {
+    fill: rgba(2, 132, 199, 0.08);
+    stroke: #0284c7;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__char-badge {
+    fill: rgba(56, 189, 248, 0.15);
+    stroke: #38bdf8;
+  }
+
+  .trie-diagram__char-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__char-text {
+    fill: #38bdf8;
+  }
+
+  /* List Boxes */
+  .trie-diagram__list-box {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .trie-diagram__list-box--active {
+    fill: rgba(14, 165, 233, 0.05);
+    stroke: #0ea5e9;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__list-box--active {
+    fill: rgba(56, 189, 248, 0.1);
+    stroke: #38bdf8;
+  }
+
+  .trie-diagram__list-label {
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .trie-diagram__list-label--active {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__list-label--active {
+    fill: #38bdf8;
+  }
+
+  .trie-diagram__list-item {
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    fill: var(--dg-ink-2);
+  }
+  .trie-diagram__list-item--dim {
+    fill: var(--dg-muted);
+  }
+
+  .trie-diagram__keyword {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .trie-diagram__score {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .trie-diagram__score {
+    fill: #34d399;
+  }
+
+  /* Tags */
+  .trie-diagram__pill-tag {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1px;
+  }
+  .trie-diagram__pill-text {
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink-2);
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 48rem) {
+    .trie-diagram__desktop {
+      display: none !important;
+    }
+
+    .trie-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .trie-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1.125rem;
+    }
+    .trie-mobile-card--root {
+      border-left: 5px solid #64748b;
+    }
+    .trie-mobile-card--mid {
+      border-left: 5px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .trie-mobile-card--mid {
+      border-left-color: #38bdf8;
+    }
+    .trie-mobile-card--highlight {
+      border-left: 5px solid #059669;
+    }
+    :global(:root[data-theme="dark"]) .trie-mobile-card--highlight {
+      border-left-color: #34d399;
+    }
+
+    .trie-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .trie-mobile-badge--root {
+      color: #64748b;
+    }
+    .trie-mobile-badge--mid {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .trie-mobile-badge--mid {
+      color: #38bdf8;
+    }
+    .trie-mobile-badge--highlight {
+      color: #059669;
+    }
+    :global(:root[data-theme="dark"]) .trie-mobile-badge--highlight {
+      color: #34d399;
+    }
+
+    .trie-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .trie-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .trie-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #0284c7;
+      padding: 0.35rem 0;
+    }
+    :global(:root[data-theme="dark"]) .trie-mobile-arrow {
+      color: #38bdf8;
+    }
+  }
+
+  @media (min-width: 48.0625rem) {
+    .trie-diagram__mobile {
+      display: none !important;
+    }
+  }
+</style>
