@@ -1,0 +1,607 @@
+---
+// Realtime Collaborative Architecture Diagram: OT vs CRDT
+---
+
+<figure class="collab-diagram" aria-labelledby="collab-caption">
+  <svg
+    class="collab-diagram__desktop"
+    viewBox="0 0 960 450"
+    role="img"
+    aria-labelledby="collab-title collab-desc"
+  >
+    <title id="collab-title">
+      即時多人協作架構拓撲：OT 中心化轉換 vs. CRDT 分散式因果收斂
+    </title>
+    <desc id="collab-desc">
+      展示兩種協作模型架構：左側 Operational Transformation
+      依賴單一權威伺服器進行版本矩陣操作轉換；右側 CRDT 透過不可變
+      ID、因果半格與 Yjs 雙向鏈表在去中心化節點間實現確定性收斂。
+    </desc>
+
+    <defs>
+      <marker
+        id="collab-arrow-ot"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="collab-diagram__arrow-ot"></path>
+      </marker>
+      <marker
+        id="collab-arrow-crdt"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="collab-diagram__arrow-crdt"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Side A: OT Architecture -->
+    <g class="collab-diagram__card" transform="translate(30, 30)">
+      <rect width="430" height="380" rx="12"></rect>
+      <text
+        class="collab-diagram__badge collab-diagram__badge--amber"
+        x="20"
+        y="30"
+      >
+        CENTRALIZED TRANSFORMATION (OT)
+      </text>
+      <text class="collab-diagram__title" x="20" y="58"
+        >操作轉換架構（Google Docs 模式）</text
+      >
+
+      <!-- Client A -->
+      <g transform="translate(20, 80)">
+        <rect
+          width="180"
+          height="70"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--amber"></rect>
+        <text class="collab-diagram__subhead" x="12" y="24"
+          >Client 1 (本地輸入)</text
+        >
+        <text class="collab-diagram__code" x="12" y="44"
+          >op1 = insert(pos: 3, 'A')</text
+        >
+        <text class="collab-diagram__subdesc" x="12" y="60"
+          >本地樂觀渲染 (rev=0)</text
+        >
+      </g>
+
+      <!-- Client B -->
+      <g transform="translate(230, 80)">
+        <rect
+          width="180"
+          height="70"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--amber"></rect>
+        <text class="collab-diagram__subhead" x="12" y="24"
+          >Client 2 (本地輸入)</text
+        >
+        <text class="collab-diagram__code" x="12" y="44"
+          >op2 = delete(pos: 2)</text
+        >
+        <text class="collab-diagram__subdesc" x="12" y="60"
+          >本地樂觀渲染 (rev=0)</text
+        >
+      </g>
+
+      <!-- Server Coordinator -->
+      <g transform="translate(60, 200)">
+        <rect
+          width="310"
+          height="100"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--server"
+        ></rect>
+        <text
+          class="collab-diagram__server-title"
+          x="155"
+          y="28"
+          text-anchor="middle">中心化協調伺服器 (Central Coordinator)</text
+        >
+        <text
+          class="collab-diagram__server-desc"
+          x="155"
+          y="50"
+          text-anchor="middle">依序排隊執行轉換函數：T(op1, op2)</text
+        >
+        <text
+          class="collab-diagram__code-center"
+          x="155"
+          y="70"
+          text-anchor="middle">op1' = insert(pos: 2, 'A') ｜ rev=1</text
+        >
+        <text
+          class="collab-diagram__server-note"
+          x="155"
+          y="88"
+          text-anchor="middle"
+          >單一權威定序 ｜ 狀態向量膨脹 ｜ 轉換複雜度 O(N²)</text
+        >
+      </g>
+
+      <!-- Connection Arrows -->
+      <path
+        d="M 110 150 L 160 200"
+        class="collab-diagram__line collab-diagram__line--ot"
+        marker-end="url(#collab-arrow-ot)"></path>
+      <path
+        d="M 320 150 L 270 200"
+        class="collab-diagram__line collab-diagram__line--ot"
+        marker-end="url(#collab-arrow-ot)"></path>
+      <path
+        d="M 160 300 L 110 350"
+        class="collab-diagram__line collab-diagram__line--ot"
+        marker-end="url(#collab-arrow-ot)"></path>
+      <path
+        d="M 270 300 L 320 350"
+        class="collab-diagram__line collab-diagram__line--ot"
+        marker-end="url(#collab-arrow-ot)"></path>
+
+      <!-- Convergence State -->
+      <g transform="translate(85, 330)">
+        <rect
+          width="260"
+          height="35"
+          rx="6"
+          class="collab-diagram__pill collab-diagram__pill--amber"></rect>
+        <text
+          class="collab-diagram__pill-text"
+          x="130"
+          y="22"
+          text-anchor="middle">最終一致收斂（依賴中心鎖定定序）</text
+        >
+      </g>
+    </g>
+
+    <!-- Side B: CRDT Architecture -->
+    <g class="collab-diagram__card" transform="translate(500, 30)">
+      <rect width="430" height="380" rx="12"></rect>
+      <text
+        class="collab-diagram__badge collab-diagram__badge--cyan"
+        x="20"
+        y="30"
+      >
+        DECENTRALIZED REPLICATION (CRDT)
+      </text>
+      <text class="collab-diagram__title" x="20" y="58"
+        >無衝突複製資料型態（Yjs / Figma 模式）</text
+      >
+
+      <!-- Peer A -->
+      <g transform="translate(20, 80)">
+        <rect
+          width="180"
+          height="85"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--cyan"></rect>
+        <text class="collab-diagram__subhead" x="12" y="22"
+          >Peer 1 (客戶端節點)</text
+        >
+        <text class="collab-diagram__code" x="12" y="42"
+          >ID: &lt;client1, clock=1&gt;</text
+        >
+        <text class="collab-diagram__code" x="12" y="58"
+          >Left: ID_origin, Val: 'A'</text
+        >
+        <text class="collab-diagram__subdesc" x="12" y="74"
+          >不可變項目，無需座標平移</text
+        >
+      </g>
+
+      <!-- Peer B -->
+      <g transform="translate(230, 80)">
+        <rect
+          width="180"
+          height="85"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--cyan"></rect>
+        <text class="collab-diagram__subhead" x="12" y="22"
+          >Peer 2 (客戶端節點)</text
+        >
+        <text class="collab-diagram__code" x="12" y="42"
+          >ID: &lt;client2, clock=1&gt;</text
+        >
+        <text class="collab-diagram__code" x="12" y="58"
+          >Left: ID_origin, Val: 'B'</text
+        >
+        <text class="collab-diagram__subdesc" x="12" y="74"
+          >不可變項目，無需座標平移</text
+        >
+      </g>
+
+      <!-- Convergence Core -->
+      <g transform="translate(45, 200)">
+        <rect
+          width="340"
+          height="100"
+          rx="8"
+          class="collab-diagram__subcard collab-diagram__subcard--crdt-core"
+        ></rect>
+        <text
+          class="collab-diagram__core-title"
+          x="170"
+          y="26"
+          text-anchor="middle">半格數學合流（Join-Semilattice Merge）</text
+        >
+        <text
+          class="collab-diagram__core-desc"
+          x="170"
+          y="48"
+          text-anchor="middle"
+          >交換律 (Commutative) ｜ 結合律 (Associative) ｜ 冪等律 (Idempotent)</text
+        >
+        <text
+          class="collab-diagram__code-center"
+          x="170"
+          y="68"
+          text-anchor="middle"
+          >仲裁規則：client1 &gt; client2 ➔ [ID_origin, 'A', 'B']</text
+        >
+        <text
+          class="collab-diagram__core-note"
+          x="170"
+          y="88"
+          text-anchor="middle"
+          >去中心化合併 ｜ 任意亂序抵達皆能收斂 ｜ 支援 P2P / 離線分叉</text
+        >
+      </g>
+
+      <!-- P2P / Relay Sync Arrows -->
+      <path
+        d="M 110 165 L 150 200"
+        class="collab-diagram__line collab-diagram__line--crdt"
+        marker-end="url(#collab-arrow-crdt)"></path>
+      <path
+        d="M 320 165 L 280 200"
+        class="collab-diagram__line collab-diagram__line--crdt"
+        marker-end="url(#collab-arrow-crdt)"></path>
+      <path
+        d="M 170 300 L 110 335"
+        class="collab-diagram__line collab-diagram__line--crdt"
+        marker-end="url(#collab-arrow-crdt)"></path>
+      <path
+        d="M 260 300 L 320 335"
+        class="collab-diagram__line collab-diagram__line--crdt"
+        marker-end="url(#collab-arrow-crdt)"></path>
+
+      <!-- Convergence State -->
+      <g transform="translate(85, 330)">
+        <rect
+          width="260"
+          height="35"
+          rx="6"
+          class="collab-diagram__pill collab-diagram__pill--cyan"></rect>
+        <text
+          class="collab-diagram__pill-text"
+          x="130"
+          y="22"
+          text-anchor="middle">強最終一致性（Strong Eventual Consistency）</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile Layout: Vertical Stacking -->
+  <div class="collab-diagram__mobile">
+    <div class="collab-mobile-card collab-mobile-card--amber">
+      <span class="collab-mobile-badge collab-mobile-badge--amber"
+        >模式一：中心化操作轉換 (OT)</span
+      >
+      <h4>Google Docs / Etherpad 經典模式</h4>
+      <p>
+        <strong>痛點</strong
+        >：依賴中心伺服器作為唯一定序仲裁者。當多人並發輸入，伺服器必須對每個操作執行狀態向量比對與平移轉換
+        <code>T(op1, op2)</code>。
+      </p>
+      <p>
+        <strong>工程瓶頸</strong>：當編輯者增加，轉換矩陣複雜度暴增至 <code
+          >O(N²)</code
+        >，且無法原生支援去中心化 P2P 或複雜富文字區塊的離線分叉合併。
+      </p>
+    </div>
+
+    <div class="collab-mobile-arrow">VS.</div>
+
+    <div class="collab-mobile-card collab-mobile-card--cyan">
+      <span class="collab-mobile-badge collab-mobile-badge--cyan"
+        >模式二：無衝突複製資料型態 (CRDT)</span
+      >
+      <h4>Figma / Yjs / Automerge 現代標準</h4>
+      <p>
+        <strong>破局點</strong>：為每個文字或畫布圖元賦予全域唯一、不可變的因果
+        ID <code>&lt;ClientID, Clock&gt;</code>，捨棄字串相對座標。
+      </p>
+      <p>
+        <strong>數學保證</strong>：合併滿足<strong
+          >交換律、結合律與冪等律</strong
+        >。任何節點不論以何種先後順序或網路延遲收到更新，本地執行 Merge
+        必定收斂至完全相同的狀態，天然支援 P2P 與離線重連。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="collab-caption">
+    圖 1：即時多人協作的核心架構分水嶺——OT 的中心化座標平移轉換 vs. CRDT
+    的數學半格強最終一致收斂。
+  </figcaption>
+</figure>
+
+<style>
+  .collab-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .collab-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .collab-diagram__mobile {
+    display: none;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* SVG Base Styling */
+  .collab-diagram__card > rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5px;
+  }
+
+  .collab-diagram__badge {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .collab-diagram__badge--amber {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__badge--amber {
+    fill: #fbbf24;
+  }
+  .collab-diagram__badge--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__badge--cyan {
+    fill: #38bdf8;
+  }
+
+  .collab-diagram__title {
+    font-size: 16px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .collab-diagram__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .collab-diagram__subcard--amber {
+    stroke: rgba(217, 119, 6, 0.3);
+  }
+  .collab-diagram__subcard--cyan {
+    stroke: rgba(2, 132, 199, 0.3);
+  }
+  .collab-diagram__subcard--server {
+    fill: rgba(217, 119, 6, 0.04);
+    stroke: #d97706;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__subcard--server {
+    fill: rgba(251, 191, 36, 0.05);
+    stroke: #fbbf24;
+  }
+  .collab-diagram__subcard--crdt-core {
+    fill: rgba(2, 132, 199, 0.04);
+    stroke: #0284c7;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__subcard--crdt-core {
+    fill: rgba(56, 189, 248, 0.05);
+    stroke: #38bdf8;
+  }
+
+  .collab-diagram__subhead {
+    font-size: 13px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .collab-diagram__code {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    fill: #475569;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__code {
+    fill: #94a3b8;
+  }
+
+  .collab-diagram__code-center {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .collab-diagram__subdesc {
+    font-size: 10px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .collab-diagram__server-title,
+  .collab-diagram__core-title {
+    font-size: 13px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .collab-diagram__server-desc,
+  .collab-diagram__core-desc {
+    font-size: 11px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+
+  .collab-diagram__server-note,
+  .collab-diagram__core-note {
+    font-size: 10px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .collab-diagram__line {
+    fill: none;
+    stroke-width: 1.5px;
+  }
+  .collab-diagram__line--ot {
+    stroke: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__line--ot {
+    stroke: #fbbf24;
+  }
+  .collab-diagram__line--crdt {
+    stroke: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__line--crdt {
+    stroke: #38bdf8;
+  }
+
+  .collab-diagram__arrow-ot {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__arrow-ot {
+    fill: #fbbf24;
+  }
+  .collab-diagram__arrow-crdt {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__arrow-crdt {
+    fill: #38bdf8;
+  }
+
+  .collab-diagram__pill {
+    stroke-width: 1px;
+  }
+  .collab-diagram__pill--amber {
+    fill: rgba(217, 119, 6, 0.1);
+    stroke: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__pill--amber {
+    fill: rgba(251, 191, 36, 0.15);
+    stroke: #fbbf24;
+  }
+  .collab-diagram__pill--cyan {
+    fill: rgba(2, 132, 199, 0.1);
+    stroke: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .collab-diagram__pill--cyan {
+    fill: rgba(56, 189, 248, 0.15);
+    stroke: #38bdf8;
+  }
+
+  .collab-diagram__pill-text {
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  /* Mobile Styles */
+  @media (max-width: 640px) {
+    .collab-diagram__desktop {
+      display: none;
+    }
+
+    .collab-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .collab-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+    .collab-mobile-card--amber {
+      border-left: 4px solid #d97706;
+    }
+    :global(:root[data-theme="dark"]) .collab-mobile-card--amber {
+      border-left-color: #fbbf24;
+    }
+    .collab-mobile-card--cyan {
+      border-left: 4px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .collab-mobile-card--cyan {
+      border-left-color: #38bdf8;
+    }
+
+    .collab-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .collab-mobile-badge--amber {
+      color: #d97706;
+    }
+    :global(:root[data-theme="dark"]) .collab-mobile-badge--amber {
+      color: #fbbf24;
+    }
+    .collab-mobile-badge--cyan {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .collab-mobile-badge--cyan {
+      color: #38bdf8;
+    }
+
+    .collab-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .collab-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.8125rem;
+      color: var(--dg-ink-2);
+      line-height: 1.45;
+    }
+
+    .collab-mobile-arrow {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--dg-muted);
+      padding: 0.25rem 0;
+    }
+  }
+</style>

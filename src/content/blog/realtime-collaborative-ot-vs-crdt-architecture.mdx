@@ -1,0 +1,186 @@
+---
+title: "即時多人協作系統架構：OT（操作轉換）與 CRDT（無衝突複製資料型態）實戰"
+description: "深入剖析 Google Docs 與 Figma 協作背後的核心架構：並行衝突消解、OT 中心化轉換局限與 O(N²) 瓶頸、CRDT 半格數學收斂、Yjs 雙向鏈表 StructStore 與 WebSocket 增量傳輸工程落地實戰。"
+publishDate: 2026-09-21T09:55:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 即時協作
+  - CRDT
+  - OT
+  - 分散式系統
+  - WebSocket
+repositoryUrl: https://github.com/binhnguyennus/awesome-scalability
+cover: ../../assets/covers/realtime-collaborative-ot-vs-crdt-architecture.png
+coverAlt: "立體等距視角展現即時協作架構：左側青藍光芒網狀節點代表 CRDT 無衝突複製半格收斂，右側琥珀色光軌管線代表 OT 中心化操作轉換。"
+series: 分散式系統共識與事務架構
+seriesOrder: 7
+---
+
+import RealtimeCollaborativeOtCrdtDiagram from "../../components/RealtimeCollaborativeOtCrdtDiagram.astro";
+
+當多名使用者同時在同一個 Google Docs 文件輸入文字，或在 Figma 畫布上同時拖曳同一個元件時，系統如何確保所有人的螢幕在幾毫秒內看見一致的內容，而不會發生文字錯位、字元互相覆蓋或畫面閃爍回滾？
+
+這看似簡單的產品互動，本質上是分散式系統領域最棘手的難題之一：**在存在任意網路延遲與離線編輯的無鎖分散式環境下，達成強最終一致性（Strong Eventual Consistency, SEC）與意圖保留（Intention Preservation）**。
+
+在協同架構的演進史上，形成了兩大涇渭分明的流派：
+
+1. **操作轉換（Operational Transformation, OT）**：Google Docs、Etherpad 與早期協作編輯器的基石。
+2. **無衝突複製資料型態（Conflict-Free Replicated Data Types, CRDT）**：Figma、Yjs、Automerge 與現代 Local-First 軟體的核心。
+
+本文將帶你深入兩者的數學本質、座標轉換陷阱與現代高併發落地架構。
+
+---
+
+## 1. 協作衝突的本質：字串座標的「相對性陷阱」
+
+為什麼我們不能簡單地將使用者鍵盤敲下的操作 `insert(pos, char)` 直接廣播給其他人？
+
+假設初始文字為 `"CAT"`（長度 3，索引為 0, 1, 2）：
+
+- **使用者 A** 在位置 0 插入 `'B'`，本地字串變為 `"BCAT"`。
+- **使用者 B** 同時在位置 3 插入 `'S'`，本地字串變為 `"CATS"`。
+
+當 A 的操作 `insert(0, 'B')` 跨越網路抵達 B 時，若 B 直接依據指令中的「位置 0」執行插入，結果為 `"BCATS"`。
+然而，當 B 的操作 `insert(3, 'S')` 抵達 A 時，A 此時字串長度已變成 4（`"BCAT"`）。如果 A 仍在原先的「位置 3」（原本 `'T'` 的位置）插入 `'S'`，A 的字串將變成 `"BCAST"`（在 `'A'` 與 `'T'` 之間插入了 `'S'`）。
+
+**A 與 B 的畫面產生了永久分歧**（`"BCAST"` vs. `"BCATS"`）。
+
+這是因為在傳統陣列或字串中，**索引位置是動態相對的**。前方的任何插入或刪除，都會引發後續所有字元的座標位移。
+
+---
+
+## 2. 操作轉換（OT）：中心化世界的座標修正法
+
+為了解決上述分歧，1989 年提出的 OT 演算法核心概念非常直觀：**在把操作套用到目標文件前，先根據目標文件已經發生的其他操作，轉換該操作的位置座標**。
+
+<RealtimeCollaborativeOtCrdtDiagram />
+
+### 2.1 轉換函數（Transformation Function）的運作機制
+
+OT 定義了一組轉換函數 `T(op1, op2) -> (op1', op2')`。
+
+延續前例：
+
+-- 當服務器收到 `op1 = insert(0, 'B')` 與 `op2 = insert(3, 'S')`：
+
+- 因為 `op1` 的插入位置（0）小於 `op2` 的插入位置（3），這意味著 `op1` 會讓後面的字元全部往後退 1 格。
+- 伺服器計算轉換：`op2' = insert(3 + 1, 'S') = insert(4, 'S')`。
+- 將 `op2'` 發送給 A。A 執行 `insert(4, 'S')`，字串精準收斂為 `"BCATS"`！
+
+### 2.2 OT 的工程痛點與極限
+
+雖然 OT 在 Google Docs 等產品中取得了巨大成功，但其架構代價極為高昂：
+
+1. **嚴苛的中心化伺服器依賴**：
+   - 所有的並發操作必須送往單一權威伺服器進行全局排序與排隊。這意味著**無法原生支援去中心化 P2P 協作，也難以支援長時間的離線編輯與多分支合併**。
+2. **狀態向量爆炸與組合維護難題**：
+   - 當文件支援「富文字（粗體、斜體）」、「列表」、「嵌入圖片」與「表格」時，每增加一種操作型別，與其他操作的交集轉換規則呈二次方暴增。
+   - 業界著名的 TP2（Transformation Property 2）數學猜想曾困擾學界多年，歷史上許多 OT 論文中的轉換演算法最終都被證明存在罕見的並發死角與不一致邊界。
+
+---
+
+## 3. CRDT：從「座標修正」轉向「不可變因果半格」
+
+2011 年 Marc Shapiro 等人提出的 CRDT（Conflict-Free Replicated Data Types），徹底改變了解題邏輯：
+
+> **核心主張：不要在變動的相對座標上做運算，而是給每一個字元或節點一個全域唯一、永不改變的因果識別碼（Immutable Causal ID）。**
+
+在 CRDT 視角下，字串不再是單純的連續記憶體陣列，而是一個由節點組成的有序圖或鏈表（RGA / Sequence CRDT）。
+
+### 3.1 數學保證：Join-Semilattice（半格）
+
+CRDT 狀態的合併（Merge 操作）在數學上必須嚴格滿足三條定理：
+
+1. **交換律（Commutativity）**：`A ∪ B = B ∪ A`（先收 A 再收 B，與先收 B 再收 A 結果相同）。
+2. **結合律（Associativity）**：`(A ∪ B) ∪ C = A ∪ (B ∪ C)`（封包任意分組打包不影響結果）。
+3. **冪等律（Idempotency）**：`A ∪ A = A`（網路重複傳送同一個變更，狀態不變）。
+
+只要滿足這三條特性，任何節點**完全不需要中心伺服器調停**，即使接收到亂序、重複或延遲數天的操作訊息，只要本地執行 Merge，最終必定達到完全一致的狀態（Strong Eventual Consistency）。
+
+### 3.2 結構化識別碼與墓碑機制（Tombstone）
+
+在經典的 Sequence CRDT（如 RGA）中，每當插入一個字元，該字元包含：
+
+- `ID`：`<ClientID, LogicalClock>`（例如 `<Alice, 42>`）
+- `OriginLeft`：它被插入時左側鄰近節點的 ID。
+- `Value`：字元內容（例如 `'X'`）。
+
+**當刪除字元時，不能直接將節點從記憶體中釋放**，否則並行插入在該字元後方的其他操作將找不到父節點指針。因此，CRDT 使用**墓碑標記（Tombstone）**，將該節點標記為已刪除，但不破壞拓撲結構。
+
+---
+
+## 4. 現代工業級突破：Yjs 與 StructStore 鏈表壓縮
+
+早期的 CRDT（如 WOOT、Treedoc）因為每個字元都要攜帶龐大的中繼資料（UUID、時間戳、前後指標），記憶體開銷高達一般文字的數十倍至百倍，曾被工程界視為「學術象牙塔玩具」。
+
+直到 **Yjs** 與 **Automerge 2.0** 的出現，CRDT 迎來了工程落地轉折點。
+
+```text
+[Yjs StructStore 概念模型]
+Client 1: [ Item 1: "Hello " (clock: 0..5) ] <---> [ Item 2: "World" (clock: 6..10) ]
+```
+
+Yjs 的核心最佳化策略：
+
+1. **连续字元合併（Run-length Encoding）**：
+   - 使用者連續打出 `"Hello World"` 時，Yjs 不會建立 11 個獨立節點，而是合併為一個單一的 `Item` 區塊，共用同一組 `<ClientID, StartClock, Length>`，使記憶體開銷降至與一般字串接近。
+2. **StructStore 雙向鏈表與二分搜尋快取**：
+   - 內部採用雙向鏈表保證 `O(1)` 的因果插入，外層搭配跳表（Skip List）或二分快取將字元座標到記憶體節點的尋址時間壓縮至 `O(log N)`。
+3. **高效二進位編碼（Lib0）**：
+   - 透過變長整數編碼（VarInt）與差異壓縮（Delta Encoding），將網路傳輸 payload 縮減至接近裸文字大小。
+
+---
+
+## 5. 即時協同全鏈路系統架構落地
+
+結合企業級協作系統（如 Figma、Notion、Excalidraw），端到端的即時架構拓撲如下：
+
+```text
++-------------------+              +-----------------------+
+|   Client Browser  | <--- WSS --->| WebSocket Gateway     |
+| (Local Optimistic)|              | (Envoy / Node Router) |
++-------------------+              +-----------------------+
+         |                                     |
+    IndexedDB Local                            v
+    (Offline Cache)                +-----------------------+
+                                   |  Room Coordinator     |
+                                   |  (In-Memory Y-Doc)    |
+                                   +-----------------------+
+                                               |
+                                     Periodic Snapshot
+                                               v
+                                   +-----------------------+
+                                   | Storage: S3 + Postgres|
+                                   +-----------------------+
+```
+
+1. **本地樂觀更新（Optimistic UI）**：
+   - 鍵盤按下瞬間，直接在本地 CRDT Doc 插入節點並觸發視圖重新渲染，延遲為 0ms。
+2. **增量廣播（Delta Sync）**：
+   - 本地計算出最小二進位 Update 封包，透過 WebSocket 傳送至房間閘道。
+3. **記憶體房間狀態機（Room Coordinator）**：
+   - 伺服器維持該房間的記憶體 Document 實例，作為無狀態廣播與中繼節點，將收到的 Update 廣播給房間內其他在線 Client。
+4. **定期快照（Snapshot Compaction）**：
+   - 為避免日誌無限增長，伺服器每隔一段時間（如 5 分鐘或 1,000 次操作）對 CRDT 狀態進行壓實（Compaction），清理不可見的垃圾墓碑，生成完整 Document Snapshot 存入 S3，並在 Postgres 記錄版本歷程。
+
+---
+
+## 6. 技術選型決策矩陣：OT vs. CRDT
+
+在面對即時協作場景時，該如何決策？
+
+| 決策維度             | 操作轉換 (OT)                  | 無衝突複製資料型態 (CRDT)                        |
+| :------------------- | :----------------------------- | :----------------------------------------------- |
+| **主導架構模式**     | 中心化（Client-Server）        | 去中心化 / Local-First / P2P                     |
+| **離線與分叉支援**   | 弱（長時間離線合併成本極高）   | 強（天然支援分支、離線再合併）                   |
+| **實作與算法複雜度** | 極高（轉換函數隨維度指數上升） | 中等（底層資料結構較深，但開源生態成熟）         |
+| **記憶體與網路開銷** | 極小（只傳遞純操作）           | 略大（需攜帶因果中繼資料，現代壓縮已大幅改善）   |
+| **成熟開源生態**     | ShareDB, Otter                 | Yjs, Automerge, Loro (Rust)                      |
+| **適用場景**         | 純文字、中心化強管制的線上文檔 | 畫布（Whiteboard）、複雜富文字、Local-First 應用 |
+
+### 工程建議：
+
+- 如果你的產品聚焦於**局部低頻的集中式線上文字協同**，且後端已有成熟的中心化事務調度架構，OT（如 ShareDB）仍是輕量穩健的方案。
+- 如果你的產品需要**離線優先（Local-First）**、多人實時無鎖畫布（如 Figma/Excalidraw 式互動）、或希望客戶端在無伺服器介入下進行 P2P 同步，**基於 Yjs 或 Loro 的 CRDT 方案是目前業界絕對的演進標準**。
