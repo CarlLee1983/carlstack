@@ -61,10 +61,7 @@ import RealtimeCollaborativeOtCrdtDiagram from "../../components/RealtimeCollabo
 
 OT 定義了一組轉換函數 `T(op1, op2) -> (op1', op2')`。
 
-延續前例：
-
--- 當服務器收到 `op1 = insert(0, 'B')` 與 `op2 = insert(3, 'S')`：
-
+- 當伺服器收到 `op1 = insert(0, 'B')` 與 `op2 = insert(3, 'S')`：
 - 因為 `op1` 的插入位置（0）小於 `op2` 的插入位置（3），這意味著 `op1` 會讓後面的字元全部往後退 1 格。
 - 伺服器計算轉換：`op2' = insert(3 + 1, 'S') = insert(4, 'S')`。
 - 將 `op2'` 發送給 A。A 執行 `insert(4, 'S')`，字串精準收斂為 `"BCATS"`！
@@ -124,7 +121,7 @@ Client 1: [ Item 1: "Hello " (clock: 0..5) ] <---> [ Item 2: "World" (clock: 6..
 
 Yjs 的核心最佳化策略：
 
-1. **连续字元合併（Run-length Encoding）**：
+1. **連續字元合併（Run-length Encoding）**：
    - 使用者連續打出 `"Hello World"` 時，Yjs 不會建立 11 個獨立節點，而是合併為一個單一的 `Item` 區塊，共用同一組 `<ClientID, StartClock, Length>`，使記憶體開銷降至與一般字串接近。
 2. **StructStore 雙向鏈表與二分搜尋快取**：
    - 內部採用雙向鏈表保證 `O(1)` 的因果插入，外層搭配跳表（Skip List）或二分快取將字元座標到記憶體節點的尋址時間壓縮至 `O(log N)`。
