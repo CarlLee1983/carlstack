@@ -1,0 +1,257 @@
+<figure class="jev-routing" aria-labelledby="jev-routing-caption">
+  <svg
+    class="jev-routing__desktop"
+    viewBox="0 0 960 360"
+    role="img"
+    aria-labelledby="jev-routing-title jev-routing-desc"
+  >
+    <title id="jev-routing-title">
+      System 1 決策模型在 Agent 工作流中的分流
+    </title>
+    <desc id="jev-routing-desc">
+      非結構化輸入先由 System 1
+      產生強型別判斷與機率，再依信心和後果分往受限的確定性程式、System 2
+      推理或人工審核。
+    </desc>
+    <defs>
+      <marker
+        id="jev-routing-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="jev-routing__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path>
+      </marker>
+    </defs>
+
+    <path
+      class="jev-routing__arrow"
+      d="M212 177H284"
+      marker-end="url(#jev-routing-arrow)"></path>
+    <path
+      class="jev-routing__arrow"
+      d="M484 142H512Q520 142 520 134V78Q520 70 528 70H560"
+      marker-end="url(#jev-routing-arrow)"></path>
+    <path
+      class="jev-routing__arrow jev-routing__arrow--slow"
+      d="M484 177H560"
+      marker-end="url(#jev-routing-arrow)"></path>
+    <path
+      class="jev-routing__arrow"
+      d="M484 212H512Q520 212 520 220V282Q520 290 528 290H560"
+      marker-end="url(#jev-routing-arrow)"></path>
+
+    <g class="jev-routing__node" transform="translate(32 130)">
+      <rect width="180" height="94" rx="8"></rect>
+      <text class="jev-routing__eyebrow" x="18" y="28">INPUT</text>
+      <text class="jev-routing__title" x="18" y="57">非結構化狀態</text>
+      <text class="jev-routing__detail" x="18" y="78">事件、工具結果、請求</text
+      >
+    </g>
+
+    <g
+      class="jev-routing__node jev-routing__node--focus"
+      transform="translate(284 110)"
+    >
+      <rect width="200" height="134" rx="8"></rect>
+      <text class="jev-routing__eyebrow" x="18" y="28">SYSTEM 1</text>
+      <text class="jev-routing__title" x="18" y="59">已知選項的判斷</text>
+      <text class="jev-routing__detail" x="18" y="82"
+        >Choice / Score / Noul</text
+      >
+      <text class="jev-routing__detail" x="18" y="105"
+        >回傳分佈，不執行動作</text
+      >
+    </g>
+
+    <g
+      class="jev-routing__node jev-routing__node--safe"
+      transform="translate(560 32)"
+    >
+      <rect width="350" height="76" rx="8"></rect>
+      <text class="jev-routing__eyebrow" x="18" y="27"
+        >HIGH CONFIDENCE + ALLOWLIST</text
+      >
+      <text class="jev-routing__title" x="18" y="52">確定性程式</text>
+      <text class="jev-routing__detail" x="160" y="52">受限的、可驗證路徑</text>
+    </g>
+
+    <g
+      class="jev-routing__node jev-routing__node--slow"
+      transform="translate(560 139)"
+    >
+      <rect width="350" height="76" rx="8"></rect>
+      <text class="jev-routing__eyebrow" x="18" y="27">OPEN-ENDED WORK</text>
+      <text class="jev-routing__title" x="18" y="52">System 2 生成與推理</text>
+      <text class="jev-routing__detail" x="208" y="52">未知答案或內容合成</text>
+    </g>
+
+    <g class="jev-routing__node" transform="translate(560 252)">
+      <rect width="350" height="76" rx="8"></rect>
+      <text class="jev-routing__eyebrow" x="18" y="27"
+        >LOW CONFIDENCE / HIGH CONSEQUENCE</text
+      >
+      <text class="jev-routing__title" x="18" y="52">人工審核或固定回退</text>
+      <text class="jev-routing__detail" x="218" y="52">不把機率當授權</text>
+    </g>
+  </svg>
+
+  <div class="jev-routing__mobile" aria-label="System 1 決策模型的直向分流">
+    <div class="jev-routing__mobile-card">
+      <span>INPUT</span><strong>非結構化狀態</strong><p>事件、工具結果、請求</p>
+    </div>
+    <div class="jev-routing__mobile-arrow">↓</div>
+    <div class="jev-routing__mobile-card jev-routing__mobile-card--focus">
+      <span>SYSTEM 1</span><strong>已知選項的判斷</strong><p>
+        只回傳 Choice、Score 或 Noul 的訊號。
+      </p>
+    </div>
+    <div class="jev-routing__mobile-arrow">↓ 依信心與後果分流</div>
+    <div class="jev-routing__mobile-outcomes">
+      <div><strong>確定性程式</strong><p>只走 allowlist 的可驗證路徑。</p></div>
+      <div><strong>System 2</strong><p>處理未知答案與內容合成。</p></div>
+      <div><strong>人工或回退</strong><p>低信心或高後果時停止。</p></div>
+    </div>
+  </div>
+
+  <figcaption id="jev-routing-caption">
+    圖：System 1 供應語意判斷訊號；真正的 action
+    仍由後果、政策與可驗證邊界決定。
+  </figcaption>
+</figure>
+
+<style>
+  .jev-routing {
+    margin: var(--space-xl) 0;
+  }
+  .jev-routing__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .jev-routing__mobile {
+    display: none;
+  }
+  .jev-routing__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .jev-routing__arrow--slow {
+    stroke: #c47a2c;
+  }
+  .jev-routing__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .jev-routing__node rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .jev-routing__node--focus rect {
+    fill: #fff3ea;
+    stroke: #c66a28;
+    stroke-width: 2;
+  }
+  .jev-routing__node--safe rect {
+    fill: #eef8f0;
+    stroke: #3f8053;
+  }
+  .jev-routing__node--slow rect {
+    fill: #fff7eb;
+    stroke: #c47a2c;
+  }
+  .jev-routing__eyebrow {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .jev-routing__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .jev-routing__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  :global(:root[data-theme="dark"]) .jev-routing__node--focus rect {
+    fill: #442716;
+    stroke: #f0a15e;
+  }
+  :global(:root[data-theme="dark"]) .jev-routing__node--safe rect {
+    fill: #163722;
+    stroke: #6fba84;
+  }
+  :global(:root[data-theme="dark"]) .jev-routing__node--slow rect {
+    fill: #3b2b16;
+    stroke: #e7aa57;
+  }
+  :global(:root[data-theme="dark"]) .jev-routing__arrow--slow {
+    stroke: #e7aa57;
+  }
+  @media (max-width: 48rem) {
+    .jev-routing__desktop {
+      display: none !important;
+    }
+    .jev-routing__mobile {
+      display: block !important;
+    }
+    .jev-routing__mobile-card,
+    .jev-routing__mobile-outcomes > div {
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      background: var(--dg-surface);
+      padding: var(--space-md);
+    }
+    .jev-routing__mobile-card--focus {
+      border-color: #c66a28;
+      background: #fff3ea;
+    }
+    .jev-routing__mobile-card span {
+      color: var(--dg-muted);
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+    }
+    .jev-routing__mobile strong {
+      color: var(--dg-ink);
+      display: block;
+      font-size: 1rem;
+      margin-top: 0.3rem;
+    }
+    .jev-routing__mobile p {
+      color: var(--dg-ink-2);
+      font-size: var(--text-sm);
+      margin: 0.35rem 0 0;
+    }
+    .jev-routing__mobile-arrow {
+      color: var(--dg-muted);
+      padding: var(--space-sm);
+      text-align: center;
+    }
+    .jev-routing__mobile-outcomes {
+      display: grid;
+      gap: var(--space-sm);
+    }
+    :global(:root[data-theme="dark"]) .jev-routing__mobile-card--focus {
+      background: #442716;
+      border-color: #f0a15e;
+    }
+  }
+</style>

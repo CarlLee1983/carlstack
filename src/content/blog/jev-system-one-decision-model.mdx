@@ -16,6 +16,10 @@ series: AI Agent 工程化與工作流實戰
 seriesOrder: 19
 ---
 
+import JevDecisionBoundaryDiagram from "../../components/JevDecisionBoundaryDiagram.astro";
+import JevLocalScoringDiagram from "../../components/JevLocalScoringDiagram.astro";
+import JevSystemOneRoutingDiagram from "../../components/JevSystemOneRoutingDiagram.astro";
+
 在構建自主 Agent 或多步驟工作流時，工程師最常遭遇的吞吐量瓶頸，往往不是後端業務邏輯，而是架構中的「決策節點」。
 
 我們習慣把一個巨大的對話型 LLM 當成萬能轉轍器：給它一段龐大的 prompt，附帶嚴苛的 JSON Schema 指令，要求它「判斷使用者意圖是否需要退款，若是要退款請輸出 `{"action": "refund"}`，否則輸出 `{"action": "escalate"}`」。
@@ -56,53 +60,7 @@ Jev 的核心設計哲學在於「完全不輸出自由文字」。它接收非�
 
 這種設計使得底層模型可以利用 **RLCD（Reinforcement Learning for Calibrated Decisions，校準決策強化學習）** 進行特化訓練。模型優化的目標不是產生人類偏好的文字，而是讓 System 1 任務的輸出機率更能反映實際正確率。TypeSafe 目前只公開方法名稱與產品評測摘要；團隊仍需用自己的標記資料量測 Brier Score、Expected Calibration Error 與門檻下的錯誤成本。
 
-<div style="overflow-x: auto; margin: 1.5rem 0;">
-  <svg viewBox="0 0 800 240" width="100%" height="auto" style="min-width: 640px; background: #0d1117; border-radius: 8px; border: 1px solid #30363d; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
-    <title>Jev 與 Agentic System 1/2 混合架構資料流</title>
-    <desc>架構展示外部請求進入後，先由 Jev 決策模型執行平行毫秒級分類，低信心交由人工或回退，高信心則分流至確定性工具或大型 LLM 慢想生成。</desc>
-    <defs>
-      <marker id="arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
-      </marker>
-      <marker id="arr-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-        <path d="M 0 1 L 8 5 L 0 9 z" fill="#d29922"/>
-      </marker>
-    </defs>
-    <!-- 輸入區塊 -->
-    <rect x="20" y="85" width="130" height="70" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="85" y="115" fill="#f0f6fc" font-size="12" font-weight="700" text-anchor="middle">非結構化輸入</text>
-    <text x="85" y="135" fill="#8b949e" font-size="10" text-anchor="middle">事件、日誌、狀態</text>
-    <!-- 箭頭 -->
-    <path d="M 150 120 L 190 120" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
-    <!-- Jev 核心區塊 (System 1) -->
-    <rect x="195" y="45" width="220" height="150" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
-    <text x="305" y="75" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">Jev 決策引擎 (System 1)</text>
-    <text x="305" y="95" fill="#8b949e" font-size="10" text-anchor="middle">單次平行前向計算 (70-500ms)</text>
-    <!-- 原語小框 -->
-    <rect x="210" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
-    <text x="237" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Noul</text>
-    <rect x="277" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
-    <text x="304" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Choice</text>
-    <rect x="345" y="110" width="55" height="28" rx="4" fill="#0d1117" stroke="#30363d"/>
-    <text x="372" y="128" fill="#79c0ff" font-size="10" text-anchor="middle">Score</text>
-    <text x="305" y="165" fill="#3fb950" font-size="10" text-anchor="middle">全量機率校準 (RLCD)</text>
-    <!-- 輸出分支 1: 確定性流程 -->
-    <path d="M 415 90 L 490 60" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
-    <rect x="495" y="35" width="260" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="625" y="58" fill="#f0f6fc" font-size="11" font-weight="700" text-anchor="middle">確定性路徑 (高信心直通)</text>
-    <text x="625" y="74" fill="#8b949e" font-size="9" text-anchor="middle">呼叫本機函式 / 拒絕非法請求 / 靜態過濾</text>
-    <!-- 輸出分支 2: System 2 深入推理 -->
-    <path d="M 415 120 L 490 120" fill="none" stroke="#d29922" stroke-width="1.5" marker-end="url(#arr-amber)"/>
-    <rect x="495" y="95" width="260" height="50" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
-    <text x="625" y="118" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">大型生成模型 (System 2 慢想)</text>
-    <text x="625" y="134" fill="#8b949e" font-size="9" text-anchor="middle">Claude / GPT-4 / Gemini (合成複雜內容)</text>
-    <!-- 輸出分支 3: 人工介入 -->
-    <path d="M 415 150 L 490 180" fill="none" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
-    <rect x="495" y="155" width="260" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="625" y="178" fill="#f0f6fc" font-size="11" font-weight="700" text-anchor="middle">Human-in-the-loop (低信心安全閥)</text>
-    <text x="625" y="194" fill="#8b949e" font-size="9" text-anchor="middle">觸發告警 / 轉交人工審核 (P &lt; 閾值)</text>
-  </svg>
-</div>
+<JevSystemOneRoutingDiagram />
 
 ## 架構重構：落地雙軌制（Fast/Slow Engine）
 
@@ -183,6 +141,8 @@ local_scoring_gate:
 
 這是很有價值的 control experiment，卻不是 Jev 的替代宣稱。TypeSafe 說明 Jev 會平行輸出機率，並以其訓練與 workflow eval 做產品主張；它也承認公開的速度與成本數字是特定測試設定的結果。[官方說明](https://typesafe.ai/blog/introducing-system-one-models-and-jev)與本機 API 可共同支持的結論只有：停止自迴歸解碼能改變推論路徑。是否有可用的校準、較低 P95，或可接受的錯誤成本，仍要在自己的標記資料、完整 prompt、硬體與併發量上量測。
 
+<JevLocalScoringDiagram />
+
 ## LangChain 把 Jev 放進 Agent loop 的兩個位置
 
 [Sydney Runkle 在 2026-09-18 的文章](https://x.com/sydneyrunkle/status/2100754364545761643)沒有把 Jev 包裝成另一個聊天模型，而是把它接到 Agent harness 的 middleware。LangChain 的整合先用 `TypeSafeClassifier` 暴露 `state + questions → answers`，再提供兩個實驗性 middleware：模型路由與工具風險閘門。
@@ -244,6 +204,8 @@ Jev 可以保證答案落在預先定義的型別與選項內，但不能保證�
 2. **按後果設門檻**：客服佇列分錯可以重派，刪除資料或付款分錯不能用同一個 confidence threshold。
 3. **服務失敗回退**：timeout、rate limit 或供應商中斷時，明確選擇 fail closed、固定規則、System 2 或人工，不讓例外默默繞過政策。
 4. **完整觀測**：記錄 state 版本、question 版本、模型版本、原始機率、最終分支與後續結果，才能知道門檻是否仍適用。
+
+<JevDecisionBoundaryDiagram />
 
 > [!IMPORTANT]
 > **停止規則：只要決策會直接觸發不可逆副作用，就不能把模型 confidence 當成唯一授權。** 模型負責提供判斷訊號；程式與人類仍負責權限、政策與最終責任。

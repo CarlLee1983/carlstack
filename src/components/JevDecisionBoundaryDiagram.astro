@@ -1,0 +1,308 @@
+<figure class="jev-boundary" aria-labelledby="jev-boundary-caption">
+  <svg
+    class="jev-boundary__desktop"
+    viewBox="0 0 960 370"
+    role="img"
+    aria-labelledby="jev-boundary-title jev-boundary-desc"
+  >
+    <title id="jev-boundary-title">從模型分佈到 action 的控制邊界</title>
+    <desc id="jev-boundary-desc"
+      >模型分佈要先通過完整候選集合與單 token
+      標籤檢查，再經標記資料校準的門檻；任一失敗交由人工或回退，通過後仍由確定性政策決定是否允許
+      action。</desc
+    >
+    <defs
+      ><marker
+        id="jev-boundary-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path class="jev-boundary__arrow-head" d="M 0 0 L 8 4 L 0 8 z"
+        ></path></marker
+      ></defs
+    >
+    <path
+      class="jev-boundary__arrow"
+      d="M184 174H236"
+      marker-end="url(#jev-boundary-arrow)"></path>
+    <path
+      class="jev-boundary__arrow"
+      d="M404 174H456"
+      marker-end="url(#jev-boundary-arrow)"></path>
+    <path
+      class="jev-boundary__arrow jev-boundary__arrow--allow"
+      d="M624 174H676"
+      marker-end="url(#jev-boundary-arrow)"></path>
+    <path
+      class="jev-boundary__arrow jev-boundary__arrow--fallback"
+      d="M320 242V258Q320 266 328 266H396V282"
+      marker-end="url(#jev-boundary-arrow)"></path>
+    <path
+      class="jev-boundary__arrow jev-boundary__arrow--fallback"
+      d="M540 242V258Q540 266 548 266H668V282"
+      marker-end="url(#jev-boundary-arrow)"></path>
+    <rect
+      class="jev-boundary__label-mask"
+      x="331"
+      y="254"
+      width="30"
+      height="18"
+      rx="4"></rect><text
+      class="jev-boundary__branch-label"
+      x="346"
+      y="267"
+      text-anchor="middle">否</text
+    >
+    <rect
+      class="jev-boundary__label-mask"
+      x="551"
+      y="254"
+      width="30"
+      height="18"
+      rx="4"></rect><text
+      class="jev-boundary__branch-label"
+      x="566"
+      y="267"
+      text-anchor="middle">否</text
+    >
+    <rect
+      class="jev-boundary__label-mask"
+      x="637"
+      y="145"
+      width="30"
+      height="18"
+      rx="4"></rect><text
+      class="jev-boundary__branch-label"
+      x="652"
+      y="158"
+      text-anchor="middle">是</text
+    >
+    <g class="jev-boundary__node" transform="translate(32 126)"
+      ><rect width="152" height="96" rx="8"></rect><text
+        class="jev-boundary__eyebrow"
+        x="16"
+        y="28">MODEL SIGNAL</text
+      ><text class="jev-boundary__title" x="16" y="56">候選分佈</text><text
+        class="jev-boundary__detail"
+        x="16"
+        y="78">不是授權</text
+      ></g
+    >
+    <g class="jev-boundary__decision" transform="translate(236 106)"
+      ><path d="M84 0 L168 68 L84 136 L0 68 Z"></path><text
+        class="jev-boundary__title"
+        x="84"
+        y="56"
+        text-anchor="middle">每個標籤</text
+      ><text class="jev-boundary__detail" x="84" y="78" text-anchor="middle"
+        >一 token 且有</text
+      ><text class="jev-boundary__detail" x="84" y="98" text-anchor="middle"
+        >ESCALATE？</text
+      ></g
+    >
+    <g class="jev-boundary__decision" transform="translate(456 106)"
+      ><path d="M84 0 L168 68 L84 136 L0 68 Z"></path><text
+        class="jev-boundary__title"
+        x="84"
+        y="56"
+        text-anchor="middle">經標記資料</text
+      ><text class="jev-boundary__detail" x="84" y="78" text-anchor="middle"
+        >校準的機率與</text
+      ><text class="jev-boundary__detail" x="84" y="98" text-anchor="middle"
+        >margin 通過？</text
+      ></g
+    >
+    <g
+      class="jev-boundary__node jev-boundary__node--allow"
+      transform="translate(676 126)"
+      ><rect width="244" height="96" rx="8"></rect><text
+        class="jev-boundary__eyebrow"
+        x="16"
+        y="28">DETERMINISTIC POLICY</text
+      ><text class="jev-boundary__title" x="16" y="56">程式決定 action</text
+      ><text class="jev-boundary__detail" x="16" y="78"
+        >權限與副作用另行檢查</text
+      ></g
+    >
+    <g
+      class="jev-boundary__node jev-boundary__node--fallback"
+      transform="translate(356 282)"
+      ><rect width="356" height="64" rx="8"></rect><text
+        class="jev-boundary__eyebrow"
+        x="16"
+        y="25">SAFE FALLBACK</text
+      ><text class="jev-boundary__title" x="16" y="49"
+        >人工審核、固定規則或 System 2</text
+      ></g
+    >
+  </svg>
+  <div class="jev-boundary__mobile" aria-label="模型分佈的安全控制流程">
+    <div>
+      <span>1</span><strong>模型只給分佈</strong><p>
+        分數是訊號，不是 action 的授權。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>2</span><strong>檢查候選集合</strong><p>
+        每個標籤一 token，並保留 ESCALATE。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>3</span><strong>檢查校準門檻</strong><p>
+        用標記資料驗證 probability 與 margin。
+      </p>
+    </div><b>↓</b>
+    <div class="jev-boundary__mobile-allow">
+      <span>4</span><strong>確定性政策再決定 action</strong><p>
+        權限、allowlist 與人工核准不交給模型。
+      </p>
+    </div>
+    <p class="jev-boundary__mobile-fallback">
+      任何一步失敗：人工審核、固定回退或 System 2。
+    </p>
+  </div>
+  <figcaption id="jev-boundary-caption">
+    圖：校準能協助選擇下一步；它不會取代授權、最小權限或不可逆動作的人工核准。
+  </figcaption>
+</figure>
+
+<style>
+  .jev-boundary {
+    margin: var(--space-xl) 0;
+  }
+  .jev-boundary__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .jev-boundary__mobile {
+    display: none;
+  }
+  .jev-boundary__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .jev-boundary__arrow--allow {
+    stroke: #3f8053;
+  }
+  .jev-boundary__arrow--fallback {
+    stroke: #b35543;
+    stroke-dasharray: 5 5;
+  }
+  .jev-boundary__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .jev-boundary__node rect,
+  .jev-boundary__decision path {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .jev-boundary__node--allow rect {
+    fill: #eef8f0;
+    stroke: #3f8053;
+    stroke-width: 2;
+  }
+  .jev-boundary__node--fallback rect {
+    fill: #fff1ed;
+    stroke: #b35543;
+  }
+  .jev-boundary__eyebrow {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .jev-boundary__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .jev-boundary__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  .jev-boundary__label-mask {
+    fill: var(--dg-surface);
+  }
+  .jev-boundary__branch-label {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  :global(:root[data-theme="dark"]) .jev-boundary__node--allow rect {
+    fill: #163722;
+    stroke: #6fba84;
+  }
+  :global(:root[data-theme="dark"]) .jev-boundary__node--fallback rect {
+    fill: #43231d;
+    stroke: #df826d;
+  }
+  :global(:root[data-theme="dark"]) .jev-boundary__label-mask {
+    fill: var(--dg-surface);
+  }
+  @media (max-width: 48rem) {
+    .jev-boundary__desktop {
+      display: none !important;
+    }
+    .jev-boundary__mobile {
+      display: grid !important;
+      gap: var(--space-sm);
+    }
+    .jev-boundary__mobile > div {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-md);
+    }
+    .jev-boundary__mobile-allow {
+      background: #eef8f0 !important;
+      border-color: #3f8053 !important;
+    }
+    .jev-boundary__mobile span {
+      color: var(--dg-muted);
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .jev-boundary__mobile strong {
+      color: var(--dg-ink);
+      display: block;
+      margin-top: 0.3rem;
+    }
+    .jev-boundary__mobile p {
+      color: var(--dg-ink-2);
+      font-size: var(--text-sm);
+      margin: 0.35rem 0 0;
+    }
+    .jev-boundary__mobile b {
+      color: var(--dg-muted);
+      text-align: center;
+    }
+    .jev-boundary__mobile-fallback {
+      color: var(--dg-ink-2);
+      border-left: 3px solid #b35543;
+      font-size: var(--text-sm);
+      margin: var(--space-sm) 0 0;
+      padding-left: var(--space-sm);
+    }
+    :global(:root[data-theme="dark"]) .jev-boundary__mobile-allow {
+      background: #163722 !important;
+      border-color: #6fba84 !important;
+    }
+  }
+</style>

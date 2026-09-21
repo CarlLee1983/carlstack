@@ -1,0 +1,220 @@
+<figure class="jev-score" aria-labelledby="jev-score-caption">
+  <svg
+    class="jev-score__desktop"
+    viewBox="0 0 960 310"
+    role="img"
+    aria-labelledby="jev-score-title jev-score-desc"
+  >
+    <title id="jev-score-title">固定選項評分如何略過文字生成</title>
+    <desc id="jev-score-desc"
+      >完整 prompt 經一次 prefill 取得下一個位置的
+      logits，系統只讀取固定標籤、在候選集合內正規化，最後回傳選項與分佈，而非生成
+      JSON 或句子。</desc
+    >
+    <defs>
+      <marker
+        id="jev-score-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path class="jev-score__arrow-head" d="M 0 0 L 8 4 L 0 8 z"
+        ></path></marker
+      >
+    </defs>
+    <path
+      class="jev-score__arrow"
+      d="M200 155H260"
+      marker-end="url(#jev-score-arrow)"></path>
+    <path
+      class="jev-score__arrow"
+      d="M440 155H500"
+      marker-end="url(#jev-score-arrow)"></path>
+    <path
+      class="jev-score__arrow jev-score__arrow--focus"
+      d="M680 155H740"
+      marker-end="url(#jev-score-arrow)"></path>
+    <g class="jev-score__card" transform="translate(20 101)"
+      ><rect width="180" height="108" rx="8"></rect><text
+        class="jev-score__step"
+        x="16"
+        y="28">01 · PROMPT</text
+      ><text class="jev-score__title" x="16" y="58">語意與候選</text><text
+        class="jev-score__detail"
+        x="16"
+        y="81">A = refund · B = tech</text
+      ></g
+    >
+    <g class="jev-score__card" transform="translate(260 101)"
+      ><rect width="180" height="108" rx="8"></rect><text
+        class="jev-score__step"
+        x="16"
+        y="28">02 · PREFILL</text
+      ><text class="jev-score__title" x="16" y="58">一次前向傳遞</text><text
+        class="jev-score__detail"
+        x="16"
+        y="81">停在 answer position</text
+      ></g
+    >
+    <g
+      class="jev-score__card jev-score__card--focus"
+      transform="translate(500 101)"
+      ><rect width="180" height="108" rx="8"></rect><text
+        class="jev-score__step"
+        x="16"
+        y="28">03 · LABEL + SOFTMAX</text
+      ><text class="jev-score__title" x="16" y="58">固定候選中正規化</text><text
+        class="jev-score__detail"
+        x="16"
+        y="81">每個標籤都須一 token</text
+      ></g
+    >
+    <g class="jev-score__card" transform="translate(740 101)"
+      ><rect width="200" height="108" rx="8"></rect><text
+        class="jev-score__step"
+        x="16"
+        y="28">04 · PROGRAM OUTPUT</text
+      ><text class="jev-score__title" x="16" y="58">choice + 分佈</text><text
+        class="jev-score__detail"
+        x="16"
+        y="81">不是 JSON 或句子</text
+      ></g
+    >
+  </svg>
+  <div class="jev-score__mobile" aria-label="固定選項評分直向流程">
+    <div>
+      <span>01</span><strong>完整 prompt</strong><p>
+        語意留在 prompt；候選對應短標籤。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>02</span><strong>一次 prefill</strong><p>
+        模型產生下一個位置的 vocabulary logits。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>03</span><strong>讀固定標籤</strong><p>
+        驗證 A、B、C、ESCALATE 各自是一 token。
+      </p>
+    </div><b>↓</b>
+    <div class="jev-score__mobile-focus">
+      <span>04</span><strong>restricted softmax</strong><p>
+        只在宣告的候選中換算分佈，再交給程式。
+      </p>
+    </div>
+  </div>
+  <figcaption id="jev-score-caption">
+    圖：local scoring 的省略不是少寫 JSON，而是根本不進入自迴歸 decode loop。
+  </figcaption>
+</figure>
+
+<style>
+  .jev-score {
+    margin: var(--space-xl) 0;
+  }
+  .jev-score__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .jev-score__mobile {
+    display: none;
+  }
+  .jev-score__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .jev-score__arrow--focus {
+    stroke: #c66a28;
+  }
+  .jev-score__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .jev-score__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .jev-score__card--focus rect {
+    fill: #fff3ea;
+    stroke: #c66a28;
+    stroke-width: 2;
+  }
+  .jev-score__step {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .jev-score__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .jev-score__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  :global(:root[data-theme="dark"]) .jev-score__card--focus rect {
+    fill: #442716;
+    stroke: #f0a15e;
+  }
+  :global(:root[data-theme="dark"]) .jev-score__arrow--focus {
+    stroke: #f0a15e;
+  }
+  @media (max-width: 48rem) {
+    .jev-score__desktop {
+      display: none !important;
+    }
+    .jev-score__mobile {
+      display: grid !important;
+      gap: var(--space-sm);
+    }
+    .jev-score__mobile > div {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-md);
+    }
+    .jev-score__mobile-focus {
+      background: #fff3ea !important;
+      border-color: #c66a28 !important;
+    }
+    .jev-score__mobile span {
+      color: var(--dg-muted);
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .jev-score__mobile strong {
+      color: var(--dg-ink);
+      display: block;
+      margin-top: 0.3rem;
+    }
+    .jev-score__mobile p {
+      color: var(--dg-ink-2);
+      font-size: var(--text-sm);
+      margin: 0.35rem 0 0;
+    }
+    .jev-score__mobile b {
+      color: var(--dg-muted);
+      text-align: center;
+    }
+    :global(:root[data-theme="dark"]) .jev-score__mobile-focus {
+      background: #442716 !important;
+      border-color: #f0a15e !important;
+    }
+  }
+</style>
