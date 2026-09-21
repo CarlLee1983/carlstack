@@ -70,7 +70,7 @@
 
 ### 專題 3：全球分散式定時任務調度系統：分級時間輪（Timing Wheel）與分散式協調
 
-- **狀態**：📝 `待完善撰文（Pending Research & Writing）`
+- **狀態**：✅ `已發布（Published）` - 詳見 [`src/content/blog/distributed-scheduler-hierarchical-timing-wheel.mdx`](../../src/content/blog/distributed-scheduler-hierarchical-timing-wheel.mdx)
 - **對應來源**：`karanpratapsingh/system-design`, `ByteByteGoHq/system-design-101`
 - **架構核心大綱**：
   1. **海量延時任務挑戰**：千萬級任務同時註冊、毫秒級觸發精度、高可靠不丟失與分散式容災。

@@ -1,0 +1,806 @@
+---
+// Distributed Hierarchical Timing Wheel Architecture Diagram
+---
+
+<figure class="sched-diagram" aria-labelledby="sched-caption">
+  <svg
+    class="sched-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="sched-title sched-desc"
+  >
+    <title id="sched-title">
+      全球分散式定時調度與分級時間輪（Hierarchical Timing Wheel）雙層架構
+    </title>
+    <desc id="sched-desc">
+      左側展示多層級時間輪（時/分/秒）的 Slot
+      刻度與降級（Cascade）流轉機制；右側展示調度中心協調選主、分區哈希槽分發、Redis/MySQL
+      狀態機與 Worker Pull/Push 執行流程。
+    </desc>
+
+    <defs>
+      <marker
+        id="sched-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="sched-diagram__arrow-head"
+        ></path>
+      </marker>
+      <marker
+        id="sched-arrow-cascade"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="sched-diagram__arrow-cascade-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Side A: Hierarchical Timing Wheel Internals -->
+    <g class="sched-diagram__card" transform="translate(30, 25)">
+      <rect width="430" height="430" rx="12"></rect>
+      <text
+        class="sched-diagram__badge sched-diagram__badge--cyan"
+        x="20"
+        y="28"
+      >
+        SINGLE-NODE KERNEL
+      </text>
+      <text class="sched-diagram__title" x="20" y="54">
+        分級時間輪內核（Kafka / Netty 模式）
+      </text>
+
+      <!-- Outer Level 3: Hour Wheel -->
+      <g transform="translate(20, 75)">
+        <rect class="sched-diagram__tier" width="390" height="80" rx="8"></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          時輪（Hour Wheel）· 刻度 1hr · 24 Slots · 跨度 1 天
+        </text>
+        <!-- Slots representation -->
+        <g transform="translate(15, 36)">
+          <rect
+            class="sched-diagram__slot"
+            x="0"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="20" y="20">0h</text>
+          <rect
+            class="sched-diagram__slot"
+            x="48"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="68" y="20">1h</text>
+          <rect
+            class="sched-diagram__slot sched-diagram__slot--active-amber"
+            x="96"
+            y="0"
+            width="55"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="123" y="20">2h (Task)</text>
+          <text class="sched-diagram__slot-text" x="175" y="20">...</text>
+          <rect
+            class="sched-diagram__slot"
+            x="205"
+            y="0"
+            width="45"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="227" y="20">23h</text>
+          <text class="sched-diagram__meta-text" x="265" y="20"
+            >O(1) 插入不需遍歷輪數</text
+          >
+        </g>
+      </g>
+
+      <!-- Cascade Arrow Down 1 -->
+      <path
+        d="M 148 155 L 148 180"
+        class="sched-diagram__cascade-path"
+        marker-end="url(#sched-arrow-cascade)"></path>
+      <text class="sched-diagram__cascade-text" x="160" y="172">
+        時針抵達 ➔ 降級（Cascade）至分輪
+      </text>
+
+      <!-- Level 2: Minute Wheel -->
+      <g transform="translate(20, 185)">
+        <rect class="sched-diagram__tier" width="390" height="80" rx="8"></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          分輪（Minute Wheel）· 刻度 1min · 60 Slots · 跨度 1 小時
+        </text>
+        <g transform="translate(15, 36)">
+          <rect
+            class="sched-diagram__slot"
+            x="0"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="20" y="20">0m</text>
+          <rect
+            class="sched-diagram__slot"
+            x="48"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="68" y="20">1m</text>
+          <rect
+            class="sched-diagram__slot sched-diagram__slot--active-cyan"
+            x="96"
+            y="0"
+            width="60"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="126" y="20">15m (Task)</text
+          >
+          <text class="sched-diagram__slot-text" x="180" y="20">...</text>
+          <rect
+            class="sched-diagram__slot"
+            x="210"
+            y="0"
+            width="45"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="232" y="20">59m</text>
+          <text class="sched-diagram__meta-text" x="270" y="20"
+            >精確進位推進</text
+          >
+        </g>
+      </g>
+
+      <!-- Cascade Arrow Down 2 -->
+      <path
+        d="M 156 265 L 156 290"
+        class="sched-diagram__cascade-path"
+        marker-end="url(#sched-arrow-cascade)"></path>
+      <text class="sched-diagram__cascade-text" x="168" y="282">
+        分針抵達 ➔ 降級（Cascade）至秒輪
+      </text>
+
+      <!-- Level 1: Second / Millisecond Wheel -->
+      <g transform="translate(20, 295)">
+        <rect
+          class="sched-diagram__tier sched-diagram__tier--bottom"
+          width="390"
+          height="115"
+          rx="8"></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          秒輪（Second Wheel）· 刻度 1s · 60 Slots · 毫秒級觸發
+        </text>
+        <g transform="translate(15, 36)">
+          <rect
+            class="sched-diagram__slot"
+            x="0"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="20" y="20">0s</text>
+          <rect
+            class="sched-diagram__slot sched-diagram__slot--trigger"
+            x="48"
+            y="0"
+            width="70"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text-trigger" x="83" y="20"
+            >⚡ 32s 到期</text
+          >
+          <rect
+            class="sched-diagram__slot"
+            x="126"
+            y="0"
+            width="40"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="146" y="20">33s</text>
+          <text class="sched-diagram__slot-text" x="185" y="20">...</text>
+          <rect
+            class="sched-diagram__slot"
+            x="210"
+            y="0"
+            width="45"
+            height="32"
+            rx="4"></rect>
+          <text class="sched-diagram__slot-text" x="232" y="20">59s</text>
+        </g>
+        <rect
+          class="sched-diagram__subcard"
+          x="15"
+          y="78"
+          width="360"
+          height="26"
+          rx="4"></rect>
+        <text class="sched-diagram__subcard-text" x="25" y="95">
+          🔥 到期任務即刻彈出 ➔ 送入執行執行緒池或分散式分發通道
+        </text>
+      </g>
+    </g>
+
+    <!-- Side B: Distributed Orchestration Architecture -->
+    <g class="sched-diagram__card" transform="translate(490, 25)">
+      <rect width="440" height="430" rx="12"></rect>
+      <text
+        class="sched-diagram__badge sched-diagram__badge--emerald"
+        x="20"
+        y="28"
+      >
+        DISTRIBUTED CLUSTER
+      </text>
+      <text class="sched-diagram__title" x="20" y="54">
+        全球分散式調度協調拓撲
+      </text>
+
+      <!-- Coordination & Leader -->
+      <g transform="translate(20, 75)">
+        <rect class="sched-diagram__cluster-box" width="400" height="80" rx="8"
+        ></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          協調中心（Etcd / Raft 選主協調）
+        </text>
+        <rect
+          class="sched-diagram__pill sched-diagram__pill--emerald"
+          x="15"
+          y="36"
+          width="115"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="sched-diagram__pill-text"
+          x="72"
+          y="56"
+          text-anchor="middle">Coordinator 1 (Leader)</text
+        >
+
+        <rect
+          class="sched-diagram__pill sched-diagram__pill--dim"
+          x="140"
+          y="36"
+          width="115"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="sched-diagram__pill-text"
+          x="197"
+          y="56"
+          text-anchor="middle">Coordinator 2 (Follower)</text
+        >
+
+        <rect
+          class="sched-diagram__pill sched-diagram__pill--dim"
+          x="265"
+          y="36"
+          width="120"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="sched-diagram__pill-text"
+          x="325"
+          y="56"
+          text-anchor="middle">Consistent Hash Ring</text
+        >
+      </g>
+
+      <!-- Sharding & Queue Distribution -->
+      <g transform="translate(20, 175)">
+        <rect class="sched-diagram__cluster-box" width="400" height="95" rx="8"
+        ></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          持久化狀態機與分區時間輪（Persistence & Shards）
+        </text>
+
+        <g transform="translate(15, 36)">
+          <rect
+            class="sched-diagram__pill sched-diagram__pill--cyan"
+            x="0"
+            y="0"
+            width="115"
+            height="46"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__pill-text-sm"
+            x="57"
+            y="20"
+            text-anchor="middle">Shard 0 ~ 255</text
+          >
+          <text
+            class="sched-diagram__pill-sub"
+            x="57"
+            y="36"
+            text-anchor="middle">MySQL / TiDB 狀態機</text
+          >
+
+          <rect
+            class="sched-diagram__pill sched-diagram__pill--cyan"
+            x="130"
+            y="0"
+            width="115"
+            height="46"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__pill-text-sm"
+            x="187"
+            y="20"
+            text-anchor="middle">Shard 256 ~ 511</text
+          >
+          <text
+            class="sched-diagram__pill-sub"
+            x="187"
+            y="36"
+            text-anchor="middle">分級時間輪載入點</text
+          >
+
+          <rect
+            class="sched-diagram__pill sched-diagram__pill--cyan"
+            x="260"
+            y="0"
+            width="110"
+            height="46"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__pill-text-sm"
+            x="315"
+            y="20"
+            text-anchor="middle">Shard 512 ~ 1023</text
+          >
+          <text
+            class="sched-diagram__pill-sub"
+            x="315"
+            y="36"
+            text-anchor="middle">預熱近 1hr 任務</text
+          >
+        </g>
+      </g>
+
+      <!-- Worker Execution Pool -->
+      <g transform="translate(20, 290)">
+        <rect class="sched-diagram__cluster-box" width="400" height="120" rx="8"
+        ></rect>
+        <text class="sched-diagram__tier-title" x="15" y="24">
+          執行工作節點叢集（Worker Cluster · Pull / Push）
+        </text>
+
+        <g transform="translate(15, 36)">
+          <rect
+            class="sched-diagram__worker"
+            x="0"
+            y="0"
+            width="115"
+            height="40"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__worker-title"
+            x="57"
+            y="18"
+            text-anchor="middle">Worker Node 1</text
+          >
+          <text
+            class="sched-diagram__worker-sub"
+            x="57"
+            y="32"
+            text-anchor="middle">分散式鎖驗收</text
+          >
+
+          <rect
+            class="sched-diagram__worker"
+            x="130"
+            y="0"
+            width="115"
+            height="40"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__worker-title"
+            x="187"
+            y="18"
+            text-anchor="middle">Worker Node 2</text
+          >
+          <text
+            class="sched-diagram__worker-sub"
+            x="187"
+            y="32"
+            text-anchor="middle">冪等執行與確認</text
+          >
+
+          <rect
+            class="sched-diagram__worker"
+            x="260"
+            y="0"
+            width="110"
+            height="40"
+            rx="6"></rect>
+          <text
+            class="sched-diagram__worker-title"
+            x="315"
+            y="18"
+            text-anchor="middle">Worker Node N</text
+          >
+          <text
+            class="sched-diagram__worker-sub"
+            x="315"
+            y="32"
+            text-anchor="middle">失敗重試與 DLQ</text
+          >
+        </g>
+
+        <rect
+          class="sched-diagram__subcard"
+          x="15"
+          y="86"
+          width="370"
+          height="24"
+          rx="4"></rect>
+        <text class="sched-diagram__subcard-text" x="25" y="102">
+          防重保證：CAS 樂觀鎖更新狀態 `SCHEDULED ➔ RUNNING ➔ SUCCESS`
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="sched-diagram__mobile">
+    <div class="sched-mobile-card sched-mobile-card--cyan">
+      <span class="sched-mobile-badge sched-mobile-badge--cyan"
+        >SINGLE-NODE KERNEL</span
+      >
+      <h4>分級時間輪（Hierarchical Timing Wheel）</h4>
+      <p>
+        <strong>時輪（Hour Wheel）</strong>：24 Slots，跨度 1
+        天。高延時任務直接掛載，無須反覆遍歷輪數。
+      </p>
+      <div class="sched-mobile-arrow">↓ 刻度指針抵達，任務降級（Cascade）</div>
+      <p>
+        <strong>分輪（Minute Wheel）</strong>：60 Slots，跨度 1
+        小時。精準承接即將在 60 分鐘內觸發的任務。
+      </p>
+      <div class="sched-mobile-arrow">↓ 推進至最後 1 分鐘，降級至秒輪</div>
+      <p>
+        <strong>秒輪（Second Wheel）</strong>：60
+        Slots，毫秒級精度。指針抵達即刻彈出並投遞執行，各層插入與降級均為 <code
+          >O(1)</code
+        >。
+      </p>
+    </div>
+
+    <div class="sched-mobile-card sched-mobile-card--emerald">
+      <span class="sched-mobile-badge sched-mobile-badge--emerald"
+        >DISTRIBUTED CLUSTER</span
+      >
+      <h4>全球分散式任務調度協調拓撲</h4>
+      <p>
+        <strong>協調選主</strong>：基於 Raft / Etcd 選出
+        Leader，維護一致性雜湊環，動態感知節點容災。
+      </p>
+      <p>
+        <strong>分區時間輪</strong>：將千萬任務依 TaskID Hash 分片至各
+        Coordinator，僅將即將到期的任務載入分級時間輪。
+      </p>
+      <p>
+        <strong>防重防漏保證</strong>：Worker 執行前透過 DB CAS 樂觀鎖將狀態從 <code
+          >SCHEDULED</code
+        > 推進為 <code>RUNNING</code>，確保 At-least-once 語義下的精確冪等性。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="sched-caption" class="sched-diagram__caption">
+    圖解：分級時間輪單機內核的 O(1) 降級推進與全球分散式任務調度叢集的協調分流
+  </figcaption>
+</figure>
+
+<style>
+  .sched-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .sched-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* Desktop View */
+  .sched-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .sched-diagram__card rect {
+    fill: var(--dg-surface-raised, rgba(255, 255, 255, 0.03));
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .sched-diagram__badge {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .sched-diagram__badge--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__badge--cyan {
+    fill: #38bdf8;
+  }
+  .sched-diagram__badge--emerald {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__badge--emerald {
+    fill: #34d399;
+  }
+
+  .sched-diagram__title {
+    font-size: 15px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .sched-diagram__tier {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .sched-diagram__tier-title {
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .sched-diagram__slot {
+    fill: rgba(2, 132, 199, 0.05);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .sched-diagram__slot--active-amber {
+    fill: rgba(245, 158, 11, 0.18);
+    stroke: #f59e0b;
+    stroke-width: 1.5px;
+  }
+  .sched-diagram__slot--active-cyan {
+    fill: rgba(2, 132, 199, 0.2);
+    stroke: #0284c7;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__slot--active-cyan {
+    fill: rgba(56, 189, 248, 0.25);
+    stroke: #38bdf8;
+  }
+  .sched-diagram__slot--trigger {
+    fill: rgba(239, 68, 68, 0.2);
+    stroke: #ef4444;
+    stroke-width: 1.5px;
+  }
+
+  .sched-diagram__slot-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .sched-diagram__slot-text-trigger {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #ef4444;
+    text-anchor: middle;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__slot-text-trigger {
+    fill: #f87171;
+  }
+
+  .sched-diagram__meta-text {
+    font-size: 11px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .sched-diagram__cascade-path {
+    stroke: #0284c7;
+    stroke-width: 2px;
+    stroke-dasharray: 3 3;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__cascade-path {
+    stroke: #38bdf8;
+  }
+
+  .sched-diagram__cascade-text {
+    font-size: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__cascade-text {
+    fill: #38bdf8;
+  }
+
+  .sched-diagram__arrow-head {
+    fill: var(--dg-ink);
+  }
+  .sched-diagram__arrow-cascade-head {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__arrow-cascade-head {
+    fill: #38bdf8;
+  }
+
+  .sched-diagram__subcard {
+    fill: var(--dg-surface-raised, rgba(0, 0, 0, 0.05));
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .sched-diagram__subcard-text {
+    font-size: 10.5px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+
+  .sched-diagram__cluster-box {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .sched-diagram__pill {
+    stroke-width: 1px;
+  }
+  .sched-diagram__pill--emerald {
+    fill: rgba(5, 150, 105, 0.12);
+    stroke: #059669;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__pill--emerald {
+    fill: rgba(52, 211, 153, 0.18);
+    stroke: #34d399;
+  }
+  .sched-diagram__pill--dim {
+    fill: rgba(148, 163, 184, 0.1);
+    stroke: var(--dg-rule);
+  }
+  .sched-diagram__pill--cyan {
+    fill: rgba(2, 132, 199, 0.1);
+    stroke: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .sched-diagram__pill--cyan {
+    fill: rgba(56, 189, 248, 0.15);
+    stroke: #38bdf8;
+  }
+
+  .sched-diagram__pill-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    fill: var(--dg-ink);
+  }
+  .sched-diagram__pill-text-sm {
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .sched-diagram__pill-sub {
+    font-size: 9.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .sched-diagram__worker {
+    fill: var(--dg-surface-raised);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .sched-diagram__worker-title {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .sched-diagram__worker-sub {
+    font-size: 9.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  /* Mobile Styles */
+  @media (max-width: 640px) {
+    .sched-diagram__desktop {
+      display: none;
+    }
+
+    .sched-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .sched-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+    .sched-mobile-card--cyan {
+      border-left: 4px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .sched-mobile-card--cyan {
+      border-left-color: #38bdf8;
+    }
+    .sched-mobile-card--emerald {
+      border-left: 4px solid #059669;
+    }
+    :global(:root[data-theme="dark"]) .sched-mobile-card--emerald {
+      border-left-color: #34d399;
+    }
+
+    .sched-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .sched-mobile-badge--cyan {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .sched-mobile-badge--cyan {
+      color: #38bdf8;
+    }
+    .sched-mobile-badge--emerald {
+      color: #059669;
+    }
+    :global(:root[data-theme="dark"]) .sched-mobile-badge--emerald {
+      color: #34d399;
+    }
+
+    .sched-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .sched-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.8125rem;
+      color: var(--dg-ink-2);
+      line-height: 1.45;
+    }
+
+    .sched-mobile-arrow {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0284c7;
+      padding: 0.25rem 0;
+    }
+    :global(:root[data-theme="dark"]) .sched-mobile-arrow {
+      color: #38bdf8;
+    }
+  }
+</style>
