@@ -12,8 +12,11 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
 3. Ground every factual claim in user-provided material, repository evidence, or a cited source. Preserve the author's meaning and links when editing existing copy.
 4. When creating or changing a content file, consult `src/content.config.ts` for the current frontmatter contract instead of relying on a copied schema.
 5. Draft or revise the smallest requested scope. Keep the writing concrete about constraints, choices, verification, and results.
-6. When a cover is requested, follow Cover Direction below after the article direction is stable.
-7. Run the narrowest relevant repository check after changing files. Follow the publication checklist in `docs/content-guide.md` only when publication is requested.
+6. When diagrams or structured data are included, consult `docs/diagram-guide.md` and enforce the **Anti-Patterns & Prose-Diagram Synergy** rules:
+   - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 500px, text >= 12.5px);
+   - Ban messy text bullet dumps right after diagrams; always use neatly structured markdown comparison tables for parameters and complexity.
+7. When a cover is requested, follow Cover Direction below after the article direction is stable.
+8. Run the narrowest relevant repository check after changing files. Follow the publication checklist in `docs/content-guide.md` only when publication is requested.
 
 ## Cover Direction
 
