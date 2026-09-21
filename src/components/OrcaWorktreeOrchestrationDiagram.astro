@@ -1,0 +1,312 @@
+---
+// OrcaWorktreeOrchestrationDiagram.astro
+---
+
+<figure class="orca-diagram" aria-labelledby="orca-diagram-caption">
+  <svg
+    class="orca-diagram__desktop"
+    viewBox="0 0 960 380"
+    role="img"
+    aria-labelledby="orca-diagram-title orca-diagram-desc"
+  >
+    <title id="orca-diagram-title">
+      Orca ADE 與 Git Worktree 多 Agent 隔離控制平面
+    </title>
+    <desc id="orca-diagram-desc">
+      中央任務分發器將 Prompt 平行派發至三個獨立 Git Worktree，分別執行 Claude
+      Code、Codex 與 Cursor CLI，最終匯整至單一 Diff 審查與合流閘門。
+    </desc>
+    <defs>
+      <marker
+        id="orca-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="orca-diagram__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path>
+      </marker>
+    </defs>
+
+    <!-- 主倉庫核心 -->
+    <g class="orca-diagram__repo" transform="translate(40, 140)">
+      <rect width="160" height="100" rx="10"></rect>
+      <text class="orca-diagram__eyebrow" x="16" y="28">GIT REPOSITORY</text>
+      <text class="orca-diagram__title" x="16" y="56">單一 .git 核心</text>
+      <text class="orca-diagram__detail" x="16" y="80">共用 Commit 歷史</text>
+    </g>
+
+    <!-- 分派箭頭 -->
+    <path
+      class="orca-diagram__arrow"
+      d="M200 170 Q 250 170, 290 80"
+      marker-end="url(#orca-arrow)"></path>
+    <path
+      class="orca-diagram__arrow"
+      d="M200 190 H 290"
+      marker-end="url(#orca-arrow)"></path>
+    <path
+      class="orca-diagram__arrow"
+      d="M200 210 Q 250 210, 290 300"
+      marker-end="url(#orca-arrow)"></path>
+
+    <!-- 標註 worktree 分派 -->
+    <text class="orca-diagram__edge-label" x="245" y="115" text-anchor="middle"
+      >worktree add</text
+    >
+    <text class="orca-diagram__edge-label" x="245" y="182" text-anchor="middle"
+      >獨立檢出</text
+    >
+    <text class="orca-diagram__edge-label" x="245" y="270" text-anchor="middle"
+      >無鎖衝突</text
+    >
+
+    <!-- Worktree 1: Claude Code -->
+    <g class="orca-diagram__node" transform="translate(300, 30)">
+      <rect width="280" height="90" rx="8"></rect>
+      <text class="orca-diagram__eyebrow" x="16" y="26"
+        >WORKTREE 1 · BRANCH-AUTH-CLAUDE</text
+      >
+      <text class="orca-diagram__title" x="16" y="52"
+        >Claude Code (Refactor)</text
+      >
+      <text class="orca-diagram__detail" x="16" y="74"
+        >獨立目錄 · 獨立 Process · 私有 Context</text
+      >
+    </g>
+
+    <!-- Worktree 2: Codex -->
+    <g class="orca-diagram__node" transform="translate(300, 145)">
+      <rect width="280" height="90" rx="8"></rect>
+      <text class="orca-diagram__eyebrow" x="16" y="26"
+        >WORKTREE 2 · BRANCH-AUTH-CODEX</text
+      >
+      <text class="orca-diagram__title" x="16" y="52">Codex (Best-of-N)</text>
+      <text class="orca-diagram__detail" x="16" y="74"
+        >獨立目錄 · 獨立 Process · 私有 Context</text
+      >
+    </g>
+
+    <!-- Worktree 3: Cursor CLI -->
+    <g class="orca-diagram__node" transform="translate(300, 260)">
+      <rect width="280" height="90" rx="8"></rect>
+      <text class="orca-diagram__eyebrow" x="16" y="26"
+        >WORKTREE 3 · BRANCH-AUTH-CURSOR</text
+      >
+      <text class="orca-diagram__title" x="16" y="52"
+        >Cursor CLI (Alternative)</text
+      >
+      <text class="orca-diagram__detail" x="16" y="74"
+        >獨立目錄 · 獨立 Process · 私有 Context</text
+      >
+    </g>
+
+    <!-- 匯流箭頭 -->
+    <path
+      class="orca-diagram__arrow"
+      d="M580 75 Q 630 150, 670 170"
+      marker-end="url(#orca-arrow)"></path>
+    <path
+      class="orca-diagram__arrow"
+      d="M580 190 H 670"
+      marker-end="url(#orca-arrow)"></path>
+    <path
+      class="orca-diagram__arrow"
+      d="M580 305 Q 630 230, 670 210"
+      marker-end="url(#orca-arrow)"></path>
+
+    <!-- 審查匯流區 -->
+    <g class="orca-diagram__review" transform="translate(680, 135)">
+      <rect width="240" height="110" rx="10"></rect>
+      <text class="orca-diagram__eyebrow-review" x="16" y="28"
+        >ORCA CONTROL PLANE</text
+      >
+      <text class="orca-diagram__title" x="16" y="56">Diff 比較與合流閘門</text>
+      <text class="orca-diagram__detail-review" x="16" y="80"
+        >比對測試綠燈與變更半徑</text
+      >
+      <text class="orca-diagram__detail-review" x="16" y="98"
+        >擇優 Merge，其餘 Prune 銷毀</text
+      >
+    </g>
+  </svg>
+
+  <!-- 手機窄螢幕版面 (320px 友善) -->
+  <div class="orca-diagram__mobile">
+    <div class="orca-diagram__mobile-step">
+      <span>GIT REPOSITORY</span>
+      <strong>單一 .git 核心</strong>
+      <p>所有分支與歷史共用，避免完整 clone 的磁碟與時間開銷。</p>
+    </div>
+    <b>↓ 分派獨立工作樹（git worktree add）</b>
+    <div class="orca-diagram__mobile-node">
+      <span>WORKTREE 1</span>
+      <strong>Claude Code：實作與重構</strong>
+      <p>獨立檔案目錄，終端歷史與暫存區互不污染。</p>
+    </div>
+    <div class="orca-diagram__mobile-node">
+      <span>WORKTREE 2</span>
+      <strong>Codex：平行競爭實作</strong>
+      <p>獨立 Process，由本地直接呼叫模型 API（Zero-Proxy）。</p>
+    </div>
+    <div class="orca-diagram__mobile-node">
+      <span>WORKTREE 3</span>
+      <strong>Cursor CLI：替代方案實作</strong>
+      <p>探索不同架構分支，不影響本機 main branch。</p>
+    </div>
+    <b>↓ 匯流至 Orca 控制台</b>
+    <div class="orca-diagram__mobile-review">
+      <span>ORCA CONTROL PLANE</span>
+      <strong>Diff 審查與合流閘門</strong>
+      <p>
+        以測試通過率與 Code Review 決定最佳解，一鍵 Merge 並自動清理其餘
+        Worktree。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="orca-diagram-caption">
+    圖 1：Orca ADE 核心架構。透過 Git Worktree 提供實體檔案與 Process
+    隔離，再由單一控制台完成多 Agent 並排評估與整併。
+  </figcaption>
+</figure>
+
+<style>
+  .orca-diagram {
+    margin: var(--space-md) 0;
+  }
+  .orca-diagram__desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .orca-diagram__mobile {
+    display: none;
+  }
+  .orca-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .orca-diagram__arrow-head {
+    fill: var(--dg-rule);
+  }
+  .orca-diagram__repo rect,
+  .orca-diagram__node rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .orca-diagram__review rect {
+    fill: #f0f7ff;
+    stroke: #2a6ab0;
+    stroke-width: 2;
+  }
+  .orca-diagram__eyebrow {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .orca-diagram__eyebrow-review {
+    fill: #1d528f;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .orca-diagram__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .orca-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  .orca-diagram__detail-review {
+    fill: #1a4270;
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  .orca-diagram__edge-label {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  :global(:root[data-theme="dark"]) .orca-diagram__review rect {
+    fill: #13273e;
+    stroke: #5197e0;
+  }
+  :global(:root[data-theme="dark"]) .orca-diagram__eyebrow-review {
+    fill: #82b9f3;
+  }
+  :global(:root[data-theme="dark"]) .orca-diagram__detail-review {
+    fill: #c6defa;
+  }
+
+  @media (max-width: 48rem) {
+    .orca-diagram__desktop {
+      display: none !important;
+    }
+    .orca-diagram__mobile {
+      display: grid !important;
+      gap: var(--space-sm);
+    }
+    .orca-diagram__mobile-step,
+    .orca-diagram__mobile-node,
+    .orca-diagram__mobile-review {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-md);
+    }
+    .orca-diagram__mobile-review {
+      background: #f0f7ff !important;
+      border-color: #2a6ab0 !important;
+    }
+    .orca-diagram__mobile span {
+      color: var(--dg-muted);
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .orca-diagram__mobile-review span {
+      color: #1d528f !important;
+    }
+    .orca-diagram__mobile strong {
+      color: var(--dg-ink);
+      display: block;
+      margin-top: 0.25rem;
+    }
+    .orca-diagram__mobile p {
+      color: var(--dg-ink-2);
+      font-size: var(--text-sm);
+      margin: 0.35rem 0 0;
+    }
+    .orca-diagram__mobile b {
+      color: var(--dg-muted);
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    :global(:root[data-theme="dark"]) .orca-diagram__mobile-review {
+      background: #13273e !important;
+      border-color: #5197e0 !important;
+    }
+    :global(:root[data-theme="dark"]) .orca-diagram__mobile-review span {
+      color: #82b9f3 !important;
+    }
+  }
+</style>
