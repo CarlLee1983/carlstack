@@ -2,7 +2,7 @@
 title: "別把改變寫成新年願望：把目標做成能校正的回饋迴路"
 description: "從 Dan Koe 的長文出發，將身分認同與人生目標的敘事收斂成工程上可執行的最小閉環：定義狀態、量測差距、調整下一個行動。"
 publishDate: 2026-09-06T19:44:36+08:00
-updatedDate: 2026-09-07T10:53:45+08:00
+updatedDate: 2026-09-21T13:57:26+08:00
 draft: false
 featured: false
 tags:
@@ -91,3 +91,4 @@ Koe 將智慧描述為設定方向、採取行動、感知結果、比較差距�
 - [Dan Koe：How to Fix Your Entire Life in 1 Day](https://x.com/thedankoe/status/2010751592346030461)
 - [AI 回答很快，但代價可能慢慢出現：用二階思考設計使用方式](/blog/ai-second-order-thinking/)
 - [Prompt 寫不好，通常不是模型的問題：先把需求變成任務契約](/blog/claude-prompt-as-task-contract/)
+- [自律不是靠撐：把下一步設計成預設路徑](/blog/self-discipline-by-design/)
