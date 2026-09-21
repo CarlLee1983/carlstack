@@ -18,7 +18,8 @@ series: 高併發快取與訊息中介軟體
 seriesOrder: 9
 ---
 
-import DistributedSchedulerTimingWheelDiagram from "../../components/DistributedSchedulerTimingWheelDiagram.astro";
+import HierarchicalTimingWheelKernelDiagram from "../../components/HierarchicalTimingWheelKernelDiagram.astro";
+import DistributedSchedulerClusterDiagram from "../../components/DistributedSchedulerClusterDiagram.astro";
 
 在現代大型網路架構中，「定時與延時任務」無所不在：電商平台在訂單成立 30 分鐘未付款時自動關閉並釋放庫存、外送平台在騎士接單 15 分鐘未取餐時觸發超時警報、遊戲伺服器每隔 100 毫秒同步全地圖玩家狀態，或是使用者預約 3 天後的行事曆推播通知。
 
@@ -68,7 +69,7 @@ import DistributedSchedulerTimingWheelDiagram from "../../components/Distributed
 
 為了解決單層時間輪在長跨度任務下的遍歷退化，Kafka 與現代高性能網路庫借鑑了實體機械手錶的齒輪進位機制，設計了**分級時間輪（Hierarchical Timing Wheel）**。
 
-<DistributedSchedulerTimingWheelDiagram />
+<HierarchicalTimingWheelKernelDiagram />
 
 ### 2.1 齒輪進位與階層劃分
 
@@ -122,7 +123,9 @@ Apache Kafka 提出了一種極其出色的混合設計：**分級時間輪 + Ja
 
 單機內核的分級時間輪已經將記憶體調度演算法推向極致，但在大型微服務體系中，我們面臨的是另一個維度的挑戰：**節點當機任務不能丟失、單機記憶體容納不下億級任務、以及多節點協同下的防重複執行**。
 
-生產級分散式調度系統（如圖中右半部架構）必須透過**調度協調中心（Coordinators）**與**執行工作節點（Workers）**的職責分離來建構。
+生產級分散式調度系統必須透過**調度協調中心（Coordinators）**與**執行工作節點（Workers）**的職責分離來建構：
+
+<DistributedSchedulerClusterDiagram />
 
 ### 3.1 職責分離與一致性雜湊分片（Consistent Hash Sharding）
 

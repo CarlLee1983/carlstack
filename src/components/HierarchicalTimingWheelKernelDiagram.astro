@@ -1,0 +1,727 @@
+---
+// Component 1: Hierarchical Timing Wheel Kernel Diagram (Single-Node O(1) Cascade)
+---
+
+<figure class="tw-diagram" aria-labelledby="tw-caption">
+  <svg
+    class="tw-diagram__desktop"
+    viewBox="0 0 960 520"
+    role="img"
+    aria-labelledby="tw-title tw-desc"
+  >
+    <title id="tw-title">
+      分級時間輪（Hierarchical Timing Wheel）內核：時、分、秒級聯降級與 O(1)
+      推進
+    </title>
+    <desc id="tw-desc">
+      展示分級時間輪內核的三層結構：時輪、分輪與秒輪。高層時間輪跨度大、轉動慢；當指針前進時，Slot
+      內的任務向下級聯降級（Cascade）至分輪與秒輪，達到無須遍歷輪數的 O(1)
+      插入與執行。
+    </desc>
+
+    <defs>
+      <marker
+        id="tw-arrow-cascade"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="tw-diagram__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- Header Badge & Title -->
+    <g transform="translate(40, 35)">
+      <rect class="tw-diagram__badge-bg" width="170" height="26" rx="6"></rect>
+      <text class="tw-diagram__badge-text" x="85" y="17" text-anchor="middle">
+        SINGLE-NODE KERNEL
+      </text>
+      <text class="tw-diagram__main-title" x="185" y="20">
+        分級時間輪內核：時、分、秒級聯降級（Cascade）架構
+      </text>
+      <text class="tw-diagram__main-sub" x="0" y="48">
+        徹底杜絕單層時間輪 Round
+        遍歷退化；各層級按刻度遞減，任務生命週期僅進行有限次 O(1)
+        推進與重新懸掛。
+      </text>
+    </g>
+
+    <!-- Level 3: Hour Wheel (時輪) -->
+    <g class="tw-diagram__tier-card" transform="translate(40, 105)">
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Tier Label -->
+      <text class="tw-diagram__tier-title" x="24" y="32">
+        第 3 層：時輪（Hour Wheel）
+      </text>
+      <text class="tw-diagram__tier-meta" x="24" y="54">
+        Tick 刻度: 1 小時 (3600s) · 槽位: 24 Slots · 跨度: 24 小時 (1 天)
+      </text>
+
+      <!-- Visual Slots -->
+      <g transform="translate(430, 20)">
+        <rect class="tw-diagram__slot" x="0" y="0" width="56" height="56" rx="6"
+        ></rect>
+        <text class="tw-diagram__slot-title" x="28" y="26">0h</text>
+        <text class="tw-diagram__slot-sub" x="28" y="44">當前</text>
+
+        <rect
+          class="tw-diagram__slot"
+          x="66"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="94" y="26">1h</text>
+        <text class="tw-diagram__slot-sub" x="94" y="44">待命</text>
+
+        <!-- Active Highlight Slot -->
+        <rect
+          class="tw-diagram__slot tw-diagram__slot--amber"
+          x="132"
+          y="0"
+          width="95"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__slot-title tw-diagram__slot-title--amber"
+          x="179"
+          y="26">Slot 2h</text
+        >
+        <text
+          class="tw-diagram__slot-sub tw-diagram__slot-sub--amber"
+          x="179"
+          y="44">Task #101 掛載</text
+        >
+
+        <text class="tw-diagram__slot-dots" x="242" y="34">•••</text>
+
+        <rect
+          class="tw-diagram__slot"
+          x="270"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="298" y="26">23h</text>
+        <text class="tw-diagram__slot-sub" x="298" y="44">末槽</text>
+
+        <rect
+          class="tw-diagram__pill-benefit"
+          x="338"
+          y="12"
+          width="95"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__pill-benefit-text"
+          x="385"
+          y="32"
+          text-anchor="middle">O(1) 插入</text
+        >
+      </g>
+    </g>
+
+    <!-- Cascade Connector 1 -->
+    <g transform="translate(200, 201)">
+      <path
+        d="M 400 0 L 400 35"
+        class="tw-diagram__cascade-line"
+        marker-end="url(#tw-arrow-cascade)"></path>
+      <rect
+        class="tw-diagram__cascade-badge"
+        x="420"
+        y="6"
+        width="280"
+        height="24"
+        rx="4"></rect>
+      <text class="tw-diagram__cascade-text" x="430" y="22">
+        時針抵達 2h ➔ 任務剩餘時間 &lt; 1 小時 ➔ 觸發降級（Cascade）
+      </text>
+    </g>
+
+    <!-- Level 2: Minute Wheel (分輪) -->
+    <g class="tw-diagram__tier-card" transform="translate(40, 238)">
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Tier Label -->
+      <text class="tw-diagram__tier-title" x="24" y="32">
+        第 2 層：分輪（Minute Wheel）
+      </text>
+      <text class="tw-diagram__tier-meta" x="24" y="54">
+        Tick 刻度: 1 分鐘 (60s) · 槽位: 60 Slots · 跨度: 60 分鐘 (1 小時)
+      </text>
+
+      <!-- Visual Slots -->
+      <g transform="translate(430, 20)">
+        <rect class="tw-diagram__slot" x="0" y="0" width="56" height="56" rx="6"
+        ></rect>
+        <text class="tw-diagram__slot-title" x="28" y="26">0m</text>
+        <text class="tw-diagram__slot-sub" x="28" y="44">當前</text>
+
+        <rect
+          class="tw-diagram__slot"
+          x="66"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="94" y="26">1m</text>
+        <text class="tw-diagram__slot-sub" x="94" y="44">待命</text>
+
+        <!-- Active Highlight Slot -->
+        <rect
+          class="tw-diagram__slot tw-diagram__slot--cyan"
+          x="132"
+          y="0"
+          width="105"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__slot-title tw-diagram__slot-title--cyan"
+          x="184"
+          y="26">Slot 15m</text
+        >
+        <text
+          class="tw-diagram__slot-sub tw-diagram__slot-sub--cyan"
+          x="184"
+          y="44">重新懸掛 Task</text
+        >
+
+        <text class="tw-diagram__slot-dots" x="252" y="34">•••</text>
+
+        <rect
+          class="tw-diagram__slot"
+          x="280"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="308" y="26">59m</text>
+        <text class="tw-diagram__slot-sub" x="308" y="44">末槽</text>
+
+        <rect
+          class="tw-diagram__pill-benefit"
+          x="348"
+          y="12"
+          width="85"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__pill-benefit-text"
+          x="390"
+          y="32"
+          text-anchor="middle">精準進位</text
+        >
+      </g>
+    </g>
+
+    <!-- Cascade Connector 2 -->
+    <g transform="translate(200, 334)">
+      <path
+        d="M 400 0 L 400 35"
+        class="tw-diagram__cascade-line"
+        marker-end="url(#tw-arrow-cascade)"></path>
+      <rect
+        class="tw-diagram__cascade-badge"
+        x="420"
+        y="6"
+        width="280"
+        height="24"
+        rx="4"></rect>
+      <text class="tw-diagram__cascade-text" x="430" y="22">
+        分針抵達 15m ➔ 任務剩餘時間 &lt; 60 秒 ➔ 二次降級至秒輪
+      </text>
+    </g>
+
+    <!-- Level 1: Second Wheel (秒輪) -->
+    <g
+      class="tw-diagram__tier-card tw-diagram__tier-card--active"
+      transform="translate(40, 371)"
+    >
+      <rect width="880" height="110" rx="10"></rect>
+
+      <!-- Tier Label -->
+      <text class="tw-diagram__tier-title" x="24" y="36">
+        第 1 層：秒輪（Second Wheel）
+      </text>
+      <text class="tw-diagram__tier-meta" x="24" y="60">
+        Tick 刻度: 1 秒 · 槽位: 60 Slots · 毫秒級高精度觸發
+      </text>
+      <text class="tw-diagram__tier-status" x="24" y="86">
+        ⚡ 結合 Kafka 模式 DelayQueue，無任務時避免 CPU 空轉輪詢
+      </text>
+
+      <!-- Visual Slots -->
+      <g transform="translate(430, 26)">
+        <rect class="tw-diagram__slot" x="0" y="0" width="56" height="56" rx="6"
+        ></rect>
+        <text class="tw-diagram__slot-title" x="28" y="26">0s</text>
+        <text class="tw-diagram__slot-sub" x="28" y="44">已過</text>
+
+        <!-- Active Trigger Slot -->
+        <rect
+          class="tw-diagram__slot tw-diagram__slot--emerald"
+          x="66"
+          y="0"
+          width="130"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__slot-title tw-diagram__slot-title--emerald"
+          x="131"
+          y="26">Slot 32s (到期)</text
+        >
+        <text
+          class="tw-diagram__slot-sub tw-diagram__slot-sub--emerald"
+          x="131"
+          y="44">彈出並派發執行</text
+        >
+
+        <rect
+          class="tw-diagram__slot"
+          x="206"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="234" y="26">33s</text>
+        <text class="tw-diagram__slot-sub" x="234" y="44">下秒</text>
+
+        <text class="tw-diagram__slot-dots" x="275" y="34">•••</text>
+
+        <rect
+          class="tw-diagram__slot"
+          x="300"
+          y="0"
+          width="56"
+          height="56"
+          rx="6"></rect>
+        <text class="tw-diagram__slot-title" x="328" y="26">59s</text>
+        <text class="tw-diagram__slot-sub" x="328" y="44">末槽</text>
+
+        <rect
+          class="tw-diagram__pill-trigger"
+          x="368"
+          y="12"
+          width="65"
+          height="32"
+          rx="6"></rect>
+        <text
+          class="tw-diagram__pill-trigger-text"
+          x="400"
+          y="32"
+          text-anchor="middle">FIRE 🚀</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="tw-diagram__mobile">
+    <div class="tw-mobile-card tw-mobile-card--amber">
+      <span class="tw-mobile-badge tw-mobile-badge--amber"
+        >LEVEL 3 · HOUR WHEEL</span
+      >
+      <h4>第 3 層：時輪（Hour Wheel）</h4>
+      <p>
+        <strong>刻度與跨度</strong>：每格 1 小時，共 24 格（覆蓋 24 小時）。
+      </p>
+      <p>
+        <strong>運作特性</strong>：長延時任務直接插入對應時槽（如
+        2h），插入複雜度恆為 <code>O(1)</code>，無須單層時間輪的 Round
+        輪數計數。
+      </p>
+      <div class="tw-mobile-arrow">
+        ↓ 時針推進至 2h，剩餘時間 &lt; 1 小時，觸發降級（Cascade）
+      </div>
+    </div>
+
+    <div class="tw-mobile-card tw-mobile-card--cyan">
+      <span class="tw-mobile-badge tw-mobile-badge--cyan"
+        >LEVEL 2 · MINUTE WHEEL</span
+      >
+      <h4>第 2 層：分輪（Minute Wheel）</h4>
+      <p><strong>刻度與跨度</strong>：每格 1 分鐘，共 60 格（覆蓋 1 小時）。</p>
+      <p>
+        <strong>運作特性</strong>：任務自時輪拔出後，按剩餘分鐘數重新掛載（如
+        15m 格）。高層時間輪極慢的轉動頻率大幅節省 CPU 資源。
+      </p>
+      <div class="tw-mobile-arrow">
+        ↓ 分針推進至 15m，剩餘時間 &lt; 60 秒，二次降級至秒輪
+      </div>
+    </div>
+
+    <div class="tw-mobile-card tw-mobile-card--emerald">
+      <span class="tw-mobile-badge tw-mobile-badge--emerald"
+        >LEVEL 1 · SECOND WHEEL</span
+      >
+      <h4>第 1 層：秒輪（Second Wheel）</h4>
+      <p><strong>刻度與跨度</strong>：每格 1 秒，共 60 格（毫秒級高精度）。</p>
+      <p>
+        <strong>運作特性</strong>：秒針到達目標刻度（如
+        32s），即刻彈出任務送入執行佇列。搭配 Kafka DelayQueue 僅將有任務的
+        Bucket 入堆，杜絕全無任務時的空轉中斷。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="tw-caption" class="tw-diagram__caption">
+    圖 1：分級時間輪（Hierarchical Timing Wheel）內核：時、分、秒級聯降級與 O(1)
+    推進機制
+  </figcaption>
+</figure>
+
+<style>
+  .tw-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .tw-diagram__caption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* Desktop SVG Layout */
+  .tw-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.875rem;
+    padding: 0.5rem;
+  }
+
+  .tw-diagram__badge-bg {
+    fill: rgba(2, 132, 199, 0.12);
+    stroke: #0284c7;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__badge-bg {
+    fill: rgba(56, 189, 248, 0.18);
+    stroke: #38bdf8;
+  }
+
+  .tw-diagram__badge-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #0284c7;
+    letter-spacing: 0.05em;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__badge-text {
+    fill: #38bdf8;
+  }
+
+  .tw-diagram__main-title {
+    font-size: 17px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .tw-diagram__main-sub {
+    font-size: 13px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+
+  /* Tier Cards */
+  .tw-diagram__tier-card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.2px;
+  }
+  .tw-diagram__tier-card--active rect {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .tw-diagram__tier-title {
+    font-size: 15px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .tw-diagram__tier-meta {
+    font-size: 12.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  .tw-diagram__tier-status {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__tier-status {
+    fill: #34d399;
+  }
+
+  /* Slots */
+  .tw-diagram__slot {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .tw-diagram__slot--amber {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: #f59e0b;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot--amber {
+    fill: rgba(245, 158, 11, 0.22);
+  }
+
+  .tw-diagram__slot--cyan {
+    fill: rgba(2, 132, 199, 0.12);
+    stroke: #0284c7;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot--cyan {
+    fill: rgba(56, 189, 248, 0.22);
+    stroke: #38bdf8;
+  }
+
+  .tw-diagram__slot--emerald {
+    fill: rgba(5, 150, 105, 0.15);
+    stroke: #059669;
+    stroke-width: 1.8px;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot--emerald {
+    fill: rgba(52, 211, 153, 0.22);
+    stroke: #34d399;
+  }
+
+  .tw-diagram__slot-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .tw-diagram__slot-title--amber {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-title--amber {
+    fill: #fbbf24;
+  }
+  .tw-diagram__slot-title--cyan {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-title--cyan {
+    fill: #38bdf8;
+  }
+  .tw-diagram__slot-title--emerald {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-title--emerald {
+    fill: #34d399;
+  }
+
+  .tw-diagram__slot-sub {
+    font-size: 10.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+    text-anchor: middle;
+  }
+  .tw-diagram__slot-sub--amber {
+    fill: #b45309;
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-sub--amber {
+    fill: #fde68a;
+  }
+  .tw-diagram__slot-sub--cyan {
+    fill: #0369a1;
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-sub--cyan {
+    fill: #bae6fd;
+  }
+  .tw-diagram__slot-sub--emerald {
+    fill: #047857;
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__slot-sub--emerald {
+    fill: #a7f3d0;
+  }
+
+  .tw-diagram__slot-dots {
+    font-size: 14px;
+    fill: var(--dg-muted);
+    letter-spacing: 2px;
+  }
+
+  /* Benefits Pills */
+  .tw-diagram__pill-benefit {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1px;
+  }
+  .tw-diagram__pill-benefit-text {
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink-2);
+  }
+
+  .tw-diagram__pill-trigger {
+    fill: rgba(239, 68, 68, 0.12);
+    stroke: #ef4444;
+    stroke-width: 1px;
+  }
+  .tw-diagram__pill-trigger-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    fill: #ef4444;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__pill-trigger-text {
+    fill: #f87171;
+  }
+
+  /* Cascade Arrows and Badges */
+  .tw-diagram__cascade-line {
+    stroke: #0284c7;
+    stroke-width: 2px;
+    stroke-dasharray: 4 4;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__cascade-line {
+    stroke: #38bdf8;
+  }
+
+  .tw-diagram__arrow-head {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__arrow-head {
+    fill: #38bdf8;
+  }
+
+  .tw-diagram__cascade-badge {
+    fill: rgba(2, 132, 199, 0.08);
+    stroke: #0284c7;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__cascade-badge {
+    fill: rgba(56, 189, 248, 0.15);
+    stroke: #38bdf8;
+  }
+
+  .tw-diagram__cascade-text {
+    font-size: 11.5px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .tw-diagram__cascade-text {
+    fill: #38bdf8;
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 48rem) {
+    .tw-diagram__desktop {
+      display: none !important;
+    }
+
+    .tw-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .tw-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1.125rem;
+    }
+    .tw-mobile-card--amber {
+      border-left: 5px solid #d97706;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-card--amber {
+      border-left-color: #fbbf24;
+    }
+    .tw-mobile-card--cyan {
+      border-left: 5px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-card--cyan {
+      border-left-color: #38bdf8;
+    }
+    .tw-mobile-card--emerald {
+      border-left: 5px solid #059669;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-card--emerald {
+      border-left-color: #34d399;
+    }
+
+    .tw-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .tw-mobile-badge--amber {
+      color: #d97706;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-badge--amber {
+      color: #fbbf24;
+    }
+    .tw-mobile-badge--cyan {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-badge--cyan {
+      color: #38bdf8;
+    }
+    .tw-mobile-badge--emerald {
+      color: #059669;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-badge--emerald {
+      color: #34d399;
+    }
+
+    .tw-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .tw-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .tw-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #0284c7;
+      padding: 0.35rem 0;
+    }
+    :global(:root[data-theme="dark"]) .tw-mobile-arrow {
+      color: #38bdf8;
+    }
+  }
+
+  @media (min-width: 48.0625rem) {
+    .tw-diagram__mobile {
+      display: none !important;
+    }
+  }
+</style>

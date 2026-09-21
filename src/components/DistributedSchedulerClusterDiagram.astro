@@ -1,0 +1,697 @@
+---
+// Component 2: Distributed Scheduler Cluster Architecture Diagram
+---
+
+<figure class="dist-sched-diagram" aria-labelledby="dist-sched-caption">
+  <svg
+    class="dist-sched-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="dist-sched-title dist-sched-desc"
+  >
+    <title id="dist-sched-title">
+      全球分散式定時調度叢集：協調選主、分區時間輪與 CAS 防重狀態機
+    </title>
+    <desc id="dist-sched-desc">
+      展示分散式調度架構的四個關鍵層級：頂層 Raft/Etcd
+      協調選主與一致性雜湊環；中層冷熱分離與分區時間輪；底層 Worker
+      工作叢集與資料庫 CAS 樂觀鎖狀態機At-least-once 冪等防禦。
+    </desc>
+
+    <defs>
+      <marker
+        id="dist-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="dist-sched-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Header Badge & Title -->
+    <g transform="translate(40, 30)">
+      <rect class="dist-sched-diagram__badge-bg" width="180" height="26" rx="6"
+      ></rect>
+      <text
+        class="dist-sched-diagram__badge-text"
+        x="90"
+        y="17"
+        text-anchor="middle"
+      >
+        DISTRIBUTED CLUSTER
+      </text>
+      <text class="dist-sched-diagram__main-title" x="195" y="20">
+        全球分散式調度協調拓撲與狀態機防重
+      </text>
+      <text class="dist-sched-diagram__main-sub" x="0" y="48">
+        億級任務冷熱分離、一致性雜湊 Slot 分區負載均衡，以及 CAS 樂觀鎖保障
+        At-least-once 下的精確執行。
+      </text>
+    </g>
+
+    <!-- Layer 1: Coordinator Ring -->
+    <g class="dist-sched-diagram__card" transform="translate(40, 95)">
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="dist-sched-diagram__layer-title" x="24" y="32">
+        1. 協調控制面（Etcd / Raft 協調選主）
+      </text>
+      <text class="dist-sched-diagram__layer-meta" x="24" y="54">
+        節點租約心跳 · 維護 1024 槽位一致性雜湊環 · 故障自動剔除與分區重平衡
+      </text>
+
+      <!-- Nodes -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="dist-sched-diagram__node dist-sched-diagram__node--leader"
+          x="0"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="dist-sched-diagram__node-title dist-sched-diagram__node-title--leader"
+          x="67"
+          y="24">Coordinator 1</text
+        >
+        <text
+          class="dist-sched-diagram__node-sub dist-sched-diagram__node-sub--leader"
+          x="67"
+          y="44">👑 Leader (Active)</text
+        >
+
+        <rect
+          class="dist-sched-diagram__node"
+          x="148"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text class="dist-sched-diagram__node-title" x="215" y="24"
+          >Coordinator 2</text
+        >
+        <text class="dist-sched-diagram__node-sub" x="215" y="44"
+          >Follower (Standby)</text
+        >
+
+        <rect
+          class="dist-sched-diagram__node dist-sched-diagram__node--ring"
+          x="296"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="dist-sched-diagram__node-title dist-sched-diagram__node-title--ring"
+          x="363"
+          y="24">Hash Ring</text
+        >
+        <text
+          class="dist-sched-diagram__node-sub dist-sched-diagram__node-sub--ring"
+          x="363"
+          y="44">Slot 0 ~ 1023 分流</text
+        >
+      </g>
+    </g>
+
+    <!-- Flow Arrow 1 -->
+    <path
+      d="M 480 191 L 480 220"
+      class="dist-sched-diagram__flow-line"
+      marker-end="url(#dist-arrow)"></path>
+
+    <!-- Layer 2: Sharding & Hybrid Storage -->
+    <g class="dist-sched-diagram__card" transform="translate(40, 222)">
+      <rect width="880" height="106" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="dist-sched-diagram__layer-title" x="24" y="34">
+        2. 分區儲存與時間輪分層（Cold / Hot Tiering）
+      </text>
+      <text class="dist-sched-diagram__layer-meta" x="24" y="56">
+        冷資料持久化存於分散式 DB；熱資料（未來 1hr
+        到期）非同步預加載至分級時間輪
+      </text>
+
+      <!-- Storage Blocks -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="dist-sched-diagram__store"
+          x="0"
+          y="0"
+          width="135"
+          height="66"
+          rx="6"></rect>
+        <text class="dist-sched-diagram__store-title" x="67" y="24"
+          >DB 狀態機</text
+        >
+        <text class="dist-sched-diagram__store-sub" x="67" y="42"
+          >TiDB / MySQL</text
+        >
+        <text class="dist-sched-diagram__store-tag" x="67" y="58"
+          >冷資料持久儲存</text
+        >
+
+        <rect
+          class="dist-sched-diagram__store dist-sched-diagram__store--hot"
+          x="148"
+          y="0"
+          width="145"
+          height="66"
+          rx="6"></rect>
+        <text
+          class="dist-sched-diagram__store-title dist-sched-diagram__store-title--hot"
+          x="220"
+          y="24">分級時間輪</text
+        >
+        <text
+          class="dist-sched-diagram__store-sub dist-sched-diagram__store-sub--hot"
+          x="220"
+          y="42">Coordinator 記憶體</text
+        >
+        <text
+          class="dist-sched-diagram__store-tag dist-sched-diagram__store-tag--hot"
+          x="220"
+          y="58">未來 1 小時熱任務</text
+        >
+
+        <rect
+          class="dist-sched-diagram__store dist-sched-diagram__store--bus"
+          x="306"
+          y="0"
+          width="125"
+          height="66"
+          rx="6"></rect>
+        <text
+          class="dist-sched-diagram__store-title dist-sched-diagram__store-title--bus"
+          x="368"
+          y="24">Kafka 佇列</text
+        >
+        <text
+          class="dist-sched-diagram__store-sub dist-sched-diagram__store-sub--bus"
+          x="368"
+          y="42">到期事件緩衝</text
+        >
+        <text
+          class="dist-sched-diagram__store-tag dist-sched-diagram__store-tag--bus"
+          x="368"
+          y="58">提供原生背壓</text
+        >
+      </g>
+    </g>
+
+    <!-- Flow Arrow 2 -->
+    <path
+      d="M 480 328 L 480 357"
+      class="dist-sched-diagram__flow-line"
+      marker-end="url(#dist-arrow)"></path>
+
+    <!-- Layer 3: Worker Execution & CAS State Machine -->
+    <g
+      class="dist-sched-diagram__card dist-sched-diagram__card--active"
+      transform="translate(40, 359)"
+    >
+      <rect width="880" height="96" rx="10"></rect>
+
+      <!-- Label -->
+      <text class="dist-sched-diagram__layer-title" x="24" y="32">
+        3. Worker 執行叢集與 CAS 防重狀態機
+      </text>
+      <text class="dist-sched-diagram__layer-meta" x="24" y="54">
+        Pull 模式自主消費 · CAS 搶佔執行權 `SCHEDULED ➔ RUNNING` · At-least-once
+        冪等防重
+      </text>
+
+      <!-- Workers -->
+      <g transform="translate(430, 20)">
+        <rect
+          class="dist-sched-diagram__worker"
+          x="0"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text class="dist-sched-diagram__worker-title" x="67" y="24"
+          >Worker 01</text
+        >
+        <text class="dist-sched-diagram__worker-sub" x="67" y="44"
+          >CAS 樂觀鎖搶佔</text
+        >
+
+        <rect
+          class="dist-sched-diagram__worker"
+          x="148"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text class="dist-sched-diagram__worker-title" x="215" y="24"
+          >Worker 02</text
+        >
+        <text class="dist-sched-diagram__worker-sub" x="215" y="44"
+          >業務冪等執行</text
+        >
+
+        <rect
+          class="dist-sched-diagram__worker dist-sched-diagram__worker--success"
+          x="296"
+          y="0"
+          width="135"
+          height="56"
+          rx="6"></rect>
+        <text
+          class="dist-sched-diagram__worker-title dist-sched-diagram__worker-title--success"
+          x="363"
+          y="24">狀態落庫</text
+        >
+        <text
+          class="dist-sched-diagram__worker-sub dist-sched-diagram__worker-sub--success"
+          x="363"
+          y="44">SUCCESS / DLQ</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View -->
+  <div class="dist-sched-diagram__mobile">
+    <div class="dist-mobile-card dist-mobile-card--emerald">
+      <span class="dist-mobile-badge dist-mobile-badge--emerald"
+        >STAGE 1 · COORDINATION</span
+      >
+      <h4>1. 協調控制面（Coordinator Ring）</h4>
+      <p>
+        <strong>選主與分片</strong>：透過 Etcd / Raft 達成一致性選主，建立 1024
+        虛擬槽位雜湊環。
+      </p>
+      <p>
+        <strong>容災感知</strong
+        >：當節點失聯時，心跳機制即時觸發租約撤銷與分區重平衡。
+      </p>
+      <div class="dist-mobile-arrow">
+        ↓ 任務依 Hash(TaskID) 路由至對應 Shard
+      </div>
+    </div>
+
+    <div class="dist-mobile-card dist-mobile-card--cyan">
+      <span class="dist-mobile-badge dist-mobile-badge--cyan"
+        >STAGE 2 · HYBRID STORAGE</span
+      >
+      <h4>2. 分區儲存與時間輪分層（Cold / Hot）</h4>
+      <p>
+        <strong>冷資料儲存</strong>：大於 1 小時的延時任務持久化於 TiDB / MySQL
+        狀態表。
+      </p>
+      <p>
+        <strong>熱資料預加載</strong
+        >：即將到期的任務載入本機分級時間輪；到期後推入 Kafka 提供原生背壓保護。
+      </p>
+      <div class="dist-mobile-arrow">↓ 到期事件派發至 Worker 叢集</div>
+    </div>
+
+    <div class="dist-mobile-card dist-mobile-card--indigo">
+      <span class="dist-mobile-badge dist-mobile-badge--indigo"
+        >STAGE 3 · WORKER EXECUTION</span
+      >
+      <h4>3. Worker 執行叢集與 CAS 防重</h4>
+      <p>
+        <strong>Pull 模式消費</strong>：Worker 依據自身 CPU /
+        記憶體負載自主拉取，避免雪崩。
+      </p>
+      <p>
+        <strong>CAS 狀態機</strong>：執行前執行 <code
+          >UPDATE ... SET status='RUNNING' WHERE status='SCHEDULED'</code
+        >，徹底防範重複調度。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="dist-sched-caption" class="dist-sched-diagram__caption">
+    圖 2：全球分散式定時調度叢集架構：一致性雜湊槽分片、分級時間輪預加載與 CAS
+    狀態機防重
+  </figcaption>
+</figure>
+
+<style>
+  .dist-sched-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .dist-sched-diagram__caption {
+    margin-top: 0.875rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* Desktop SVG Layout */
+  .dist-sched-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.875rem;
+    padding: 0.5rem;
+  }
+
+  .dist-sched-diagram__badge-bg {
+    fill: rgba(5, 150, 105, 0.12);
+    stroke: #059669;
+    stroke-width: 1px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__badge-bg {
+    fill: rgba(52, 211, 153, 0.18);
+    stroke: #34d399;
+  }
+
+  .dist-sched-diagram__badge-text {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: #059669;
+    letter-spacing: 0.05em;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__badge-text {
+    fill: #34d399;
+  }
+
+  .dist-sched-diagram__main-title {
+    font-size: 17px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .dist-sched-diagram__main-sub {
+    font-size: 13px;
+    font-family: var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+
+  /* Cards */
+  .dist-sched-diagram__card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.2px;
+  }
+  .dist-sched-diagram__card--active rect {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .dist-sched-diagram__layer-title {
+    font-size: 15px;
+    font-family: var(--font-body);
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .dist-sched-diagram__layer-meta {
+    font-size: 12.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+  }
+
+  /* Nodes */
+  .dist-sched-diagram__node {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .dist-sched-diagram__node--leader {
+    fill: rgba(5, 150, 105, 0.12);
+    stroke: #059669;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node--leader {
+    fill: rgba(52, 211, 153, 0.2);
+    stroke: #34d399;
+  }
+  .dist-sched-diagram__node--ring {
+    fill: rgba(2, 132, 199, 0.1);
+    stroke: #0284c7;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node--ring {
+    fill: rgba(56, 189, 248, 0.18);
+    stroke: #38bdf8;
+  }
+
+  .dist-sched-diagram__node-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__node-title--leader {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node-title--leader {
+    fill: #34d399;
+  }
+  .dist-sched-diagram__node-title--ring {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node-title--ring {
+    fill: #38bdf8;
+  }
+
+  .dist-sched-diagram__node-sub {
+    font-size: 11px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__node-sub--leader {
+    fill: #047857;
+    font-weight: 700;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node-sub--leader {
+    fill: #a7f3d0;
+  }
+  .dist-sched-diagram__node-sub--ring {
+    fill: #0369a1;
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__node-sub--ring {
+    fill: #bae6fd;
+  }
+
+  /* Storage Blocks */
+  .dist-sched-diagram__store {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .dist-sched-diagram__store--hot {
+    fill: rgba(2, 132, 199, 0.12);
+    stroke: #0284c7;
+    stroke-width: 1.5px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__store--hot {
+    fill: rgba(56, 189, 248, 0.2);
+    stroke: #38bdf8;
+  }
+  .dist-sched-diagram__store--bus {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: #f59e0b;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__store--bus {
+    fill: rgba(245, 158, 11, 0.2);
+  }
+
+  .dist-sched-diagram__store-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__store-title--hot {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__store-title--hot {
+    fill: #38bdf8;
+  }
+  .dist-sched-diagram__store-title--bus {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__store-title--bus {
+    fill: #fbbf24;
+  }
+
+  .dist-sched-diagram__store-sub {
+    font-size: 11px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    fill: var(--dg-ink-2);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__store-tag {
+    font-size: 9.5px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+    text-anchor: middle;
+  }
+
+  /* Workers */
+  .dist-sched-diagram__worker {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+  .dist-sched-diagram__worker--success {
+    fill: rgba(5, 150, 105, 0.12);
+    stroke: #059669;
+    stroke-width: 1.2px;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__worker--success {
+    fill: rgba(52, 211, 153, 0.18);
+    stroke: #34d399;
+  }
+
+  .dist-sched-diagram__worker-title {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    fill: var(--dg-ink);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__worker-title--success {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__worker-title--success {
+    fill: #34d399;
+  }
+
+  .dist-sched-diagram__worker-sub {
+    font-size: 11px;
+    font-family: var(--font-body);
+    fill: var(--dg-muted);
+    text-anchor: middle;
+  }
+  .dist-sched-diagram__worker-sub--success {
+    fill: #047857;
+    font-weight: 600;
+  }
+  :global(:root[data-theme="dark"]) .dist-sched-diagram__worker-sub--success {
+    fill: #a7f3d0;
+  }
+
+  /* Connectors */
+  .dist-sched-diagram__flow-line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .dist-sched-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 48rem) {
+    .dist-sched-diagram__desktop {
+      display: none !important;
+    }
+
+    .dist-sched-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .dist-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule-strong);
+      border-radius: 0.75rem;
+      padding: 1.125rem;
+    }
+    .dist-mobile-card--emerald {
+      border-left: 5px solid #059669;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-card--emerald {
+      border-left-color: #34d399;
+    }
+    .dist-mobile-card--cyan {
+      border-left: 5px solid #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-card--cyan {
+      border-left-color: #38bdf8;
+    }
+    .dist-mobile-card--indigo {
+      border-left: 5px solid #6366f1;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-card--indigo {
+      border-left-color: #818cf8;
+    }
+
+    .dist-mobile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .dist-mobile-badge--emerald {
+      color: #059669;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-badge--emerald {
+      color: #34d399;
+    }
+    .dist-mobile-badge--cyan {
+      color: #0284c7;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-badge--cyan {
+      color: #38bdf8;
+    }
+    .dist-mobile-badge--indigo {
+      color: #6366f1;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-badge--indigo {
+      color: #818cf8;
+    }
+
+    .dist-mobile-card h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .dist-mobile-card p {
+      margin: 0.35rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .dist-mobile-arrow {
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #0284c7;
+      padding: 0.35rem 0;
+    }
+    :global(:root[data-theme="dark"]) .dist-mobile-arrow {
+      color: #38bdf8;
+    }
+  }
+
+  @media (min-width: 48.0625rem) {
+    .dist-sched-diagram__mobile {
+      display: none !important;
+    }
+  }
+</style>
