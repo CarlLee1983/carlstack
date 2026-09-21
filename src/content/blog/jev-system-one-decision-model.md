@@ -166,6 +166,23 @@ def decide_next_step(payload: dict[str, object]) -> dict[str, object]:
 
 這段程式刻意不宣稱「90% 的事件都能自動處理」。能安全直通多少比例，取決於你的資料分布、錯誤成本與門檻校準。真正的架構改變是：昂貴的 System 2 模型只接收需要多步驟推理或語言合成的工作；明確規則與副作用仍由程式碼掌握。
 
+## 不買 Jev 也能驗證「不生成文字」的推論路徑
+
+Avi Chawla 在 2026-09-20 的〈[Build Your Own Jev (100% Local)](https://x.com/_avichawla/status/2101563610644496464)〉把這個想法收斂成一個可在本機檢驗的實驗：不要求一般 decoder 寫出 JSON，而是讓它在 prompt 的下一個位置對固定標籤評分。SGLang 的 [`/v1/score` 文件](https://docs.sglang.io/docs/basic_usage/native_api)明列 `query`、`items`、`label_token_ids` 與 `apply_softmax`；回傳的 `scores` 依指定 token ID 的順序排列。這讓團隊可以用既有 checkpoint 驗證「答案空間固定時，停止生成是否真的改善自己的延遲與解析失敗率」。
+
+這條本機路徑的核心不是讓模型讀出 `billing`、`technical`、`account` 三個字，而是把語意完整寫進 prompt，然後只讀下一個位置的三個標籤 token，例如 `A`、`B`、`C`。取出三個 logits 後，只在這個候選集合內做 softmax，得到的數字回答的是「在這三個候選中，模型偏好哪個」，不是「模型有多少機率真的正確」。若沒有 `OTHER` 或 `ESCALATE`，softmax 仍會把 100% 的質量硬分給錯誤集合；若標籤在實際 chat template 與前置空白下不是單一 token，則比較已不再是同一個輸出位置。
+
+```yaml
+local_scoring_gate:
+  choices: [refund, technical, account, escalate]
+  label_validation: exact-rendered-prompt, one-token-per-label
+  accept_when: top_probability ≥ calibrated_threshold and margin_to_second ≥ calibrated_margin
+  otherwise: human_review
+  never_authorizes: refunds, deletion, permission_changes
+```
+
+這是很有價值的 control experiment，卻不是 Jev 的替代宣稱。TypeSafe 說明 Jev 會平行輸出機率，並以其訓練與 workflow eval 做產品主張；它也承認公開的速度與成本數字是特定測試設定的結果。[官方說明](https://typesafe.ai/blog/introducing-system-one-models-and-jev)與本機 API 可共同支持的結論只有：停止自迴歸解碼能改變推論路徑。是否有可用的校準、較低 P95，或可接受的錯誤成本，仍要在自己的標記資料、完整 prompt、硬體與併發量上量測。
+
 ## LangChain 把 Jev 放進 Agent loop 的兩個位置
 
 [Sydney Runkle 在 2026-09-18 的文章](https://x.com/sydneyrunkle/status/2100754364545761643)沒有把 Jev 包裝成另一個聊天模型，而是把它接到 Agent harness 的 middleware。LangChain 的整合先用 `TypeSafeClassifier` 暴露 `state + questions → answers`，再提供兩個實驗性 middleware：模型路由與工具風險閘門。
