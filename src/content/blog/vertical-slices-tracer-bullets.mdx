@@ -1,0 +1,154 @@
+---
+title: "給 Agent 一把手術刀：垂直切片架構（Vertical Slices）與小表面積測試"
+description: "傳統三層式與洋蔥架構為何讓 AI Agent 頻繁迷航？本文拆解垂直切片架構（Vertical Slice Architecture）與曳光彈（Tracer Bullets）思維，說明如何透過單一功能閉環目錄與純淨介面測試，讓 Agent 以最小 Token 成本完成端到端高確定性交付。"
+publishDate: 2026-09-22T10:46:00+08:00
+tags:
+  - "Software Architecture"
+  - "AI Engineering"
+  - "Vertical Slice"
+  - "Testing Strategy"
+  - "Matt Pocock"
+series: "Agent 時代的代碼庫設計哲學"
+seriesOrder: 4
+cover: "../../assets/covers/vertical-slices-tracer-bullets.jpg"
+coverAlt: "垂直雷射光束精準切穿水平層級的架構示意圖，象徵垂直切片架構與曳光彈交付"
+draft: false
+---
+
+import VerticalSliceArchitectureDiagram from "../../components/VerticalSliceArchitectureDiagram.astro";
+
+如果你讓 AI Agent 去一個典型的三層式（Layered）或洋蔥架構（Clean/Hexagonal）專案中新增一個簡單功能，例如「允許使用者取消特定待發送的排程通知」，你通常會看見以下痛苦的過程：
+
+1. Agent 先搜尋到 `src/controllers/notification.controller.ts`，新增一個 action。
+2. 接著跳去 `src/services/notification.service.ts`，加上 `cancelScheduledNotification()`。
+3. 然後它找不到實體介面，又翻出了 `src/domain/notification/notification.entity.ts`。
+4. 為了改動資料庫，它再去開 `src/repositories/notification.repository.ts` 與 `src/infrastructure/database/schema.ts`。
+5. 最後它想要寫測試，卻在 `tests/unit/`、`tests/integration/` 與 `tests/e2e/` 之間茫然四顧。
+
+在這一長串跳檔的過程中，Agent 讀取了 5 個資料夾、6 份完全不相關的大檔案。它消耗了數萬個 Token，而且到了第四次跳檔時，它早已忘記最一開始使用者在 Prompt 裡強調的業務邊界條件。
+
+這不是 Agent 智商不夠，而是**人類過去為「組織職能分工」所設計的水平分層架構，正在無情地謀殺 AI Agent 的上下文效率。**
+
+<VerticalSliceArchitectureDiagram />
+
+---
+
+## 水平分層的 AI 詛咒：散落的相關性（Shotgun Surgery）
+
+在軟體架構學中，有一個經典壞味道叫「散彈槍式修改（Shotgun Surgery）」——**每當你要改動一項單一功能時，你必須在代碼庫各處零星地修改許多小檔案。**
+
+傳統分層架構（Controllers、Services、Repositories、Models）是按「技術職能」切分的。這種切分方式在二十年前有其時代背景：前端工程師寫 Controller、領域專家寫 Service、DBA 寫 SQL/Repository。
+
+但 AI Agent 不是按職能分工的組織，它是一個**全端通用執行單元**。對於 Agent 來說，水平分層架構帶來了致命的副作用：
+
+1. **上下文碎片化（Context Fragmentation）：** 為了完成一件事，Agent 必須呼叫多次 `view_file` 或搜尋工具。每次跳檔都在迅速填滿 Context Window，導致注意力機制稀釋。
+2. **抽象洩漏與虛胖：** 為了讓 Service 能被不同地方共用，工程師或 Agent 會傾向把邏輯寫得無比通用，最後演變成幾千行的「上帝服務（God Service）」。
+3. **測試迷宮：** 測試檔案與被測代碼天各一方，Agent 往往隨意挑選一個測試檔案貼上假資料，難以形成穩固的反饋迴圈。
+
+要解放 Agent 的生產力，我們需要一把手術刀——**垂直切片架構（Vertical Slice Architecture）**。
+
+---
+
+## 垂直切片哲學：以「功能」而非「技術層」組織代碼
+
+垂直切片架構最早由 Jimmy Bogard 等人推廣，近年更被 [Matt Pocock](https://x.com/mattpocockuk) 等現代軟體工匠視為 AI 時代最具親和力的代碼組織方式。
+
+它的核心原則極度直觀：**高內聚地將實現特定業務功能（Feature/Command/Query）所需的一切代碼，全部封裝在同一個目錄內。**
+
+在垂直切片下，專案結構不是按 Controller/Service 分類，而是按業務功能展開：
+
+```text
+src/features/
+├── schedule-notification/
+│   ├── index.ts                # 對外公開的 Deep Module 介面
+│   ├── schedule-handler.ts     # 路由與請求驗證 (Schema)
+│   ├── schedule-domain.ts      # 純領域業務規則 (Invariants)
+│   ├── schedule-store.ts       # 資料庫存取或 Seam
+│   └── schedule.test.ts        # 專屬小表面積測試
+└── cancel-notification/
+    ├── index.ts
+    ├── cancel-handler.ts
+    ├── cancel-domain.ts
+    └── cancel.test.ts
+```
+
+### 為什麼垂直切片對 Agent 是降維打擊？
+
+1. **上下文絕對局域化（Locality of Context）：** 當你給 Agent 派發任務「修改取消通知的限制邏輯」時，它只需要開啟 `src/features/cancel-notification/` 這個目錄。所有的相關邏輯、型別、儲存與測試都在眼前。它可以在一次 Tool Call 內掌握全貌，徹底消滅跳檔迷航。
+2. **安全刪除與重構（Safe Deletion）：** 當某個功能下線時，你只需要 `rm -rf src/features/cancel-notification/`。你不需要小心翼翼地去各個 Service 檔案裡尋找有沒有人引用過、會不會留下死代碼。
+3. **無副作用的變更自由：** 修改 `cancel-notification` 的邏輯，絕對不會意外破壞 `schedule-notification` 的穩定性。
+
+---
+
+## 曳光彈開發（Tracer Bullets）：第一發打通端到端
+
+許多工程師在指揮 Agent 時，習慣先讓它寫完資料庫 Migration、再寫 Repository、再寫 Domain、最後再接 UI。這種「由下而上（Bottom-Up）」的施工法常常在最後一步才發現接口對不上，進而引發大規模重工。
+
+在垂直切片思維中，最推薦配合的是《務實的程式人》（The Pragmatic Programmer）中經典的**曳光彈開發（Tracer Bullets）**：
+
+> 「在黑暗中射擊時，你不是先建造一座完整的雷達基地，而是射出一顆發光的子彈。看著它一路劃過夜空擊中目標，確認整條彈道是通暢的。」
+
+當需要建立全新切片時，請指示 Agent 遵循曳光彈三步驟：
+
+1. **第 1 發：極簡貫通（Skeleton Trace）**
+   建立單一目錄，用硬編碼（Hardcoded）或最簡 InMemory 資料打通從輸入到輸出的完整調用路徑，寫一個端到端的小測試讓它亮綠燈。
+2. **第 2 發：注入真實業務規則（Domain Invariants）**
+   依據 `CONTEXT.md` 補齊防禦邏輯、狀態校驗與錯誤處理。
+3. **第 3 發：接駁真實 Seam（Storage Adapter）**
+   將 InMemory Fake 替換為正式的 DB Adapter，確保既有測試無痛通過。
+
+這套工作流讓 Agent 每一階段都有即時的反饋驗證，絕不會在寫了幾百行無效代碼後才發現根本跑不動。
+
+---
+
+## 小表面積測試：Interface as Test Surface
+
+有了垂直切片，測試該怎麼寫？
+
+很多工程師讓 Agent 寫測試時，Agent 會寫出一堆巨細靡遺的測試：測試內部 private function、測試某個小 helper、或者測試一個完全沒有外部呼叫的純函數。這種測試表面積過大，一旦重構內部實作，所有測試就會碎成一地。
+
+在垂直切片中，我們堅持**「介面即測試表面（Interface as Test Surface）」**原則：
+
+1. **只測試切片的公共 API（`index.ts`）：** 外部消費者如何呼叫，測試就如何撰寫。
+2. **忽視內部私有分解：** 切片內部是分成兩個函數還是三個檔案，外部測試完全不關心。
+3. **零副作用與純淨輸入輸出：**
+
+```typescript
+// features/cancel-notification/cancel.test.ts
+import { describe, it, expect } from "bun:test";
+import { createCancelNotificationHandler } from "./index";
+import { InMemoryNotificationStore } from "./testing/in-memory-store";
+
+describe("Feature: Cancel Notification", () => {
+  it("若通知已在發送中（Sending），應拒絕取消並保留狀態", async () => {
+    // 1. 準備局域化 Fake 資料
+    const store = new InMemoryNotificationStore([
+      { id: "notif_123", status: "SENDING", recipient: "user@example.com" },
+    ]);
+
+    const handler = createCancelNotificationHandler({ store });
+
+    // 2. 透過切片入口執行
+    const result = await handler({ notificationId: "notif_123" });
+
+    // 3. 驗證結果與不變量
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("CANNOT_CANCEL_IN_FLIGHT_NOTIFICATION");
+    expect((await store.findById("notif_123"))?.status).toBe("SENDING");
+  });
+});
+```
+
+這份測試精準、獨立、無外部網絡依賴，且在 50 毫秒內就能跑完。當 Agent 跑測試時，它獲得的是**確定性的語義反饋**，而不是淹沒在框架的錯誤堆疊中。
+
+---
+
+## 結論：為 AI 重構代碼庫的幾何形狀
+
+如果說 Deep Modules 決定了**單個模組的深度**，Seams 決定了**外部依賴的接縫**，`CONTEXT.md` 決定了**業務語言的錨點**，那麼垂直切片架構就是決定了**整個系統的空間佈局**。
+
+- **告別水平分層的迷航：** 不要再逼 Agent 在數十個技術分類目錄中穿梭。
+- **拥抱垂直切片的自足性：** 一個目錄、一條完整業務路徑、一份局域化測試。
+- **用曳光彈驗證彈道：** 先跑通一條最小端到端路徑，再逐步加深。
+
+在最後一篇連載中，我們將探討這套體系的終極一哩路——**代碼庫的重構與除熵實戰**：如何建立「自動化 Deletion Test」與「淺模組審查迴圈」，讓人類架構師從敲代碼的手工藝人，進化為指揮 Agent 系統進化的代碼邊界審查者。

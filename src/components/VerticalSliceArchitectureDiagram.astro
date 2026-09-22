@@ -1,0 +1,351 @@
+---
+// src/components/VerticalSliceArchitectureDiagram.astro
+---
+
+<div class="vertical-slice-diagram-wrapper my-8">
+  <div class="desktop-diagram hidden md:block">
+    <svg
+      viewBox="0 0 880 440"
+      class="w-full h-auto"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <pattern
+          id="vs-grid-pattern"
+          width="20"
+          height="20"
+          patternUnits="userSpaceOnUse"
+        >
+          <circle
+            cx="2"
+            cy="2"
+            r="1"
+            fill="var(--dg-border, #334155)"
+            opacity="0.4"></circle>
+        </pattern>
+        <linearGradient id="layered-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.12"></stop>
+          <stop offset="100%" stop-color="#ef4444" stop-opacity="0.05"></stop>
+        </linearGradient>
+        <linearGradient id="slice-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.2"></stop>
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"></stop>
+        </linearGradient>
+        <marker
+          id="arrow-jump"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b"></path>
+        </marker>
+        <marker
+          id="arrow-down-laser"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#06b6d4"></path>
+        </marker>
+      </defs>
+
+      <!-- Background Card -->
+      <rect width="880" height="440" rx="12" fill="var(--dg-bg-card, #0f172a)"
+      ></rect>
+      <rect width="880" height="440" rx="12" fill="url(#vs-grid-pattern)"
+      ></rect>
+
+      <!-- Left: Traditional Layered Architecture (Horizontal) -->
+      <g transform="translate(30, 24)">
+        <rect
+          width="380"
+          height="392"
+          rx="10"
+          fill="url(#layered-grad)"
+          stroke="#f59e0b"
+          stroke-width="1.2"
+          stroke-dasharray="4 4"></rect>
+
+        <rect
+          x="20"
+          y="20"
+          width="160"
+          height="26"
+          rx="6"
+          fill="#f59e0b"
+          opacity="0.2"></rect>
+        <text x="30" y="38" fill="#fbbf24" font-size="12" font-weight="bold"
+          >傳統水平分層 (Layered)</text
+        >
+        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+          >跨越 4-6 個資料夾，Agent 頻繁跳檔迷航</text
+        >
+
+        <!-- Horizontal Layers -->
+        <g transform="translate(20, 95)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="var(--dg-border, #334155)"></rect>
+          <text x="16" y="26" fill="var(--dg-text-base, #e2e8f0)" font-size="12"
+            >Controllers / Routes (controllers/order.ts)</text
+          >
+        </g>
+
+        <path
+          d="M 190 137 L 190 152"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+          stroke-dasharray="2 2"
+          marker-end="url(#arrow-jump)"></path>
+
+        <g transform="translate(20, 155)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="var(--dg-border, #334155)"></rect>
+          <text x="16" y="26" fill="var(--dg-text-base, #e2e8f0)" font-size="12"
+            >Services / Use Cases (services/order.ts)</text
+          >
+        </g>
+
+        <path
+          d="M 190 197 L 190 212"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+          stroke-dasharray="2 2"
+          marker-end="url(#arrow-jump)"></path>
+
+        <g transform="translate(20, 215)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="var(--dg-border, #334155)"></rect>
+          <text x="16" y="26" fill="var(--dg-text-base, #e2e8f0)" font-size="12"
+            >Repositories / DAOs (repos/order.ts)</text
+          >
+        </g>
+
+        <path
+          d="M 190 257 L 190 272"
+          stroke="#f59e0b"
+          stroke-width="1.5"
+          stroke-dasharray="2 2"
+          marker-end="url(#arrow-jump)"></path>
+
+        <g transform="translate(20, 275)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="var(--dg-border, #334155)"></rect>
+          <text x="16" y="26" fill="var(--dg-text-base, #e2e8f0)" font-size="12"
+            >Entities / Models (models/order.ts)</text
+          >
+        </g>
+
+        <!-- Bottleneck Annotation -->
+        <g transform="translate(20, 332)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="#451a03"
+            stroke="#f59e0b"
+            stroke-width="1"></rect>
+          <text x="14" y="26" fill="#fde68a" font-size="11.5"
+            >✕ 改一個欄位動 5 個檔案，Context 迅速耗盡幻覺</text
+          >
+        </g>
+      </g>
+
+      <!-- Right: Vertical Slice Architecture (Tracer Bullets) -->
+      <g transform="translate(470, 24)">
+        <rect
+          width="380"
+          height="392"
+          rx="10"
+          fill="url(#slice-grad)"
+          stroke="#06b6d4"
+          stroke-width="1.5"></rect>
+
+        <rect
+          x="20"
+          y="20"
+          width="180"
+          height="26"
+          rx="6"
+          fill="#06b6d4"
+          opacity="0.2"></rect>
+        <text x="30" y="38" fill="#22d3ee" font-size="12" font-weight="bold"
+          >垂直切片 (Vertical Slice)</text
+        >
+        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+          >單一功能端到端封裝，曳光彈（Tracer Bullet）</text
+        >
+
+        <!-- Vertical Slice Container -->
+        <g transform="translate(20, 95)">
+          <rect
+            width="340"
+            height="225"
+            rx="8"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="#06b6d4"
+            stroke-width="1.2"></rect>
+          <path d="M 0 0 L 6 0 L 6 225 L 0 225 Z" fill="#06b6d4"></path>
+
+          <text x="18" y="28" fill="#67e8f9" font-size="13" font-weight="bold"
+            >features/cancel-subscription/</text
+          >
+
+          <g transform="translate(18, 42)">
+            <rect
+              width="304"
+              height="30"
+              rx="4"
+              fill="var(--dg-bg-card, #0f172a)"></rect>
+            <text
+              x="12"
+              y="20"
+              fill="var(--dg-text-base, #e2e8f0)"
+              font-size="11.5">1. Route &amp; Input Validation (Schema)</text
+            >
+          </g>
+
+          <path
+            d="M 170 72 L 170 82"
+            stroke="#06b6d4"
+            stroke-width="1.5"
+            marker-end="url(#arrow-down-laser)"></path>
+
+          <g transform="translate(18, 86)">
+            <rect
+              width="304"
+              height="30"
+              rx="4"
+              fill="var(--dg-bg-card, #0f172a)"></rect>
+            <text
+              x="12"
+              y="20"
+              fill="var(--dg-text-base, #e2e8f0)"
+              font-size="11.5">2. Domain Business Rules (Invariants)</text
+            >
+          </g>
+
+          <path
+            d="M 170 116 L 170 126"
+            stroke="#06b6d4"
+            stroke-width="1.5"
+            marker-end="url(#arrow-down-laser)"></path>
+
+          <g transform="translate(18, 130)">
+            <rect
+              width="304"
+              height="30"
+              rx="4"
+              fill="var(--dg-bg-card, #0f172a)"></rect>
+            <text
+              x="12"
+              y="20"
+              fill="var(--dg-text-base, #e2e8f0)"
+              font-size="11.5">3. Dedicated DB Query / Seam Call</text
+            >
+          </g>
+
+          <path
+            d="M 170 160 L 170 170"
+            stroke="#06b6d4"
+            stroke-width="1.5"
+            marker-end="url(#arrow-down-laser)"></path>
+
+          <g transform="translate(18, 174)">
+            <rect
+              width="304"
+              height="36"
+              rx="4"
+              fill="#022c22"
+              stroke="#10b981"
+              stroke-width="1"></rect>
+            <text x="12" y="23" fill="#a7f3d0" font-size="11.5"
+              >★ 小表面積測試：`cancelSubscription.test.ts`</text
+            >
+          </g>
+        </g>
+
+        <!-- Advantage Annotation -->
+        <g transform="translate(20, 332)">
+          <rect
+            width="340"
+            height="42"
+            rx="6"
+            fill="#042f2e"
+            stroke="#06b6d4"
+            stroke-width="1"></rect>
+          <text x="14" y="26" fill="#67e8f9" font-size="11.5"
+            >✓ 單一目錄就是完整上下文，Agent 一輪完成閉環</text
+          >
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Mobile View -->
+  <div class="mobile-diagram block md:hidden space-y-4">
+    <div class="p-4 rounded-lg border border-amber-500/30 bg-amber-950/20">
+      <div
+        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-amber-400 bg-amber-500/10 rounded"
+      >
+        傳統水平分層
+      </div>
+      <p class="text-xs text-slate-400 mb-3">改一個小需求跨越 4-6 個目錄</p>
+      <div class="space-y-1.5 text-xs text-slate-300">
+        <div class="p-2 rounded bg-slate-900 border border-slate-700">
+          controllers/ → routes/
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-slate-700">
+          services/ → use-cases/
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-slate-700">
+          repositories/ → models/
+        </div>
+        <div class="p-2 rounded bg-amber-900/40 text-amber-200">
+          ✕ Agent 頻繁搜尋開檔，Token 快速耗損並產生幻覺
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 rounded-lg border border-cyan-500/30 bg-cyan-950/20">
+      <div
+        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-cyan-400 bg-cyan-500/10 rounded"
+      >
+        垂直切片 (Vertical Slice)
+      </div>
+      <p class="text-xs text-slate-400 mb-3">單一目錄封裝完整功能路徑</p>
+      <div class="space-y-1.5 text-xs text-slate-300">
+        <div class="p-2.5 rounded bg-slate-900 border border-cyan-500/40">
+          <strong class="text-cyan-300">features/cancel-subscription/</strong>
+          <div class="mt-1 text-slate-400">
+            包含驗證、業務規則、資料操作與測試
+          </div>
+        </div>
+        <div class="p-2 rounded bg-emerald-900/40 text-emerald-200">
+          ✓ Context 局域化，小表面積測試讓 Agent 一次測過
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
