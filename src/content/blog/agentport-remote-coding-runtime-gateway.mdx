@@ -59,28 +59,28 @@ db_path = "~/.local/state/agentport/agentport.sqlite"
 log_dir = "~/.local/state/agentport/logs"
 
 [[agents]]
-name = "stationhub"
-description = "StationHub 後端核心服務"
-workspace = "~/Dev/CMG/StationHub"
+name = "mall-backend"
+description = "購物商城核心 API 與結帳服務"
+workspace = "~/projects/shop-platform/backend"
 runtime = "claude"
 policy = "workspace-write"
 extra_args = ["--model", "opus"]
 
 [[agents]]
-name = "gaming-docs"
-description = "平台文件庫"
-workspace = "~/Dev/Docs/GamingPlatform"
+name = "erp-inventory"
+description = "ERP 庫存與訂單管理系統"
+workspace = "~/projects/enterprise-erp/inventory-service"
 runtime = "codex"
 policy = "read-only"
 
 [[callers]]
-name = "grok-bot"
-token_env = "AGENTPORT_TOKEN_GROK"
+name = "dispatch-bot"
+token_env = "AGENTPORT_TOKEN_DISPATCH"
 ```
 
 這項設計帶來三個關鍵保證：
 
-1. **實體目錄與身分鎖定**：`stationhub` 這個 Agent 永遠只能在 `~/Dev/CMG/StationHub` 執行。遠端呼叫者無論如何構造 Prompt，其子程序的工作目錄均被固定在該 realpath。
+1. **實體目錄與身分鎖定**：`mall-backend` 這個 Agent 永遠只能在 `~/projects/shop-platform/backend` 執行。遠端呼叫者無論如何構造 Prompt，其子程序的工作目錄均被固定在該 realpath。
 2. **差異化策略（Policy）映射**：設定為 `read-only` 的 Agent 會被 Driver 映射為 Claude 的 `plan` 模式或 Codex 的 `read-only` 沙盒，從工具層阻斷檔案寫入意圖；而設定為 `workspace-write` 的 Agent 則映射至 `acceptEdits`。
 3. **呼叫者身分審計**：憑證不存於 TOML，而是透過環境變數注入 Bearer Token，每個 Task 均記錄交辦的 Caller 身分，確保操作可追溯。
 
