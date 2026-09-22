@@ -1,0 +1,147 @@
+---
+title: "當 Vibe Coding 撞上軟體熵增：為什麼 Matt Pocock 重申 Deep Modules 與 DDD 才是 AI 時代的護城河？"
+description: "探討 Matt Pocock 在 AI Agent 興起之際重申 pre-AI 時代 Codebase Design 的核心洞見：為什麼深模組（Deep Modules）、接縫（Seams）與領域驅動設計（DDD）是防禦軟體熵增與降低 Agent 認知負載的工程護城河。"
+publishDate: 2026-09-22T10:15:00+08:00
+draft: false
+featured: true
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - DDD 與 Clean Architecture
+  - 軟體品質
+cover: ../../assets/covers/deep-modules-vibe-coding-architecture.jpg
+coverAlt: "左側為碎片化交錯的程式碼連線，右側為穩固且具備極簡圓形介面的深模組核心，象徵以簡潔合約封裝複雜內部實作的架構哲學。"
+---
+
+import DeepModulesArchitectureDiagram from "../../components/DeepModulesArchitectureDiagram.astro";
+
+## Vibe Coding 的甜蜜期過後，加速抵達的是「軟體熵增」
+
+「只要描述你想做的功能，AI 就能在幾秒內寫出可運行的原型。」這是社群對 Vibe Coding 最普遍的讚嘆。然而，當專案規模從單檔 Demo 演進為數萬行規模的生產級系統時，許多團隊迎來的不是持續倍增的交付速度，而是近乎癱瘓的架構腐化。
+
+TypeScript 與前端工程領域的指標人物 Matt Pocock 近期在規劃其全新的「Codebase Design」課程時，在社群發出了一個引人深思的問題：
+
+> 「有哪些來自 pre-AI 時代的程式庫設計技巧，在今天依然能極大地幫助 AI Agents？例如深模組（Deep modules）、轉接器與接縫（adapters/seams）等。」
+
+這段提問點出了一個當前工程團隊常犯的認知偏差：**許多人誤以為 AI 時代的到來，意味著傳統軟體工程與架構原則已成歷史包袱。**
+
+事實恰好相反：AI Agent 大幅降低了生成程式碼的邊際成本，卻同時以指數級加速了「軟體熵增（Software Entropy）」。當 Agent 能夠不知疲倦地產生 PR 時，缺乏清晰邊界、缺少語意合約的程式碼庫，會以驚人的速度退化為不可名狀的「大泥球（Big Ball of Mud）」。
+
+在現代 Agentic Engineering 實務中，**程式庫架構（Codebase Architecture）本質上就是輸入給 AI Agent 最關鍵的 Context**。如果架構本身混亂，任何 Prompt Engineering 都只是在替低劣的系統結構掩飾破綻。
+
+---
+
+## 為什麼 LLM 最害怕「淺模組碎片化」？
+
+在 John Ousterhout 的經典著作《A Philosophy of Software Design》中，他將模組劃分為兩種極端型態：
+
+1. **深模組（Deep Module）：** 擁有極簡、精準的介面（Interface），背後卻隱藏著豐富且強大的實作（Implementation）。呼叫者只需付出極低的心智負擔，就能調用龐大的功能。
+2. **淺模組（Shallow Module）：** 介面非常龐大繁瑣，但內部實作卻極為單薄，往往只是幾層毫無意義的透傳（Pass-through）包裝。
+
+在由人類手寫程式的時代，過度拆解的淺模組只會造成工程師在不同檔案間來回跳轉的煩躁感；但在由 AI Agent 擔任開發主力的時代，**淺模組是毀滅 Agent 推理品質的頭號殺手**。
+
+<DeepModulesArchitectureDiagram />
+
+### 淺模組引發的 Agent 三大工程災難
+
+當 Agent 接手一個由大量淺模組與薄封裝構成的專案時，將面臨以下結構性瓶頸：
+
+| 評估維度                    | 淺模組碎片化架構（反模式）                                      | 深模組 + 接縫架構（推薦實踐）                                | 對 Agent 行為的具體影響                                             |
+| :-------------------------- | :-------------------------------------------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------ |
+| **認知負載與 Context 消耗** | 極高：業務邏輯散落於 15+ 檔案，介面與實作等大                   | 極低：單一入口封裝狀態，只暴露高內聚方法與列舉型別           | Agent 不必在多檔中盲目漫遊（Spelunking），保留 Token 額度於邏輯決策 |
+| **局部修改與回歸風險**      | 級聯破壞：修改 Helper A 導致 Controller B 與 C 產生連鎖編譯錯誤 | 局部收斂（Locality）：變更被約束在模組內部，對外合約保持不變 | 縮小 Agent 的修改半徑，大幅降低產生非預期 Side Effects 的機率       |
+| **自動化測試難易度**        | 測試地獄：需要 Mock 內部龐大的私有依賴與中介物件                | 介面即測試面：直接替換 Seam 上的 Adapter 進行極速驗證        | Agent 可透過清楚的 Input/Output 進行嚴謹的 TDD 紅綠循環             |
+
+當 Agent 在淺模組體系中工作時，往往因為 Context Window 有限而無法掌握全局狀態，進而產生「局部看似合理、整體卻破壞架構」的修復方案。每一次微小的功能迭代，都伴隨著漫長的 Debug 迴圈與幻覺猜測。
+
+---
+
+## 重新定義接縫（Seams）與轉接器（Adapters）
+
+Matt Pocock 在其開源的 `codebase-design` 規範中強調，我們應當精準使用 pre-AI 時代的架構詞彙，特別是借鑒 Michael Feathers 在《Working Effectively with Legacy Code》中定義的 **Seam（接縫）**：
+
+> **Seam（接縫）：** 系統中一個無須修改該處程式碼、便能改變運作行為的特定位置。
+
+在 Agentic Workflow 中，Seam 的價值在於為 AI 提供「不可逾越卻易於擴展」的操作界面。配合 **Adapter（轉接器）** 模式，架構師能夠替 Agent 劃定最安全的行動路徑。
+
+```typescript
+// ❌ 難以測試且缺乏 Seam 的淺模組設計：依賴直接硬編碼在實作中
+export class OrderService {
+  async checkout(cartId: string) {
+    const stripe = new StripeClient(process.env.STRIPE_SECRET_KEY!);
+    // 業務校驗、第三方 API 呼叫與資料庫操作混雜一處
+    // Agent 若要撰寫單元測試，必須 Mock 整個 Stripe 網路連線
+  }
+}
+
+// ✅ 具備清晰 Seam 與依賴注入的深模組設計
+export interface PaymentPort {
+  charge(
+    amount: Money,
+    token: PaymentToken,
+  ): Promise<Result<TransactionId, PaymentError>>;
+}
+
+export class OrderModule {
+  // 透過建構子接受依賴，Seam 位於 PaymentPort 介面處
+  constructor(private readonly payment: PaymentPort) {}
+
+  // 深模組對外介面：呼叫者與 Agent 只需要知道這一個乾淨的方法
+  async placeOrder(cart: Cart): Promise<Result<Order, DomainError>> {
+    // 內部封裝複雜的折讓計算、庫存原子鎖定與款項扣抵
+    // 所有的變更與錯誤枚舉皆收斂於此處
+  }
+}
+```
+
+### 兩大檢驗深模組的實踐原則
+
+1. **刪除測試（The Deletion Test）：** 試想刪除該模組。如果複雜度隨之消失，代表該模組只是一層無用的透傳封裝（Pass-through）；如果複雜度重新散落到多個呼叫端，證明該深模組切實承擔了收斂複雜度的責任。
+2. **轉接器原則（Adapter Principle）：** 「一個 Adapter 意味著假設的 Seam；兩個 Adapter 才代表真實的 Seam。」切忌為抽象而抽象；唯有在需要替換外部系統（例如生產環境接 Stripe、測試環境使用 InMemoryFake）時，才引入 Seam。
+
+這為 Agent 帶來了極具確定性的「Replace-don't-layer」測試體驗：Agent 不必猜測私有變數，只需注入 Fake Adapter，就能在端到端之間完成行為驗證。
+
+---
+
+## Domain-Driven Design：將通用語言寫進 `CONTEXT.md`
+
+如果說 Deep Modules 解決了程式碼的「物理結構」，那麼 **Domain-Driven Design (DDD)** 解決的則是 Agent 的「語意歧義」。
+
+LLM 的本質是基於機率分佈預測文字。如果一個專案未經約束，Agent 會隨性依據訓練資料庫的習慣命名實體——今天用 `User`、明天用 `Account`、後天在另一個檔案用 `Customer`；或者對業務操作「Cancel」的定義在前端與後端各自表述。
+
+為了解決這個痛點，Matt Pocock 主張在專案根目錄維護一份嚴格的領域辭典，通常命名為 `CONTEXT.md`：
+
+```markdown
+# 專案領域模型與通用語言 (Ubiquitous Language)
+
+## 核心實體定義 (Canonical Entities)
+
+- **Customer（客戶）：** 具備獨立扣款帳戶與稅務登記的法人或自然人。_禁用詞：User, Client_
+- **Subscriber（訂閱者）：** 具備有效權限 Token 並在平台上發起請求的執行個體。
+- **SubscriptionTier（訂閱方案）：** 系統目前僅支援 `Free`、`Pro` 與 `Enterprise` 三種枚舉，嚴禁在業務邏輯中自行新增 `Trial` 等自訂狀態。
+
+## 不變量與業務限制 (Business Invariants)
+
+- 訂單金額扣抵順序：先扣抵點數餘額，再計算活動折扣，最後進入支付閘道。
+- 只有處於 `PendingPayment` 狀態的訂單可執行 `Cancel`；已進入 `Processing` 的訂單僅能申請 `Refund`。
+```
+
+### 停止規則：拒絕模糊語意進入實作
+
+在 Agent 啟動編碼前，必須配置如 `domain-modeling` 的守門機制：
+
+- **挑戰模糊詞彙（Sharpen fuzzy language）：** 當工程師或 Agent 本身在 Prompt 中使用如「使用者點擊取消」等模糊詞彙時，系統必須立即觸發澄清：「在我們的字典中，取消僅適用於未付款訂單。此處指的是客戶退款（Refund）還是取消待付訂單？」
+- **保持上下文純粹（Context Purity）：** `CONTEXT.md` 僅能包含術語定義與業務不變量，**嚴禁混入實作細節與技術選型**。實作細節交由 Architecture Decision Record (ADR) 承載。
+
+---
+
+## 結論：AI 時代的資深工程師，是在寫「架構鋼骨」
+
+Vibe Coding 讓每個人都擁有了將靈感迅速轉化為程式碼的魔力；但若要在真實商業環境中構建可信賴的系統，工程師的核心價值絕非親自鍵入每一行語法，而是：
+
+1. **設計深模組的邊界：** 確保系統由少數高內聚、小介面、高槓桿的深模組構成。
+2. **在關鍵位置設置 Seam：** 提供乾淨的介面與 Adapter 支援，讓 Agent 能在沙盒內獨立完成 TDD 閉環。
+3. **維護嚴格的 DDD 通用語言：** 將業務不變量固定為不可逾越的文檔合約，消滅語意漂移。
+
+當架構的鋼骨足夠穩固，AI Agent 才能在安全的軌道上全力奔馳，將開發速度轉化為真正的生產力，而非無法承受的架構負債。

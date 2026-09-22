@@ -1,0 +1,486 @@
+<figure class="deep-modules" aria-labelledby="deep-modules-caption">
+  <svg
+    class="deep-modules__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="deep-modules-title deep-modules-desc"
+  >
+    <title id="deep-modules-title">深模組架構 vs 淺模組碎片化對比</title>
+    <desc id="deep-modules-desc">
+      左側為淺模組碎片化架構，Agent
+      必須面對龐大且散落的介面，陷入高認知負載與級聯錯誤；右側為深模組架構，透過小介面與明確接縫封裝複雜度，提供
+      Agent 高槓桿呼叫與局部維護性。
+    </desc>
+    <defs>
+      <marker
+        id="deep-modules-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z"></path>
+      </marker>
+    </defs>
+
+    <!-- 左側：淺模組痛點區 -->
+    <g
+      class="deep-modules__container deep-modules__container--shallow"
+      transform="translate(30 30)"
+    >
+      <rect width="430" height="390" rx="16"></rect>
+      <text
+        class="deep-modules__badge deep-modules__badge--danger"
+        x="24"
+        y="38">反模式：淺模組碎片化</text
+      >
+      <text class="deep-modules__sub" x="24" y="64"
+        >大接觸面 + 散落實作 = Agent 認知過載</text
+      >
+
+      <!-- Agent 視角 -->
+      <rect
+        class="deep-modules__box deep-modules__box--agent"
+        x="24"
+        y="86"
+        width="382"
+        height="56"
+        rx="10"></rect>
+      <text class="deep-modules__node-title" x="40" y="112"
+        >Agent 需追蹤跨多檔細節</text
+      >
+      <text class="deep-modules__node-desc" x="40" y="130"
+        >Context Window 耗盡、幻覺猜測內部狀態</text
+      >
+
+      <!-- 破碎的接口網 -->
+      <g transform="translate(24 160)">
+        <rect
+          class="deep-modules__subcard"
+          x="0"
+          y="0"
+          width="180"
+          height="90"
+          rx="10"></rect>
+        <text class="deep-modules__card-title" x="14" y="28"
+          >OrderController</text
+        >
+        <text class="deep-modules__card-desc" x="14" y="50"
+          >直接暴露 12+ 狀態方法</text
+        >
+        <text class="deep-modules__card-warn" x="14" y="72"
+          >滲透業務檢核規則</text
+        >
+
+        <rect
+          class="deep-modules__subcard"
+          x="202"
+          y="0"
+          width="180"
+          height="90"
+          rx="10"></rect>
+        <text class="deep-modules__card-title" x="216" y="28"
+          >PaymentHelper</text
+        >
+        <text class="deep-modules__card-desc" x="216" y="50"
+          >無邊界的資料傳遞</text
+        >
+        <text class="deep-modules__card-warn" x="216" y="72"
+          >透傳第三方私有錯誤</text
+        >
+
+        <rect
+          class="deep-modules__subcard"
+          x="0"
+          y="106"
+          width="382"
+          height="96"
+          rx="10"></rect>
+        <text class="deep-modules__card-title" x="14" y="134"
+          >散落於 15+ 檔案的狀態邏輯</text
+        >
+        <text class="deep-modules__card-desc" x="14" y="156"
+          >無固定 Seam：修改一處引發其他檔案編譯或運行時連鎖中斷</text
+        >
+        <text class="deep-modules__card-warn" x="14" y="178"
+          >測試地獄：需 Mock 內部無數私有物件才能跑通</text
+        >
+      </g>
+    </g>
+
+    <!-- 右側：深模組高槓桿區 -->
+    <g
+      class="deep-modules__container deep-modules__container--deep"
+      transform="translate(500 30)"
+    >
+      <rect width="430" height="390" rx="16"></rect>
+      <text
+        class="deep-modules__badge deep-modules__badge--success"
+        x="24"
+        y="38">推薦：深模組 + 接縫設計</text
+      >
+      <text class="deep-modules__sub" x="24" y="64"
+        >極小合約 + 完整封裝 = 高槓桿與可測試性</text
+      >
+
+      <!-- 小介面 (Interface / Seam) -->
+      <g transform="translate(24 86)">
+        <rect
+          class="deep-modules__box deep-modules__box--interface"
+          width="382"
+          height="74"
+          rx="10"></rect>
+        <text
+          class="deep-modules__node-title deep-modules__node-title--accent"
+          x="16"
+          y="28">極簡公開介面 (Minimal Interface)</text
+        >
+        <text class="deep-modules__code" x="16" y="48"
+          >placeOrder(cart, payment): Result&lt;Order&gt;</text
+        >
+        <text class="deep-modules__node-desc" x="16" y="65"
+          >清晰的合約、不變量與明確的錯誤枚舉</text
+        >
+      </g>
+
+      <!-- Seam / 依賴邊界 -->
+      <path
+        class="deep-modules__arrow"
+        d="M215 160V182"
+        marker-end="url(#deep-modules-arrow)"></path>
+
+      <!-- 深實作 (Deep Implementation) -->
+      <g transform="translate(24 184)">
+        <rect
+          class="deep-modules__box deep-modules__box--impl"
+          width="382"
+          height="194"
+          rx="10"></rect>
+        <text class="deep-modules__node-title" x="16" y="28"
+          >深層內部實作 (Deep Implementation)</text
+        >
+        <text class="deep-modules__node-desc" x="16" y="48"
+          >複雜業務邏輯與驗證規則完全封閉於模組內</text
+        >
+
+        <!-- 內部 Adapters 與 Seams -->
+        <rect
+          class="deep-modules__inner-card"
+          x="16"
+          y="64"
+          width="168"
+          height="66"
+          rx="8"></rect>
+        <text class="deep-modules__inner-title" x="26" y="88"
+          >StripeAdapter</text
+        >
+        <text class="deep-modules__inner-desc" x="26" y="106"
+          >滿足 Seam 介面規範</text
+        >
+
+        <rect
+          class="deep-modules__inner-card"
+          x="198"
+          y="64"
+          width="168"
+          height="66"
+          rx="8"></rect>
+        <text class="deep-modules__inner-title" x="208" y="88"
+          >InMemoryFake</text
+        >
+        <text class="deep-modules__inner-desc" x="208" y="106"
+          >極速單元與整合測試</text
+        >
+
+        <rect
+          class="deep-modules__inner-card"
+          x="16"
+          y="140"
+          width="350"
+          height="42"
+          rx="8"></rect>
+        <text class="deep-modules__inner-title" x="26" y="166"
+          >DDD 領域規則：訂單校驗、折扣折讓、庫存原子鎖定</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動端版面：卡片垂直堆疊 -->
+  <div class="deep-modules__mobile">
+    <div class="deep-modules__card deep-modules__card--shallow">
+      <div class="deep-modules__card-header">
+        <span class="deep-modules__pill deep-modules__pill--danger"
+          >反模式：淺模組碎片化</span
+        >
+        <h3>大接觸面導致 Agent 認知過載</h3>
+      </div>
+      <p class="deep-modules__text">
+        <strong>現象：</strong>單一邏輯被拆碎為數十個微小 Controller 與
+        Helper，模組介面幾乎與實作一樣複雜。
+      </p>
+      <p class="deep-modules__text">
+        <strong>代價：</strong>Agent 必須消耗大量 Context
+        搜尋跨檔案狀態，容易發明重複抽象或因漏看相依性產生連鎖錯誤。
+      </p>
+    </div>
+
+    <div class="deep-modules__card deep-modules__card--deep">
+      <div class="deep-modules__card-header">
+        <span class="deep-modules__pill deep-modules__pill--success"
+          >推薦：深模組 + 接縫設計</span
+        >
+        <h3>小介面提供高槓桿與可測試性</h3>
+      </div>
+      <p class="deep-modules__text">
+        <strong>極簡介面：</strong>對外只暴露 1 到 2 個高內聚方法與型別合約，對
+        Agent 而言只需記住極小 API 面積。
+      </p>
+      <p class="deep-modules__text">
+        <strong>內部實作與 Seam：</strong>複雜的折讓計算、原子鎖定與第三方
+        Adapter 被封閉在內部，測試時直接抽換 Adapter，保障 Agent
+        局部修改的安全性。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="deep-modules-caption">
+    深模組架構（右）將複雜狀態與領域規則封閉於內部，對外提供精準契約；相較於碎片化的淺模組（左），大幅降低
+    Agent 漫遊跨檔的認知負載。
+  </figcaption>
+</figure>
+
+<style>
+  .deep-modules {
+    margin: 2.5rem 0;
+  }
+
+  .deep-modules__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .deep-modules__mobile {
+    display: none;
+  }
+
+  /* SVG 樣式 */
+  .deep-modules__container rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .deep-modules__badge {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__badge--danger {
+    fill: #e11d48;
+  }
+
+  :global(:root[data-theme="dark"]) .deep-modules__badge--danger {
+    fill: #fb7185;
+  }
+
+  .deep-modules__badge--success {
+    fill: #0284c7;
+  }
+
+  :global(:root[data-theme="dark"]) .deep-modules__badge--success {
+    fill: #38bdf8;
+  }
+
+  .deep-modules__sub {
+    font-size: 13px;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__box rect {
+    stroke-width: 1;
+  }
+
+  .deep-modules__box--agent rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+
+  .deep-modules__box--interface rect {
+    fill: var(--dg-surface);
+    stroke: #0284c7;
+    stroke-width: 1.5;
+  }
+
+  :global(:root[data-theme="dark"]) .deep-modules__box--interface rect {
+    stroke: #38bdf8;
+  }
+
+  .deep-modules__box--impl rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+
+  .deep-modules__subcard {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .deep-modules__node-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__node-title--accent {
+    fill: #0284c7;
+  }
+
+  :global(:root[data-theme="dark"]) .deep-modules__node-title--accent {
+    fill: #38bdf8;
+  }
+
+  .deep-modules__node-desc {
+    font-size: 12.5px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__code {
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+    fill: var(--dg-ink);
+    font-weight: 600;
+  }
+
+  .deep-modules__card-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__card-desc {
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__card-warn {
+    font-size: 11.5px;
+    fill: #e11d48;
+    font-family: var(--font-body);
+  }
+
+  :global(:root[data-theme="dark"]) .deep-modules__card-warn {
+    fill: #fb7185;
+  }
+
+  .deep-modules__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  #deep-modules-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+
+  .deep-modules__inner-card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .deep-modules__inner-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .deep-modules__inner-desc {
+    font-size: 11.5px;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* 窄螢幕樣式 */
+  @media (max-width: 48rem) {
+    .deep-modules__desktop {
+      display: none !important;
+    }
+
+    .deep-modules__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .deep-modules__card {
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--dg-rule);
+      background: var(--dg-surface);
+    }
+
+    .deep-modules__card--shallow {
+      border-left: 4px solid #e11d48;
+    }
+
+    .deep-modules__card--deep {
+      border-left: 4px solid #0284c7;
+    }
+
+    .deep-modules__card-header h3 {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0.5rem 0 0.75rem 0;
+    }
+
+    .deep-modules__pill {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .deep-modules__pill--danger {
+      background: rgba(225, 29, 72, 0.1);
+      color: #e11d48;
+    }
+
+    .deep-modules__pill--success {
+      background: rgba(2, 132, 199, 0.1);
+      color: #0284c7;
+    }
+
+    .deep-modules__text {
+      font-size: var(--text-sm);
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .deep-modules__text strong {
+      color: var(--dg-ink);
+    }
+  }
+</style>
