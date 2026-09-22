@@ -1,0 +1,365 @@
+---
+// AgentPortArchitectureDiagram.astro
+---
+
+<figure class="ap-diagram" aria-labelledby="ap-diagram-caption">
+  <svg
+    class="ap-diagram__desktop"
+    viewBox="0 0 960 400"
+    role="img"
+    aria-labelledby="ap-diagram-title ap-diagram-desc"
+  >
+    <title id="ap-diagram-title">
+      AgentPort 遠端派工控制平面與 Runtime 隔離架構
+    </title>
+    <desc id="ap-diagram-desc">
+      遠端 Caller 透過 SSH 隧道與 Bearer Token 呼叫 AgentPort 的 MCP
+      閘門。AgentPort 透過 Agent Registry 將請求指派給綁定特定 Workspace 的
+      Claude Code 或 Codex Runtime，並以獨立 SQLite 記錄狀態與 Git
+      Diff，控制操作完全獨立於執行佇列。
+    </desc>
+    <defs>
+      <marker
+        id="ap-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="ap-diagram__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path>
+      </marker>
+    </defs>
+
+    <!-- Caller 區塊 -->
+    <g class="ap-diagram__caller" transform="translate(30, 130)">
+      <rect width="180" height="140" rx="10"></rect>
+      <text class="ap-diagram__eyebrow" x="16" y="28">CALLER (遠端交辦方)</text>
+      <text class="ap-diagram__title" x="16" y="56">AI Bot / Client</text>
+      <text class="ap-diagram__detail" x="16" y="82">Claude Code / Codex</text>
+      <text class="ap-diagram__detail" x="16" y="102">外部排程 / 團隊 Bot</text>
+      <text class="ap-diagram__sub" x="16" y="124">以 Token 標記身分</text>
+    </g>
+
+    <!-- 傳輸通道連線 -->
+    <path
+      class="ap-diagram__arrow"
+      d="M210 200 H 280"
+      marker-end="url(#ap-arrow)"></path>
+    <text class="ap-diagram__edge-label" x="245" y="185" text-anchor="middle"
+      >SSH Tunnel</text
+    >
+    <text class="ap-diagram__edge-sub" x="245" y="222" text-anchor="middle"
+      >Streamable HTTP</text
+    >
+
+    <!-- AgentPort 主機核心邊界 -->
+    <g class="ap-diagram__boundary" transform="translate(280, 40)">
+      <rect width="360" height="320" rx="12"></rect>
+      <text class="ap-diagram__eyebrow-strong" x="20" y="32"
+        >TARGET HOST (AGENTPORT GATEWAY)</text
+      >
+
+      <!-- MCP 介面 -->
+      <g class="ap-diagram__inner-card" transform="translate(20, 50)">
+        <rect width="320" height="60" rx="6"></rect>
+        <text class="ap-diagram__card-title" x="14" y="26"
+          >MCP 協定閘門 (submit / get / cancel)</text
+        >
+        <text class="ap-diagram__card-desc" x="14" y="46"
+          >查詢與取消為獨立外側操作，不卡輸入佇列</text
+        >
+      </g>
+
+      <!-- 排程與狀態核心 -->
+      <g class="ap-diagram__inner-card" transform="translate(20, 130)">
+        <rect width="320" height="80" rx="6"></rect>
+        <text class="ap-diagram__card-title" x="14" y="26"
+          >Agent Registry & Task Scheduler</text
+        >
+        <text class="ap-diagram__card-desc" x="14" y="46"
+          >每 Agent 單一 FIFO Worker (同專案不踩踏)</text
+        >
+        <text class="ap-diagram__card-desc" x="14" y="66"
+          >狀態持久化 (SQLite 交易與單實例排他鎖)</text
+        >
+      </g>
+
+      <!-- 驅動邊界 -->
+      <g class="ap-diagram__inner-card" transform="translate(20, 230)">
+        <rect width="320" height="65" rx="6"></rect>
+        <text class="ap-diagram__card-title" x="14" y="26"
+          >Runtime Driver (JSONL 流式監控)</text
+        >
+        <text class="ap-diagram__card-desc" x="14" y="46"
+          >擷取 Commit 歷史、Diff Stat 與 Permission Denials</text
+        >
+      </g>
+    </g>
+
+    <!-- 分派箭頭到 Runtime -->
+    <path
+      class="ap-diagram__arrow"
+      d="M640 140 Q 690 140, 730 100"
+      marker-end="url(#ap-arrow)"></path>
+    <path
+      class="ap-diagram__arrow"
+      d="M640 260 Q 690 260, 730 300"
+      marker-end="url(#ap-arrow)"></path>
+
+    <!-- Runtime A 區塊 -->
+    <g class="ap-diagram__runtime" transform="translate(730, 40)">
+      <rect width="200" height="120" rx="10"></rect>
+      <text class="ap-diagram__eyebrow-accent" x="16" y="26"
+        >LOGICAL AGENT A</text
+      >
+      <text class="ap-diagram__title" x="16" y="52">Claude Code</text>
+      <text class="ap-diagram__detail" x="16" y="74"
+        >Workspace: ~/Dev/ProjectA</text
+      >
+      <text class="ap-diagram__detail" x="16" y="94"
+        >Policy: workspace-write</text
+      >
+      <text class="ap-diagram__sub" x="16" y="112">共用主機管理員訂閱憑證</text>
+    </g>
+
+    <!-- Runtime B 區塊 -->
+    <g class="ap-diagram__runtime" transform="translate(730, 230)">
+      <rect width="200" height="120" rx="10"></rect>
+      <text class="ap-diagram__eyebrow-accent" x="16" y="26"
+        >LOGICAL AGENT B</text
+      >
+      <text class="ap-diagram__title" x="16" y="52">Codex CLI</text>
+      <text class="ap-diagram__detail" x="16" y="74"
+        >Workspace: ~/Dev/ProjectB</text
+      >
+      <text class="ap-diagram__detail" x="16" y="94"
+        >Policy: read-only (plan)</text
+      >
+      <text class="ap-diagram__sub" x="16" y="112"
+        >獨立 FIFO 隊列平行為不同專案跑</text
+      >
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構流程卡片 -->
+  <div class="ap-diagram__mobile" aria-hidden="true">
+    <div class="ap-diagram__m-step">
+      <div class="ap-diagram__m-badge">1. 遠端交辦 (Caller)</div>
+      <div class="ap-diagram__m-title">AI Client / 定時排程 / 開發者終端</div>
+      <div class="ap-diagram__m-desc">
+        透過 SSH 隧道轉發至本機 127.0.0.1:3333，攜帶 Bearer Token
+        進行身份驗證，調用 MCP 派工。
+      </div>
+    </div>
+    <div class="ap-diagram__m-divider">↓</div>
+    <div class="ap-diagram__m-step">
+      <div class="ap-diagram__m-badge">2. 控制平面 (AgentPort Gateway)</div>
+      <div class="ap-diagram__m-title">
+        MCP 閘門 + 排程佇列 + SQLite 狀態儲存
+      </div>
+      <div class="ap-diagram__m-desc">
+        查詢與取消獨立於工作佇列。每 Agent 一條 FIFO Worker
+        確保同工作目錄不發生衝突；狀態跨重啟永久保留。
+      </div>
+    </div>
+    <div class="ap-diagram__m-divider">↓</div>
+    <div class="ap-diagram__m-step">
+      <div class="ap-diagram__m-badge">
+        3. 執行邊界 (Logical Agents & Runtimes)
+      </div>
+      <div class="ap-diagram__m-title">
+        Claude Code / Codex CLI 綁定專屬 Workspace
+      </div>
+      <div class="ap-diagram__m-desc">
+        直接繼承管理者已登入憑證與 OS 環境，派工結束自動擷取 git diff 與 commit
+        清單返還，無須手動輪詢。
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="ap-diagram-caption">
+    圖 1：AgentPort 系統架構——將主機上的 Coding Runtime
+    封裝為具備目錄綁定、權限規則與非同步追蹤能力的受控 MCP 閘門。
+  </figcaption>
+</figure>
+
+<style>
+  .ap-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ap-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+  }
+
+  .ap-diagram__mobile {
+    display: none;
+  }
+
+  /* SVG 樣式與 Token */
+  .ap-diagram__caller rect {
+    fill: var(--dg-surface-2, #f8fafc);
+    stroke: var(--dg-rule-strong, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  .ap-diagram__boundary rect {
+    fill: var(--dg-surface, #ffffff);
+    stroke: var(--dg-rule-strong, #cbd5e1);
+    stroke-width: 2;
+  }
+
+  .ap-diagram__inner-card rect {
+    fill: var(--dg-surface-2, #f8fafc);
+    stroke: var(--dg-rule, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  .ap-diagram__runtime rect {
+    fill: var(--dg-surface-2, #f8fafc);
+    stroke: var(--dg-rule-strong, #cbd5e1);
+    stroke-width: 1.5;
+  }
+
+  .ap-diagram__eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: var(--dg-muted, #64748b);
+  }
+
+  .ap-diagram__eyebrow-strong {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    fill: #0284c7;
+  }
+
+  .ap-diagram__eyebrow-accent {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: #d97706;
+  }
+
+  .ap-diagram__title {
+    font-size: 16px;
+    font-weight: 700;
+    fill: var(--dg-ink, #0f172a);
+  }
+
+  .ap-diagram__card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: var(--dg-ink, #0f172a);
+  }
+
+  .ap-diagram__card-desc {
+    font-size: 12px;
+    fill: var(--dg-ink-2, #475569);
+  }
+
+  .ap-diagram__detail {
+    font-size: 12.5px;
+    fill: var(--dg-ink-2, #475569);
+  }
+
+  .ap-diagram__sub {
+    font-size: 11px;
+    fill: var(--dg-muted, #64748b);
+  }
+
+  .ap-diagram__edge-label {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--dg-ink-2, #475569);
+  }
+
+  .ap-diagram__edge-sub {
+    font-size: 11px;
+    fill: var(--dg-muted, #64748b);
+  }
+
+  .ap-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong, #cbd5e1);
+    stroke-width: 2;
+  }
+
+  .ap-diagram__arrow-head {
+    fill: var(--dg-rule-strong, #cbd5e1);
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted, #64748b);
+    text-align: center;
+  }
+
+  /* 深色模式覆寫 */
+  :global(:root[data-theme="dark"]) .ap-diagram__eyebrow-strong {
+    fill: #38bdf8;
+  }
+
+  :global(:root[data-theme="dark"]) .ap-diagram__eyebrow-accent {
+    fill: #fbbf24;
+  }
+
+  /* 窄螢幕斷點切換 (<= 768px) */
+  @media (max-width: 768px) {
+    .ap-diagram__desktop {
+      display: none;
+    }
+
+    .ap-diagram__mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .ap-diagram__m-step {
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      background: var(--dg-surface-2, #f8fafc);
+      border: 1px solid var(--dg-rule, #e2e8f0);
+    }
+
+    .ap-diagram__m-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #0284c7;
+      margin-bottom: 0.35rem;
+    }
+
+    :global(:root[data-theme="dark"]) .ap-diagram__m-badge {
+      color: #38bdf8;
+    }
+
+    .ap-diagram__m-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink, #0f172a);
+      margin-bottom: 0.5rem;
+    }
+
+    .ap-diagram__m-desc {
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--dg-ink-2, #475569);
+    }
+
+    .ap-diagram__m-divider {
+      text-align: center;
+      color: var(--dg-muted, #64748b);
+      font-weight: 700;
+    }
+  }
+</style>

@@ -1,0 +1,164 @@
+---
+title: "把 Coding Agent 變成可遠端呼叫的受控服務：AgentPort 的派工閘門、狀態模型與邊界取捨"
+description: "從開源專案 AgentPort 的架構設計出發，探討如何把本機 Claude Code 與 Codex 封裝為可遠端派工的 MCP 閘門；拆解為什麼查詢與取消必須獨立於執行佇列，以及單管理者專用主機的真實安全邊界。"
+publishDate: 2026-09-22T12:15:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 開源專案
+  - 技術選型
+series: AI Agent 工程化與工作流實戰
+seriesOrder: 21
+repositoryUrl: https://github.com/CarlLee1983/AgentPort
+cover: ../../assets/covers/agentport-remote-coding-runtime-gateway.png
+coverAlt: "深黑曜石控制台中央具備發光琥珀色安全通道閘門，細緻青色光學導線從遠端控制端連入各個標記有工作目錄的專屬插槽"
+---
+
+import AgentPortArchitectureDiagram from "../../components/AgentPortArchitectureDiagram.astro";
+
+當工程師開始在主力開發機上重度依賴 Claude Code 或 Codex 時，通常很快會遇到下一個痛點：**如何讓另一個 Agent、遠端筆電或外部自動化流程，向這台主機安全地交辦任務？**
+
+在 2026 年的開發日常中，許多人的解法是土法煉鋼：開著 SSH 連線直接遠端敲指令、寫 Bash 腳本將 Prompt 透過 pipe 硬灌進 CLI，或是直接讓本機終端機常時掛載具備危險權限的 Remote MCP。然而，只要執行稍微複雜的任務，脆弱性就會全數暴露：網路稍有斷線任務就失去追蹤、多個外部請求同時修改同一目錄導致程式碼踩踏、執行卡死時完全無法從外部中斷，甚至讓遠端呼叫者擁有了任意遍歷整台硬碟的無上限特權。
+
+由我維護的開源專案 [AgentPort（CarlLee1983/AgentPort）](https://github.com/CarlLee1983/AgentPort) 試圖為這個問題給出一個輕量、聚焦但邊界嚴謹的工程解法：**它不是工作流編排器，也不是多 Agent 協作框架，而是一個專注於把目標主機上的 AI Coding Runtime 封裝為受控「Logical Agent」的遠端 MCP 派工閘門。**
+
+本文從 AgentPort 的架構決策與 ADR 演化切入，探討在遠端調度 Coding Agent 時，最關鍵的控制平面、狀態模型以及不可迴避的安全現實。
+
+<AgentPortArchitectureDiagram />
+
+## 授權的核心：綁定 Workspace，而非開放任意路徑
+
+許多人設計「遠端 Agent 服務」時的第一個架構直覺，是提供一個自由度極高的 API：
+
+```json
+// 危險的自由度：由遠端呼叫者隨意指定路徑與指令
+{
+  "command": "claude",
+  "cwd": "/Users/carl/Dev/SecretApp",
+  "prompt": "Fix authentication bug"
+}
+```
+
+這項設計表面上彈性極佳，本質上卻把整個主機的作業系統完全暴露給不可信的外部環境。在真實的團隊協作或跨裝置調度中，呼叫方（Caller）可能是 Telegram Bot、GitHub Webhook 觸發器，或是另一個自主運行的規劃 Agent。一旦介面允許動態指定 `cwd`，任何 Prompt Injection 或呼叫者失誤，都會讓 Agent 的修改權限延伸至包含憑證、金鑰與非目標儲存庫的任意主機角落。
+
+AgentPort 在架構上做出的第一個硬性約束是：**遠端呼叫者永遠不能指定工作路徑，只能選擇主機管理者預先宣告的「Logical Agent」。**
+
+在主機的 `agentport.toml` 設定檔中，管理者明確劃分每個 Agent 的權責邊界：
+
+```toml
+[server]
+listen = "127.0.0.1:3333"
+long_poll_max_seconds = 30
+turn_timeout_seconds = 3600
+
+[storage]
+db_path = "~/.local/state/agentport/agentport.sqlite"
+log_dir = "~/.local/state/agentport/logs"
+
+[[agents]]
+name = "stationhub"
+description = "StationHub 後端核心服務"
+workspace = "~/Dev/CMG/StationHub"
+runtime = "claude"
+policy = "workspace-write"
+extra_args = ["--model", "opus"]
+
+[[agents]]
+name = "gaming-docs"
+description = "平台文件庫"
+workspace = "~/Dev/Docs/GamingPlatform"
+runtime = "codex"
+policy = "read-only"
+
+[[callers]]
+name = "grok-bot"
+token_env = "AGENTPORT_TOKEN_GROK"
+```
+
+這項設計帶來三個關鍵保證：
+
+1. **實體目錄與身分鎖定**：`stationhub` 這個 Agent 永遠只能在 `~/Dev/CMG/StationHub` 執行。遠端呼叫者無論如何構造 Prompt，其子程序的工作目錄均被固定在該 realpath。
+2. **差異化策略（Policy）映射**：設定為 `read-only` 的 Agent 會被 Driver 映射為 Claude 的 `plan` 模式或 Codex 的 `read-only` 沙盒，從工具層阻斷檔案寫入意圖；而設定為 `workspace-write` 的 Agent 則映射至 `acceptEdits`。
+3. **呼叫者身分審計**：憑證不存於 TOML，而是透過環境變數注入 Bearer Token，每個 Task 均記錄交辦的 Caller 身分，確保操作可追溯。
+
+我的架構立場是：**遠端 Agent 介面必須是白名單實體綁定，絕不能做成萬用 Shell 代理。把權威目錄（Registry）留在主機端，外部呼叫才能具備可推論的安全邊界。**
+
+## 為什麼狀態查詢與取消必須獨立於執行佇列？
+
+在串接 AI Agent 時，最常見的架構災難就是「把所有訊息全部塞進同一個輸入通道」。
+
+當一個 Coding Agent 開始在專案中執行全套測試或大規模重構時，單一 Turn 的執行時間動輒 5 到 15 分鐘。若此時通訊協定將查詢狀態（`get_task`）或中止任務（`cancel_task`）也視為排隊訊息，呼叫端將陷入嚴重的失控狀態：你想看進度必須等任務跑完；你想緊急取消卡死或走偏的任務，中斷請求卻排在卡死任務的後方，形成諷刺的阻塞。
+
+AgentPort 在繼承自 [ADR-0001：External observation and control](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0001-external-observation-and-control.md) 的設計中，確立了一項核心原則：**查詢與取消屬於外側控制操作（Out-of-band Control Operations），其執行路徑完全獨立於 Runtime 的工作輸入佇列。**
+
+| 操作類型         | 涵蓋工具                                | 執行通道                           | 行為特性                                                    |
+| :--------------- | :-------------------------------------- | :--------------------------------- | :---------------------------------------------------------- |
+| **工作輸入**     | `submit_task`, `follow_up`              | 依 Agent 劃分的 FIFO 排程佇列      | 針對同一 Agent 嚴格序列化，防止同一 Repository 發生寫入衝突 |
+| **狀態觀察**     | `get_task`, `list_tasks`, `list_agents` | 外側即時讀取（SQLite 投影）        | 零阻塞；支援 `wait_seconds` 進行低延遲 Long-polling         |
+| **生命週期控制** | `cancel_task`                           | 外側即時中斷（Process Supervisor） | 發出 `SIGINT`/`SIGTERM` 立即中止子程序，不進入工作隊列      |
+
+這項設計體現在呼叫端的交互體驗上。遠端 Client 提交任務後會立即收到 `task_id` 與 `context_id`，而無須等待整個 LLM 運算結束：
+
+```json
+// submit_task 即時返回
+{
+  "task_id": "tsk_01j8m4r6...",
+  "context_id": "ctx_01j8m4r6...",
+  "state": "queued"
+}
+```
+
+隨後，Client 可以透過 `get_task` 帶入 `wait_seconds` 參數發起 Long-poll。AgentPort 在任務狀態變更或計時逾時（受限於最大 55 秒的安全上限，防止打穿 Client 端 MCP 超時）時返回最新狀態。若發現 Agent 陷入迴圈或任務派錯，外部 Client 調用 `cancel_task` 能以毫秒級延遲直接殺掉底層進程，將狀態收斂為 `cancelled`。
+
+## 狀態模型：持久化、重啟語意與 Context 延續
+
+遠端服務不可避免會遭遇主機重啟、網路波動或守護行程更新。如果所有 Task 狀態都只活在記憶體中，任何重啟都將摧毀外部系統的工作追蹤鏈。
+
+AgentPort 採用單一 SQLite 檔案作為權威 Task Store（[ADR-0003](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0003-local-transactional-task-store.md)），並以單實例排他鎖（Exclusive Lock）防止多個 Process 同時讀寫同一個資料庫檔案。
+
+在重啟復原語意上，AgentPort 在 [ADR-0002](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0002-task-records-survive-restart.md) 與 [ADR-0011](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0011-same-user-subscription-credentials.md) 中確立了簡潔明瞭的狀態轉換規則：
+
+1. **排隊中（`queued`）自動續跑**：重啟時尚未開始執行的任務，因尚未產生任何副作用，服務啟動後會依原順序自動接續執行，呼叫方無須重新交辦。
+2. **執行中（`running`）收斂為 `interrupted`**：重啟前正在執行的 Task，其子程序已被作業系統終止，狀態一律標記為 `failed { error: { code: "interrupted" } }`。
+3. **透過 Follow-up 復原 Context**：呼叫端若發現前一項 Task 被中斷，可以在同一個 `context_id` 下調用 `follow_up` 工具。AgentPort 會嘗試使用原 Runtime Session（例如 Claude 的 `--resume <session_id>` 或 Codex 的 `resume <thread_id>`）喚醒上下文，讓 Agent 評估當前專案狀態並接續未完工作。
+
+> [!IMPORTANT]
+> **Context 延續失敗必須大聲失敗。**
+> 若底層 Runtime 的 Session 快取已被清除或無法恢復，AgentPort 會明確回傳 `session_unresumable` 錯誤，而**絕不靜默啟動一個無記憶的新對話**。隱瞞失憶比明確回報失敗更危險，因為外部呼叫者會誤以為 Agent 依然持有先前的架構約定與決策脈絡。
+
+在任務完成（`completed`）時，AgentPort 會自動抓取該 Turn 造成的程式碼異動，包含 `git diff --stat` 與新增的 Commit 清單，連同 Token usage 與 Claude 觸發的 `permission_denied` hints 一併返回。呼叫端無須自己執行額外的 git 指令，就能清晰掌握這次派工的實際落地結果。
+
+## 不留幻覺的安全邊界：專用主機的取捨
+
+許多人在看到「權限政策（Policy）」欄位時，往往會產生過度美好的安全想像，誤以為設定了 `policy = "workspace-write"`，這支 Agent 就被關進了無害的 Docker 容器中。
+
+在 AgentPort 的設計哲學中，我們拒絕這種虛假的安全感。這在 [ADR-0009：Single operator dedicated host no agent isolation](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0009-single-operator-dedicated-host-no-agent-isolation.md) 與 [ADR-0011：Same user subscription credentials](https://github.com/CarlLee1983/AgentPort/blob/main/docs/adr/0011-same-user-subscription-credentials.md) 中寫得極為透徹：
+
+1. **Policy 是傳給 CLI 的參數，不是作業系統沙盒**：Claude Code 的 `acceptEdits` 或 Codex 的沙盒模式，是 CLI 內部層級的行為控制。整個 AgentPort 守護行程是以主機管理者本人的 OS 帳號運行，底層執行的子程序原則上擁有讀取該使用者檔案系統的同等權限。
+2. **共用主機管理者的訂閱憑證**：為了能無縫利用本機已登入的 Claude Pro/Max 或 Codex 訂閱，子程序直接繼承主機管理者的 Keychain、`~/.claude` 與 `~/.codex` 憑證。同主機上的所有 Agent 彼此共用該 Runtime 身分，無機密隔離。
+3. **安全邊界在主機實體，不在目錄**：若你需要不同客戶、不同機密層級的專案完全隔離，正確的架構做法是**分不同主機（或不同 VPS）部署**，而不是依賴設定檔裡的兩個 Agent 名稱。
+
+同時，在網路層級上，AgentPort 預設嚴格綁定 `127.0.0.1:3333`。遠端存取的標準路徑是透過加密的 SSH 隧道（`ssh -N -L 3333:127.0.0.1:3333 <host>`），既有的身分驗證與網路層防禦全部交由成熟的 SSH 協定把關，而不輕易在公共網路上暴露未受保護的 HTTP 埠口。
+
+## 給工程團隊的實踐檢核
+
+當你準備將工作站或機房伺服器上的 Coding Agent 提供給外部團隊或自動化系統使用時，建議依循以下清單檢視架構健全度：
+
+- [ ] **目錄白名單化**：外部請求是否只能透過預先註冊的 Agent 識別碼調用？確認外部輸入無法動態覆寫執行目錄。
+- [ ] **獨立控制平面**：查詢狀態與發起中斷是否具備非阻塞路徑？確認單一任務耗時運算時，監控與取消功能仍可正常運作。
+- [ ] **狀態可追溯性**：任務歷程是否落地於單一資料庫？確認重啟時執行中狀態能被乾淨收斂為 `interrupted`，而非陷入永久未決。
+- [ ] **失憶防禦機制**：當 Context 續接失效時，系統是否會大聲拋出錯誤，避免 Agent 在失去上下文的情況下盲目執行後續工作？
+- [ ] **認清沙盒界線**：不要把 CLI 的權限模式誤認為多租戶隔離。高度敏感專案必須以獨立主機或虛擬機承載。
+
+把強大的 AI Coding Runtime 連上網路，需要的不是花俏的代理協同魔法，而是對檔案邊界、行程生命週期與控制平面的紮實敬畏。
+
+## 延伸閱讀
+
+- [CarlLee1983/AgentPort 官方儲存庫](https://github.com/CarlLee1983/AgentPort)
+- [ADE 不是更酷炫的 IDE：從 Orca 看多 Agent 平行編排的 Git Worktree 隔離與控制面](/blog/orca-ade-git-worktree-multi-agent-orchestration/)
+- [Herdr 解決的不是終端分頁：當 Agent 開始等你時，才需要 Runtime](/blog/herdr-agent-runtime-attention-queue/)
+- [MCP 接得上不等於能放心執行：先把介面、授權與核准分開](/blog/mcp-interface-needs-control-plane/)
+- [把資料庫接給 AI Agent 之前：授權詞彙屬於誰，機制又到得了幾條路徑](/blog/agent-database-authorization-boundary/)
