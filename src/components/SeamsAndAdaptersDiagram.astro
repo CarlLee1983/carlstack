@@ -1,0 +1,409 @@
+<figure class="seams-diagram" aria-labelledby="seams-diagram-caption">
+  <svg
+    class="seams-diagram__desktop"
+    viewBox="0 0 960 460"
+    role="img"
+    aria-labelledby="seams-diagram-title seams-diagram-desc"
+  >
+    <title id="seams-diagram-title">
+      接縫（Seam）與雙轉接器（Adapters）架構圖解
+    </title>
+    <desc id="seams-diagram-desc">
+      展示深模組透過抽象連接埠（Port）建立穩固接縫，生產環境注入真實網路服務轉接器，測試環境注入記憶體假物件，讓
+      Agent 在端到端測試時告別脆弱的 Mock 地獄。
+    </desc>
+    <defs>
+      <marker
+        id="seams-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z"></path>
+      </marker>
+    </defs>
+
+    <!-- 左側：深模組核心與內部邏輯 -->
+    <g class="seams-diagram__container" transform="translate(30 30)">
+      <rect width="420" height="390" rx="16"></rect>
+      <text class="seams-diagram__badge" x="24" y="38"
+        >深模組核心（Deep Core）</text
+      >
+      <text class="seams-diagram__sub" x="24" y="64"
+        >擁有全部業務規則與不變量，不依賴實體 I/O</text
+      >
+
+      <!-- 內部不變量與狀態 -->
+      <g transform="translate(24 86)">
+        <rect class="seams-diagram__card" width="372" height="90" rx="10"
+        ></rect>
+        <text class="seams-diagram__card-title" x="16" y="28"
+          >OrderExecutionEngine</text
+        >
+        <text class="seams-diagram__code" x="16" y="50"
+          >execute(order): Result&lt;Invoice, Error&gt;</text
+        >
+        <text class="seams-diagram__card-desc" x="16" y="72"
+          >校驗訂單完整性、庫存扣抵計算、風控判斷</text
+        >
+      </g>
+
+      <!-- 依賴倒置 Seam 介面 -->
+      <g transform="translate(24 200)">
+        <rect
+          class="seams-diagram__card seams-diagram__card--seam"
+          width="372"
+          height="150"
+          rx="10"></rect>
+        <text
+          class="seams-diagram__card-title seams-diagram__card-title--accent"
+          x="16"
+          y="30">介面接縫：PaymentGatewayPort (Seam)</text
+        >
+        <text class="seams-diagram__card-desc" x="16" y="52"
+          >系統切開行為的具體位置：純合約、零實作細節</text
+        >
+
+        <rect
+          class="seams-diagram__inner"
+          x="16"
+          y="68"
+          width="340"
+          height="66"
+          rx="8"></rect>
+        <text class="seams-diagram__code" x="28" y="94"
+          >+ authorize(token, amount): Promise&lt;Tx&gt;</text
+        >
+        <text class="seams-diagram__code" x="28" y="118"
+          >+ capture(txId): Promise&lt;Receipt&gt;</text
+        >
+      </g>
+    </g>
+
+    <!-- 中間轉接箭頭 -->
+    <path
+      class="seams-diagram__arrow"
+      d="M450 290H520"
+      marker-end="url(#seams-arrow)"></path>
+
+    <!-- 右側：雙轉接器（Two Adapters）驗證實踐 -->
+    <g class="seams-diagram__container" transform="translate(520 30)">
+      <rect width="410" height="390" rx="16"></rect>
+      <text class="seams-diagram__badge" x="24" y="38"
+        >雙轉接器法則（Two Adapters）</text
+      >
+      <text class="seams-diagram__sub" x="24" y="64"
+        >一個 Adapter 是虛設，兩個 Adapter 才構成真實接縫</text
+      >
+
+      <!-- 生產環境 Adapter -->
+      <g transform="translate(24 86)">
+        <rect class="seams-diagram__card" width="362" height="110" rx="10"
+        ></rect>
+        <span class="badge-prod">生產環境</span>
+        <text class="seams-diagram__card-title" x="16" y="30"
+          >StripeProductionAdapter</text
+        >
+        <text class="seams-diagram__card-desc" x="16" y="54"
+          >負責真實網路 I/O、TLS 通訊、Webhook 簽章</text
+        >
+        <text class="seams-diagram__card-muted" x="16" y="78"
+          >依賴環境變數、連線重試、Timeout Budget</text
+        >
+        <text class="seams-diagram__tag" x="16" y="98"
+          >滿足 PaymentGatewayPort 介面契約</text
+        >
+      </g>
+
+      <!-- 測試環境 In-Memory Fake Adapter -->
+      <g transform="translate(24 220)">
+        <rect
+          class="seams-diagram__card seams-diagram__card--fake"
+          width="362"
+          height="130"
+          rx="10"></rect>
+        <text
+          class="seams-diagram__card-title seams-diagram__card-title--success"
+          x="16"
+          y="30">InMemoryPaymentFake（推薦）</text
+        >
+        <text class="seams-diagram__card-desc" x="16" y="54"
+          >內部維護 Map&lt;TxId, Status&gt;，支援確定性斷言</text
+        >
+        <text class="seams-diagram__card-highlight" x="16" y="78"
+          >告別 jest.mock() 與未清除的全域 Mock 污染</text
+        >
+        <text class="seams-diagram__card-muted" x="16" y="100"
+          >可主動注入 failNextCallWith(error) 驗證異常邊界</text
+        >
+        <text class="seams-diagram__tag" x="16" y="120"
+          >毫秒級極速執行、零外部網路依賴</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動端版面：卡片垂直堆疊 -->
+  <div class="seams-diagram__mobile">
+    <div class="seams-diagram__mcard">
+      <div class="seams-diagram__mheader">
+        <span class="seams-diagram__mpill">核心</span>
+        <h3>深模組核心與接縫（Port）</h3>
+      </div>
+      <p class="seams-diagram__mtext">
+        <strong>定義：</strong
+        >深模組封裝所有折讓、狀態流轉與驗證邏輯，依賴於抽象連接埠（PaymentGatewayPort）。
+      </p>
+      <p class="seams-diagram__mtext">
+        <strong>價值：</strong>Agent 修改內部業務演算法時，不會波及對外 I/O
+        溝通；外部合約永遠保持不變。
+      </p>
+    </div>
+
+    <div class="seams-diagram__mcard">
+      <div class="seams-diagram__mheader">
+        <span class="seams-diagram__mpill seams-diagram__mpill--prod">生產</span
+        >
+        <h3>StripeProductionAdapter</h3>
+      </div>
+      <p class="seams-diagram__mtext">
+        <strong>職責：</strong>處理真實網路請求、認證密鑰、TLS
+        逾時與錯誤代碼轉譯，在系統啟動時注入核心。
+      </p>
+    </div>
+
+    <div class="seams-diagram__mcard seams-diagram__mcard--fake">
+      <div class="seams-diagram__mheader">
+        <span class="seams-diagram__mpill seams-diagram__mpill--fake"
+          >測試推薦</span
+        >
+        <h3>InMemoryPaymentFake</h3>
+      </div>
+      <p class="seams-diagram__mtext">
+        <strong>優勢：</strong>以純記憶體狀態取代脆弱的 `spyOn` 與
+        `mockResolvedValue`，具備真正的狀態轉移能力。
+      </p>
+      <p class="seams-diagram__mtext">
+        <strong>Agent 友善度：</strong>提供確定性的錯誤注入方法，Agent
+        寫測試時無須猜測內部私有方法即可完成嚴密 TDD。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="seams-diagram-caption">
+    深模組透過抽象 Port 設立接縫；生產端掛接真實第三方 Adapter，測試端則掛接
+    InMemory Fake，讓 Agent 能進行極速且無副作用的驗證閉環。
+  </figcaption>
+</figure>
+
+<style>
+  .seams-diagram {
+    margin: 2.5rem 0;
+  }
+
+  .seams-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .seams-diagram__mobile {
+    display: none;
+  }
+
+  .seams-diagram__container rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .seams-diagram__badge {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .seams-diagram__sub {
+    font-size: 12.5px;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  .seams-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .seams-diagram__card--seam {
+    fill: var(--dg-surface);
+    stroke: #0284c7;
+    stroke-width: 1.5;
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__card--seam {
+    stroke: #38bdf8;
+  }
+
+  .seams-diagram__card--fake {
+    fill: var(--dg-surface);
+    stroke: #10b981;
+    stroke-width: 1.5;
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__card--fake {
+    stroke: #34d399;
+  }
+
+  .seams-diagram__inner {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .seams-diagram__card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .seams-diagram__card-title--accent {
+    fill: #0284c7;
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__card-title--accent {
+    fill: #38bdf8;
+  }
+
+  .seams-diagram__card-title--success {
+    fill: #059669;
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__card-title--success {
+    fill: #34d399;
+  }
+
+  .seams-diagram__card-desc {
+    font-size: 12px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .seams-diagram__card-muted {
+    font-size: 11.5px;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  .seams-diagram__card-highlight {
+    font-size: 12px;
+    fill: #059669;
+    font-weight: 600;
+    font-family: var(--font-body);
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__card-highlight {
+    fill: #34d399;
+  }
+
+  .seams-diagram__tag {
+    font-size: 11px;
+    fill: #0284c7;
+    font-family: var(--font-mono);
+  }
+
+  :global(:root[data-theme="dark"]) .seams-diagram__tag {
+    fill: #38bdf8;
+  }
+
+  .seams-diagram__code {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    fill: var(--dg-ink);
+  }
+
+  .seams-diagram__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  #seams-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* 窄螢幕樣式 */
+  @media (max-width: 48rem) {
+    .seams-diagram__desktop {
+      display: none !important;
+    }
+
+    .seams-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .seams-diagram__mcard {
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--dg-rule);
+      background: var(--dg-surface);
+    }
+
+    .seams-diagram__mcard--fake {
+      border-left: 4px solid #10b981;
+    }
+
+    .seams-diagram__mheader h3 {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0.5rem 0 0.75rem 0;
+    }
+
+    .seams-diagram__mpill {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(2, 132, 199, 0.1);
+      color: #0284c7;
+    }
+
+    .seams-diagram__mpill--prod {
+      background: rgba(100, 116, 139, 0.1);
+      color: #64748b;
+    }
+
+    .seams-diagram__mpill--fake {
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+    }
+
+    .seams-diagram__mtext {
+      font-size: var(--text-sm);
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .seams-diagram__mtext strong {
+      color: var(--dg-ink);
+    }
+  }
+</style>

@@ -1,0 +1,191 @@
+---
+title: "別讓 Agent 偽造世界：如何用 Seam 與 In-Memory Fake 終結 AI 的 Mock 地獄？"
+description: "深入探討 AI Agent 開發中最嚴重的測試架構陷阱：為什麼 LLM 依賴 jest.mock 與脆性打樁會導致幻覺蔓延？解析 Michael Feathers 的接縫哲學、雙轉接器準則，以及如何用 In-Memory Fake 建構極速、確定性的 TDD 驗證體系。"
+publishDate: 2026-09-22T10:30:00+08:00
+draft: false
+featured: false
+series: "Agent 時代的代碼庫設計哲學"
+seriesOrder: 2
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - DDD 與 Clean Architecture
+  - 軟體品質
+cover: ../../assets/covers/seams-adapters-fake-testing.jpg
+coverAlt: "高精密的機械對接端點與發光晶體模組緊密嵌入接縫，下方為透明純淨的記憶體模擬容器，取代背後交錯凌亂的偽造連線。"
+---
+
+import SeamsAndAdaptersDiagram from "../../components/SeamsAndAdaptersDiagram.astro";
+
+## Agent 寫測試時最致命的通病：偽造世界（Mocking Hell）
+
+在 AI Agent 進入軟體工程日常後，許多團隊發現了一個荒謬的現象：**測試套件的覆蓋率（Coverage）高達 90%，但在生產環境卻頻頻踩雷崩潰。**
+
+當你檢視 Agent 產生的測試代碼時，通常會看到類似以下的手法：
+
+```typescript
+// ❌ Agent 常見的脆弱 Mock：偽造私有依賴與內部實作細節
+describe("OrderService", () => {
+  it("應成功建立訂單", async () => {
+    const mockDb = { query: jest.fn().mockResolvedValue([{ id: "ord_123" }]) };
+    const mockStripe = {
+      charges: { create: jest.fn().mockResolvedValue({ status: "succeeded" }) },
+    };
+
+    // 透過侵入式的 mock 繞過真實業務邊界
+    jest.spyOn(Database, "getInstance").mockReturnValue(mockDb as any);
+    jest.spyOn(StripeClient.prototype, "charge").mockImplementation(mockStripe.charges.create);
+
+    const service = new OrderService();
+    const result = await service.create({ userId: "u_1", amount: 100 });
+
+    expect(mockStripe.charges.create).toHaveBeenCalledWith({ amount: 100 });
+    expect(result.id).toBe("ord_123");
+  });
+});
+```
+
+這類測試表面上全數綠燈，但它本質上是 **「Agent 在自己偽造的虛幻世界裡孤芳自賞」**。它帶來了三個致命代價：
+
+1. **測試與實作細節深度耦合：** 只要工程師或另一個 Agent 重構了 `OrderService` 的私有方法名稱，或更換了資料庫查詢語句，測試立刻一片紅燈，即使系統的外部行為完全正確。
+2. **掩蓋真實型別契約漂移：** 第三方 SDK 更新了錯誤枚舉或回傳結構，但 `mockResolvedValue` 依舊回傳過時的假資料，讓型別檢查器（Typechecker）形同虛設。
+3. **狀態洩漏與髒環境污染：** LLM 在處理多個測試檔案時，經常忘記 `jest.clearAllMocks()` 或清理全域狀態，導致單獨執行可通過、平行整批執行卻隨機失敗的幽靈 Bug。
+
+要終結這種混亂，我們必須重拾 pre-AI 時代經典的架構紀律：**接縫（Seams）與記憶體假物件（In-Memory Fakes）**。
+
+---
+
+## 什麼是真實的接縫（Seams）？
+
+軟體重構大師 Michael Feathers 在《Working Effectively with Legacy Code》中給了「接縫」一個歷久彌新的定義：
+
+> **接縫（Seam）：** 一個可以在不修改該處程式碼的前提下，改變系統行為的位置。
+
+在 Matt Pocock 提倡的 `codebase-design` 體系中，接縫是模組公開介面（Interface）所座落的物理邊界。然而，工程師與 Agent 最常犯的錯誤，就是**發明了虛假的接縫**。
+
+<SeamsAndAdaptersDiagram />
+
+### 雙轉接器準則（Two-Adapter Rule）
+
+> **停止規則：** 「一個轉接器意味著假設的接縫；兩個轉接器才代表真實的接縫。」
+
+如果你為某個服務定義了 `interface IUserService`，但在整個代碼庫中永遠只有 `class UserService implements IUserService` 這唯一一個實作，那麼這個 interface 就不是接縫，它只是**毫無意義的間接層（Indirection）**。
+
+真正的接縫必須滿足：**在該切口處，至少存在兩種以上合理的實作策略**。最經典的組合，就是「生產環境的實體轉接器」與「測試環境的記憶體假物件轉接器」。
+
+| 轉接器型態 | 職責與環境 | 內部運作機制 | 對 Agent 的核心價值 |
+| :--- | :--- | :--- | :--- |
+| **生產環境 Adapter** | 線上 Production | 處理真實 HTTP/gRPC、憑證金鑰、TLS 連線與逾時重試 | 將不穩定的網路 I/O 完全隔離在深模組核心之外 |
+| **In-Memory Fake Adapter** | 測試與本機沙盒 | 以記憶體中的 Map 或 Array 維護完整的狀態流轉 | 提供 100% 確定性行為、毫秒級極速執行、零外部依賴 |
+
+---
+
+## 為什麼 In-Memory Fake 徹底擊潰了 Mock？
+
+Mock（打樁/間諜）只是在記錄「某個方法有沒有被呼叫、被呼叫時傳了什麼參數」；而 **Fake（假物件）是真正實現了該介面契約的「輕量級工作模型」**。
+
+讓我們看看一個為 Agent 設計的 `PaymentGatewayPort` 與其 `InMemoryPaymentFake`：
+
+```typescript
+// 1. 介面接縫（Seam）：純粹的業務合約
+export interface PaymentGatewayPort {
+  authorize(token: string, amount: number): Promise<Result<string, PaymentError>>;
+  capture(transactionId: string): Promise<Result<void, PaymentError>>;
+  getTransactionStatus(transactionId: string): Promise<TransactionStatus | null>;
+}
+
+// 2. 測試專用的 In-Memory Fake：具備真實狀態轉換
+export class InMemoryPaymentFake implements PaymentGatewayPort {
+  private transactions = new Map<string, { amount: number; status: TransactionStatus }>();
+  private nextError: PaymentError | null = null;
+
+  // 專為測試設計的確定性控制方法
+  failNextCallWith(error: PaymentError): void {
+    this.nextError = error;
+  }
+
+  async authorize(token: string, amount: number): Promise<Result<string, PaymentError>> {
+    if (this.nextError) {
+      const err = this.nextError;
+      this.nextError = null;
+      return Result.err(err);
+    }
+    const txId = `tx_fake_${this.transactions.size + 1}`;
+    this.transactions.set(txId, { amount, status: "AUTHORIZED" });
+    return Result.ok(txId);
+  }
+
+  async capture(transactionId: string): Promise<Result<void, PaymentError>> {
+    const tx = this.transactions.get(transactionId);
+    if (!tx || tx.status !== "AUTHORIZED") {
+      return Result.err(new PaymentError("INVALID_TRANSACTION"));
+    }
+    tx.status = "CAPTURED";
+    return Result.ok();
+  }
+
+  async getTransactionStatus(transactionId: string): Promise<TransactionStatus | null> {
+    return this.transactions.get(transactionId)?.status ?? null;
+  }
+}
+```
+
+### 當 Agent 使用 Fake 進行 TDD 時發生了什麼變化？
+
+現在，Agent 撰寫的測試不再需要任何 `jest.spyOn`，代碼乾淨得就像普通的業務呼叫：
+
+```typescript
+// ✅ 乾淨、真實、抗重構的端到端驗證
+describe("OrderModule 訂單結帳整合", () => {
+  it("扣款成功時應將訂單標記為已支付並扣抵庫存", async () => {
+    const fakePayment = new InMemoryPaymentFake();
+    const orderModule = new OrderModule(fakePayment); // 依賴注入
+
+    const result = await orderModule.checkout({ cartId: "cart_99", token: "tok_valid" });
+
+    expect(result.isOk()).toBe(true);
+    // 斷言系統的真實最終狀態，而非內部呼叫次數
+    expect(await fakePayment.getTransactionStatus(result.value.transactionId)).toBe("CAPTURED");
+  });
+
+  it("第三方逾時拒付時，系統應回滾庫存並回傳明確領域錯誤", async () => {
+    const fakePayment = new InMemoryPaymentFake();
+    fakePayment.failNextCallWith(new PaymentError("GATEWAY_TIMEOUT")); // 確定性注入異常
+
+    const orderModule = new OrderModule(fakePayment);
+    const result = await orderModule.checkout({ cartId: "cart_99", token: "tok_valid" });
+
+    expect(result.isErr()).toBe(true);
+    expect(result.error.code).toBe("PAYMENT_FAILED_ROLLED_BACK");
+  });
+});
+```
+
+這種設計帶來了巨大優勢：
+- **極致的抗重構能力（Refactoring Resilience）：** 就算你把 `OrderModule` 內部的私有方法全部重構、將迴圈改成函數式 Pipeline，只要外部合約不變，這份測試永遠能精準守護業務邏輯。
+- **消滅 Agent 的幻覺 Mock：** Agent 不用再去猜測 Stripe API 內部回傳了哪些複雜物件，所有的型別檢查均受到 TypeScript 編譯器強制防禦。
+- **無縫嵌入 CI/CD 迴圈：** 測試不再發起真實網路連線，也不需要啟動龐大的 Docker 容器，千次測試可以在兩秒內跑完。
+
+---
+
+## Replace, Don't Layer：拒絕包裹洋蔥
+
+AI Agent 有一個下意識的弱點：**它傾向於在既有的代碼上「再包一層」來滿足新需求**。
+
+如果你要求 Agent 為現有系統新增快取功能，如果沒有明確的架構邊界，它會在 Controller 裡加一層快取判斷、在 Helper 裡再加一層記憶體字典，最後代碼變成層層疊疊的包裹洋蔥（Layering）。
+
+在重構與加深模組（Deepening）時，必須遵守 **「Replace, Don't Layer（替換而非疊層）」** 原則：
+
+1. **舊測試該刪就刪：** 當多個淺模組被收斂進一個深模組後，過去針對淺模組內部寫的微小測試已經成為無用負債。在深模組的公開介面建立完整的 Fake 測試後，**果斷刪除舊的內部測試**。
+2. **測試表面即介面邊界：** 呼叫端（Callers）與測試端（Tests）應當走進同一道門（Cross the same seam）。如果你發現測試必須跨越介面去窺探模組內部的私有屬性，這正是模組介面劃分失敗的警訊。
+
+---
+
+## 結論：給 Agent 一個有回饋的真實沙盒
+
+軟體工程永遠是在管理「複雜度」。當 AI 讓生產代碼的成本降至趨近於零時，如果缺乏優良的接縫與 Fake 體系，團隊最終會被無數虛假的 Mock 測試所反噬。
+
+**不要讓 Agent 在測試裡偽造世界。** 
+
+定義乾淨的 Seam，為核心功能打造確定性的 In-Memory Fake。只有當 Agent 能夠在快速、可預測且具有真實狀態回饋的沙盒中運行時，TDD 的紅綠重構循環才能真正成為守護軟體品質的堅定基石。
