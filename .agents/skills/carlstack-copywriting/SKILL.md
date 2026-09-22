@@ -14,11 +14,12 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
 5. Draft or revise the smallest requested scope. Keep the writing concrete about constraints, choices, verification, and results.
 6. When diagrams or structured data are included, consult `docs/diagram-guide.md` and enforce the **Anti-Patterns & Prose-Diagram Synergy** rules:
    - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 500px, text >= 12.5px);
-   - Ban messy text bullet dumps right after diagrams; always use neatly structured markdown comparison tables for parameters and complexity.
-7. Enforce **Table vs. Structured Prose** layout boundaries:
-   - Ban "overstuffed multi-column prose tables": Markdown tables must be kept to 2 to 4 columns maximum, and used strictly for concise parameters, numerical metrics, types, or short comparison attributes.
-   - Never cram multiple long narrative sentences (e.g., scenario context, model judgment, downstream action, caveats) across 4+ table columns, which causes unbearable horizontal cramming and wrapping.
-   - For multi-dimensional case catalogs, scenario atlases, or system components, use **"High-level 2-3 column index table + Structured Module Cards (h3/h4 with clean Key-Value lists)"** or thematic clusters with ample whitespace to ensure excellent readability across mobile and desktop.
+   - Ban unstructured raw text dumps; use structured cards or crisp key-value blocks to break down parameters and complexity.
+7. **Avoid Markdown Tables; Prefer Structured Prose & Cards (全面避免使用 Table)**:
+   - Markdown 表格在響應式網頁（特別是窄螢幕手機與行動裝置）極易造成水平捲動、單元格文字過度擠壓或破碎折行，嚴重損害閱讀體驗與視覺節奏。
+   - **能用結構化清單、模組卡片或段落呈現時，一律不使用 Table**。
+   - 案例庫、場景圖譜、多維度對比、架構權衡與工作流分工，一律採用「**模組小標（h3/h4/h5）搭配粗體鍵值清單（`- **維度**：說明`）**」或主題叢集（Thematic Clusters）。
+   - 只有在極少數純數值矩陣或無歧義的短鍵值對照時，才在無其他排版替代時審慎評估；大原則一律維持「非必要不使用 Table」。
 8. When a cover is requested, follow Cover Direction below after the article direction is stable.
 9. Run the narrowest relevant repository check after changing files. Follow the publication checklist in `docs/content-guide.md` only when publication is requested.
 
