@@ -1085,6 +1085,77 @@ mark {
   .mermaid-frame svg {
     min-width: 32rem;
   }
+
+  /* 行動端表格轉卡片佈局：解構傳統表格標籤，每一列為獨立卡片，單元格以鍵值形式呈現 */
+  .prose .table-scroll {
+    overflow-x: visible;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    margin-block: calc(1.75rem * var(--font-scale, 1));
+  }
+
+  .prose table {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    min-width: 0;
+    width: 100%;
+  }
+
+  .prose thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .prose tbody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .prose tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-card);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-md);
+    gap: 0.6rem;
+  }
+
+  .prose td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, auto) 1fr;
+    align-items: baseline;
+    gap: var(--space-sm);
+    padding: 0 0 0.5rem 0;
+    border-block-end: var(--rule-hair) dashed var(--color-rule);
+    font-size: calc(0.9rem * var(--font-scale, 1));
+    line-height: 1.6;
+  }
+
+  .prose tr td:last-child {
+    border-block-end: none;
+    padding-block-end: 0;
+  }
+
+  .prose td[data-label]::before {
+    content: attr(data-label);
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-ink);
+    font-size: calc(0.82rem * var(--font-scale, 1));
+    word-break: keep-all;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

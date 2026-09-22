@@ -59,3 +59,32 @@ test("沒有表格時不改動樹狀結構", () => {
   assert.equal(tree.children.length, 1);
   assert.equal(at(tree, 0).tagName, "p");
 });
+
+test("為表格單元格注入 data-label 屬性以支援行動端卡片化", () => {
+  const textNode = (value: string): HastNode =>
+    ({
+      type: "text",
+      value,
+    }) as unknown as HastNode;
+
+  const th1 = element("th", [textNode("指標")]);
+  const th2 = element("th", [textNode("說明")]);
+  const trHead = element("tr", [th1, th2]);
+  const thead = element("thead", [trHead]);
+
+  const td1 = element("td", [textNode("延遲")]);
+  const td2 = element("td", [textNode("低於 5ms")]);
+  const trBody = element("tr", [td1, td2]);
+  const tbody = element("tbody", [trBody]);
+
+  const table = element("table", [thead, tbody]);
+  const tree = run(element("root", [table]));
+
+  const wrappedTable = at(tree, 0, 0);
+  const bodyRow = at(wrappedTable, 1, 0);
+  const cell1 = at(bodyRow, 0);
+  const cell2 = at(bodyRow, 1);
+
+  assert.equal(cell1.properties["data-label"], "指標");
+  assert.equal(cell2.properties["data-label"], "說明");
+});
