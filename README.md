@@ -7,7 +7,7 @@
 ## 技術架構
 
 - Astro 7、TypeScript strict mode、Astro Content Collections
-- Markdown、MDX、Shiki 與 Mermaid
+- Markdown、MDX、Shiki、Mermaid 與自研 Rehype/Remark 擴充（Callout、標題錨點、行動端自適應鍵值卡片/水平捲動）
 - Pagefind build-time 靜態全文索引
 - 靜態 HTML + Cloudflare Workers Static Assets（無 SSR adapter）
 - RSS、Sitemap、robots.txt、Open Graph、Twitter Card 與 JSON-LD

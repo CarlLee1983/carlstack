@@ -14,18 +14,18 @@ CI（`.github/workflows/ci.yml`）在 pull request 執行前兩者；`deploy.yml
 
 測試守的是[邊界](architecture.md#邊界清單)，不是覆蓋率數字。改動左欄的規則就要更新右欄的測試。
 
-| 規則                                                 | 測試                                  |
-| ---------------------------------------------------- | ------------------------------------- |
-| 發布日倒序、draft 過濾、taxonomy 正規化、系列排序    | `tests/content.test.ts`               |
-| `/blog/` 分頁 URL 形狀與邊界處理                     | `tests/pagination.test.ts`            |
-| canonical 與預設分享圖由 `SITE_URL` 產生、文章可覆寫 | `tests/seo.test.ts`                   |
-| 部署拒絕 placeholder `SITE_URL`                      | `tests/site-url.test.ts`              |
-| 新改文章禁用 Mermaid                                 | `tests/content-policy.test.ts`        |
-| h2–h4 錨點連結，重複執行不疊加                       | `tests/rehype-heading-anchor.test.ts` |
-| 表格包進水平捲動容器，不重複包裝                     | `tests/rehype-table-scroll.test.ts`   |
-| callout 標記轉 `aside`                               | `tests/remark-callout.test.ts`        |
-| 目錄只收 h2／h3，h3 掛在前一個 h2 底下               | `tests/toc.test.ts`                   |
-| 深淺色一般文字、連結與主色按鈕的對比至少 4.5:1       | `tests/color-contrast.test.ts`        |
+| 規則                                                     | 測試                                  |
+| -------------------------------------------------------- | ------------------------------------- |
+| 發布日倒序、draft 過濾、taxonomy 正規化、系列排序        | `tests/content.test.ts`               |
+| `/blog/` 分頁 URL 形狀與邊界處理                         | `tests/pagination.test.ts`            |
+| canonical 與預設分享圖由 `SITE_URL` 產生、文章可覆寫     | `tests/seo.test.ts`                   |
+| 部署拒絕 placeholder `SITE_URL`                          | `tests/site-url.test.ts`              |
+| 新改文章禁用 Mermaid                                     | `tests/content-policy.test.ts`        |
+| h2–h4 錨點連結，重複執行不疊加                           | `tests/rehype-heading-anchor.test.ts` |
+| 表格單元格注入 data-label 並包進捲動容器以支援行動卡片化 | `tests/rehype-table-scroll.test.ts`   |
+| callout 標記轉 `aside`                                   | `tests/remark-callout.test.ts`        |
+| 目錄只收 h2／h3，h3 掛在前一個 h2 底下                   | `tests/toc.test.ts`                   |
+| 深淺色一般文字、連結與主色按鈕的對比至少 4.5:1           | `tests/color-contrast.test.ts`        |
 
 ## 慣例
 
