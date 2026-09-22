@@ -1,0 +1,185 @@
+---
+title: "消滅 Agent 的語義漂移：從 CONTEXT.md 到防禦型規格工作流"
+description: "AI Agent 在長對話與多檔案協作中最致命的隱形殺手是「語義漂移」。本文解構 Matt Pocock 實踐的 DDD 領域建模思維，展示如何以高純度的 CONTEXT.md、語義銳化（Sharpening）防線與輕量 ADR，終結 LLM 的隨機幻覺。"
+publishDate: 2026-09-22T10:35:00+08:00
+tags:
+  - "Software Architecture"
+  - "AI Engineering"
+  - "Domain-Driven Design"
+  - "Matt Pocock"
+  - "Agent Workflows"
+series: "Agent 時代的代碼庫設計哲學"
+seriesOrder: 3
+cover: "../../assets/covers/domain-modeling-context-spec.jpg"
+coverAlt: "黃金幾何立體結晶概念圖，象徵透過領域模型字典錨定漂移代碼"
+draft: false
+---
+
+import DomainModelingContextDiagram from "../../components/DomainModelingContextDiagram.astro";
+
+你一定遇過這種令工程師抓狂的場景：
+
+在對話視窗 A 裡，你請 AI Agent 實作「取消訂閱」功能，它在代碼中建立了 `user.cancelSubscription()`，將使用者狀態標記為 `is_cancelled = true`；兩個小時後，在對話視窗 B 中，你請另一個 Agent 處理「企業租戶到期審查」，它卻建立了 `account.terminateContract()`，直接發出計費中斷事件。
+
+這兩個 Agent 都寫出了語法正確、測試會過的 TypeScript 代碼。但當合併到同一專案時，整個代碼庫瞬間陷入邏輯精神分裂：**到底付費主體是 `User` 還是 `Account`？「取消」與「終止」對應的資料庫不變量（Invariants）到底由誰保證？**
+
+這就是 AI 驅動開發中最致命的隱形崩解——**語義漂移（Semantic Drift）**。
+
+<DomainModelingContextDiagram />
+
+---
+
+## 語義漂移：LLM 本質引發的代碼腐蝕
+
+大語言模型（LLM）的底層架構是機率預測。在海量訓練資料中，`User`、`Customer`、`Account`、`Client` 常常是可互相替換的同義詞；`cancel`、`revoke`、`terminate`、`suspend` 也能在各類部落格文章中混用。
+
+當人類資深工程師寫代碼時，腦海中具備穩定的「領域心智模型」（Domain Mental Model）。但 AI Agent 沒有實體記憶，它的上下文窗口（Context Window）會隨對話拉長而衰減，或者在新的 Subagent 生成時歸零。如果代碼庫沒有提供具備強約束的「統一語言字典」，Agent 就會隨機擲骰子挑選名詞與動詞。
+
+當名詞產生分歧，資料庫綱要（Schema）就會分裂；當動詞產生模糊，業務不變量就會被無情打破。
+
+領域驅動設計（Domain-Driven Design, DDD）在過去二十年常被嫌棄過於厚重、充滿繁文雜序。然而正如 [Matt Pocock 所強調](https://x.com/mattpocockuk)，**在 Agent 時代，DDD 的核心遺產——統一語言（Ubiquitous Language）與限界上下文（Bounded Context），反而成了馴服隨機性最強大的防禦武器。**
+
+---
+
+## 核心錨點：保持高純度的 `CONTEXT.md`
+
+為了給 Agent 一個絕對可靠的世界觀，我們必須在專案根目錄建立一份專屬領域的規格錨點：`CONTEXT.md`。
+
+但許多團隊在嘗試導入時犯了致命錯誤：**把架構選型、套件依賴、甚至 API 路由寫進了 `CONTEXT.md`。**
+
+一旦你把「我們使用 PostgreSQL 與 Redis」寫進領域文件，Agent 就會過早將儲存機制與業務概念偶合。**`CONTEXT.md` 必須具備高度純粹性（Context Purity）**——它只專注於兩件事：
+
+1. **名詞與動詞字典（Ubiquitous Language）：** 它是什麼，不是怎麼做。
+2. **領域不變量（Business Invariants）：** 無論技術如何演進，系統絕對不可打破的底線真理。
+
+### 標準單一上下文規範（Single-Context Template）
+
+以下是一份經過實戰驗證的高純度 `CONTEXT.md` 範例：
+
+```markdown
+# 訂閱與計費領域上下文 (Subscription Billing Context)
+
+## 統一語言字典 (Ubiquitous Language)
+
+- **Account（帳戶）**：具備計費責任的組織實體，擁有唯一的統編或法人識別。一個 Account 可包含多個 User。嚴禁使用 Customer 作為型別名稱。
+- **User（成員）**：登入系統操作介面的自然人，屬於特定 Account。User 本身不具備獨立計費屬性。
+- **Plan（方案）**：定義服務配額與週期計價的合約規範（例如：Pro, Enterprise）。
+- **Suspend（停權）**：暫時凍結 Account 的 API 存取權限，但保留所有歷史資料與資料庫記錄。
+- **Terminate（終止）**：解除商業契約，進入 30 天資料封存倒數。
+
+## 領域不變量 (Business Invariants)
+
+1. **未結清不可終止**：若 Account 仍有未繳清的帳單（Outstanding Invoices），禁止執行 `Terminate`，只能進入 `Suspend` 狀態。
+2. **主席不可懸空**：一個 Account 必須永遠綁定至少一位具備 `Owner` 權限的 User。若要移除該 User，必須先完成 Owner 轉移。
+3. **降級週期完整性**：Plan 變更為低階方案時，變更必須在當前計費週期結束後（Period End）才生效，不提供即時退款。
+```
+
+這份文件只有幾十行，但它給予 Agent 的約束力超越數萬行雜亂的 Prompt。當 Agent 嘗試實作功能時，這份文件是唯一的真實來源（Single Source of Truth）。
+
+---
+
+## 多領域邊界：`CONTEXT-MAP.md` 的職責切分
+
+當系統規模擴大，單一 `CONTEXT.md` 會面臨名詞語義衝突。例如，「商品（Item）」在**購物車上下文（Cart Context）**代表的是名稱、售價與購買數量；但在**倉儲物流上下文（Logistics Context）**，它代表的是重量、體積、長寬與溫層規格。
+
+若強行把兩者揉合在一個大字典裡，只會造成更大的混亂。此時應依據 DDD 的限界上下文（Bounded Contexts）原則建立子目錄，並在根目錄建立 `CONTEXT-MAP.md`：
+
+```text
+/docs/domains/
+├── CONTEXT-MAP.md
+├── ordering/
+│   └── CONTEXT.md
+└── logistics/
+    └── CONTEXT.md
+```
+
+在 `CONTEXT-MAP.md` 中，清楚定義上下文之間的依賴方向與防腐層（Anti-Corruption Layer, ACL）：
+
+```markdown
+# 系統領域上下文映射圖 (Context Map)
+
+## 上下文依賴關聯
+
+- **Ordering Context（上游 Upstream）** ───(發布 OrderPlaced 事件)───> **Logistics Context（下游 Downstream）**
+- **關係模式**：Customer/Supplier。Logistics 透過防腐層（ACL）轉換訂單資料，嚴禁直接共享資料庫實體。
+```
+
+當 Agent 被分派任務時，首先載入目標子領域的 `CONTEXT.md` 與 `CONTEXT-MAP.md`。這樣無論是哪個 Agent 執行任務，都不可能跨界寫出破壞邊界的耦合代碼。
+
+---
+
+## 語義銳化防線：在 Coding 之前發動「Grill」
+
+有了領域字典，Agent 就不會出錯了嗎？不。使用者自己給出的指令常常就是模糊的罪魁禍首。
+
+「請幫我寫一個處理使用者退出的按鈕與 API。」
+
+這句話包含了致命的模糊性：「處理」是什麼意思？是 Log out？是 Suspend 帳號？還是 Terminate 終止契約？「使用者」指的是個人的 User，還是整家公司的 Account？
+
+如果你直接讓 Agent 寫代碼，它會挑選它最擅長的猜測直接開工，最後產出難以維護的廢代碼。**防禦型規格工作流的核心，就是「動手之前，先銳化語義（Sharpening）」**。
+
+Agent 必須配備一道門禁規則（例如 Matt Pocock 的 `grilling` 技能）：
+
+```markdown
+## 語義守門人規則 (Semantic Gatekeeper Rule)
+
+當使用者提出包含以下模糊詞彙的指令時，Agent 嚴禁直接產生實作代碼，必須立刻暫停並進行語義對齊：
+
+1. **模糊動詞**：「處理 (handle)」、「管理 (manage)」、「刪除 (delete)」、「完成 (finalize)」。
+2. **多義名詞**：「使用者 (user)」、「客戶 (client)」、「資料 (data)」。
+
+Agent 必須引用 `CONTEXT.md` 的統一語言，要求使用者從精確定義中選擇。
+```
+
+這項機制的威力在於：它把溝通摩擦前置在寫代碼之前。用三輪簡短的對話釐清業務邊界，遠比在 PR Review 時看著幾千行不符規格的代碼重構要便宜數十倍。
+
+---
+
+## 輕量化 ADR：鎖定不可逆架構決策
+
+在專案演進中，一定會出現必須打破慣例或做出技術妥協的時刻。人類工程師離開後，下一個 Agent 看見奇怪的代碼，往往會自作聰明地「幫你最佳化掉」，引發重大災難。
+
+如何防止這種「修復式破壞」？答案是**架構決策記錄（Architecture Decision Records, ADR）**。
+
+但傳統的 ADR 格式過於冗長，在 AI 時代只會浪費 Token。Matt Pocock 提出了一個極為精煉的「三要素判定法」：**只有同時符合以下三點的決策，才值得寫入 ADR**：
+
+1. **難以逆轉（Hard to reverse）**：一旦施行，改回去的成本極高（如儲存引擎選型、事件結構）。
+2. **缺乏脈絡時令人驚訝（Surprising without context）**：看似違背常理的做法（例如：刻意不使用外鍵約束）。
+3. **真實權衡取捨（Result of a real trade-off）**：沒有完美的解法，為了獲得 A 而犧牲了 B。
+
+### 極簡 ADR 範本
+
+```markdown
+# ADR 003: 放棄資料庫層級級聯刪除 (Cascade Delete)
+
+- **狀態**：Accepted
+- **日期**：2026-09-22
+
+## 上下文 (Context)
+
+Account 終止時，過去仰賴 PostgreSQL 的 `ON DELETE CASCADE` 一併刪除底下的 User 與憑證。但在合規性審計（SOC2）中，所有稽核日誌必須保留五年，級聯刪除導致合規資料遺失。
+
+## 決策 (Decision)
+
+移除所有關聯資料表的 Cascade 外鍵，全面改用軟刪除與事件驅動封存流程。
+
+## 代價與妥協 (Trade-offs)
+
+- **正面**：日誌與帳務軌跡完整保留，通過審計標準。
+- **代價**：孤兒資料清理變得複雜，必須依賴定期執行的背景排程任務清除過期金鑰。
+```
+
+當 Agent 被餵入這份 ADR，它在進行重構時，就絕對不敢「順手」把資料庫加上 `ON DELETE CASCADE`。ADR 是給 AI 系統看的護欄，警告它這條看似崎嶇的小路是故意設計的。
+
+---
+
+## 總結：給 AI Agent 一張清晰的業務地圖
+
+在 Vibe Coding 時代，編碼速度已經不再是瓶頸，**正確理解與維持代碼意圖才是核心競爭力**。
+
+1. **語義漂移是代碼崩解的根源**：不要相信 LLM 跨 Session 的名詞一致性。
+2. **CONTEXT.md 是領域精神錨點**：維持高純度，只記錄統一語言與業務不變量，驅逐實作細節。
+3. **實施動手前的語義銳化**：用 Grilling 工作流阻擋模糊指令，把錯誤攔截在代碼生成前。
+4. **極簡 ADR 保衛妥協智慧**：用最少 Token 鎖定不可逆且反直覺的關鍵決策。
+
+在下一篇文章中，我們將探討現代架構中最重要的一環——**垂直切片架構（Vertical Slice Architecture）與真實測試驅動**：如何讓 Agent 不再迷失於洋蔥架構的無窮檔案中，以單一檔案完成端到端的精準交付。

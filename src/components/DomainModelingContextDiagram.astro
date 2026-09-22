@@ -1,0 +1,330 @@
+---
+// src/components/DomainModelingContextDiagram.astro
+---
+
+<div class="domain-context-diagram-wrapper my-8">
+  <div class="desktop-diagram hidden md:block">
+    <svg
+      viewBox="0 0 880 440"
+      class="w-full h-auto"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <pattern
+          id="grid-pattern"
+          width="20"
+          height="20"
+          patternUnits="userSpaceOnUse"
+        >
+          <circle
+            cx="2"
+            cy="2"
+            r="1"
+            fill="var(--dg-border, #334155)"
+            opacity="0.4"></circle>
+        </pattern>
+        <linearGradient id="drift-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ef4444" stop-opacity="0.15"></stop>
+          <stop offset="100%" stop-color="#f97316" stop-opacity="0.05"></stop>
+        </linearGradient>
+        <linearGradient id="context-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop
+            offset="0%"
+            stop-color="var(--dg-accent, #38bdf8)"
+            stop-opacity="0.18"></stop>
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"></stop>
+        </linearGradient>
+        <marker
+          id="arrow-drift"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#ef4444"></path>
+        </marker>
+        <marker
+          id="arrow-solid"
+          viewBox="0 0 10 10"
+          refX="6"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981"></path>
+        </marker>
+      </defs>
+
+      <!-- Background Grid -->
+      <rect width="880" height="440" rx="12" fill="var(--dg-bg-card, #0f172a)"
+      ></rect>
+      <rect width="880" height="440" rx="12" fill="url(#grid-pattern)"></rect>
+
+      <!-- Left Column: Semantic Drift (Without CONTEXT.md) -->
+      <g transform="translate(30, 24)">
+        <rect
+          width="380"
+          height="392"
+          rx="10"
+          fill="url(#drift-grad)"
+          stroke="#ef4444"
+          stroke-width="1.2"
+          stroke-dasharray="4 4"></rect>
+
+        <rect
+          x="20"
+          y="20"
+          width="130"
+          height="26"
+          rx="6"
+          fill="#ef4444"
+          opacity="0.2"></rect>
+        <text x="30" y="38" fill="#f87171" font-size="12" font-weight="bold"
+          >無約束：語義漂移</text
+        >
+        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+          >跨對話與檔案名詞分裂、邊界腐蝕</text
+        >
+
+        <!-- Drift Nodes -->
+        <g transform="translate(30, 95)">
+          <rect
+            width="320"
+            height="55"
+            rx="8"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="#f87171"
+            stroke-width="1"></rect>
+          <text x="16" y="24" fill="#fca5a5" font-size="13" font-weight="bold"
+            >對話 A (Agent 1)</text
+          >
+          <text
+            x="16"
+            y="44"
+            fill="var(--dg-text-muted, #94a3b8)"
+            font-size="12"
+            >產出 User 模型：<code>user.cancelSubscription()</code></text
+          >
+        </g>
+
+        <path
+          d="M 190 150 L 190 178"
+          stroke="#ef4444"
+          stroke-width="1.5"
+          stroke-dasharray="3 3"
+          marker-end="url(#arrow-drift)"></path>
+
+        <g transform="translate(30, 185)">
+          <rect
+            width="320"
+            height="55"
+            rx="8"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="#f87171"
+            stroke-width="1"></rect>
+          <text x="16" y="24" fill="#fca5a5" font-size="13" font-weight="bold"
+            >對話 B (Agent 2)</text
+          >
+          <text
+            x="16"
+            y="44"
+            fill="var(--dg-text-muted, #94a3b8)"
+            font-size="12"
+            >產出 Account 模型：<code>account.terminate()</code></text
+          >
+        </g>
+
+        <path
+          d="M 190 240 L 190 268"
+          stroke="#ef4444"
+          stroke-width="1.5"
+          stroke-dasharray="3 3"
+          marker-end="url(#arrow-drift)"></path>
+
+        <g transform="translate(30, 275)">
+          <rect
+            width="320"
+            height="88"
+            rx="8"
+            fill="#450a0a"
+            stroke="#ef4444"
+            stroke-width="1.2"></rect>
+          <text x="16" y="24" fill="#f87171" font-size="13" font-weight="bold"
+            >災難後果：隱含業務不變量崩解</text
+          >
+          <text x="16" y="48" fill="#fecaca" font-size="11.5"
+            >✕ 資料庫出現多重定義 (Customer vs User)</text
+          >
+          <text x="16" y="68" fill="#fecaca" font-size="11.5"
+            >✕ 未結清款項是否可停用？兩者規則完全相反！</text
+          >
+        </g>
+      </g>
+
+      <!-- Right Column: CONTEXT.md + Ubiquitous Language -->
+      <g transform="translate(470, 24)">
+        <rect
+          width="380"
+          height="392"
+          rx="10"
+          fill="url(#context-grad)"
+          stroke="#10b981"
+          stroke-width="1.5"></rect>
+
+        <rect
+          x="20"
+          y="20"
+          width="160"
+          height="26"
+          rx="6"
+          fill="#10b981"
+          opacity="0.2"></rect>
+        <text x="30" y="38" fill="#34d399" font-size="12" font-weight="bold"
+          >CONTEXT.md 錨定模型</text
+        >
+        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+          >純業務名詞字典、全域不變量約束</text
+        >
+
+        <!-- Ubiquitous Language Core -->
+        <g transform="translate(30, 95)">
+          <rect
+            width="320"
+            height="98"
+            rx="8"
+            fill="var(--dg-bg-muted, #1e293b)"
+            stroke="#10b981"
+            stroke-width="1.2"></rect>
+          <path d="M 0 0 L 8 0 L 8 98 L 0 98 Z" fill="#10b981"></path>
+          <text x="20" y="24" fill="#6ee7b7" font-size="13" font-weight="bold"
+            >CONTEXT.md (嚴禁框架選型)</text
+          >
+          <text
+            x="20"
+            y="46"
+            fill="var(--dg-text-base, #e2e8f0)"
+            font-size="11.5"
+            >• <strong>Account</strong>: 付費實體（非個人 User）</text
+          >
+          <text
+            x="20"
+            y="66"
+            fill="var(--dg-text-base, #e2e8f0)"
+            font-size="11.5"
+            >• <strong>Suspend</strong>: 暫停權限（保留資料）</text
+          >
+          <text x="20" y="86" fill="#34d399" font-size="11.5"
+            >★ 不變量：若有未結清帳單，禁止關閉 Account</text
+          >
+        </g>
+
+        <!-- Sharpening Prompt Barrier -->
+        <path
+          d="M 190 193 L 190 216"
+          stroke="#10b981"
+          stroke-width="1.8"
+          marker-end="url(#arrow-solid)"></path>
+
+        <g transform="translate(30, 222)">
+          <rect
+            width="320"
+            height="50"
+            rx="8"
+            fill="var(--dg-bg-card, #0f172a)"
+            stroke="var(--dg-accent, #38bdf8)"
+            stroke-width="1"></rect>
+          <text
+            x="16"
+            y="22"
+            fill="var(--dg-accent, #38bdf8)"
+            font-size="12"
+            font-weight="bold">語義銳化守門人 (Grill / Sharpening)</text
+          >
+          <text
+            x="16"
+            y="40"
+            fill="var(--dg-text-muted, #94a3b8)"
+            font-size="11">阻擋模糊動詞（"處理"、"刪除"），對齊統一語言</text
+          >
+        </g>
+
+        <path
+          d="M 190 272 L 190 295"
+          stroke="#10b981"
+          stroke-width="1.8"
+          marker-end="url(#arrow-solid)"></path>
+
+        <!-- Pure Spec Output -->
+        <g transform="translate(30, 301)">
+          <rect
+            width="320"
+            height="62"
+            rx="8"
+            fill="#064e3b"
+            stroke="#10b981"
+            stroke-width="1.2"></rect>
+          <text x="16" y="24" fill="#a7f3d0" font-size="13" font-weight="bold"
+            >確定性代碼生成 (High-Fidelity Code)</text
+          >
+          <text x="16" y="46" fill="#ecfdf5" font-size="11.5"
+            >✓ 跨 Session 零語義漂移，精準防守不變量</text
+          >
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Mobile View: Stacked Cards -->
+  <div class="mobile-diagram block md:hidden space-y-4">
+    <div class="p-4 rounded-lg border border-red-500/30 bg-red-950/20">
+      <div
+        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-red-400 bg-red-500/10 rounded"
+      >
+        無約束：語義漂移
+      </div>
+      <p class="text-xs text-slate-400 mb-3">
+        LLM 隨機使用同義名詞，破壞代碼穩定性
+      </p>
+      <div class="space-y-2 text-xs text-slate-300">
+        <div class="p-2 rounded bg-slate-900 border border-red-500/40">
+          <strong class="text-red-300">Agent A：</strong>產出 <code
+            >user.cancelSubscription()</code
+          >
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-red-500/40">
+          <strong class="text-red-300">Agent B：</strong>產出 <code
+            >account.terminate()</code
+          >
+        </div>
+        <div class="p-2 rounded bg-red-900/40 text-red-200">
+          ✕ 概念多重定義、業務不變量被隨機邏輯打破
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 rounded-lg border border-emerald-500/30 bg-emerald-950/20">
+      <div
+        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 rounded"
+      >
+        CONTEXT.md 錨定
+      </div>
+      <p class="text-xs text-slate-400 mb-3">純業務名詞字典與全域不變量</p>
+      <div class="space-y-2 text-xs text-slate-300">
+        <div class="p-2 rounded bg-slate-900 border border-emerald-500/40">
+          <strong class="text-emerald-300">統一語言：</strong>精準定義
+          Account、Suspend，嚴禁框架細節
+        </div>
+        <div class="p-2 rounded bg-slate-900 border border-sky-500/40">
+          <strong class="text-sky-300">語義守門：</strong
+          >動手前銳化模糊動詞，消除歧義
+        </div>
+        <div class="p-2 rounded bg-emerald-900/40 text-emerald-200">
+          ✓ 跨 Agent 零漂移，高確定性代碼與規格
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
