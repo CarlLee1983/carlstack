@@ -15,8 +15,12 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
 6. When diagrams or structured data are included, consult `docs/diagram-guide.md` and enforce the **Anti-Patterns & Prose-Diagram Synergy** rules:
    - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 500px, text >= 12.5px);
    - Ban messy text bullet dumps right after diagrams; always use neatly structured markdown comparison tables for parameters and complexity.
-7. When a cover is requested, follow Cover Direction below after the article direction is stable.
-8. Run the narrowest relevant repository check after changing files. Follow the publication checklist in `docs/content-guide.md` only when publication is requested.
+7. Enforce **Table vs. Structured Prose** layout boundaries:
+   - Ban "overstuffed multi-column prose tables": Markdown tables must be kept to 2 to 4 columns maximum, and used strictly for concise parameters, numerical metrics, types, or short comparison attributes.
+   - Never cram multiple long narrative sentences (e.g., scenario context, model judgment, downstream action, caveats) across 4+ table columns, which causes unbearable horizontal cramming and wrapping.
+   - For multi-dimensional case catalogs, scenario atlases, or system components, use **"High-level 2-3 column index table + Structured Module Cards (h3/h4 with clean Key-Value lists)"** or thematic clusters with ample whitespace to ensure excellent readability across mobile and desktop.
+8. When a cover is requested, follow Cover Direction below after the article direction is stable.
+9. Run the narrowest relevant repository check after changing files. Follow the publication checklist in `docs/content-guide.md` only when publication is requested.
 
 ## Cover Direction
 
