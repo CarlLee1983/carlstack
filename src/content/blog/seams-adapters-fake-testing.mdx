@@ -35,7 +35,9 @@ describe("OrderService", () => {
 
     // 透過侵入式的 mock 繞過真實業務邊界
     jest.spyOn(Database, "getInstance").mockReturnValue(mockDb as any);
-    jest.spyOn(StripeClient.prototype, "charge").mockImplementation(mockStripe.charges.create);
+    jest
+      .spyOn(StripeClient.prototype, "charge")
+      .mockImplementation(mockStripe.charges.create);
 
     const service = new OrderService();
     const result = await service.create({ userId: "u_1", amount: 100 });
@@ -74,10 +76,10 @@ describe("OrderService", () => {
 
 真正的接縫必須滿足：**在該切口處，至少存在兩種以上合理的實作策略**。最經典的組合，就是「生產環境的實體轉接器」與「測試環境的記憶體假物件轉接器」。
 
-| 轉接器型態 | 職責與環境 | 內部運作機制 | 對 Agent 的核心價值 |
-| :--- | :--- | :--- | :--- |
-| **生產環境 Adapter** | 線上 Production | 處理真實 HTTP/gRPC、憑證金鑰、TLS 連線與逾時重試 | 將不穩定的網路 I/O 完全隔離在深模組核心之外 |
-| **In-Memory Fake Adapter** | 測試與本機沙盒 | 以記憶體中的 Map 或 Array 維護完整的狀態流轉 | 提供 100% 確定性行為、毫秒級極速執行、零外部依賴 |
+| 轉接器型態                 | 職責與環境      | 內部運作機制                                     | 對 Agent 的核心價值                              |
+| :------------------------- | :-------------- | :----------------------------------------------- | :----------------------------------------------- |
+| **生產環境 Adapter**       | 線上 Production | 處理真實 HTTP/gRPC、憑證金鑰、TLS 連線與逾時重試 | 將不穩定的網路 I/O 完全隔離在深模組核心之外      |
+| **In-Memory Fake Adapter** | 測試與本機沙盒  | 以記憶體中的 Map 或 Array 維護完整的狀態流轉     | 提供 100% 確定性行為、毫秒級極速執行、零外部依賴 |
 
 ---
 
@@ -90,14 +92,22 @@ Mock（打樁/間諜）只是在記錄「某個方法有沒有被呼叫、被呼
 ```typescript
 // 1. 介面接縫（Seam）：純粹的業務合約
 export interface PaymentGatewayPort {
-  authorize(token: string, amount: number): Promise<Result<string, PaymentError>>;
+  authorize(
+    token: string,
+    amount: number,
+  ): Promise<Result<string, PaymentError>>;
   capture(transactionId: string): Promise<Result<void, PaymentError>>;
-  getTransactionStatus(transactionId: string): Promise<TransactionStatus | null>;
+  getTransactionStatus(
+    transactionId: string,
+  ): Promise<TransactionStatus | null>;
 }
 
 // 2. 測試專用的 In-Memory Fake：具備真實狀態轉換
 export class InMemoryPaymentFake implements PaymentGatewayPort {
-  private transactions = new Map<string, { amount: number; status: TransactionStatus }>();
+  private transactions = new Map<
+    string,
+    { amount: number; status: TransactionStatus }
+  >();
   private nextError: PaymentError | null = null;
 
   // 專為測試設計的確定性控制方法
@@ -105,7 +115,10 @@ export class InMemoryPaymentFake implements PaymentGatewayPort {
     this.nextError = error;
   }
 
-  async authorize(token: string, amount: number): Promise<Result<string, PaymentError>> {
+  async authorize(
+    token: string,
+    amount: number,
+  ): Promise<Result<string, PaymentError>> {
     if (this.nextError) {
       const err = this.nextError;
       this.nextError = null;
@@ -125,7 +138,9 @@ export class InMemoryPaymentFake implements PaymentGatewayPort {
     return Result.ok();
   }
 
-  async getTransactionStatus(transactionId: string): Promise<TransactionStatus | null> {
+  async getTransactionStatus(
+    transactionId: string,
+  ): Promise<TransactionStatus | null> {
     return this.transactions.get(transactionId)?.status ?? null;
   }
 }
@@ -142,11 +157,16 @@ describe("OrderModule 訂單結帳整合", () => {
     const fakePayment = new InMemoryPaymentFake();
     const orderModule = new OrderModule(fakePayment); // 依賴注入
 
-    const result = await orderModule.checkout({ cartId: "cart_99", token: "tok_valid" });
+    const result = await orderModule.checkout({
+      cartId: "cart_99",
+      token: "tok_valid",
+    });
 
     expect(result.isOk()).toBe(true);
     // 斷言系統的真實最終狀態，而非內部呼叫次數
-    expect(await fakePayment.getTransactionStatus(result.value.transactionId)).toBe("CAPTURED");
+    expect(
+      await fakePayment.getTransactionStatus(result.value.transactionId),
+    ).toBe("CAPTURED");
   });
 
   it("第三方逾時拒付時，系統應回滾庫存並回傳明確領域錯誤", async () => {
@@ -154,7 +174,10 @@ describe("OrderModule 訂單結帳整合", () => {
     fakePayment.failNextCallWith(new PaymentError("GATEWAY_TIMEOUT")); // 確定性注入異常
 
     const orderModule = new OrderModule(fakePayment);
-    const result = await orderModule.checkout({ cartId: "cart_99", token: "tok_valid" });
+    const result = await orderModule.checkout({
+      cartId: "cart_99",
+      token: "tok_valid",
+    });
 
     expect(result.isErr()).toBe(true);
     expect(result.error.code).toBe("PAYMENT_FAILED_ROLLED_BACK");
@@ -163,6 +186,7 @@ describe("OrderModule 訂單結帳整合", () => {
 ```
 
 這種設計帶來了巨大優勢：
+
 - **極致的抗重構能力（Refactoring Resilience）：** 就算你把 `OrderModule` 內部的私有方法全部重構、將迴圈改成函數式 Pipeline，只要外部合約不變，這份測試永遠能精準守護業務邏輯。
 - **消滅 Agent 的幻覺 Mock：** Agent 不用再去猜測 Stripe API 內部回傳了哪些複雜物件，所有的型別檢查均受到 TypeScript 編譯器強制防禦。
 - **無縫嵌入 CI/CD 迴圈：** 測試不再發起真實網路連線，也不需要啟動龐大的 Docker 容器，千次測試可以在兩秒內跑完。
@@ -186,6 +210,6 @@ AI Agent 有一個下意識的弱點：**它傾向於在既有的代碼上「再
 
 軟體工程永遠是在管理「複雜度」。當 AI 讓生產代碼的成本降至趨近於零時，如果缺乏優良的接縫與 Fake 體系，團隊最終會被無數虛假的 Mock 測試所反噬。
 
-**不要讓 Agent 在測試裡偽造世界。** 
+**不要讓 Agent 在測試裡偽造世界。**
 
 定義乾淨的 Seam，為核心功能打造確定性的 In-Memory Fake。只有當 Agent 能夠在快速、可預測且具有真實狀態回饋的沙盒中運行時，TDD 的紅綠重構循環才能真正成為守護軟體品質的堅定基石。
