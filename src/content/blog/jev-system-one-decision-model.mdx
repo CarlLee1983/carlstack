@@ -2,7 +2,7 @@
 title: "Agent 工作流不要再用 Chatbot 猜路由：從 TypeSafe AI Jev 看 System 1 決策模型的工程轉向"
 description: "把生成式 LLM 拿來做布林判斷、模型路由與工具風險分流，會讓 Agent 工作流承擔不必要的延遲與解析失敗。從 Jev 的三種決策原語到 LangChain middleware，拆解 System 1 決策模型如何進入 Agent harness。"
 publishDate: 2026-09-18T14:20:00+08:00
-updatedDate: 2026-09-21
+updatedDate: 2026-09-22T15:25:00+08:00
 draft: false
 featured: false
 tags:
@@ -27,6 +27,8 @@ import JevSystemOneRoutingDiagram from "../../components/JevSystemOneRoutingDiag
 這種做法本質上是用重型大砲打蚊子。用每秒生成幾十個 token 的自迴歸（Autoregressive）生成器，去承擔軟體工程裡只需要 1 個 bit 的布林判斷或枚舉選擇，不僅浪費了數千個 input tokens，更帶來了高達數秒的端到端延遲與非確定性的解析崩潰風險。
 
 2026 年 9 月 15 日，前 OpenAI 研究員、InstructGPT 論文共同作者 Diogo Almeida 創辦的 TypeSafe AI [公開 Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)。兩天後，LangChain 發布 [Jev harness 整合案例](https://www.langchain.com/blog/building-a-harness-with-jev)；Sydney Runkle 再於 9 月 18 日[整理成完整實作文章](https://x.com/sydneyrunkle/status/2100754364545761643)：Jev 不是取代負責推理與生成的模型，而是在模型選擇與工具執行前，提供可由程式消費的決策。
+
+9 月 22 日，[@3three_AI 整理了 20 個面向中文使用情境的 Jev 案例](https://x.com/3three_AI/status/2102234751591653484)：內容標題篩選、資訊流過濾、客服分流、表單自動化、瀏覽器 Agent、程式碼 review 與工具安全閘門。這份清單的工程價值不在於「Jev 能做 20 件事」，而在於它反覆指向同一種可拆出的工作：先把開放式輸入壓成有限的選項、分數或風險訊號，再讓既有程式決定是否執行。
 
 這個案例把原本的架構主張推得更具體：**AI Agent 的分水嶺，在於把自迴歸文字生成（System 2）與低延遲、強型別的決策（System 1）拆成不同責任。** Jev 不負責完成任務；它負責回答「接下來該走哪條已知路徑，以及這個判斷有多不確定」。
 
@@ -256,6 +258,25 @@ System 1 決策模型能夠作為巨量非結構化資料到關聯式/向量資�
 > [!IMPORTANT]
 > **邊界劃分法則：需要創造新資訊、長篇推理或合成內容的任務留給 System 2；只涉及在已知路徑與強型別邊界中做選擇、評分與篩選的任務，一律推進 System 1。**
 
+## 20 個展示不要一次搬進產品：先選三個可驗證案例
+
+@3three_AI 的案例從內容創作一路延伸到客服、瀏覽器、MCP 與 Coding Agent；它們看起來不同，卻都把生成前後的小判斷搬到同一個高速、有限答案空間的節點。若要在團隊裡驗證，先挑一條既有流程、保留原本的人工或規則回退，並以結果資料判斷值不值得擴大，而不是一次導入二十種 Agent。
+
+| 先做的案例       | Jev 應回答的有限問題                                               | 不該交給 Jev 的責任                                   | 一週內要量的結果                                       |
+| ---------------- | ------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------ |
+| 內容與資訊分流   | 這則素材是忽略、略讀、保存或立刻成題嗎？這個標題是否需要人工重寫？ | 決定事實是否正確、直接發布文章                        | 入選率、人工採用率、漏掉的重要素材、每篇的人工篩選時間 |
+| 工單或線索路由   | 應送往退款、技術、銷售、垃圾訊息，還是人工佇列？                   | 退款、承諾補償、修改帳務或回覆客戶                    | 路由正確率、重派率、低信心比例、首回應時間             |
+| Agent 下一步選擇 | 目前狀態下應點哪個已觀測到的控制項、呼叫哪個工具、還是停止？       | 產生任意 selector／shell 指令、略過權限、宣告任務成功 | 完成率、無效動作數、人工接管率、獨立驗收失敗率         |
+
+第一個案例刻意把「文章好不好」縮成排序輔助。原貼文轉述的 61 項貼文診斷、約 1 秒與約 0.0004 美元，是 Rob Hallam 的案例數字；公開內容沒有足以重現的資料集與方法，因此只能把它當成待驗證的成本／延遲假說，不能當成「高分必定傳播」的保證。真正可用的起點是讓模型把 100 則素材排成四級，編輯只看 `save` 與 `pitch`；再以人工最後採用的結果回填，檢驗它是否真的少掉無效閱讀。
+
+第二個案例最容易被誤做成全自動客服。更安全的做法是只讓分類改變佇列與優先級，保留回覆內容、退款資格與帳務寫入給既有的規則、業務系統與人員。這正符合 TypeSafe 對「非結構化 state 輸入、型別化機率決策輸出」的定位；它降低的是分流成本，不是取消業務責任。[官方 Use Case Map](https://docs.typesafe.ai/concepts/use-case-map)也將 classification、routing 與 verification 分成不同決策形狀，實作時不要拿同一個 confidence 門檻處理所有後果。
+
+第三個案例有最具體的開源參考。[`browser-use/jev-ultrafast`](https://github.com/browser-use/jev-ultrafast)讓 Jev 從當前已索引的 DOM 控制項選擇操作與目標，只有需要輸入文字時才交給另一個小型生成模型；它也在執行前重新檢查目標與頁面新鮮度，並在完成後由獨立檢查器驗證結果。該專案報告的 Google Flights 7.073 秒展示與三組配對比較，僅適用於其公開的單一工作、瀏覽器設定與少量重複，不是通用 browser-agent benchmark。它仍給出一條正確的設計原則：**模型只能在當下已觀測、可驗證的動作集合中選擇；完成與安全要由模型外的檢查決定。**
+
+> [!WARNING]
+> 對刪除、付款、權限調整或對外送出的操作，`allow`、高機率或低延遲都不是授權。先由確定性 policy 判定動作是否在允許範圍，再以隔離、最小權限、idempotency key、讀回權威狀態與人工核准處理副作用。
+
 ## 團隊在架構設計上的下一步
 
 如果你正在為團隊的 Agent 系統規劃下一代架構，不要等到系統被延遲拖垮才回頭重構。現在就可以採取以下三個行動：
@@ -268,9 +289,11 @@ System 1 決策模型能夠作為巨量非結構化資料到關聯式/向量資�
 
 ## 延伸閱讀
 
+- [@3three_AI：Jev 火了：我整理了 20 个真正适合国内用户的用法](https://x.com/3three_AI/status/2102234751591653484)
 - [Sydney Runkle：Building a Harness with Jev](https://x.com/sydneyrunkle/status/2100754364545761643)
 - [LangChain：Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)
 - [TypeSafe AI：Introducing System One Models and Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
 - [TypeSafe AI：Example Use Cases (Use Case Map)](https://docs.typesafe.ai/concepts/use-case-map)
 - [TypeSafe AI：Quick Start](https://docs.typesafe.ai/introduction/quickstart)
 - [TypeSafe AI：State 與多問題請求](https://docs.typesafe.ai/concepts/state)
+- [browser-use/jev-ultrafast：公開實作、測量與限制](https://github.com/browser-use/jev-ultrafast)
