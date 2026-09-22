@@ -1,0 +1,142 @@
+---
+title: "防止專案變成大泥球：設計 Agent 的「淺模組審查」與架構除熵迴圈"
+description: "AI 讓代碼生成速度暴增十倍，也讓軟體熵增以十倍速將專案推向大泥球（Big Ball of Mud）。本文作為《Agent 時代的代碼庫設計哲學》完結篇，解構 Matt Pocock 的刪除測試（Deletion Test）、模組加深工作流與架構邊界審查者轉型，建立永續可進化的 AI 代碼庫。"
+publishDate: 2026-09-22T10:52:00+08:00
+tags:
+  - "Software Architecture"
+  - "AI Engineering"
+  - "Refactoring"
+  - "Code Quality"
+  - "Matt Pocock"
+series: "Agent 時代的代碼庫設計哲學"
+seriesOrder: 5
+cover: "../../assets/covers/codebase-refactoring-entropy-loop.jpg"
+coverAlt: "資深架構師在全息光芒中雕琢修剪混亂代碼網路，將其昇華為堅固深邃的幾何晶體模組"
+draft: false
+---
+
+import CodebaseEntropyLoopDiagram from "../../components/CodebaseEntropyLoopDiagram.astro";
+
+在過去，一個代碼庫腐爛成「大泥球（Big Ball of Mud）」通常需要三年：隨著團隊人員來去、業務需求疊代、急就章的技術債累積，系統逐漸變得無人敢動。
+
+但在 Vibe Coding 與 AI Agent 時代，這段腐爛週期被急遽壓縮到了**三週**。
+
+當你可以用一句話叫 Agent「幫我加個功能」、「幫我重構這個模組」，Agent 確實會以極高的速度交差。但如果沒有強力的架構約束，Agent 最擅長做的事情就是：**建立一層又一層毫無意義的包裝（Wrappers）、建立只有一行 pass-through 的轉發 Service，並引入五花八門的多餘依賴。**
+
+代碼行數增加了五倍，工程師以為產能翻倍；直到某天你發現，無論是人類還是下一個 Agent，都再也無法在專案中穩定新增任何功能——因為整個系統的**軟體熵（Software Entropy）已經徹底失控。**
+
+這是《Agent 時代的代碼庫設計哲學》系列的完結篇。我們將探討最核心的治理手段：**如何透過「刪除測試」審查淺模組，建立自動化除熵迴圈，並將人類工程師升級為 AI 時代的「邊界守護者」。**
+
+<CodebaseEntropyLoopDiagram />
+
+---
+
+## 淺模組（Shallow Modules）：AI 最容易製造的垃圾
+
+在 John Ousterhout 的名著《A Philosophy of Software Design》中，他將模組定義為兩種類型：
+
+- **深模組（Deep Module）：** 小而清晰的介面（Interface），背後封裝了大量且複雜的實作（Implementation）。
+- **淺模組（Shallow Module）：** 龐大或繁複的介面，背後卻只有微不足道的薄弱邏輯。
+
+AI Agent 天生傾向產出**淺模組**。為什麼？因為對於 LLM 而言，宣告一個介面並直接把參數轉發給下游函式庫，是最不容易被 TypeScript 報錯、最快速獲得「綠燈」的捷徑：
+
+```typescript
+// 典型 AI 產出的淺模組：毫無價值的轉發層
+export class StripePaymentService {
+  private stripe: Stripe;
+  constructor(apiKey: string) {
+    this.stripe = new Stripe(apiKey);
+  }
+
+  // 介面與底層套件幾乎 1:1，未隱藏任何複雜度，也未保證任何業務不變量
+  async createPaymentIntent(
+    amount: number,
+    currency: string,
+    customerId: string,
+  ) {
+    return await this.stripe.paymentIntents.create({
+      amount,
+      currency,
+      customer: customerId,
+    });
+  }
+}
+```
+
+這個類別看似做了「封裝」，但它的介面複雜度等於實作複雜度。呼叫端仍然必須完全理解 Stripe 的參數規範；如果底層換成其他金流，這層封裝完全無法提供任何隔離保護。
+
+這種虛假的抽象，除了增加跳檔成本與消耗 Context 窗口外，沒有提供任何**槓桿（Leverage）**。
+
+---
+
+## 靈魂考問：刪除測試（The Deletion Test）
+
+在 [Matt Pocock 主導的 Codebase Design 實踐](https://x.com/mattpocockuk)中，有一個極度犀利的診斷原則——**刪除測試（The Deletion Test）**：
+
+> 「想像一下，如果現在直接將這個模組從代碼庫中刪除，會發生什麼事？」
+>
+> 1. **如果複雜度直接消失，呼叫端幾乎無痛：** 這個模組就是個空洞的 Pass-through 垃圾，應該立即就地刪除，讓呼叫端直連。
+> 2. **如果模組背後的複雜度四散暴開，在 N 個呼叫端中重複出現：** 這代表它正在替系統承擔實質的認知負擔，它是一顆真正賺取存在價值的「深模組」。
+
+當你讓 Agent 執行代碼審查或自我重構時，第一步就是給它這條門禁檢驗：
+
+```markdown
+## 模組審查守則 (Module Review Rule)
+
+審查目標模組時，問自己：
+
+- 它的介面是否與它包裝的內部呼叫一模一樣？
+- 刪除它之後，呼叫端是否只需要多寫一行代碼？
+- 若是，判定為「淺模組（Shallow Module）」。立即將其內聯（Inline）至呼叫端或徹底移除。
+```
+
+---
+
+## 模組加深工作流（The Deepening Loop）
+
+如果一個模組涉及重要的業務邏輯，但目前顯得淺顯散亂，我們該如何引導 Agent 將它「加深」？
+
+Matt Pocock 提出了模組加深的三部曲：
+
+### 1. 收斂介面表面積（Shrink the Interface）
+
+檢視模組暴露的所有方法與參數。問 Agent：
+
+- 「外部呼叫端真的需要傳入這 5 個參數嗎？能不能有 3 個在模組內部透過領域約定自行推導？」
+- 「能不能將 4 個零散的動作合併為 1 個高層次操作？」
+
+### 2. 吞噬內部狀態與協同（Swallow Internal Coordination）
+
+如果呼叫端在呼叫 `module.doA()` 之後，永遠必須緊接著呼叫 `module.doB()`，這就是典型的**抽象洩漏**。
+把這套流程的順序約束（Ordering Invariants）吞進模組內部，對外只給一個乾淨的 `module.execute()`。
+
+### 3. 將依賴轉為接縫（Turn Dependencies into Seams）
+
+不要讓模組在內部隨機 `new` 物件或直接依賴外部第三方 SDK。將可變性抽離到接縫處（Seam），讓模組能同時接受真實 Adapter 與 In-Memory Fake，保證小表面積測試的極致純度。
+
+```typescript
+// 加深後的模組：小表面積、高槓桿、全業務守護
+export interface OrderSettlementModule {
+  // 外部呼叫端只需要知道 orderId，其餘一切計費、發票開立、狀態流轉完全內部閉環
+  settleOrder(orderId: string): Promise<SettlementResult>;
+}
+```
+
+---
+
+## 人類架構師的新定位：從「泥水匠」到「邊界審查者」
+
+在很多團隊裡，工程師常常哀嘆：「AI 寫代碼那麼快，我們未來還剩下什麼價值？」
+
+這個系列 5 篇文章給出了最明確的答案：**在生成成本趨近於零的時代，定義與維護「邊界」的價值趨近於無窮大。**
+
+- **過去的工程師：** 花 80% 時間在 IDE 裡手打語法、除錯 typo、手動切換目錄（泥水匠）。
+- **現代的架構師：**
+  1. 撰寫純粹的 `CONTEXT.md`，定義神聖不可侵犯的業務語言與領域不變量。
+  2. 設計關鍵的 Seams 與 Interfaces，劃定深模組的邊界幾何。
+  3. 發動 Grilling 與語義銳化工作流，攔截模糊指令。
+  4. 執行刪除測試與除熵迴圈，定期修剪 AI 產出的冗餘代碼。
+
+AI Agent 是速度驚人的施工大軍，但如果不給它藍圖、地基防線與邊界規矩，它可以在一天之內幫你蓋出一座隨時會塌的大泥球高樓。
+
+相反地，當你用 **Deep Modules、Seams & In-Memory Fake、CONTEXT.md、Vertical Slices** 與 **架構除熵迴圈** 為它武裝，AI Agent 就會化身為精準強大的手術刀，以驚人的速度與極高的質量，將你的產品推向現代工程學的巔峰。
