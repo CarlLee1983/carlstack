@@ -1,0 +1,1071 @@
+---
+// src/components/DddWardleyMappingDiagram.astro
+---
+
+<figure
+  class="ddd-wardley-diagram"
+  aria-labelledby="ddd-wardley-diagram-caption"
+>
+  <!-- 桌面版 SVG (寬度 960，高度 600，遵循 Anti-Quadrant，大字級、高對比、清爽透氣) -->
+  <svg
+    class="ddd-wardley-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-wardley-diagram-title ddd-wardley-diagram-desc"
+  >
+    <title id="ddd-wardley-diagram-title">
+      Wardley Mapping 價值鏈演化與 DDD 核心域錨定全景
+    </title>
+    <desc id="ddd-wardley-diagram-desc">
+      頂部展示雙軸維度（縱軸：使用者可見度價值鏈；橫軸：四階段演化成熟度）。主體四列展示
+      Genesis 概念創生、Custom 自研深耕、Product 採購整合、Commodity
+      雲端公用設施。底部展示資本錯配陷阱與系統分析架構防線。
+    </desc>
+
+    <!-- 頂部：戰略維度導覽欄 (高 52px) -->
+    <g transform="translate(30, 20)">
+      <rect
+        width="900"
+        height="52"
+        rx="10"
+        class="ddd-wardley-diagram__banner-bg"></rect>
+      <circle cx="28" cy="26" r="7" fill="#d97706"></circle>
+      <text x="46" y="32" class="ddd-wardley-diagram__banner-title"
+        >瓦德利地圖雙軸分析：</text
+      >
+      <text x="215" y="32" class="ddd-wardley-diagram__banner-dim"
+        >【縱軸】價值鏈可見度（User Need → Infrastructure）</text
+      >
+      <text x="595" y="32" class="ddd-wardley-diagram__banner-divider">|</text>
+      <text x="615" y="32" class="ddd-wardley-diagram__banner-dim"
+        >【橫軸】成熟演化階度（氣候規律推進）</text
+      >
+    </g>
+
+    <!-- 主體四列：演化四階段卡片 (單欄寬 213px，間距 16px，高 355px) -->
+
+    <!-- 1. 創生期 Genesis (探索實驗) -->
+    <g
+      transform="translate(30, 92)"
+      class="ddd-wardley-diagram__col ddd-wardley-diagram__col--genesis"
+    >
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--genesis"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--genesis"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text class="ddd-wardley-diagram__phase-tag">PHASE 1 · 演化前端</text>
+        <text y="25" class="ddd-wardley-diagram__col-title">創生期 Genesis</text
+        >
+        <text y="46" class="ddd-wardley-diagram__col-subtitle"
+          >未經證實 · 實驗性質原型</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-wardley-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-wardley-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
+          >DDD 子域對應</text
+        >
+        <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
+          >潛在核心域（孵化期）</text
+        >
+        <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
+          >市場不確定性極高，隨時 pivots</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-wardley-diagram__section-label"
+          >系統分析特徵與原則</text
+        >
+        <text y="20" class="ddd-wardley-diagram__bullet"
+          >• 市場極度未知，缺乏成熟標準</text
+        >
+        <text y="40" class="ddd-wardley-diagram__bullet"
+          >• 追求最快交付回饋與驗證</text
+        >
+        <text y="60" class="ddd-wardley-diagram__bullet"
+          >• 容忍技術債，拒絕過度設計</text
+        >
+        <text y="80" class="ddd-wardley-diagram__bullet"
+          >• 典型：未經驗證的 AI 商業模式</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--genesis"
+        ></rect>
+        <text x="12" y="20" class="ddd-wardley-diagram__action-title"
+          >戰略工程姿態</text
+        >
+        <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
+          >拋棄式原型 · 快速概念驗證</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 自建期 Custom-Built (核心域黃金戰場) -->
+    <g
+      transform="translate(259, 92)"
+      class="ddd-wardley-diagram__col ddd-wardley-diagram__col--custom"
+    >
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--custom"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--custom"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-wardley-diagram__phase-tag ddd-wardley-diagram__phase-tag--gold"
+          >PHASE 2 · 核心戰場</text
+        >
+        <text
+          y="25"
+          class="ddd-wardley-diagram__col-title ddd-wardley-diagram__col-title--gold"
+          >自建期 Custom</text
+        >
+        <text y="46" class="ddd-wardley-diagram__col-subtitle"
+          >商業壁壘 · 差異化護城河</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-wardley-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-wardley-diagram__meta-box ddd-wardley-diagram__meta-box--gold"
+        ></rect>
+        <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
+          >DDD 子域對應</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-wardley-diagram__meta-val ddd-wardley-diagram__meta-val--gold"
+          >核心域（Core Domain）</text
+        >
+        <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
+          >開源即倒閉，不可替代壁壘</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-wardley-diagram__section-label"
+          >系統分析特徵與原則</text
+        >
+        <text y="20" class="ddd-wardley-diagram__bullet"
+          >• 業務價值最高，市場無直接競品</text
+        >
+        <text y="40" class="ddd-wardley-diagram__bullet"
+          >• 傾斜全公司最頂尖工程資源</text
+        >
+        <text y="60" class="ddd-wardley-diagram__bullet"
+          >• 建立深模組與純淨通用語言</text
+        >
+        <text y="80" class="ddd-wardley-diagram__bullet"
+          >• 典型：專利定價演算法、風控引擎</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--custom"
+        ></rect>
+        <text
+          x="12"
+          y="20"
+          class="ddd-wardley-diagram__action-title ddd-wardley-diagram__action-title--gold"
+          >戰略工程姿態</text
+        >
+        <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
+          >自主研發 · 100% 業務主權</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 產品期 Product (支撐與現成選型) -->
+    <g
+      transform="translate(488, 92)"
+      class="ddd-wardley-diagram__col ddd-wardley-diagram__col--product"
+    >
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--product"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--product"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text class="ddd-wardley-diagram__phase-tag">PHASE 3 · 成熟標準</text>
+        <text y="25" class="ddd-wardley-diagram__col-title">產品期 Product</text
+        >
+        <text y="46" class="ddd-wardley-diagram__col-subtitle"
+          >市場充斥成熟 SaaS 與開源庫</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-wardley-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-wardley-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
+          >DDD 子域對應</text
+        >
+        <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
+          >支撐域 / 現成通用域</text
+        >
+        <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
+          >市場有標準，自己做不具優勢</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-wardley-diagram__section-label"
+          >系統分析特徵與原則</text
+        >
+        <text y="20" class="ddd-wardley-diagram__bullet"
+          >• 現成產品繁多，競爭激烈</text
+        >
+        <text y="40" class="ddd-wardley-diagram__bullet"
+          >• 優先「採購/整合」勝於自建</text
+        >
+        <text y="60" class="ddd-wardley-diagram__bullet"
+          >• 構建防腐層（ACL）隔離外部合約</text
+        >
+        <text y="80" class="ddd-wardley-diagram__bullet"
+          >• 典型：CRM、工單系統、CMS</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--product"
+        ></rect>
+        <text x="12" y="20" class="ddd-wardley-diagram__action-title"
+          >戰略工程姿態</text
+        >
+        <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
+          >採購整合 · 嚴禁盲目自幹</text
+        >
+      </g>
+    </g>
+
+    <!-- 4. 商品期 Commodity (通用基礎設施) -->
+    <g
+      transform="translate(717, 92)"
+      class="ddd-wardley-diagram__col ddd-wardley-diagram__col--commodity"
+    >
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--commodity"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--commodity"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text class="ddd-wardley-diagram__phase-tag">PHASE 4 · 演化終局</text>
+        <text y="25" class="ddd-wardley-diagram__col-title">商品期 Utility</text
+        >
+        <text y="46" class="ddd-wardley-diagram__col-subtitle"
+          >水電公用化 · 高度標准化協議</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-wardley-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-wardley-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
+          >DDD 子域對應</text
+        >
+        <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
+          >通用子域（Generic Domain）</text
+        >
+        <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
+          >高度同質化，自建即浪費資本</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-wardley-diagram__section-label"
+          >系統分析特徵與原則</text
+        >
+        <text y="20" class="ddd-wardley-diagram__bullet"
+          >• 按用量計費，極致可靠與標準</text
+        >
+        <text y="40" class="ddd-wardley-diagram__bullet"
+          >• 自建任何一行代碼都是負資產</text
+        >
+        <text y="60" class="ddd-wardley-diagram__bullet"
+          >• 隨插即用，直接呼叫雲端服務</text
+        >
+        <text y="80" class="ddd-wardley-diagram__bullet"
+          >• 典型：AWS S3、Stripe、Auth0</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--commodity"
+        ></rect>
+        <text x="12" y="20" class="ddd-wardley-diagram__action-title"
+          >戰略工程姿態</text
+        >
+        <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
+          >公用設施 · 堅決直接訂閱</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：資本錯配警示與系統分析防線 (高 100px) -->
+    <g transform="translate(30, 465)">
+      <rect
+        width="900"
+        height="105"
+        rx="10"
+        class="ddd-wardley-diagram__warning-bg"></rect>
+      <rect
+        width="900"
+        height="5"
+        rx="2"
+        class="ddd-wardley-diagram__warning-strip"></rect>
+
+      <!-- 警示 Icon 與標題 -->
+      <circle cx="36" cy="35" r="14" fill="#ef4444" opacity="0.15"></circle>
+      <text
+        x="36"
+        y="41"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="900"
+        fill="#ef4444">!</text
+      >
+      <text x="62" y="40" class="ddd-wardley-diagram__warning-title"
+        >瓦德利演化氣候規律（Climatic Patterns）與系統分析資本防禦線</text
+      >
+
+      <!-- 警示內文兩欄排版 -->
+      <g transform="translate(62, 54)">
+        <text class="ddd-wardley-diagram__warning-bullet" x="0" y="16">
+          <tspan font-weight="700">演化不可逆性：</tspan> 所有組件都會受競爭壓力向右（Commodity）推移；當底層商品化時，高價值核心域必然向上層躍遷。
+        </text>
+        <text class="ddd-wardley-diagram__warning-bullet" x="0" y="36">
+          <tspan font-weight="700">工程資本錯配：</tspan> 致命反模式是在 Commodity（如
+          Auth、Message Queue）上自建專案，卻在 Custom（核心壁壘）上草率拼湊外包。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 手機版 SVG (寬度 360，高度 1020，縱向堆疊卡片，字體 14px 起跳，極致清晰) -->
+  <svg
+    class="ddd-wardley-diagram__mobile"
+    viewBox="0 0 360 1020"
+    role="img"
+    aria-labelledby="ddd-wardley-diagram-mobile-title ddd-wardley-diagram-mobile-desc"
+  >
+    <title id="ddd-wardley-diagram-mobile-title">
+      Wardley Mapping 價值鏈演化與 DDD 核心域錨定全景（行動版）
+    </title>
+    <desc id="ddd-wardley-diagram-mobile-desc">
+      瓦德利地圖演化四階段縱向卡片版：創生期原型、自建期核心域、產品期採購整合、商品期公用設施。
+    </desc>
+
+    <!-- 頂部：標題卡片 (高 70px) -->
+    <g transform="translate(16, 16)">
+      <rect
+        width="328"
+        height="66"
+        rx="8"
+        class="ddd-wardley-diagram__banner-bg"></rect>
+      <text x="16" y="28" class="ddd-wardley-diagram__mobile-title"
+        >瓦德利地圖 × DDD 系統分析</text
+      >
+      <text x="16" y="48" class="ddd-wardley-diagram__mobile-subtitle"
+        >從價值鏈成熟度錨定不可替代核心域</text
+      >
+    </g>
+
+    <!-- 1. 創生期 Genesis (高 200px) -->
+    <g transform="translate(16, 96)">
+      <rect
+        width="328"
+        height="200"
+        rx="8"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--genesis"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--genesis"
+      ></rect>
+      <text x="16" y="28" class="ddd-wardley-diagram__phase-tag"
+        >PHASE 1 · 演化前端</text
+      >
+      <text x="16" y="52" class="ddd-wardley-diagram__col-title"
+        >創生期 Genesis（探索驗證）</text
+      >
+      <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
+        >對應：潛在核心域（孵化中）</text
+      >
+      <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
+        >• 特徵：市場不確定性極高，隨時 pivots</text
+      >
+      <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
+        >• 姿態：拋棄式原型，容忍技術債，快速驗證</text
+      >
+      <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
+        >• 典型：未經驗證之新創商業模式、AI 原型</text
+      >
+      <rect
+        x="16"
+        y="160"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--genesis"
+      ></rect>
+      <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
+        >工程姿態：快速 Proof-of-Concept，拒過度設計</text
+      >
+    </g>
+
+    <!-- 2. 自建期 Custom (高 205px，黃金高亮) -->
+    <g transform="translate(16, 310)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--custom"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--custom"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-wardley-diagram__phase-tag ddd-wardley-diagram__phase-tag--gold"
+        >PHASE 2 · 核心戰場（最高優先）</text
+      >
+      <text
+        x="16"
+        y="52"
+        class="ddd-wardley-diagram__col-title ddd-wardley-diagram__col-title--gold"
+        >自建期 Custom（商業壁壘）</text
+      >
+      <text
+        x="16"
+        y="74"
+        class="ddd-wardley-diagram__mobile-domain ddd-wardley-diagram__mobile-domain--gold"
+        >對應：DDD 核心域（Core Domain）</text
+      >
+      <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
+        >• 特徵：開源即倒閉，全公司唯一競爭護城河</text
+      >
+      <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
+        >• 姿態：投入頂尖菁英，精心封裝深模組與通用語言</text
+      >
+      <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
+        >• 典型：專利動態定價模型、即時撮合排程</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="28"
+        rx="4"
+        class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--custom"
+      ></rect>
+      <text
+        x="24"
+        y="180"
+        class="ddd-wardley-diagram__mobile-action ddd-wardley-diagram__action-title--gold"
+        >工程姿態：自主深度研發 · 100% 業務主權</text
+      >
+    </g>
+
+    <!-- 3. 產品期 Product (高 200px) -->
+    <g transform="translate(16, 529)">
+      <rect
+        width="328"
+        height="200"
+        rx="8"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--product"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--product"
+      ></rect>
+      <text x="16" y="28" class="ddd-wardley-diagram__phase-tag"
+        >PHASE 3 · 成熟標準</text
+      >
+      <text x="16" y="52" class="ddd-wardley-diagram__col-title"
+        >產品期 Product（採購整合）</text
+      >
+      <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
+        >對應：支撐域 / 現成通用域</text
+      >
+      <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
+        >• 特徵：市場成熟方案眾多，自研缺乏優勢</text
+      >
+      <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
+        >• 姿態：優先採購/開源整合，建構 ACL 防腐隔離</text
+      >
+      <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
+        >• 典型：CRM、通用工單、CMS、搜尋引擎</text
+      >
+      <rect
+        x="16"
+        y="160"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--product"
+      ></rect>
+      <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
+        >工程姿態：成熟產品採購整合 · 拒絕自幹</text
+      >
+    </g>
+
+    <!-- 4. 商品期 Utility (高 200px) -->
+    <g transform="translate(16, 743)">
+      <rect
+        width="328"
+        height="200"
+        rx="8"
+        class="ddd-wardley-diagram__main-card ddd-wardley-diagram__main-card--commodity"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--commodity"
+      ></rect>
+      <text x="16" y="28" class="ddd-wardley-diagram__phase-tag"
+        >PHASE 4 · 演化終局</text
+      >
+      <text x="16" y="52" class="ddd-wardley-diagram__col-title"
+        >商品期 Utility（公用設施）</text
+      >
+      <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
+        >對應：通用子域（Generic Subdomain）</text
+      >
+      <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
+        >• 特徵：水電級公用基礎設施，極致標準化</text
+      >
+      <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
+        >• 姿態：隨插即用，按用量計費，堅決不寫基礎設施代碼</text
+      >
+      <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
+        >• 典型：AWS S3、Stripe 金流、Auth0 認證</text
+      >
+      <rect
+        x="16"
+        y="160"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--commodity"
+      ></rect>
+      <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
+        >工程姿態：雲端公共服務 · 堅決直接訂閱</text
+      >
+    </g>
+
+    <!-- 底部警告 (高 55px) -->
+    <g transform="translate(16, 955)">
+      <rect
+        width="328"
+        height="52"
+        rx="8"
+        class="ddd-wardley-diagram__warning-bg"></rect>
+      <text x="16" y="24" class="ddd-wardley-diagram__mobile-warning-title"
+        >⚠️ 系統分析資本防禦線：</text
+      >
+      <text x="16" y="42" class="ddd-wardley-diagram__mobile-warning-desc"
+        >堅決杜絕在 Utility 上自建輪子，而在 Core 上草率外包。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption
+    id="ddd-wardley-diagram-caption"
+    class="ddd-wardley-diagram__caption"
+  >
+    圖解：Wardley Mapping（瓦德利地圖）價值鏈演化矩陣與 DDD
+    子域對齊。系統分析端必須依據組件演化成熟度，精準錨定 Core Domain
+    並阻斷過度自研。
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-wardley-diagram {
+    margin: 2.5rem 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 響應式切換 */
+  .ddd-wardley-diagram__desktop {
+    display: block;
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+  }
+
+  .ddd-wardley-diagram__mobile {
+    display: none;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-wardley-diagram__desktop {
+      display: none;
+    }
+    .ddd-wardley-diagram__mobile {
+      display: block;
+    }
+  }
+
+  /* 視覺字型與通用標籤 */
+  .ddd-wardley-diagram text {
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+  }
+
+  /* 頂部導覽列 */
+  .ddd-wardley-diagram__banner-bg {
+    fill: var(--card-bg, #f8fafc);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-wardley-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-wardley-diagram__banner-dim {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-wardley-diagram__banner-divider {
+    font-size: 14px;
+    font-weight: 400;
+    fill: var(--border-color, #cbd5e1);
+  }
+
+  /* 四大欄位卡片主體 */
+  .ddd-wardley-diagram__main-card {
+    fill: var(--card-bg, #ffffff);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+    transition: all 0.2s ease;
+  }
+
+  .ddd-wardley-diagram__main-card--custom {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.08));
+  }
+
+  .ddd-wardley-diagram__col-strip--genesis {
+    fill: #94a3b8;
+  }
+  .ddd-wardley-diagram__col-strip--custom {
+    fill: #f59e0b;
+  }
+  .ddd-wardley-diagram__col-strip--product {
+    fill: #3b82f6;
+  }
+  .ddd-wardley-diagram__col-strip--commodity {
+    fill: #10b981;
+  }
+
+  /* 文字標籤層次 */
+  .ddd-wardley-diagram__phase-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    fill: #64748b;
+  }
+  .ddd-wardley-diagram__phase-tag--gold {
+    fill: #d97706;
+  }
+
+  .ddd-wardley-diagram__col-title {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-wardley-diagram__col-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-wardley-diagram__col-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-wardley-diagram__divider {
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  /* Meta 區塊 */
+  .ddd-wardley-diagram__meta-box {
+    fill: var(--bg-surface, #f8fafc);
+    stroke: var(--border-color, #f1f5f9);
+    stroke-width: 1;
+  }
+  .ddd-wardley-diagram__meta-box--gold {
+    fill: #fef3c7;
+    stroke: #fde68a;
+  }
+
+  .ddd-wardley-diagram__meta-label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+  }
+
+  .ddd-wardley-diagram__meta-val {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-wardley-diagram__meta-val--gold {
+    fill: #92400e;
+  }
+
+  .ddd-wardley-diagram__meta-sub {
+    font-size: 10px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  /* Bullet 清單 */
+  .ddd-wardley-diagram__section-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #1e293b);
+  }
+
+  .ddd-wardley-diagram__bullet {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 行動姿態底盒 */
+  .ddd-wardley-diagram__action-box {
+    fill: var(--bg-surface, #f1f5f9);
+  }
+  .ddd-wardley-diagram__action-box--custom {
+    fill: #fef3c7;
+  }
+
+  .ddd-wardley-diagram__action-title {
+    font-size: 11px;
+    font-weight: 800;
+    fill: #475569;
+  }
+  .ddd-wardley-diagram__action-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-wardley-diagram__action-desc {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  /* 底部警示區塊 */
+  .ddd-wardley-diagram__warning-bg {
+    fill: var(--card-bg, #fff1f2);
+    stroke: #fecdd3;
+    stroke-width: 1.5;
+  }
+
+  .ddd-wardley-diagram__warning-strip {
+    fill: #ef4444;
+  }
+
+  .ddd-wardley-diagram__warning-title {
+    font-size: 14px;
+    font-weight: 800;
+    fill: #991b1b;
+  }
+
+  .ddd-wardley-diagram__warning-bullet {
+    font-size: 12.5px;
+    fill: #7f1d1d;
+  }
+
+  /* 行動版專屬文字 */
+  .ddd-wardley-diagram__mobile-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-wardley-diagram__mobile-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-wardley-diagram__mobile-domain {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-wardley-diagram__mobile-domain--gold {
+    fill: #b45309;
+  }
+
+  .ddd-wardley-diagram__mobile-text {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-wardley-diagram__mobile-action {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-wardley-diagram__mobile-warning-title {
+    font-size: 13px;
+    font-weight: 800;
+    fill: #991b1b;
+  }
+
+  .ddd-wardley-diagram__mobile-warning-desc {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: #7f1d1d;
+  }
+
+  /* 圖解標題說明 */
+  .ddd-wardley-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 深色模式支援 */
+  :global(.dark) .ddd-wardley-diagram__banner-bg {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-wardley-diagram__banner-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__banner-dim {
+    fill: #cbd5e1;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__main-card {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-wardley-diagram__main-card--custom {
+    stroke: #f59e0b;
+    fill: #1f2937;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__col-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__col-title--gold {
+    fill: #fbbf24;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__meta-box {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+  :global(.dark) .ddd-wardley-diagram__meta-box--gold {
+    fill: #451a03;
+    stroke: #78350f;
+  }
+  :global(.dark) .ddd-wardley-diagram__meta-val {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__meta-val--gold {
+    fill: #fef3c7;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__section-label {
+    fill: #cbd5e1;
+  }
+  :global(.dark) .ddd-wardley-diagram__bullet {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__action-box {
+    fill: #0f172a;
+  }
+  :global(.dark) .ddd-wardley-diagram__action-box--custom {
+    fill: #451a03;
+  }
+  :global(.dark) .ddd-wardley-diagram__action-desc {
+    fill: #f8fafc;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__warning-bg {
+    fill: #450a0a;
+    stroke: #991b1b;
+  }
+  :global(.dark) .ddd-wardley-diagram__warning-title {
+    fill: #fecdd3;
+  }
+  :global(.dark) .ddd-wardley-diagram__warning-bullet {
+    fill: #fda4af;
+  }
+
+  :global(.dark) .ddd-wardley-diagram__mobile-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-domain {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-domain--gold {
+    fill: #fbbf24;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-text {
+    fill: #94a3b8;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-action {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-warning-title {
+    fill: #fecdd3;
+  }
+  :global(.dark) .ddd-wardley-diagram__mobile-warning-desc {
+    fill: #fda4af;
+  }
+</style>
