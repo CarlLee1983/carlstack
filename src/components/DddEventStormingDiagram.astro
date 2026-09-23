@@ -1,0 +1,1103 @@
+---
+// src/components/DddEventStormingDiagram.astro
+---
+
+<figure
+  class="ddd-storming-diagram"
+  aria-labelledby="ddd-storming-diagram-caption"
+>
+  <!-- 桌面版 SVG (寬度 960，高度 600，大字級、高對比、清爽透氣、Anti-Quadrant) -->
+  <svg
+    class="ddd-storming-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-storming-diagram-title ddd-storming-diagram-desc"
+  >
+    <title id="ddd-storming-diagram-title">
+      Big Picture EventStorming 全景事件風暴與上下文邊界識別全景
+    </title>
+    <desc id="ddd-storming-diagram-desc">
+      頂部展示事件風暴色彩語言與時間軸流動方向。主體四欄展示全景風暴推進三階段與上下文邊界切分：混沌發散領域事件、結構化時間軸與觸發源、衝突熱點收斂、邊界接縫自然浮現。底部展示系統分析師控場原則與常見反模式警示。
+    </desc>
+
+    <!-- 頂部：便籤語義導覽列 (高 52px) -->
+    <g transform="translate(30, 20)">
+      <rect
+        width="900"
+        height="52"
+        rx="10"
+        class="ddd-storming-diagram__banner-bg"></rect>
+      <text x="24" y="32" class="ddd-storming-diagram__banner-title"
+        >事件風暴色彩語言：</text
+      >
+
+      <!-- 橘色：Domain Event -->
+      <rect x="180" y="16" width="22" height="20" rx="3" fill="#f97316"></rect>
+      <text x="208" y="31" class="ddd-storming-diagram__legend-text"
+        >領域事件（過去式）</text
+      >
+
+      <!-- 藍色：Command -->
+      <rect x="365" y="16" width="22" height="20" rx="3" fill="#3b82f6"></rect>
+      <text x="393" y="31" class="ddd-storming-diagram__legend-text"
+        >操作指令（動詞）</text
+      >
+
+      <!-- 紫色：Policy -->
+      <rect x="535" y="16" width="22" height="20" rx="3" fill="#a855f7"></rect>
+      <text x="563" y="31" class="ddd-storming-diagram__legend-text"
+        >業務策略（Whenever）</text
+      >
+
+      <!-- 紅色：Hotspot -->
+      <rect x="735" y="16" width="22" height="20" rx="3" fill="#ef4444"></rect>
+      <text x="763" y="31" class="ddd-storming-diagram__legend-text"
+        >衝突熱點（爭議點）</text
+      >
+    </g>
+
+    <!-- 主體四欄：工作坊推進四步 (每欄寬 213px，間距 16px，高 355px) -->
+
+    <!-- 1. 第一步：混沌發散 (Chaotic Exploration) -->
+    <g transform="translate(30, 92)" class="ddd-storming-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--orange"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--orange"
+          >STEP 1 · 混沌發散</text
+        >
+        <text y="25" class="ddd-storming-diagram__col-title">全景領域事件</text>
+        <text y="46" class="ddd-storming-diagram__col-subtitle"
+          >業務事實 · 徹底打破沉默</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-storming-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-storming-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-storming-diagram__meta-label"
+          >核心便籤類型</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-storming-diagram__meta-val ddd-storming-diagram__meta-val--orange"
+          >橘色便籤（Domain Event）</text
+        >
+        <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
+          >必須使用業務過去式動態</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
+        <text y="20" class="ddd-storming-diagram__bullet"
+          >• 邀請所有跨職能關係人到場</text
+        >
+        <text y="40" class="ddd-storming-diagram__bullet"
+          >• 嚴禁技術人員討論資料表與 API</text
+        >
+        <text y="60" class="ddd-storming-diagram__bullet"
+          >• 貼滿「OrderPlaced、Paid」</text
+        >
+        <text y="80" class="ddd-storming-diagram__bullet"
+          >• 允許重複與亂序，重在廣度</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-storming-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-storming-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-storming-diagram__action-desc"
+          >激發表達 · 杜絕批判審查</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 第二步：時間軸與觸發源 (Timeline & Triggers) -->
+    <g transform="translate(259, 92)" class="ddd-storming-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--blue"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--blue"
+          >STEP 2 · 時序結構</text
+        >
+        <text y="25" class="ddd-storming-diagram__col-title"
+          >時間軸與觸發源</text
+        >
+        <text y="46" class="ddd-storming-diagram__col-subtitle"
+          >左到右時序 · 溯源因果鏈</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-storming-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-storming-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-storming-diagram__meta-label"
+          >核心便籤類型</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-storming-diagram__meta-val ddd-storming-diagram__meta-val--blue"
+          >藍色 Command + 紫色 Policy</text
+        >
+        <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
+          >人/系統觸發與業務策略規則</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
+        <text y="20" class="ddd-storming-diagram__bullet"
+          >• 事件依業務時間自左向右排列</text
+        >
+        <text y="40" class="ddd-storming-diagram__bullet"
+          >• 追問：「是什麼引發了此事件？」</text
+        >
+        <text y="60" class="ddd-storming-diagram__bullet"
+          >• 識別「每當 X 發生時，執行 Y」</text
+        >
+        <text y="80" class="ddd-storming-diagram__bullet"
+          >• 補齊讀取模型與決策上下文</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-storming-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-storming-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-storming-diagram__action-desc"
+          >理清因果 · 梳理業務時序</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 第三步：熱點衝突收斂 (Hotspots & Friction) -->
+    <g transform="translate(488, 92)" class="ddd-storming-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--red"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--red"
+          >STEP 3 · 爭議捕捉</text
+        >
+        <text y="25" class="ddd-storming-diagram__col-title">捕捉衝突熱點</text>
+        <text y="46" class="ddd-storming-diagram__col-subtitle"
+          >紅色便籤 · 暴露真實分歧</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-storming-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-storming-diagram__meta-box ddd-storming-diagram__meta-box--red"
+        ></rect>
+        <text x="12" y="22" class="ddd-storming-diagram__meta-label"
+          >核心便籤類型</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-storming-diagram__meta-val ddd-storming-diagram__meta-val--red"
+          >紅色便籤（Hotspot / Issue）</text
+        >
+        <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
+          >語義矛盾、責任真空與法規風險</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
+        <text y="20" class="ddd-storming-diagram__bullet"
+          >• 只要有爭執，立刻貼上紅便籤</text
+        >
+        <text y="40" class="ddd-storming-diagram__bullet"
+          >• 拒絕在白板前現場無休止爭吵</text
+        >
+        <text y="60" class="ddd-storming-diagram__bullet"
+          >• 標記「誰負責退款審核賠償？」</text
+        >
+        <text y="80" class="ddd-storming-diagram__bullet"
+          >• 衝突點往往預示核心語義邊界</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-storming-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-storming-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-storming-diagram__action-desc"
+          >凍結爭吵 · 記錄分歧熱點</text
+        >
+      </g>
+    </g>
+
+    <!-- 4. 第四步：邊界自然浮現 (Bounded Contexts) -->
+    <g transform="translate(717, 92)" class="ddd-storming-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-storming-diagram__main-card ddd-storming-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--gold"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--gold"
+          >STEP 4 · 架構收斂</text
+        >
+        <text
+          y="25"
+          class="ddd-storming-diagram__col-title ddd-storming-diagram__col-title--gold"
+          >識別上下文邊界</text
+        >
+        <text y="46" class="ddd-storming-diagram__col-subtitle"
+          >語義圈地 · 確立系統邊界</text
+        >
+      </g>
+
+      <line
+        x1="16"
+        y1="84"
+        x2="197"
+        y2="84"
+        class="ddd-storming-diagram__divider"></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-storming-diagram__meta-box ddd-storming-diagram__meta-box--gold"
+        ></rect>
+        <text x="12" y="22" class="ddd-storming-diagram__meta-label"
+          >架構交付物</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-storming-diagram__meta-val ddd-storming-diagram__meta-val--gold"
+          >候選限界上下文清單</text
+        >
+        <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
+          >時間停頓、權責移轉處劃下接縫</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
+        <text y="20" class="ddd-storming-diagram__bullet"
+          >• 尋找時序停頓（異步處理點）</text
+        >
+        <text y="40" class="ddd-storming-diagram__bullet"
+          >• 捕捉角色與權責轉移樞紐</text
+        >
+        <text y="60" class="ddd-storming-diagram__bullet"
+          >• 識別名詞含義的根本性轉變</text
+        >
+        <text y="80" class="ddd-storming-diagram__bullet"
+          >• 用膠帶圈出 Bounded Context</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-storming-diagram__action-box ddd-storming-diagram__action-box--gold"
+        ></rect>
+        <text
+          x="12"
+          y="20"
+          class="ddd-storming-diagram__action-title ddd-storming-diagram__action-title--gold"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-storming-diagram__action-desc"
+          >確立邊界 · 輸出戰略架構</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：控場防線與反模式警示 (高 105px) -->
+    <g transform="translate(30, 465)">
+      <rect
+        width="900"
+        height="105"
+        rx="10"
+        class="ddd-storming-diagram__warning-bg"></rect>
+      <rect
+        width="900"
+        height="5"
+        rx="2"
+        class="ddd-storming-diagram__warning-strip"></rect>
+
+      <circle cx="36" cy="35" r="14" fill="#f59e0b" opacity="0.15"></circle>
+      <text
+        x="36"
+        y="41"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="900"
+        fill="#d97706">!</text
+      >
+      <text x="62" y="40" class="ddd-storming-diagram__warning-title"
+        >系統分析師主導 EventStorming 的兩大防禦原則</text
+      >
+
+      <g transform="translate(62, 54)">
+        <text class="ddd-storming-diagram__warning-bullet" x="0" y="16">
+          <tspan font-weight="700">禁絕 CRUD 思維污染：</tspan> 嚴禁出現「CreateOrder、UpdateUser」等資料庫動作便籤；必須使用真實業務語義（如
+          OrderPlaced、AccountLocked）。
+        </text>
+        <text class="ddd-storming-diagram__warning-bullet" x="0" y="36">
+          <tspan font-weight="700">現場爭執即時凍結：</tspan> 當兩個部門對名詞定義爭辯超過
+          2 分鐘，強制貼上紅便籤並立刻推進，將爭議轉為探索限界上下文的絕佳切縫。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (寬度 360，高度 1040，縱向堆疊卡片) -->
+  <svg
+    class="ddd-storming-diagram__mobile"
+    viewBox="0 0 360 1040"
+    role="img"
+    aria-labelledby="ddd-storming-diagram-mobile-title ddd-storming-diagram-mobile-desc"
+  >
+    <title id="ddd-storming-diagram-mobile-title">
+      Big Picture EventStorming 全景事件風暴工作流（行動版）
+    </title>
+    <desc id="ddd-storming-diagram-mobile-desc">
+      全景事件風暴四步驟縱向卡片版：混沌發散領域事件、結構化時間軸、衝突熱點收斂、自然浮現上下文邊界。
+    </desc>
+
+    <!-- 頂部標題 (高 66px) -->
+    <g transform="translate(16, 16)">
+      <rect
+        width="328"
+        height="66"
+        rx="8"
+        class="ddd-storming-diagram__banner-bg"></rect>
+      <text x="16" y="28" class="ddd-storming-diagram__mobile-title"
+        >EventStorming 全景事件風暴</text
+      >
+      <text x="16" y="48" class="ddd-storming-diagram__mobile-subtitle"
+        >從業務事實探索到限界上下文自然切分</text
+      >
+    </g>
+
+    <!-- 1. 混沌發散 (高 205px) -->
+    <g transform="translate(16, 96)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--orange"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--orange"
+        >STEP 1 · 混沌發散（打破沉默）</text
+      >
+      <text x="16" y="52" class="ddd-storming-diagram__col-title"
+        >全景領域事件（Domain Events）</text
+      >
+      <text x="16" y="74" class="ddd-storming-diagram__mobile-domain"
+        >便籤：橘色便籤 · 業務過去式</text
+      >
+      <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
+        >• 特徵：全員無邊界張貼業務事實，允許重複亂序</text
+      >
+      <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
+        >• 姿態：嚴禁工程師過早討論資料庫表結構與 API</text
+      >
+      <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
+        >• 典型：OrderPlaced, PaymentReceived, ParcelDispatched</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-storming-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
+        >分析師姿態：鼓勵廣泛發散，不做價值評判</text
+      >
+    </g>
+
+    <!-- 2. 時間軸與觸發源 (高 205px) -->
+    <g transform="translate(16, 315)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--blue"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--blue"
+        >STEP 2 · 時序結構（因果鏈）</text
+      >
+      <text x="16" y="52" class="ddd-storming-diagram__col-title"
+        >時間軸與觸發源（Timeline & Triggers）</text
+      >
+      <text x="16" y="74" class="ddd-storming-diagram__mobile-domain"
+        >便籤：藍色 Command + 紫色 Policy</text
+      >
+      <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
+        >• 特徵：自左向右排列時序，追溯每項事件之觸發因</text
+      >
+      <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
+        >• 姿態：梳理「每當 A 發生時，執行策略 B」</text
+      >
+      <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
+        >• 典型：用戶點擊提交、定時任務觸發、自動風控驗證</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-storming-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
+        >分析師姿態：溯源業務因果鏈，理清決策上下文</text
+      >
+    </g>
+
+    <!-- 3. 捕捉衝突熱點 (高 205px) -->
+    <g transform="translate(16, 534)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-storming-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--red"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--red"
+        >STEP 3 · 爭議捕捉（暴露痛點）</text
+      >
+      <text x="16" y="52" class="ddd-storming-diagram__col-title"
+        >捕捉衝突熱點（Hotspots）</text
+      >
+      <text x="16" y="74" class="ddd-storming-diagram__mobile-domain"
+        >便籤：紅色便籤 · 爭議與盲點</text
+      >
+      <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
+        >• 特徵：凡是部門爭執超 2 分鐘，強制貼紅便籤</text
+      >
+      <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
+        >• 姿態：現場不浪費時間辯論，凍結爭議持續推進</text
+      >
+      <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
+        >• 典型：名詞語義分歧、責任真空、缺失不變量約束</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-storming-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
+        >分析師姿態：將爭吵轉化為探索邊界的關鍵契機</text
+      >
+    </g>
+
+    <!-- 4. 邊界自然浮現 (高 205px，黃金高亮) -->
+    <g transform="translate(16, 753)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-storming-diagram__main-card ddd-storming-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-storming-diagram__col-strip ddd-storming-diagram__col-strip--gold"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--gold"
+        >STEP 4 · 架構收斂（確立邊界）</text
+      >
+      <text
+        x="16"
+        y="52"
+        class="ddd-storming-diagram__col-title ddd-storming-diagram__col-title--gold"
+        >識別上下文邊界（Bounded Contexts）</text
+      >
+      <text
+        x="16"
+        y="74"
+        class="ddd-storming-diagram__mobile-domain ddd-storming-diagram__mobile-domain--gold"
+        >交付：候選限界上下文清單</text
+      >
+      <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
+        >• 特徵：從時間軸停頓與權責轉移處畫下分界線</text
+      >
+      <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
+        >• 姿態：以業務邊界取代微服務拆分盲目熱情</text
+      >
+      <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
+        >• 典型：訂單成立、履約倉儲、開票結算自然解耦</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="28"
+        rx="4"
+        class="ddd-storming-diagram__action-box ddd-storming-diagram__action-box--gold"
+      ></rect>
+      <text
+        x="24"
+        y="180"
+        class="ddd-storming-diagram__mobile-action ddd-storming-diagram__action-title--gold"
+        >分析師姿態：膠帶圈出邊界，正式輸出系統架構接縫</text
+      >
+    </g>
+
+    <!-- 底部警告 (高 55px) -->
+    <g transform="translate(16, 972)">
+      <rect
+        width="328"
+        height="52"
+        rx="8"
+        class="ddd-storming-diagram__warning-bg"></rect>
+      <text x="16" y="24" class="ddd-storming-diagram__mobile-warning-title"
+        >⚠️ EventStorming 控場底線：</text
+      >
+      <text x="16" y="42" class="ddd-storming-diagram__mobile-warning-desc"
+        >杜絕 CRUD 技術名詞，以真實業務過去式驅動時序鏈。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption
+    id="ddd-storming-diagram-caption"
+    class="ddd-storming-diagram__caption"
+  >
+    圖解：Big Picture
+    EventStorming（全景事件風暴）四步推進架構。透過跨職能探索、時間軸因果溯源與衝突熱點凍結，讓系統限界上下文在白板上自然浮現。
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-storming-diagram {
+    margin: 2.5rem 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-storming-diagram__desktop {
+    display: block;
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+  }
+
+  .ddd-storming-diagram__mobile {
+    display: none;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-storming-diagram__desktop {
+      display: none;
+    }
+    .ddd-storming-diagram__mobile {
+      display: block;
+    }
+  }
+
+  .ddd-storming-diagram text {
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+  }
+
+  /* 頂部導覽列 */
+  .ddd-storming-diagram__banner-bg {
+    fill: var(--card-bg, #f8fafc);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-storming-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-storming-diagram__legend-text {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 卡片本體 */
+  .ddd-storming-diagram__main-card {
+    fill: var(--card-bg, #ffffff);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-storming-diagram__main-card--gold {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.08));
+  }
+
+  .ddd-storming-diagram__col-strip--orange {
+    fill: #f97316;
+  }
+  .ddd-storming-diagram__col-strip--blue {
+    fill: #3b82f6;
+  }
+  .ddd-storming-diagram__col-strip--red {
+    fill: #ef4444;
+  }
+  .ddd-storming-diagram__col-strip--gold {
+    fill: #f59e0b;
+  }
+
+  /* 標籤層級 */
+  .ddd-storming-diagram__phase-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+  .ddd-storming-diagram__phase-tag--orange {
+    fill: #c2410c;
+  }
+  .ddd-storming-diagram__phase-tag--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-storming-diagram__phase-tag--red {
+    fill: #b91c1c;
+  }
+  .ddd-storming-diagram__phase-tag--gold {
+    fill: #d97706;
+  }
+
+  .ddd-storming-diagram__col-title {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-storming-diagram__col-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-storming-diagram__col-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-storming-diagram__divider {
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  /* Meta 區塊 */
+  .ddd-storming-diagram__meta-box {
+    fill: var(--bg-surface, #f8fafc);
+    stroke: var(--border-color, #f1f5f9);
+    stroke-width: 1;
+  }
+  .ddd-storming-diagram__meta-box--red {
+    fill: #fef2f2;
+    stroke: #fee2e2;
+  }
+  .ddd-storming-diagram__meta-box--gold {
+    fill: #fef3c7;
+    stroke: #fde68a;
+  }
+
+  .ddd-storming-diagram__meta-label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+  }
+
+  .ddd-storming-diagram__meta-val {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-storming-diagram__meta-val--orange {
+    fill: #c2410c;
+  }
+  .ddd-storming-diagram__meta-val--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-storming-diagram__meta-val--red {
+    fill: #b91c1c;
+  }
+  .ddd-storming-diagram__meta-val--gold {
+    fill: #92400e;
+  }
+
+  .ddd-storming-diagram__meta-sub {
+    font-size: 10px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  /* 清單文字 */
+  .ddd-storming-diagram__section-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #1e293b);
+  }
+
+  .ddd-storming-diagram__bullet {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 底盒 */
+  .ddd-storming-diagram__action-box {
+    fill: var(--bg-surface, #f1f5f9);
+  }
+  .ddd-storming-diagram__action-box--gold {
+    fill: #fef3c7;
+  }
+
+  .ddd-storming-diagram__action-title {
+    font-size: 11px;
+    font-weight: 800;
+    fill: #475569;
+  }
+  .ddd-storming-diagram__action-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-storming-diagram__action-desc {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  /* 底部警示區塊 */
+  .ddd-storming-diagram__warning-bg {
+    fill: var(--card-bg, #fffbeb);
+    stroke: #fde68a;
+    stroke-width: 1.5;
+  }
+
+  .ddd-storming-diagram__warning-strip {
+    fill: #f59e0b;
+  }
+
+  .ddd-storming-diagram__warning-title {
+    font-size: 14px;
+    font-weight: 800;
+    fill: #b45309;
+  }
+
+  .ddd-storming-diagram__warning-bullet {
+    font-size: 12.5px;
+    fill: #78350f;
+  }
+
+  /* 行動版專屬樣式 */
+  .ddd-storming-diagram__mobile-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-storming-diagram__mobile-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-storming-diagram__mobile-domain {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-storming-diagram__mobile-domain--gold {
+    fill: #b45309;
+  }
+
+  .ddd-storming-diagram__mobile-text {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-storming-diagram__mobile-action {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-storming-diagram__mobile-warning-title {
+    font-size: 13px;
+    font-weight: 800;
+    fill: #b45309;
+  }
+
+  .ddd-storming-diagram__mobile-warning-desc {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: #78350f;
+  }
+
+  .ddd-storming-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 深色模式支援 */
+  :global(.dark) .ddd-storming-diagram__banner-bg {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-storming-diagram__banner-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__legend-text {
+    fill: #cbd5e1;
+  }
+
+  :global(.dark) .ddd-storming-diagram__main-card {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-storming-diagram__main-card--gold {
+    stroke: #f59e0b;
+    fill: #1f2937;
+  }
+
+  :global(.dark) .ddd-storming-diagram__col-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__col-title--gold {
+    fill: #fbbf24;
+  }
+
+  :global(.dark) .ddd-storming-diagram__meta-box {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-box--red {
+    fill: #450a0a;
+    stroke: #7f1d1d;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-box--gold {
+    fill: #451a03;
+    stroke: #78350f;
+  }
+
+  :global(.dark) .ddd-storming-diagram__meta-val {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-val--orange {
+    fill: #fb923c;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-val--blue {
+    fill: #60a5fa;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-val--red {
+    fill: #f87171;
+  }
+  :global(.dark) .ddd-storming-diagram__meta-val--gold {
+    fill: #fde68a;
+  }
+
+  :global(.dark) .ddd-storming-diagram__section-label {
+    fill: #cbd5e1;
+  }
+  :global(.dark) .ddd-storming-diagram__bullet {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ddd-storming-diagram__action-box {
+    fill: #0f172a;
+  }
+  :global(.dark) .ddd-storming-diagram__action-box--gold {
+    fill: #451a03;
+  }
+  :global(.dark) .ddd-storming-diagram__action-desc {
+    fill: #f8fafc;
+  }
+
+  :global(.dark) .ddd-storming-diagram__warning-bg {
+    fill: #451a03;
+    stroke: #78350f;
+  }
+  :global(.dark) .ddd-storming-diagram__warning-title {
+    fill: #fef3c7;
+  }
+  :global(.dark) .ddd-storming-diagram__warning-bullet {
+    fill: #fde68a;
+  }
+
+  :global(.dark) .ddd-storming-diagram__mobile-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-domain {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-domain--gold {
+    fill: #fbbf24;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-text {
+    fill: #94a3b8;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-action {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-warning-title {
+    fill: #fef3c7;
+  }
+  :global(.dark) .ddd-storming-diagram__mobile-warning-desc {
+    fill: #fde68a;
+  }
+</style>
