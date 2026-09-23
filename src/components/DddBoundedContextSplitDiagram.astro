@@ -1,0 +1,856 @@
+---
+// src/components/DddBoundedContextSplitDiagram.astro
+---
+
+<figure class="ddd-bc-diagram" aria-labelledby="ddd-bc-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 600，大字級、高對比、Anti-Quadrant 橫幅+縱列結構) -->
+  <svg
+    class="ddd-bc-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-bc-diagram-title ddd-bc-diagram-desc"
+  >
+    <title id="ddd-bc-diagram-title">
+      限界上下文（Bounded Context）切割訊號與模型解構全景
+    </title>
+    <desc id="ddd-bc-diagram-desc">
+      頂部為解構導覽與四大切割訊號維度。中間並列展現三大獨立限界上下文（帳號認證、帳務計費、倉儲履約），各自維護純淨的實體模型。底部為解耦關鍵技術：以無外鍵的強型別
+      AccountId 取代物理外鍵硬關聯。
+    </desc>
+
+    <!-- 頂部：戰略維度導覽欄 (寬 900, 高 54, 字體 15px/13px) -->
+    <g transform="translate(30, 20)">
+      <rect width="900" height="54" rx="10" class="ddd-bc-diagram__banner-bg"
+      ></rect>
+
+      <circle cx="28" cy="27" r="7" fill="#3b82f6"></circle>
+      <text x="46" y="33" class="ddd-bc-diagram__banner-title"
+        >邊界切割 4 大訊號：</text
+      >
+
+      <text x="195" y="33" class="ddd-bc-diagram__banner-dim"
+        >① 語義衝突 (Collision)</text
+      >
+      <text x="360" y="33" class="ddd-bc-diagram__banner-divider">|</text>
+      <text x="375" y="33" class="ddd-bc-diagram__banner-dim"
+        >② 變更步調 (Cadence)</text
+      >
+      <text x="525" y="33" class="ddd-bc-diagram__banner-divider">|</text>
+      <text x="540" y="33" class="ddd-bc-diagram__banner-dim"
+        >③ 團隊依賴 (Conway)</text
+      >
+      <text x="690" y="33" class="ddd-bc-diagram__banner-divider">|</text>
+      <text x="705" y="33" class="ddd-bc-diagram__banner-dim"
+        >④ 交易不變量 (Invariant)</text
+      >
+    </g>
+
+    <!-- 主體三列：三大獨立上下文 (寬 286px, 高 350px) -->
+
+    <!-- 1. 帳號與認證上下文 (Identity & Access) - 湛藍主題 -->
+    <g
+      transform="translate(30, 94)"
+      class="ddd-bc-diagram__col ddd-bc-diagram__col--identity"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--identity"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--identity"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-bc-diagram__badge ddd-bc-diagram__badge--identity"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-bc-diagram__badge-text ddd-bc-diagram__badge-text--identity"
+          >認證子域</text
+        >
+        <text x="86" y="18" class="ddd-bc-diagram__col-title">Identity BC</text>
+        <text x="0" y="42" class="ddd-bc-diagram__col-subtitle"
+          >核心實體：Account</text
+        >
+      </g>
+
+      <!-- 實體關注屬性清單 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="164" rx="8" class="ddd-bc-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-bc-diagram__prop-header"
+          >【邊界內純淨模型】</text
+        >
+        <text x="12" y="50" class="ddd-bc-diagram__prop-item"
+          >• id: AccountId (UUID)</text
+        >
+        <text x="12" y="74" class="ddd-bc-diagram__prop-item"
+          >• email: EmailAddress (VO)</text
+        >
+        <text x="12" y="98" class="ddd-bc-diagram__prop-item"
+          >• passwordHash: string</text
+        >
+        <text x="12" y="122" class="ddd-bc-diagram__prop-item"
+          >• mfaSecret / status: Enum</text
+        >
+        <text x="12" y="146" class="ddd-bc-diagram__prop-item"
+          >• roles: Set&lt;Role&gt;</text
+        >
+      </g>
+
+      <!-- 邊界特徵說明 -->
+      <g transform="translate(18, 274)">
+        <text x="0" y="16" class="ddd-bc-diagram__tag-label">語義核心：</text>
+        <text x="75" y="16" class="ddd-bc-diagram__tag-val"
+          >身分驗證與授權防護</text
+        >
+        <text x="0" y="40" class="ddd-bc-diagram__tag-label">變更特徵：</text>
+        <text x="75" y="40" class="ddd-bc-diagram__tag-val"
+          >低頻變更、高安全性要求</text
+        >
+        <text x="0" y="64" class="ddd-bc-diagram__tag-label">排除噪音：</text>
+        <text x="75" y="64" class="ddd-bc-diagram__tag-val"
+          >絕無發票統編、收件地址</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 帳務與計費上下文 (Billing & Invoicing) - 翠綠主題 -->
+    <g
+      transform="translate(337, 94)"
+      class="ddd-bc-diagram__col ddd-bc-diagram__col--billing"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--billing"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--billing"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-bc-diagram__badge ddd-bc-diagram__badge--billing"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-bc-diagram__badge-text ddd-bc-diagram__badge-text--billing"
+          >支付財務</text
+        >
+        <text x="86" y="18" class="ddd-bc-diagram__col-title">Billing BC</text>
+        <text x="0" y="42" class="ddd-bc-diagram__col-subtitle"
+          >核心實體：Customer</text
+        >
+      </g>
+
+      <!-- 實體關注屬性清單 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="164" rx="8" class="ddd-bc-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-bc-diagram__prop-header"
+          >【邊界內純淨模型】</text
+        >
+        <text x="12" y="50" class="ddd-bc-diagram__prop-item"
+          >• id: CustomerId (UUID)</text
+        >
+        <text x="12" y="74" class="ddd-bc-diagram__prop-item"
+          >• accountId: AccountId (參照)</text
+        >
+        <text x="12" y="98" class="ddd-bc-diagram__prop-item"
+          >• taxId: TaxIdentifier (統編)</text
+        >
+        <text x="12" y="122" class="ddd-bc-diagram__prop-item"
+          >• paymentMethods: Card[]</text
+        >
+        <text x="12" y="146" class="ddd-bc-diagram__prop-item"
+          >• invoiceAddress: Address</text
+        >
+      </g>
+
+      <!-- 邊界特徵說明 -->
+      <g transform="translate(18, 274)">
+        <text x="0" y="16" class="ddd-bc-diagram__tag-label">語義核心：</text>
+        <text x="75" y="16" class="ddd-bc-diagram__tag-val"
+          >付款憑證、發票與帳目</text
+        >
+        <text x="0" y="40" class="ddd-bc-diagram__tag-label">變更特徵：</text>
+        <text x="75" y="40" class="ddd-bc-diagram__tag-val"
+          >稅務法規驅動、強審計追蹤</text
+        >
+        <text x="0" y="64" class="ddd-bc-diagram__tag-label">排除噪音：</text>
+        <text x="75" y="64" class="ddd-bc-diagram__tag-val"
+          >絕無密碼雜湊、宅配備註</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 物流與履約上下文 (Fulfillment & Logistics) - 暖琥珀主題 -->
+    <g
+      transform="translate(644, 94)"
+      class="ddd-bc-diagram__col ddd-bc-diagram__col--fulfillment"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--fulfillment"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--fulfillment"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-bc-diagram__badge ddd-bc-diagram__badge--fulfillment"
+        ></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-bc-diagram__badge-text ddd-bc-diagram__badge-text--fulfillment"
+          >倉儲配送</text
+        >
+        <text x="86" y="18" class="ddd-bc-diagram__col-title"
+          >Fulfillment BC</text
+        >
+        <text x="0" y="42" class="ddd-bc-diagram__col-subtitle"
+          >核心實體：Recipient</text
+        >
+      </g>
+
+      <!-- 實體關注屬性清單 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="164" rx="8" class="ddd-bc-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-bc-diagram__prop-header"
+          >【邊界內純淨模型】</text
+        >
+        <text x="12" y="50" class="ddd-bc-diagram__prop-item"
+          >• id: RecipientId (UUID)</text
+        >
+        <text x="12" y="74" class="ddd-bc-diagram__prop-item"
+          >• accountId: AccountId (參照)</text
+        >
+        <text x="12" y="98" class="ddd-bc-diagram__prop-item"
+          >• contactPhone: PhoneNumber</text
+        >
+        <text x="12" y="122" class="ddd-bc-diagram__prop-item"
+          >• deliveryAddress: Address</text
+        >
+        <text x="12" y="146" class="ddd-bc-diagram__prop-item"
+          >• deliveryNotes / gateCode</text
+        >
+      </g>
+
+      <!-- 邊界特徵說明 -->
+      <g transform="translate(18, 274)">
+        <text x="0" y="16" class="ddd-bc-diagram__tag-label">語義核心：</text>
+        <text x="75" y="16" class="ddd-bc-diagram__tag-val"
+          >實體交付、司機與包裹動線</text
+        >
+        <text x="0" y="40" class="ddd-bc-diagram__tag-label">變更特徵：</text>
+        <text x="75" y="40" class="ddd-bc-diagram__tag-val"
+          >配送渠道多樣、變動極高頻</text
+        >
+        <text x="0" y="64" class="ddd-bc-diagram__tag-label">排除噪音：</text>
+        <text x="75" y="64" class="ddd-bc-diagram__tag-val"
+          >絕無支付金鑰、登入 Token</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：跨上下文解耦機制通欄 (寬 900, 高 116) -->
+    <g transform="translate(30, 462)">
+      <rect width="900" height="116" rx="10" class="ddd-bc-diagram__footer-card"
+      ></rect>
+      <rect width="6" height="116" rx="3" class="ddd-bc-diagram__footer-strip"
+      ></rect>
+
+      <g transform="translate(24, 22)">
+        <!-- 警示/原則 Header -->
+        <circle cx="8" cy="8" r="8" fill="#10b981"></circle>
+        <text x="24" y="13" class="ddd-bc-diagram__footer-title"
+          >【實踐架構準則】消除跨庫外鍵約束，以「純 ID 參照（Identity
+          Reference）」維持完全解耦</text
+        >
+
+        <!-- 說明文字 -->
+        <text x="0" y="42" class="ddd-bc-diagram__footer-desc">
+          • <tspan class="ddd-bc-diagram__highlight-bad"
+            >嚴禁跨上下文物理 Foreign Key (FK) 關聯：</tspan
+          > 阻止資料庫層面產生跨模組幽靈鎖定、級聯更新與無休止的跨表 JOIN 泥潭。
+        </text>
+        <text x="0" y="68" class="ddd-bc-diagram__footer-desc">
+          • <tspan class="ddd-bc-diagram__highlight-good"
+            >採用強型別 ID 值物件（AccountId / CustomerId）：</tspan
+          > 各上下文透過非同步領域事件（Domain Events）或公開 API 溝通，保證各模組具備獨立演進與部署自由度。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (縱向單列流式堆疊，寬度 360，高度 1020) -->
+  <svg
+    class="ddd-bc-diagram__mobile"
+    viewBox="0 0 360 1020"
+    role="img"
+    aria-hidden="true"
+  >
+    <!-- 頂部：邊界 4 大訊號 -->
+    <g transform="translate(16, 16)">
+      <rect width="328" height="88" rx="8" class="ddd-bc-diagram__banner-bg"
+      ></rect>
+      <circle cx="20" cy="24" r="6" fill="#3b82f6"></circle>
+      <text x="34" y="28" class="ddd-bc-diagram__m-title"
+        >限界上下文 4 大切割訊號</text
+      >
+      <text x="20" y="52" class="ddd-bc-diagram__m-desc"
+        >① 語義衝突 (Collision) ② 變更步調 (Cadence)</text
+      >
+      <text x="20" y="74" class="ddd-bc-diagram__m-desc"
+        >③ 團隊依賴 (Conway) ④ 交易不變量 (Invariant)</text
+      >
+    </g>
+
+    <!-- 卡片 1：Identity BC -->
+    <g transform="translate(16, 116)" class="ddd-bc-diagram__col--identity">
+      <rect
+        width="328"
+        height="236"
+        rx="10"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--identity"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--identity"
+      ></rect>
+      <text x="16" y="32" class="ddd-bc-diagram__m-card-title"
+        >1. 帳號與認證 (Identity BC)</text
+      >
+      <text x="16" y="54" class="ddd-bc-diagram__m-card-sub"
+        >核心實體：Account</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="96"
+        rx="6"
+        class="ddd-bc-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-bc-diagram__m-prop"
+        >• id: AccountId (UUID)</text
+      >
+      <text x="26" y="110" class="ddd-bc-diagram__m-prop"
+        >• email: EmailAddress / passwordHash</text
+      >
+      <text x="26" y="132" class="ddd-bc-diagram__m-prop"
+        >• roles: Set&lt;Role&gt; / mfaSecret</text
+      >
+      <text x="26" y="152" class="ddd-bc-diagram__m-prop"
+        >• 核心職責：身份驗證與授權，無業務雜訊</text
+      >
+      <text x="16" y="184" class="ddd-bc-diagram__m-feature"
+        >變更步調：低頻變更、高安全性與審計要求</text
+      >
+      <text x="16" y="206" class="ddd-bc-diagram__m-feature"
+        >邊界防守：完全隔離任何發票統編與寄送地址</text
+      >
+    </g>
+
+    <!-- 卡片 2：Billing BC -->
+    <g transform="translate(16, 364)" class="ddd-bc-diagram__col--billing">
+      <rect
+        width="328"
+        height="236"
+        rx="10"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--billing"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--billing"
+      ></rect>
+      <text x="16" y="32" class="ddd-bc-diagram__m-card-title"
+        >2. 帳務與計費 (Billing BC)</text
+      >
+      <text x="16" y="54" class="ddd-bc-diagram__m-card-sub"
+        >核心實體：Customer</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="96"
+        rx="6"
+        class="ddd-bc-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-bc-diagram__m-prop"
+        >• id: CustomerId (UUID)</text
+      >
+      <text x="26" y="110" class="ddd-bc-diagram__m-prop"
+        >• accountId: AccountId (純 ID 參照)</text
+      >
+      <text x="26" y="132" class="ddd-bc-diagram__m-prop"
+        >• taxId: TaxIdentifier (統編) / 信用卡</text
+      >
+      <text x="26" y="152" class="ddd-bc-diagram__m-prop"
+        >• 核心職責：付款憑證、發票開立與合規</text
+      >
+      <text x="16" y="184" class="ddd-bc-diagram__m-feature"
+        >變更步調：財務法規驅動、嚴格審計鏈路</text
+      >
+      <text x="16" y="206" class="ddd-bc-diagram__m-feature"
+        >邊界防守：不關心登入密碼、不關心送貨司機</text
+      >
+    </g>
+
+    <!-- 卡片 3：Fulfillment BC -->
+    <g transform="translate(16, 612)" class="ddd-bc-diagram__col--fulfillment">
+      <rect
+        width="328"
+        height="236"
+        rx="10"
+        class="ddd-bc-diagram__main-card ddd-bc-diagram__main-card--fulfillment"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-bc-diagram__col-strip ddd-bc-diagram__col-strip--fulfillment"
+      ></rect>
+      <text x="16" y="32" class="ddd-bc-diagram__m-card-title"
+        >3. 物流與履約 (Fulfillment BC)</text
+      >
+      <text x="16" y="54" class="ddd-bc-diagram__m-card-sub"
+        >核心實體：Recipient</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="96"
+        rx="6"
+        class="ddd-bc-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-bc-diagram__m-prop"
+        >• id: RecipientId (UUID)</text
+      >
+      <text x="26" y="110" class="ddd-bc-diagram__m-prop"
+        >• accountId: AccountId (純 ID 參照)</text
+      >
+      <text x="26" y="132" class="ddd-bc-diagram__m-prop"
+        >• contactPhone: PhoneNumber / 配送地址</text
+      >
+      <text x="26" y="152" class="ddd-bc-diagram__m-prop"
+        >• 核心職責：實體包裹寄送、門禁備註動線</text
+      >
+      <text x="16" y="184" class="ddd-bc-diagram__m-feature"
+        >變更步調：配合物流商 API 快速調整、高頻變更</text
+      >
+      <text x="16" y="206" class="ddd-bc-diagram__m-feature"
+        >邊界防守：完全隔離金融支付金鑰與雜湊密碼</text
+      >
+    </g>
+
+    <!-- 底部：ID 解耦關鍵卡片 -->
+    <g transform="translate(16, 860)">
+      <rect width="328" height="140" rx="10" class="ddd-bc-diagram__footer-card"
+      ></rect>
+      <rect width="4" height="140" rx="2" class="ddd-bc-diagram__footer-strip"
+      ></rect>
+      <circle cx="16" cy="22" r="5" fill="#10b981"></circle>
+      <text x="28" y="26" class="ddd-bc-diagram__m-footer-title"
+        >關鍵解耦準則：純 ID 參照</text
+      >
+      <text x="16" y="52" class="ddd-bc-diagram__m-footer-p"
+        >• 嚴禁跨模組外鍵 (FK) 綁定：避免鎖表死鎖。</text
+      >
+      <text x="16" y="76" class="ddd-bc-diagram__m-footer-p"
+        >• 跨模組使用強型別 AccountId 作為唯一參照。</text
+      >
+      <text x="16" y="100" class="ddd-bc-diagram__m-footer-p"
+        >• 透過領域事件或 RPC 協同，保持上下文自治。</text
+      >
+      <text x="16" y="122" class="ddd-bc-diagram__m-footer-p"
+        >• 終結萬能神級物件，各模型純度達 100%。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ddd-bc-diagram-caption" class="ddd-bc-diagram__caption">
+    圖解：限界上下文（Bounded Context）切割訊號與「萬能 User
+    物件」解構為純淨多模型架構
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-bc-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-bc-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+  }
+
+  .ddd-bc-diagram__mobile {
+    display: none;
+    width: 100%;
+    height: auto;
+    max-width: 360px;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-bc-diagram__desktop {
+      display: none;
+    }
+    .ddd-bc-diagram__mobile {
+      display: block;
+    }
+  }
+
+  /* 視覺樣式與語義色彩 (支援深淺色模式) */
+  .ddd-bc-diagram__banner-bg {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-bc-diagram__banner-bg {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-bc-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-bc-diagram__banner-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-bc-diagram__banner-dim {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #334155);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-bc-diagram__banner-dim {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-bc-diagram__banner-divider {
+    font-size: 14px;
+    font-weight: 400;
+    fill: var(--dg-border, #94a3b8);
+  }
+
+  /* 主體卡片樣式 */
+  .ddd-bc-diagram__main-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-bc-diagram__main-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  /* 認證 BC 色系 (藍) */
+  .ddd-bc-diagram__col-strip--identity {
+    fill: #2563eb;
+  }
+  .ddd-bc-diagram__badge--identity {
+    fill: #eff6ff;
+    stroke: #bfdbfe;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-bc-diagram__badge--identity {
+    fill: rgba(37, 99, 235, 0.2);
+    stroke: #1d4ed8;
+  }
+  .ddd-bc-diagram__badge-text--identity {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1d4ed8;
+  }
+  :global(.dark) .ddd-bc-diagram__badge-text--identity {
+    fill: #93c5fd;
+  }
+
+  /* 帳務 BC 色系 (綠) */
+  .ddd-bc-diagram__col-strip--billing {
+    fill: #059669;
+  }
+  .ddd-bc-diagram__badge--billing {
+    fill: #ecfdf5;
+    stroke: #a7f3d0;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-bc-diagram__badge--billing {
+    fill: rgba(5, 150, 105, 0.2);
+    stroke: #047857;
+  }
+  .ddd-bc-diagram__badge-text--billing {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #047857;
+  }
+  :global(.dark) .ddd-bc-diagram__badge-text--billing {
+    fill: #6ee7b7;
+  }
+
+  /* 履約 BC 色系 (琥珀) */
+  .ddd-bc-diagram__col-strip--fulfillment {
+    fill: #d97706;
+  }
+  .ddd-bc-diagram__badge--fulfillment {
+    fill: #fffbeb;
+    stroke: #fde68a;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-bc-diagram__badge--fulfillment {
+    fill: rgba(217, 119, 6, 0.2);
+    stroke: #b45309;
+  }
+  .ddd-bc-diagram__badge-text--fulfillment {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #b45309;
+  }
+  :global(.dark) .ddd-bc-diagram__badge-text--fulfillment {
+    fill: #fcd34d;
+  }
+
+  /* 標題與內文 */
+  .ddd-bc-diagram__col-title {
+    font-size: 17px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-bc-diagram__col-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-bc-diagram__col-subtitle {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #475569);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-bc-diagram__col-subtitle {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-bc-diagram__prop-box {
+    fill: rgba(148, 163, 184, 0.08);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-bc-diagram__prop-box {
+    fill: rgba(15, 23, 42, 0.5);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-bc-diagram__prop-header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-bc-diagram__prop-header {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-bc-diagram__prop-item {
+    font-size: 12.5px;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-bc-diagram__prop-item {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-bc-diagram__tag-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-bc-diagram__tag-label {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-bc-diagram__tag-val {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-bc-diagram__tag-val {
+    fill: var(--dg-text, #f1f5f9);
+  }
+
+  /* 底部通欄卡片 */
+  .ddd-bc-diagram__footer-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-bc-diagram__footer-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-bc-diagram__footer-strip {
+    fill: #10b981;
+  }
+
+  .ddd-bc-diagram__footer-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-bc-diagram__footer-title {
+    fill: #34d399;
+  }
+
+  .ddd-bc-diagram__footer-desc {
+    font-size: 13.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-bc-diagram__footer-desc {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-bc-diagram__highlight-bad {
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  :global(.dark) .ddd-bc-diagram__highlight-bad {
+    fill: #f87171;
+  }
+
+  .ddd-bc-diagram__highlight-good {
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-bc-diagram__highlight-good {
+    fill: #34d399;
+  }
+
+  /* 行動版文字 */
+  .ddd-bc-diagram__m-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-bc-diagram__m-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-bc-diagram__m-desc {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-bc-diagram__m-desc {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-bc-diagram__m-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-bc-diagram__m-card-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-bc-diagram__m-card-sub {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-bc-diagram__m-card-sub {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-bc-diagram__m-prop {
+    font-size: 11.5px;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-bc-diagram__m-prop {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-bc-diagram__m-feature {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-bc-diagram__m-feature {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-bc-diagram__m-footer-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-bc-diagram__m-footer-title {
+    fill: #34d399;
+  }
+
+  .ddd-bc-diagram__m-footer-p {
+    font-size: 11.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-bc-diagram__m-footer-p {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-bc-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-text-secondary, #64748b);
+    text-align: center;
+  }
+</style>

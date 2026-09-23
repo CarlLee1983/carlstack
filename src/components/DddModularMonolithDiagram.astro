@@ -1,0 +1,846 @@
+---
+// src/components/DddModularMonolithDiagram.astro
+---
+
+<figure class="ddd-mm-diagram" aria-labelledby="ddd-mm-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 620，大字級、高對比、Anti-Quadrant 橫幅 + 三層防禦柱狀 + 底部鐵律) -->
+  <svg
+    class="ddd-mm-diagram__desktop"
+    viewBox="0 0 960 620"
+    role="img"
+    aria-labelledby="ddd-mm-diagram-title ddd-mm-diagram-desc"
+  >
+    <title id="ddd-mm-diagram-title">
+      模組化單體（Modular Monolith）與 AI Agent 語義隔離防禦體系
+    </title>
+    <desc id="ddd-mm-diagram-desc">
+      頂部展示微服務迷思破除與架構收斂核心維度（進程內零網路開銷 vs 100%
+      硬隔離邊界）。中間三列由靜至動展示進程內隔離三大支柱：編譯期物理隔絕（TS
+      Project References / Go internal）、語義圍欄規範（BOUNDARY.md
+      架構契約）、CI 自動化執法（Dependency-Cruiser 阻斷非法跨模組
+      Import）。底部為防禦鐵律。
+    </desc>
+
+    <!-- 頂部：收斂維度導覽橫幅 (寬 900, 高 54) -->
+    <g transform="translate(30, 20)">
+      <rect width="900" height="54" rx="10" class="ddd-mm-diagram__banner-bg"
+      ></rect>
+      <circle cx="28" cy="27" r="7" fill="#0284c7"></circle>
+      <text x="46" y="33" class="ddd-mm-diagram__banner-title"
+        >後微服務收斂核心準則：</text
+      >
+
+      <text x="220" y="33" class="ddd-mm-diagram__banner-dim"
+        >① Bounded Context ≠ 微服務</text
+      >
+      <text x="440" y="33" class="ddd-mm-diagram__banner-divider">|</text>
+      <text x="455" y="33" class="ddd-mm-diagram__banner-dim"
+        >② 單進程內零網路跳躍開銷</text
+      >
+      <text x="670" y="33" class="ddd-mm-diagram__banner-divider">|</text>
+      <text x="685" y="33" class="ddd-mm-diagram__banner-dim"
+        >③ 硬體級編譯與 CI 隔離執法</text
+      >
+    </g>
+
+    <!-- 主體三列：三大防禦支柱卡片 (寬 286, 高 370) -->
+
+    <!-- 第 1 支柱：編譯期邊界硬隔離 (Compile-Time Isolation) - 湛藍主題 -->
+    <g
+      transform="translate(30, 94)"
+      class="ddd-mm-diagram__col ddd-mm-diagram__col--compile"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--compile"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--compile"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-mm-diagram__badge ddd-mm-diagram__badge--compile"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--compile"
+          >編譯期防禦</text
+        >
+        <text x="86" y="18" class="ddd-mm-diagram__col-title"
+          >Compile Boundary</text
+        >
+        <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
+          >工程級進程內硬隔離</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-mm-diagram__prop-header"
+          >【語言內核物理防線】</text
+        >
+        <text x="12" y="52" class="ddd-mm-diagram__prop-item"
+          >• TS Project References 隔離</text
+        >
+        <text x="12" y="78" class="ddd-mm-diagram__prop-item"
+          >• Go internal package 限制</text
+        >
+        <text x="12" y="104" class="ddd-mm-diagram__prop-item"
+          >• 僅暴露 index.ts 公開介面</text
+        >
+        <text x="12" y="130" class="ddd-mm-diagram__prop-item"
+          >• 禁止跨目錄相對路徑穿透</text
+        >
+        <text x="12" y="156" class="ddd-mm-diagram__prop-item"
+          >• 模組單元測試 100% 獨立運行</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="75" y="16" class="ddd-mm-diagram__tag-val"
+          >編譯器與語言 AST 層</text
+        >
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="75" y="40" class="ddd-mm-diagram__tag-val"
+          >tsc / go build 直接失敗</text
+        >
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">運行效能：</text>
+        <text x="75" y="64" class="ddd-mm-diagram__tag-val"
+          >0ms 記憶體指針直接調用</text
+        >
+      </g>
+    </g>
+
+    <!-- 第 2 支柱：語義圍欄契約 (Semantic Prompt Fence) - 絳紫主題 -->
+    <g
+      transform="translate(337, 94)"
+      class="ddd-mm-diagram__col ddd-mm-diagram__col--prompt"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--prompt"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--prompt"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-mm-diagram__badge ddd-mm-diagram__badge--prompt"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--prompt"
+          >語義圍欄</text
+        >
+        <text x="86" y="18" class="ddd-mm-diagram__col-title"
+          >Prompt Boundary</text
+        >
+        <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
+          >AI Agent 語義沙盒</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-mm-diagram__prop-header"
+          >【架構即 Prompt 規範】</text
+        >
+        <text x="12" y="52" class="ddd-mm-diagram__prop-item"
+          >• 模組專屬 BOUNDARY.md 宣告</text
+        >
+        <text x="12" y="78" class="ddd-mm-diagram__prop-item"
+          >• 明確禁止跨域依賴清單</text
+        >
+        <text x="12" y="104" class="ddd-mm-diagram__prop-item"
+          >• 規定 Agent 修改範圍受限度</text
+        >
+        <text x="12" y="130" class="ddd-mm-diagram__prop-item"
+          >• 阻斷未授權檔案讀寫權限</text
+        >
+        <text x="12" y="156" class="ddd-mm-diagram__prop-item"
+          >• 強制採用純 ID 與領域事件</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="75" y="16" class="ddd-mm-diagram__tag-val"
+          >Agent 上下文心智模型層</text
+        >
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="75" y="40" class="ddd-mm-diagram__tag-val"
+          >Agent 生成期自律避免越界</text
+        >
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">核心價值：</text>
+        <text x="75" y="64" class="ddd-mm-diagram__tag-val"
+          >杜絕幻覺導入其他模組內部</text
+        >
+      </g>
+    </g>
+
+    <!-- 第 3 支柱：CI 自動化執法防線 (CI Automated Enforcement) - 翠綠主題 -->
+    <g
+      transform="translate(644, 94)"
+      class="ddd-mm-diagram__col ddd-mm-diagram__col--ci"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--ci"></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--ci"></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-mm-diagram__badge ddd-mm-diagram__badge--ci"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--ci"
+          >CI 執法防線</text
+        >
+        <text x="86" y="18" class="ddd-mm-diagram__col-title"
+          >CI Enforcement</text
+        >
+        <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
+          >零信任架構硬性阻斷</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-mm-diagram__prop-header"
+          >【自動化架構守門人】</text
+        >
+        <text x="12" y="52" class="ddd-mm-diagram__prop-item"
+          >• Dependency-Cruiser 拓撲驗證</text
+        >
+        <text x="12" y="78" class="ddd-mm-diagram__prop-item"
+          >• 嚴禁環狀依賴 (Circular Dep)</text
+        >
+        <text x="12" y="104" class="ddd-mm-diagram__prop-item"
+          >• 禁止私自 import 內部非導出檔</text
+        >
+        <text x="12" y="130" class="ddd-mm-diagram__prop-item"
+          >• PR 閘門自動拒絕違規 Commit</text
+        >
+        <text x="12" y="156" class="ddd-mm-diagram__prop-item"
+          >• 生成即時架構拓撲依存圖</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="75" y="16" class="ddd-mm-diagram__tag-val"
+          >Git Pre-push / GitHub Action</text
+        >
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="75" y="40" class="ddd-mm-diagram__tag-val"
+          >CI 亮紅燈，嚴禁合併入主線</text
+        >
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">核心價值：</text>
+        <text x="75" y="64" class="ddd-mm-diagram__tag-val"
+          >終結軟體架構不可逆熵增</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：架構收斂終極鐵律通欄 (寬 900, 高 100) -->
+    <g transform="translate(30, 482)">
+      <rect width="900" height="106" rx="10" class="ddd-mm-diagram__footer-card"
+      ></rect>
+      <rect width="6" height="106" rx="3" class="ddd-mm-diagram__footer-strip"
+      ></rect>
+
+      <g transform="translate(24, 20)">
+        <circle cx="8" cy="8" r="8" fill="#0284c7"></circle>
+        <text x="24" y="13" class="ddd-mm-diagram__footer-title">
+          【架構收斂終極鐵律】用單體的部署極簡度與零網路成本，換取微服務同等級的限界自治
+        </text>
+        <text x="0" y="40" class="ddd-mm-diagram__footer-desc">
+          • <tspan class="ddd-mm-diagram__highlight-bad"
+            >拒絕微服務拆過頭的分散式大泥球：</tspan
+          > 網路延遲、RPC 序列化開銷與分散式兩階段提交（2PC）是過度拆分的沉重代價。
+        </text>
+        <text x="0" y="64" class="ddd-mm-diagram__footer-desc">
+          • <tspan class="ddd-mm-diagram__highlight-good"
+            >模組化單體是現代團隊的最佳平衡點：</tspan
+          > 程式碼在同一個 Repo 與單一進程內運作，但透過編譯器、Prompt 邊界與 CI 規則建立物理隔絕，進可拆微服務、退可保最高開發吞吐率。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (單列縱向流式堆疊，寬度 360，高度 1040) -->
+  <svg
+    class="ddd-mm-diagram__mobile"
+    viewBox="0 0 360 1040"
+    role="img"
+    aria-hidden="true"
+  >
+    <!-- 頂部橫幅 -->
+    <g transform="translate(16, 16)">
+      <rect width="328" height="88" rx="8" class="ddd-mm-diagram__banner-bg"
+      ></rect>
+      <circle cx="20" cy="24" r="6" fill="#0284c7"></circle>
+      <text x="34" y="28" class="ddd-mm-diagram__m-title"
+        >後微服務時代收斂準則</text
+      >
+      <text x="20" y="52" class="ddd-mm-diagram__m-desc"
+        >① Bounded Context ≠ 微服務 (單體收斂)</text
+      >
+      <text x="20" y="74" class="ddd-mm-diagram__m-desc"
+        >② 單進程 0ms 記憶體調用 ③ 編譯與 CI 硬隔離</text
+      >
+    </g>
+
+    <!-- 卡片 1：Compile-Time Isolation -->
+    <g transform="translate(16, 116)" class="ddd-mm-diagram__col--compile">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--compile"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--compile"
+      ></rect>
+      <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
+        >支柱 1：編譯期物理隔絕</text
+      >
+      <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
+        >TypeScript Project References / Go internal</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-mm-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-mm-diagram__m-prop"
+        >• 嚴格規範各模組公開 index.ts 介面</text
+      >
+      <text x="26" y="110" class="ddd-mm-diagram__m-prop"
+        >• 封鎖深層內部檔案相對路徑引用</text
+      >
+      <text x="26" y="132" class="ddd-mm-diagram__m-prop"
+        >• 單元測試完全在子模組內獨立運行</text
+      >
+      <text x="26" y="152" class="ddd-mm-diagram__m-prop"
+        >• 0ms 記憶體調用，零網路傳輸延遲</text
+      >
+      <text x="16" y="186" class="ddd-mm-diagram__m-feature"
+        >隔離層級：語言編譯器 AST 硬性約束</text
+      >
+      <text x="16" y="208" class="ddd-mm-diagram__m-feature"
+        >防線價值：違規 import 直接編譯中斷</text
+      >
+    </g>
+
+    <!-- 卡片 2：Prompt Boundary -->
+    <g transform="translate(16, 370)" class="ddd-mm-diagram__col--prompt">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--prompt"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--prompt"
+      ></rect>
+      <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
+        >支柱 2：AI 語義圍欄 (BOUNDARY.md)</text
+      >
+      <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
+        >AI Coding Agent 語義契約與行動沙盒</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-mm-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-mm-diagram__m-prop"
+        >• 模組級 BOUNDARY.md 規範權責範圍</text
+      >
+      <text x="26" y="110" class="ddd-mm-diagram__m-prop"
+        >• 明確標註禁止引用的外部上下文</text
+      >
+      <text x="26" y="132" class="ddd-mm-diagram__m-prop"
+        >• 強制 Agent 僅透過純 ID 與事件交互</text
+      >
+      <text x="26" y="152" class="ddd-mm-diagram__m-prop"
+        >• 避免 Agent 產生幻覺式架構大泥球</text
+      >
+      <text x="16" y="186" class="ddd-mm-diagram__m-feature"
+        >隔離層級：LLM 上下文 Prompt 認知圍欄</text
+      >
+      <text x="16" y="208" class="ddd-mm-diagram__m-feature"
+        >防線價值：從生成源頭杜絕無序跨域呼叫</text
+      >
+    </g>
+
+    <!-- 卡片 3：CI Enforcement -->
+    <g transform="translate(16, 624)" class="ddd-mm-diagram__col--ci">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-mm-diagram__main-card ddd-mm-diagram__main-card--ci"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--ci"></rect>
+      <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
+        >支柱 3：CI 自動化執法防線</text
+      >
+      <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
+        >Dependency-Cruiser 拓撲自動化驗證</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-mm-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-mm-diagram__m-prop"
+        >• 阻斷任何未宣告的跨模組依賴</text
+      >
+      <text x="26" y="110" class="ddd-mm-diagram__m-prop"
+        >• 嚴禁環狀依賴 (Circular Dependencies)</text
+      >
+      <text x="26" y="132" class="ddd-mm-diagram__m-prop"
+        >• Git Pre-push 與 PR Gate 自動執法</text
+      >
+      <text x="26" y="152" class="ddd-mm-diagram__m-prop"
+        >• 零信任防禦，不依賴工程師自律</text
+      >
+      <text x="16" y="186" class="ddd-mm-diagram__m-feature"
+        >隔離層級：Git Hook / GitHub Actions 自動化</text
+      >
+      <text x="16" y="208" class="ddd-mm-diagram__m-feature"
+        >防線價值：違規 PR 100% 阻斷，終結代碼腐化</text
+      >
+    </g>
+
+    <!-- 底部通欄 -->
+    <g transform="translate(16, 878)">
+      <rect width="328" height="142" rx="10" class="ddd-mm-diagram__footer-card"
+      ></rect>
+      <rect width="4" height="142" rx="2" class="ddd-mm-diagram__footer-strip"
+      ></rect>
+      <circle cx="16" cy="22" r="5" fill="#0284c7"></circle>
+      <text x="28" y="26" class="ddd-mm-diagram__m-footer-title"
+        >架構收斂鐵律：進程內完全隔離</text
+      >
+      <text x="16" y="52" class="ddd-mm-diagram__m-footer-p"
+        >• 破除微服務迷思：模組化單體兼具兩者優勢。</text
+      >
+      <text x="16" y="76" class="ddd-mm-diagram__m-footer-p"
+        >• 零網路延遲、零跨節點分散式交易痛苦。</text
+      >
+      <text x="16" y="100" class="ddd-mm-diagram__m-footer-p"
+        >• 以 CI 規則捍衛邊界，不給 AI Agent 添亂空間。</text
+      >
+      <text x="16" y="124" class="ddd-mm-diagram__m-footer-p"
+        >• 維持高吞吐開發速度與長期系統演進力。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ddd-mm-diagram-caption" class="ddd-mm-diagram__caption">
+    圖解：模組化單體（Modular Monolith）與 AI Agent 的三道語義隔離護欄
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-mm-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-mm-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+  }
+
+  .ddd-mm-diagram__mobile {
+    display: none;
+    width: 100%;
+    height: auto;
+    max-width: 360px;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-mm-diagram__desktop {
+      display: none;
+    }
+    .ddd-mm-diagram__mobile {
+      display: block;
+    }
+  }
+
+  /* 視覺樣式與語義色彩 (支援深淺色模式) */
+  .ddd-mm-diagram__banner-bg {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-mm-diagram__banner-bg {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-mm-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-mm-diagram__banner-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-mm-diagram__banner-dim {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #334155);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-mm-diagram__banner-dim {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-mm-diagram__banner-divider {
+    font-size: 14px;
+    font-weight: 400;
+    fill: var(--dg-border, #94a3b8);
+  }
+
+  /* 主體卡片樣式 */
+  .ddd-mm-diagram__main-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-mm-diagram__main-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  /* 支柱 1 色系 (藍) */
+  .ddd-mm-diagram__col-strip--compile {
+    fill: #0284c7;
+  }
+  .ddd-mm-diagram__badge--compile {
+    fill: #f0f9ff;
+    stroke: #bae6fd;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-mm-diagram__badge--compile {
+    fill: rgba(2, 132, 199, 0.2);
+    stroke: #0369a1;
+  }
+  .ddd-mm-diagram__badge-text--compile {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #0369a1;
+  }
+  :global(.dark) .ddd-mm-diagram__badge-text--compile {
+    fill: #7dd3fc;
+  }
+
+  /* 支柱 2 色系 (紫) */
+  .ddd-mm-diagram__col-strip--prompt {
+    fill: #7c3aed;
+  }
+  .ddd-mm-diagram__badge--prompt {
+    fill: #f5f3ff;
+    stroke: #ddd6fe;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-mm-diagram__badge--prompt {
+    fill: rgba(124, 58, 237, 0.2);
+    stroke: #6d28d9;
+  }
+  .ddd-mm-diagram__badge-text--prompt {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #6d28d9;
+  }
+  :global(.dark) .ddd-mm-diagram__badge-text--prompt {
+    fill: #c4b5fd;
+  }
+
+  /* 支柱 3 色系 (綠) */
+  .ddd-mm-diagram__col-strip--ci {
+    fill: #059669;
+  }
+  .ddd-mm-diagram__badge--ci {
+    fill: #ecfdf5;
+    stroke: #a7f3d0;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-mm-diagram__badge--ci {
+    fill: rgba(5, 150, 105, 0.2);
+    stroke: #047857;
+  }
+  .ddd-mm-diagram__badge-text--ci {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #047857;
+  }
+  :global(.dark) .ddd-mm-diagram__badge-text--ci {
+    fill: #6ee7b7;
+  }
+
+  /* 標題與內文 */
+  .ddd-mm-diagram__col-title {
+    font-size: 16px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-mm-diagram__col-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-mm-diagram__col-subtitle {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #475569);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-mm-diagram__col-subtitle {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-mm-diagram__prop-box {
+    fill: rgba(148, 163, 184, 0.08);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-mm-diagram__prop-box {
+    fill: rgba(15, 23, 42, 0.5);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-mm-diagram__prop-header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-mm-diagram__prop-header {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-mm-diagram__prop-item {
+    font-size: 12.5px;
+    font-family: inherit;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-mm-diagram__prop-item {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-mm-diagram__tag-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-mm-diagram__tag-label {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-mm-diagram__tag-val {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-mm-diagram__tag-val {
+    fill: var(--dg-text, #f1f5f9);
+  }
+
+  /* 底部通欄卡片 */
+  .ddd-mm-diagram__footer-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-mm-diagram__footer-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-mm-diagram__footer-strip {
+    fill: #0284c7;
+  }
+
+  .ddd-mm-diagram__footer-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: #0284c7;
+  }
+  :global(.dark) .ddd-mm-diagram__footer-title {
+    fill: #38bdf8;
+  }
+
+  .ddd-mm-diagram__footer-desc {
+    font-size: 13.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-mm-diagram__footer-desc {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-mm-diagram__highlight-bad {
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  :global(.dark) .ddd-mm-diagram__highlight-bad {
+    fill: #f87171;
+  }
+
+  .ddd-mm-diagram__highlight-good {
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-mm-diagram__highlight-good {
+    fill: #34d399;
+  }
+
+  /* 行動版文字 */
+  .ddd-mm-diagram__m-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-mm-diagram__m-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-mm-diagram__m-desc {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-mm-diagram__m-desc {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-mm-diagram__m-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-mm-diagram__m-card-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-mm-diagram__m-card-sub {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-mm-diagram__m-card-sub {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-mm-diagram__m-prop {
+    font-size: 11.5px;
+    font-family: inherit;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-mm-diagram__m-prop {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-mm-diagram__m-feature {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-mm-diagram__m-feature {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-mm-diagram__m-footer-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #0284c7;
+  }
+  :global(.dark) .ddd-mm-diagram__m-footer-title {
+    fill: #38bdf8;
+  }
+
+  .ddd-mm-diagram__m-footer-p {
+    font-size: 11.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-mm-diagram__m-footer-p {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-mm-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-text-secondary, #64748b);
+    text-align: center;
+  }
+</style>

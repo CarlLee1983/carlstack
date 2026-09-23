@@ -26,6 +26,17 @@
 
 ---
 
+### 系列：DDD 戰略設計實戰：從業務邊界到系統架構（Strategic DDD in Practice）
+
+> 由淺入深拆解領域驅動設計（DDD）最具高槓桿的戰略分析工具：子域劃分、限界上下文、上下文映射與防腐層，並延伸至現代模組化單體與 AI Agent 防禦體系。詳細規劃見 [docs/research/ddd-strategic-design-series-plan.md](docs/research/ddd-strategic-design-series-plan.md)。
+
+- [x] **第 1 篇（已發布）：** [別把百萬預算丟進下水道：DDD 子域劃分的工程決策矩陣與代碼審計](src/content/blog/ddd-subdomains-engineering-roi.mdx)（問題空間、核心域測試、ROI 決策樹、Git Churn 審計）
+- [x] **第 2 篇（已發布）：** [拆解 God Object 的手術刀：限界上下文（Bounded Context）的切分訊號與多模型實踐](src/content/blog/ddd-bounded-context-god-object-refactoring.mdx)（全域模型幻覺、邊界四大訊號、上帝物件拆解、TypeScript 實踐）
+- [x] **第 3 篇（已發布）：** [拒絕被上游餵毒：上下文映射（Context Mapping）與防腐層（ACL）的工程模式](src/content/blog/ddd-context-mapping-anti-corruption-layer.mdx)（系統拓撲關係、ACL 三層結構、生產級防腐轉換器代碼）
+- [x] **第 4 篇（已發布）：** [後微服務時代的架構收斂：模組化單體（Modular Monolith）與 AI Agent 的語義隔離護欄](src/content/blog/ddd-modular-monolith-ai-agent-guardrails.mdx)（Bounded Context 非微服務、進程內硬隔離、Prompt 圍欄、CI 自動化邊界執法）
+
+---
+
 #### 參考來源庫
 
 - `donnemartin/system-design-primer`

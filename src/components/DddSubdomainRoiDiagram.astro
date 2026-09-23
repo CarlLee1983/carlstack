@@ -1,0 +1,873 @@
+---
+// src/components/DddSubdomainRoiDiagram.astro
+---
+
+<figure class="ddd-roi-diagram" aria-labelledby="ddd-roi-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 600，大字級、高對比、清爽透氣) -->
+  <svg
+    class="ddd-roi-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-roi-diagram-title ddd-roi-diagram-desc"
+  >
+    <title id="ddd-roi-diagram-title">
+      DDD 戰略設計子域劃分與工程資源投資全景
+    </title>
+    <desc id="ddd-roi-diagram-desc">
+      頂部為核心決策維度（商業護城河 vs
+      業務複雜度）。下方整齊陳列三類正式子域（核心域自研精耕、支撐域簡約構建、通用域採購委外），以及最底部的資源泥潭反模式警示，字體清晰醒目，排版寬敞易讀。
+    </desc>
+
+    <!-- 頂部：戰略維度導覽欄 (高 50px，字體 15px) -->
+    <g transform="translate(30, 20)">
+      <rect width="900" height="52" rx="10" class="ddd-roi-diagram__banner-bg"
+      ></rect>
+
+      <circle cx="28" cy="26" r="7" fill="#d97706"></circle>
+      <text x="46" y="32" class="ddd-roi-diagram__banner-title"
+        >戰略決策雙維度：</text
+      >
+
+      <text x="185" y="32" class="ddd-roi-diagram__banner-dim"
+        >【縱向】商業護城河與差異化 (Core Advantage)</text
+      >
+      <text x="545" y="32" class="ddd-roi-diagram__banner-divider">|</text>
+      <text x="565" y="32" class="ddd-roi-diagram__banner-dim"
+        >【橫向】業務複雜度與迭代頻率 (Complexity & Churn)</text
+      >
+    </g>
+
+    <!-- 主體三列：三大子域卡片 (寬 286px, 高 350px) -->
+
+    <!-- 1. 核心域 (Core Domain) - 黃金主題 -->
+    <g
+      transform="translate(30, 92)"
+      class="ddd-roi-diagram__col ddd-roi-diagram__col--core"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-roi-diagram__main-card ddd-roi-diagram__main-card--core"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-roi-diagram__col-strip ddd-roi-diagram__col-strip--core"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <rect
+        x="20"
+        y="24"
+        width="130"
+        height="24"
+        rx="5"
+        class="ddd-roi-diagram__badge-bg ddd-roi-diagram__badge-bg--core"
+      ></rect>
+      <text
+        x="85"
+        y="40"
+        text-anchor="middle"
+        class="ddd-roi-diagram__badge-text ddd-roi-diagram__badge-text--core"
+        >第一優先級 · 自研</text
+      >
+      <text
+        x="20"
+        y="80"
+        class="ddd-roi-diagram__col-title ddd-roi-diagram__col-title--core"
+        >核心域 (Core)</text
+      >
+      <text x="20" y="104" class="ddd-roi-diagram__col-subtitle"
+        >高差異化 × 高複雜度</text
+      >
+
+      <!-- 區塊清單 -->
+      <g transform="translate(20, 126)">
+        <text x="0" y="18" class="ddd-roi-diagram__section-label">商業定位</text
+        >
+        <text x="0" y="40" class="ddd-roi-diagram__body-lead"
+          >企業生存護城河</text
+        >
+        <text x="0" y="60" class="ddd-roi-diagram__body-sub"
+          >利潤核心來源、獨門演算法</text
+        >
+
+        <text x="0" y="98" class="ddd-roi-diagram__section-label">工程策略</text
+        >
+        <text x="0" y="120" class="ddd-roi-diagram__body-lead"
+          >自研精耕 · 零框架侵入</text
+        >
+        <text x="0" y="140" class="ddd-roi-diagram__body-sub"
+          >純領域實體、嚴格深模組測試</text
+        >
+      </g>
+
+      <!-- 底部資源框 -->
+      <g transform="translate(18, 286)">
+        <rect
+          width="250"
+          height="46"
+          rx="8"
+          class="ddd-roi-diagram__alloc-box ddd-roi-diagram__alloc-box--core"
+        ></rect>
+        <text
+          x="125"
+          y="22"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-val ddd-roi-diagram__alloc-val--core"
+          >資源配置：70% 高級工程心智</text
+        >
+        <text
+          x="125"
+          y="38"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-desc"
+          >指派最強架構師與 Senior 全力守護</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 支撐子域 (Supporting Subdomain) - 蔚藍主題 -->
+    <g
+      transform="translate(337, 92)"
+      class="ddd-roi-diagram__col ddd-roi-diagram__col--supporting"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-roi-diagram__main-card ddd-roi-diagram__main-card--supporting"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-roi-diagram__col-strip ddd-roi-diagram__col-strip--supporting"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <rect
+        x="20"
+        y="24"
+        width="130"
+        height="24"
+        rx="5"
+        class="ddd-roi-diagram__badge-bg ddd-roi-diagram__badge-bg--supporting"
+      ></rect>
+      <text
+        x="85"
+        y="40"
+        text-anchor="middle"
+        class="ddd-roi-diagram__badge-text ddd-roi-diagram__badge-text--supporting"
+        >第二優先級 · 構建</text
+      >
+      <text
+        x="20"
+        y="80"
+        class="ddd-roi-diagram__col-title ddd-roi-diagram__col-title--supporting"
+        >支撐域 (Supporting)</text
+      >
+      <text x="20" y="104" class="ddd-roi-diagram__col-subtitle"
+        >特異性流程 × 無溢價</text
+      >
+
+      <!-- 區塊清單 -->
+      <g transform="translate(20, 126)">
+        <text x="0" y="18" class="ddd-roi-diagram__section-label">商業定位</text
+        >
+        <text x="0" y="40" class="ddd-roi-diagram__body-lead"
+          >特定業務之必要輔助</text
+        >
+        <text x="0" y="60" class="ddd-roi-diagram__body-sub"
+          >市面無現成軟體、無競爭壁壘</text
+        >
+
+        <text x="0" y="98" class="ddd-roi-diagram__section-label">工程策略</text
+        >
+        <text x="0" y="120" class="ddd-roi-diagram__body-lead"
+          >夠用就好 · 拒絕過度設計</text
+        >
+        <text x="0" y="140" class="ddd-roi-diagram__body-sub"
+          >簡約 CRUD，不搞複雜 CQRS/微服務</text
+        >
+      </g>
+
+      <!-- 底部資源框 -->
+      <g transform="translate(18, 286)">
+        <rect
+          width="250"
+          height="46"
+          rx="8"
+          class="ddd-roi-diagram__alloc-box ddd-roi-diagram__alloc-box--supporting"
+        ></rect>
+        <text
+          x="125"
+          y="22"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-val ddd-roi-diagram__alloc-val--supporting"
+          >資源配置：20% 工程產能</text
+        >
+        <text
+          x="125"
+          y="38"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-desc"
+          >指派中階工程師或 AI Agent 快速搭建</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 通用子域 (Generic Subdomain) - 鐵灰主題 -->
+    <g
+      transform="translate(644, 92)"
+      class="ddd-roi-diagram__col ddd-roi-diagram__col--generic"
+    >
+      <rect
+        width="286"
+        height="350"
+        rx="12"
+        class="ddd-roi-diagram__main-card ddd-roi-diagram__main-card--generic"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-roi-diagram__col-strip ddd-roi-diagram__col-strip--generic"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <rect
+        x="20"
+        y="24"
+        width="130"
+        height="24"
+        rx="5"
+        class="ddd-roi-diagram__badge-bg ddd-roi-diagram__badge-bg--generic"
+      ></rect>
+      <text
+        x="85"
+        y="40"
+        text-anchor="middle"
+        class="ddd-roi-diagram__badge-text ddd-roi-diagram__badge-text--generic"
+        >第三優先級 · 採購</text
+      >
+      <text
+        x="20"
+        y="80"
+        class="ddd-roi-diagram__col-title ddd-roi-diagram__col-title--generic"
+        >通用域 (Generic)</text
+      >
+      <text x="20" y="104" class="ddd-roi-diagram__col-subtitle"
+        >全行業共通 × 零技術溢價</text
+      >
+
+      <!-- 區塊清單 -->
+      <g transform="translate(20, 126)">
+        <text x="0" y="18" class="ddd-roi-diagram__section-label">商業定位</text
+        >
+        <text x="0" y="40" class="ddd-roi-diagram__body-lead"
+          >標準基礎設施需求</text
+        >
+        <text x="0" y="60" class="ddd-roi-diagram__body-sub"
+          >Auth、金流閘道、通知、日誌</text
+        >
+
+        <text x="0" y="98" class="ddd-roi-diagram__section-label">工程策略</text
+        >
+        <text x="0" y="120" class="ddd-roi-diagram__body-lead"
+          >堅決不自幹 · 買 SaaS 優先</text
+        >
+        <text x="0" y="140" class="ddd-roi-diagram__body-sub"
+          >僅撰寫一層薄防腐層 (ACL) 適配</text
+        >
+      </g>
+
+      <!-- 底部資源框 -->
+      <g transform="translate(18, 286)">
+        <rect
+          width="250"
+          height="46"
+          rx="8"
+          class="ddd-roi-diagram__alloc-box ddd-roi-diagram__alloc-box--generic"
+        ></rect>
+        <text
+          x="125"
+          y="22"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-val ddd-roi-diagram__alloc-val--generic"
+          >資源配置：10% 串接整合成本</text
+        >
+        <text
+          x="125"
+          y="38"
+          text-anchor="middle"
+          class="ddd-roi-diagram__alloc-desc"
+          >成熟開源庫或外部 SaaS 直接託管</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：警示通欄卡片 (反模式：資源泥潭) (高 96px) -->
+    <g transform="translate(30, 462)" class="ddd-roi-diagram__row--waste">
+      <rect width="900" height="96" rx="10" class="ddd-roi-diagram__waste-card"
+      ></rect>
+
+      <!-- 警示標籤 -->
+      <rect
+        x="24"
+        y="22"
+        width="165"
+        height="26"
+        rx="5"
+        class="ddd-roi-diagram__waste-badge-bg"></rect>
+      <text
+        x="106"
+        y="39"
+        text-anchor="middle"
+        class="ddd-roi-diagram__waste-badge-text">⚠️ 架構反模式警戒</text
+      >
+      <text x="24" y="74" class="ddd-roi-diagram__waste-title"
+        >資源泥潭 (The Vanity Sink)</text
+      >
+
+      <!-- 警示說明 -->
+      <g transform="translate(220, 24)">
+        <text x="0" y="20" class="ddd-roi-diagram__waste-item-title"
+          >【致命現象】</text
+        >
+        <text x="95" y="20" class="ddd-roi-diagram__waste-item-text"
+          >耗費 4 個月自研身分認證或通知排程，而核心獲利演算法卻在 800 行
+          if-else 中裸奔。</text
+        >
+
+        <text x="0" y="52" class="ddd-roi-diagram__waste-item-title"
+          >【止血動作】</text
+        >
+        <text x="95" y="52" class="ddd-roi-diagram__waste-item-text"
+          >立即計算維護 Churn 成本，拔除自幹輪子，將工程智力百分之百撤回 Core
+          Domain！</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構化卡片 (乾淨透氣的行動閱讀體驗) -->
+  <div class="ddd-roi-diagram__mobile">
+    <div class="ddd-roi-diagram__m-card ddd-roi-diagram__m-card--core">
+      <div class="ddd-roi-diagram__m-header">
+        <span class="ddd-roi-diagram__m-tag ddd-roi-diagram__m-tag--core"
+          >第一優先級 · 自研精耕</span
+        >
+        <h4 class="ddd-roi-diagram__m-title">核心域 (Core Domain)</h4>
+        <span class="ddd-roi-diagram__m-subtitle">高商業差異化 × 高複雜度</span>
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>商業定位：</strong>企業生存護城河與利潤核心來源。
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>工程策略：</strong
+        >自研精耕、零框架侵入、純領域實體與高覆蓋測試。
+      </div>
+      <div class="ddd-roi-diagram__m-alloc ddd-roi-diagram__m-alloc--core">
+        資源配置：70% 高級工程心智，指派最強團隊全力守護。
+      </div>
+    </div>
+
+    <div class="ddd-roi-diagram__m-card ddd-roi-diagram__m-card--supporting">
+      <div class="ddd-roi-diagram__m-header">
+        <span class="ddd-roi-diagram__m-tag ddd-roi-diagram__m-tag--supporting"
+          >第二優先級 · 簡約構建</span
+        >
+        <h4 class="ddd-roi-diagram__m-title">支撐子域 (Supporting Domain)</h4>
+        <span class="ddd-roi-diagram__m-subtitle">特異性流程 × 無溢價</span>
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>商業定位：</strong>特定業務運作之必要輔助，市面無現成軟體可買。
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>工程策略：</strong>夠用就好，簡約 CRUD，拒絕過度設計。
+      </div>
+      <div
+        class="ddd-roi-diagram__m-alloc ddd-roi-diagram__m-alloc--supporting"
+      >
+        資源配置：20% 工程產能，交由初中階工程師或 Agent 快速搭建。
+      </div>
+    </div>
+
+    <div class="ddd-roi-diagram__m-card ddd-roi-diagram__m-card--generic">
+      <div class="ddd-roi-diagram__m-header">
+        <span class="ddd-roi-diagram__m-tag ddd-roi-diagram__m-tag--generic"
+          >第三優先級 · 採購委外</span
+        >
+        <h4 class="ddd-roi-diagram__m-title">通用子域 (Generic Domain)</h4>
+        <span class="ddd-roi-diagram__m-subtitle">全行業共通 × 零技術溢價</span>
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>商業定位：</strong>Auth、金流閘道、郵件推播等通用基礎設施。
+      </div>
+      <div class="ddd-roi-diagram__m-section">
+        <strong>工程策略：</strong>堅決不自幹，優先採購成熟 SaaS
+        或成熟開源套件。
+      </div>
+      <div class="ddd-roi-diagram__m-alloc ddd-roi-diagram__m-alloc--generic">
+        資源配置：10% 串接整合成本，僅撰寫薄層 Adapter / ACL。
+      </div>
+    </div>
+
+    <div class="ddd-roi-diagram__m-card ddd-roi-diagram__m-card--waste">
+      <div class="ddd-roi-diagram__m-header">
+        <span class="ddd-roi-diagram__m-tag ddd-roi-diagram__m-tag--waste"
+          >架構反模式 · 資源黑洞</span
+        >
+        <h4 class="ddd-roi-diagram__m-title">資源泥潭 (The Vanity Sink)</h4>
+      </div>
+      <p class="ddd-roi-diagram__m-desc">
+        耗費數月自建身分認證中心或任務排程，而真正獲利的核心業務邏輯卻在 800 行
+        if-else 中裸奔。應立即計算 Churn 成本，拔除自幹模組並換成成熟服務。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="ddd-roi-diagram-caption">
+    圖 1：DDD
+    戰略設計子域劃分與工程資源配置全景圖。清晰區隔核心域（自研精耕）、支撐域（簡約構建）、通用域（採購委外），杜絕資源泥潭。
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-roi-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .ddd-roi-diagram__desktop {
+    display: none;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (min-width: 768px) {
+    .ddd-roi-diagram__desktop {
+      display: block;
+    }
+    .ddd-roi-diagram__mobile {
+      display: none;
+    }
+  }
+
+  /* 頂部維度橫幅 */
+  .ddd-roi-diagram__banner-bg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5px;
+  }
+
+  .ddd-roi-diagram__banner-title {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .ddd-roi-diagram__banner-dim {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-ink-2);
+  }
+
+  .ddd-roi-diagram__banner-divider {
+    font-family: var(--font-body);
+    font-size: 15px;
+    fill: var(--dg-rule-strong);
+  }
+
+  /* 主體卡片共用 */
+  .ddd-roi-diagram__main-card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.03));
+  }
+
+  .ddd-roi-diagram__col-title {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 800;
+  }
+
+  .ddd-roi-diagram__col-subtitle {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 500;
+    fill: var(--dg-muted);
+  }
+
+  /* 內文字級與標籤 (全域放大至 13px - 14px) */
+  .ddd-roi-diagram__section-label {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    fill: var(--dg-muted);
+    text-transform: uppercase;
+  }
+
+  .ddd-roi-diagram__body-lead {
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .ddd-roi-diagram__body-sub {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    fill: var(--dg-ink-2);
+  }
+
+  .ddd-roi-diagram__alloc-val {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .ddd-roi-diagram__alloc-desc {
+    font-family: var(--font-body);
+    font-size: 11px;
+    fill: var(--dg-muted);
+  }
+
+  /* 1. 核心域 主題 */
+  .ddd-roi-diagram__col-strip--core {
+    fill: #d97706;
+  }
+  .ddd-roi-diagram__col-title--core {
+    fill: #b45309;
+  }
+  .ddd-roi-diagram__badge-bg--core {
+    fill: rgba(217, 119, 6, 0.12);
+  }
+  .ddd-roi-diagram__badge-text--core {
+    fill: #b45309;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ddd-roi-diagram__alloc-box--core {
+    fill: rgba(217, 119, 6, 0.06);
+    stroke: rgba(217, 119, 6, 0.25);
+    stroke-width: 1px;
+  }
+  .ddd-roi-diagram__alloc-val--core {
+    fill: #b45309;
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-strip--core {
+    fill: #f59e0b;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-title--core {
+    fill: #fbbf24;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-bg--core {
+    fill: rgba(245, 158, 11, 0.2);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-text--core {
+    fill: #fde68a;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-box--core {
+    fill: rgba(245, 158, 11, 0.12);
+    stroke: rgba(245, 158, 11, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-val--core {
+    fill: #fde68a;
+  }
+
+  /* 2. 支撐域 主題 */
+  .ddd-roi-diagram__col-strip--supporting {
+    fill: #2563eb;
+  }
+  .ddd-roi-diagram__col-title--supporting {
+    fill: #1d4ed8;
+  }
+  .ddd-roi-diagram__badge-bg--supporting {
+    fill: rgba(37, 99, 235, 0.12);
+  }
+  .ddd-roi-diagram__badge-text--supporting {
+    fill: #1d4ed8;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ddd-roi-diagram__alloc-box--supporting {
+    fill: rgba(37, 99, 235, 0.06);
+    stroke: rgba(37, 99, 235, 0.22);
+    stroke-width: 1px;
+  }
+  .ddd-roi-diagram__alloc-val--supporting {
+    fill: #1d4ed8;
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-strip--supporting {
+    fill: #38bdf8;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-title--supporting {
+    fill: #60a5fa;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-bg--supporting {
+    fill: rgba(56, 189, 248, 0.2);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-text--supporting {
+    fill: #bae6fd;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-box--supporting {
+    fill: rgba(56, 189, 248, 0.1);
+    stroke: rgba(56, 189, 248, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-val--supporting {
+    fill: #bae6fd;
+  }
+
+  /* 3. 通用域 主題 */
+  .ddd-roi-diagram__col-strip--generic {
+    fill: #4b5563;
+  }
+  .ddd-roi-diagram__col-title--generic {
+    fill: #374151;
+  }
+  .ddd-roi-diagram__badge-bg--generic {
+    fill: rgba(75, 85, 99, 0.12);
+  }
+  .ddd-roi-diagram__badge-text--generic {
+    fill: #374151;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ddd-roi-diagram__alloc-box--generic {
+    fill: rgba(75, 85, 99, 0.06);
+    stroke: rgba(75, 85, 99, 0.2);
+    stroke-width: 1px;
+  }
+  .ddd-roi-diagram__alloc-val--generic {
+    fill: #374151;
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-strip--generic {
+    fill: #9ca3af;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__col-title--generic {
+    fill: #e5e7eb;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-bg--generic {
+    fill: rgba(156, 163, 175, 0.2);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__badge-text--generic {
+    fill: #f3f4f6;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-box--generic {
+    fill: rgba(156, 163, 175, 0.1);
+    stroke: rgba(156, 163, 175, 0.3);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__alloc-val--generic {
+    fill: #e5e7eb;
+  }
+
+  /* 底部警示通欄 */
+  .ddd-roi-diagram__waste-card {
+    fill: var(--dg-surface);
+    stroke: #ef4444;
+    stroke-width: 1.5px;
+    stroke-dasharray: 5 5;
+    filter: drop-shadow(0 2px 6px rgba(239, 68, 68, 0.05));
+  }
+
+  .ddd-roi-diagram__waste-badge-bg {
+    fill: rgba(239, 68, 68, 0.12);
+  }
+  .ddd-roi-diagram__waste-badge-text {
+    fill: #b91c1c;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .ddd-roi-diagram__waste-title {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 800;
+    fill: #dc2626;
+  }
+
+  .ddd-roi-diagram__waste-item-title {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  .ddd-roi-diagram__waste-item-text {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    fill: var(--dg-ink-2);
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__waste-card {
+    stroke: #f87171;
+    fill: rgba(248, 113, 113, 0.04);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__waste-badge-bg {
+    fill: rgba(248, 113, 113, 0.2);
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__waste-badge-text {
+    fill: #fca5a5;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__waste-title {
+    fill: #f87171;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__waste-item-title {
+    fill: #f87171;
+  }
+
+  /* 行動端卡片 */
+  .ddd-roi-diagram__mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .ddd-roi-diagram__m-card {
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 10px;
+    padding: 1.35rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  }
+
+  .ddd-roi-diagram__m-card--core {
+    border-left: 5px solid #d97706;
+  }
+  .ddd-roi-diagram__m-card--supporting {
+    border-left: 5px solid #2563eb;
+  }
+  .ddd-roi-diagram__m-card--generic {
+    border-left: 5px solid #4b5563;
+  }
+  .ddd-roi-diagram__m-card--waste {
+    border-left: 5px dashed #ef4444;
+    background: rgba(239, 68, 68, 0.03);
+  }
+
+  .ddd-roi-diagram__m-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .ddd-roi-diagram__m-tag {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .ddd-roi-diagram__m-tag--core {
+    color: #d97706;
+  }
+  .ddd-roi-diagram__m-tag--supporting {
+    color: #2563eb;
+  }
+  .ddd-roi-diagram__m-tag--generic {
+    color: #4b5563;
+  }
+  .ddd-roi-diagram__m-tag--waste {
+    color: #dc2626;
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-tag--core {
+    color: #fbbf24;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-tag--supporting {
+    color: #60a5fa;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-tag--generic {
+    color: #9ca3af;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-tag--waste {
+    color: #f87171;
+  }
+
+  .ddd-roi-diagram__m-title {
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--dg-ink);
+  }
+
+  .ddd-roi-diagram__m-subtitle {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--dg-muted);
+  }
+
+  .ddd-roi-diagram__m-section {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--dg-ink-2);
+    margin-bottom: 0.5rem;
+  }
+
+  .ddd-roi-diagram__m-alloc {
+    margin-top: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 6px;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .ddd-roi-diagram__m-alloc--core {
+    background: rgba(217, 119, 6, 0.08);
+    color: #b45309;
+  }
+  .ddd-roi-diagram__m-alloc--supporting {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1d4ed8;
+  }
+  .ddd-roi-diagram__m-alloc--generic {
+    background: rgba(75, 85, 99, 0.08);
+    color: #374151;
+  }
+
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-alloc--core {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fde68a;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-alloc--supporting {
+    background: rgba(56, 189, 248, 0.15);
+    color: #bae6fd;
+  }
+  :global(:root[data-theme="dark"]) .ddd-roi-diagram__m-alloc--generic {
+    background: rgba(156, 163, 175, 0.15);
+    color: #f3f4f6;
+  }
+
+  .ddd-roi-diagram__m-desc {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--dg-ink-2);
+    margin: 0;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    font-family: var(--font-body);
+  }
+</style>

@@ -13,8 +13,9 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
 4. When creating or changing a content file, consult `src/content.config.ts` for the current frontmatter contract instead of relying on a copied schema.
 5. Draft or revise the smallest requested scope. Keep the writing concrete about constraints, choices, verification, and results.
 6. When diagrams or structured data are included, consult `docs/diagram-guide.md` and enforce the **Anti-Patterns & Prose-Diagram Synergy** rules:
-   - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 500px, text >= 12.5px);
-   - Ban unstructured raw text dumps; use structured cards or crisp key-value blocks to break down parameters and complexity.
+   - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 540px ~ 600px, main title >= 18px, lead text >= 14px, body text >= 13px);
+   - **Ban Quadrant Grid Cramming (嚴禁四象限擁擠硬塞)**: When mapping dual-axis matrices (e.g. Core/Supporting/Generic or Value/Complexity), never force a 2x2 cramped grid. Always deconstruct into **"Top Dimension Banner + Independent Multi-Column Cards (Three/Four-Column Layout) + Bottom Warning/Anti-Pattern Row"**;
+   - Ban unstructured raw text dumps; use structured cards or crisp key-value blocks with dedicated allocation/meta boxes to break down parameters and complexity.
 7. **Avoid Markdown Tables; Prefer Structured Prose & Cards (全面避免使用 Table)**:
    - Markdown 表格在響應式網頁（特別是窄螢幕手機與行動裝置）極易造成水平捲動、單元格文字過度擠壓或破碎折行，嚴重損害閱讀體驗與視覺節奏。
    - **能用結構化清單、模組卡片或段落呈現時，一律不使用 Table**。

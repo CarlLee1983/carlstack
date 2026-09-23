@@ -1,0 +1,322 @@
+---
+title: "拒絕被上游餵毒：上下文映射（Context Mapping）與防腐層（ACL）的工程模式"
+description: "解析系統與外部服務間的 7 種上下文拓撲關係。從 Shared Kernel 的高危陷阱到 Conformist 的被動順從，剖析防腐層（ACL）的三層海關架構：Facade、Adapter 與 Domain Translator，並以生產級 TypeScript 與 Zod 打造堅不可摧的領域防毒閘門。"
+publishDate: 2026-09-23T10:14:00+08:00
+draft: false
+featured: false
+tags:
+  - "DDD 與 Clean Architecture"
+  - "系統設計"
+  - "架構重構"
+  - "TypeScript"
+series: "DDD 戰略設計實戰：從業務邊界到系統架構"
+seriesOrder: 3
+cover: "../../assets/covers/ddd-context-mapping-anti-corruption-layer.jpg"
+coverAlt: "左側混亂的紫色資料流代表不可靠的外部與老舊系統，中間為發光的堅固海關防禦掃描閘門，右側經過轉譯輸出純淨的綠色幾何領域晶體"
+---
+
+import DddAclArchitectureDiagram from "../../components/DddAclArchitectureDiagram.astro";
+
+在架構設計的世界裡，最天真也最危險的假設就是：**「外部系統送來的資料，格式一定符合規格，而且上游不會隨便改版。」**
+
+現實往往以最殘酷的方式給工程師上一課：
+
+週五傍晚，公司的主要金流供應商突然進行了一次「非破壞性」小改版：他們將某個表示退款狀態的枚舉值從 `"REFUNDED"` 改為了 `"PARTIALLY_REFUNDED"`，並在 Webhook 的 JSON 裡把原本浮點數的 `amount` 欄位改成了以「分」為單位的字串型別。
+
+如果你的系統直接拿官方提供的 SDK 物件當成核心領域模型，災難會在幾分鐘內蔓延：
+
+核心財務對帳排程崩潰，資料庫寫入一堆型別錯誤的無效紀錄，甚至因為處理例外未被捕獲，直接阻斷了後續成百上千筆訂單的扣款回呼。全體工程師被迫在半夜進行緊急熱修復（Hotfix），並在數十個檔案中尋找被外部污染的欄位。
+
+這種悲劇在 DDD（領域驅動設計）中被稱為**「領域被上游餵毒」**。
+
+當你將外部不可控系統的模型直接引進核心領域時，你的系統就淪為了對方的附庸。為了解決跨邊界的依賴與污染問題，DDD 提出了兩大關鍵戰略武器：**上下文映射（Context Mapping）**與**防腐層（Anti-Corruption Layer, ACL）**。
+
+<DddAclArchitectureDiagram />
+
+---
+
+## 邊界關係生存法則：7 種上下文映射模式
+
+當兩個限界上下文（Bounded Context）需要協同作業時，它們之間絕不是單純「打個 API」那麼簡單。雙方的**組織權力、業務話語權與依賴方向**，決定了技術架構的拓撲型態。
+
+DDD 定義了 7 種上下文映射模式。在實際工程審查中，你必須看清自己處於哪一種生存處境：
+
+### 1. 共享核心（Shared Kernel）：蜜月期短暫，地獄期漫長
+
+兩個上下文團隊決定「共用一部分領域代碼與資料表」，例如共享一個名為 `CommonUser` 的 npm package 或共用同一個 Redis 叢集。
+
+- **殘酷現實：** 這通常是團隊懶得切分邊界的遮羞布。只要一方修改了共享欄位，另一方就會無預警炸裂。
+- **停止規則：** 除非兩個團隊每日共同站會、具有 100% 的自動化契約測試（Contract Test），否則**嚴禁在跨團隊間建立 Shared Kernel**。
+
+### 2. 客戶端與供應端（Customer-Supplier）：權力對等的成熟協商
+
+下游團隊（客戶）提出需求，上游團隊（供應者）承諾交付並保證向後相容。雙方有明確的 SLA 與排期機制。這是最健康的跨團隊協同模式。
+
+### 3. 遵奉者 / 順從者（Conformist）：弱國無外交的技術悲劇
+
+上游是強勢的外部巨頭（如 SAP、Salesforce 或公司內權限最高的老舊核心系統），他們「絕對不會為了你的需求改動任何一行 API 或資料庫」。如果你選擇全盤照抄對方的資料模型，把對方的 DTO 直接當成自己的領域實體，你就是 Conformist。
+
+- **後果：** 你的核心模型徹底失去自主演進能力，上游一改版，你的整個系統就得跟著重構。
+
+### 4. 開放主機服務（Open Host Service, OHS）與 發布語言（Published Language, PL）
+
+上游主動提供標準化的 RPC/REST/GraphQL 協議（OHS），並使用公開透明、語義穩定的規範（如 OpenAPI、Protobuf 或 JSON-LD）作為傳輸標準（PL）。上游承諾版本控制與棄用策略（Deprecation Policy），保護所有下游消費者。
+
+### 5. 各行其道（Separate Ways）：不值得整合的果斷放棄
+
+當兩個子系統整合的邊際成本（維護 API、資料轉換、跨團隊溝通）遠高於各自實現一套的成本時，最優決策就是**老死不相往來**。
+
+### 6. 合作夥伴（Partnership）：休戚與共的雙向依賴
+
+兩個上下文的成功高度綁定，必須同步規劃迭代版本與聯合發布。如果管理不當，往往會退化為分散式單體。
+
+### 7. 防腐層（Anti-Corruption Layer, ACL）：捍衛核心領域的終極防禦
+
+當下游（你的核心域）必須與不可控、甚至充斥惡劣設計的上游（Conformist 處境或 Legacy 遺留系統）整合時，**唯一的救贖就是在兩者之間建立一道單向隔離海關——防腐層**。
+
+---
+
+## 防腐層（ACL）的三層海關架構
+
+防腐層的本質不是「寫一個 Helper 轉資料」，而是一套具備嚴密職責分離的三層過濾管線。任何外部流量與資料，都必須像旅客入境海關一樣，依序通過三道關卡的嚴格審查（詳見本文開頭之「防腐層三層海關防禦架構圖」）：
+
+1. **外部流量接入：** 來自不可控的第三方 Webhook、外部 REST/gRPC API 或老舊 Legacy 資料庫。
+2. **第一道海關（Network Facade）：** 負責通訊保護、重試、斷路器熔斷與數位簽章驗證，吞吐底層傳輸異常。
+3. **第二道海關（Adapter & Parser）：** 執行嚴格的 Runtime Schema（Zod）校驗與命名／單位抹平，非法資料直接在邊界拋出例外阻斷。
+4. **第三道海關（Domain Translator）：** 將通過檢驗的外部 DTO 映射轉譯為本地純淨的 Value Object、Entity 與領域事件。
+5. **放行入境：** 核心領域模型（Pure Domain）完全免受外部污染，保持 100% 的自治純潔性。
+
+### 第一道海關：Network Facade（通訊與連線隔離）
+
+負責處理所有與傳輸層相關的骯髒細節：
+
+- HTTP Status Code 判定、RPC 超時、Socket 斷線重連。
+- 指數退避重試（Exponential Backoff）與斷路器（Circuit Breaker）。
+- Webhook 的 HMAC-SHA256 數位簽章校驗。
+- **海關原則：** 吞吐所有傳輸層異常，絕不讓 `AxiosError` 或底層 `ECONNRESET` 滲透進領域層。
+
+### 第二道海關：Adapter & Parser（語法解析與結構抹平）
+
+負責檢驗資料的「語法合法性（Syntactic Validity）」：
+
+- 執行嚴格的 Runtime Schema 驗證（使用 Zod 或 TypeBox）。
+- 抹平命名慣例差異（例如將外部的 `payer_first_name` 轉換為 `payerFirstName`）。
+- 單位強制對齊（例如將浮點數 `$19.99` 轉換為絕對整數的 `1999` cents）。
+- **海關原則：** 只要外部 Payload 少了一個必填欄位或型別不符，海關直接亮紅燈拒簽（拋出 `ExternalSchemaViolationError`），阻止毒素向內流動。
+
+### 第三道海關：Domain Translator（語義轉譯與領域裝配）
+
+這是防腐層最核心的心臟，負責「語義語境的跨越」：
+
+- 將外部的狀態字串映射為本地嚴格的領域枚舉。
+- 將外部欄位組合裝配為不可變的領域值物件（Value Object，如 `Money`、`Currency`）。
+- 產生本地專屬的領域事件（Domain Event）。
+- **海關原則：** 產出的物件必須 100% 符合本地領域的不變量（Invariants）。核心層代碼只認識自己的領域模型，對外部供應商的存在完全無感知。
+
+---
+
+## 生產級代碼實戰：打造堅不可摧的支付 ACL
+
+以下我們以對接不可靠的第三方金流 Webhook 為例，使用現代 TypeScript 與 Zod 實現一套生產級的三層 ACL 防腐體系。
+
+### 1. 本地純淨領域模型（Pure Domain）
+
+核心領域層完全不知道什麼是 Stripe 或藍新金流，它只擁有高內聚的領域概念：
+
+```typescript
+// src/domain/payment/Money.ts
+export class Money {
+  private constructor(
+    public readonly amountInCents: number,
+    public readonly currency: "TWD" | "USD",
+  ) {
+    if (!Number.isInteger(amountInCents) || amountInCents < 0) {
+      throw new Error(`Invalid money amount: ${amountInCents}`);
+    }
+  }
+
+  public static of(amountInCents: number, currency: "TWD" | "USD"): Money {
+    return new Money(amountInCents, currency);
+  }
+}
+
+// src/domain/payment/PaymentTransaction.ts
+export type TransactionId = string & { readonly __brand: unique symbol };
+
+export enum PaymentStatus {
+  SUCCEEDED = "SUCCEEDED",
+  PENDING = "PENDING",
+  FAILED = "FAILED",
+}
+
+export class PaymentReceipt {
+  constructor(
+    public readonly id: TransactionId,
+    public readonly orderId: string,
+    public readonly paidAmount: Money,
+    public readonly status: PaymentStatus,
+    public readonly settledAt: Date,
+  ) {}
+}
+```
+
+### 2. 第二道海關：Zod 嚴格 Schema 驗證與 Adapter
+
+```typescript
+// src/infrastructure/acl/third-party-payment/ThirdPartySchema.ts
+import { z } from "zod";
+
+// 定義外部供應商不可信的原始資料結構
+export const ThirdPartyWebhookPayloadSchema = z.object({
+  event_type: z.literal("charge.complete"),
+  data: z.object({
+    txn_no: z.string().min(5),
+    merchant_order_ref: z.string(),
+    // 外部經常出現字串浮點數，如 "1500.00"
+    charge_amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+    currency_iso: z.enum(["TWD", "USD"]),
+    state_code: z.enum(["00", "01", "99"]), // 00: 成功, 01: 處理中, 99: 失敗
+    timestamp_epoch: z.number().int(),
+  }),
+});
+
+export type ThirdPartyWebhookPayload = z.infer<
+  typeof ThirdPartyWebhookPayloadSchema
+>;
+```
+
+### 3. 第三道海關：Domain Translator（領域轉譯器）
+
+```typescript
+// src/infrastructure/acl/third-party-payment/ThirdPartyTranslator.ts
+import { Money } from "../../../domain/payment/Money";
+import {
+  PaymentReceipt,
+  PaymentStatus,
+  type TransactionId,
+} from "../../../domain/payment/PaymentTransaction";
+import type { ThirdPartyWebhookPayload } from "./ThirdPartySchema";
+
+export class ThirdPartyTranslator {
+  public static toDomainReceipt(
+    payload: ThirdPartyWebhookPayload,
+  ): PaymentReceipt {
+    const { data } = payload;
+
+    // 1. 單位精確轉換：將浮點數字串抹平為整數「分」
+    const amountInFloat = parseFloat(data.charge_amount);
+    const amountInCents = Math.round(amountInFloat * 100);
+    const money = Money.of(amountInCents, data.currency_iso);
+
+    // 2. 外部畸形狀態碼映射為語義明確的領域枚舉
+    let status: PaymentStatus;
+    switch (data.state_code) {
+      case "00":
+        status = PaymentStatus.SUCCEEDED;
+        break;
+      case "01":
+        status = PaymentStatus.PENDING;
+        break;
+      case "99":
+      default:
+        status = PaymentStatus.FAILED;
+        break;
+    }
+
+    // 3. 組裝純淨領域實體
+    return new PaymentReceipt(
+      data.txn_no as TransactionId,
+      data.merchant_order_ref,
+      money,
+      status,
+      new Date(data.timestamp_epoch * 1000),
+    );
+  }
+}
+```
+
+### 4. 第一道海關與 ACL 門面整合（Facade）
+
+```typescript
+// src/infrastructure/acl/third-party-payment/PaymentAntiCorruptionLayer.ts
+import crypto from "node:crypto";
+import { ThirdPartyWebhookPayloadSchema } from "./ThirdPartySchema";
+import { ThirdPartyTranslator } from "./ThirdPartyTranslator";
+import type { PaymentReceipt } from "../../../domain/payment/PaymentTransaction";
+
+export class PaymentAntiCorruptionLayer {
+  constructor(private readonly webhookSecret: string) {}
+
+  /**
+   * 進入核心領域前的海關總檢驗
+   */
+  public ingestWebhook(rawBody: string, signature: string): PaymentReceipt {
+    // 關卡 1：通訊簽章安全防禦 (Facade 職責)
+    const expectedSig = crypto
+      .createHmac("sha256", this.webhookSecret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (signature !== expectedSig) {
+      throw new Error(
+        "[ACL Security Violation] Invalid webhook signature detected.",
+      );
+    }
+
+    // 關卡 2：語法結構嚴格驗證 (Adapter & Parser 職責)
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(rawBody);
+    } catch {
+      throw new Error("[ACL Syntax Error] Malformed JSON payload.");
+    }
+
+    const validationResult =
+      ThirdPartyWebhookPayloadSchema.safeParse(parsedJson);
+    if (!validationResult.success) {
+      // 攔截毒素並輸出結構化日誌，保護下游
+      throw new Error(
+        `[ACL Quarantine] Payload failed schema check: ${validationResult.error.message}`,
+      );
+    }
+
+    // 關卡 3：語義轉譯與領域入境許可 (Translator 職責)
+    const pureDomainReceipt = ThirdPartyTranslator.toDomainReceipt(
+      validationResult.data,
+    );
+
+    return pureDomainReceipt;
+  }
+}
+```
+
+---
+
+## 建立 ACL 的工程經濟學：何時該建？何時該放棄？
+
+有些團隊走進另一個極端：「既然 ACL 這麼好，那我每對接一個內部小模組，都要寫三層 ACL！」
+
+這會帶來嚴重的過度工程（Over-Engineering）。在架構決策上，請牢記這張工程 ROI 檢驗表：
+
+- **必須建 ACL（強制執法）：**
+  - 對接任何第三方外部 API（如 Stripe、Twilio、物流商）。
+  - 對接公司內部歷史悠久、缺乏維護、即將淘汰的老舊遺留單體（Legacy Monolith）。
+  - 核心域（Core Domain）依賴任何非核心的下游客戶。
+- **絕不需要 ACL（直接消費）：**
+  - 同一限界上下文內部的內部模組調用。
+  - 上游是高度規範、具備強型別 SDK、且協議穩定的通用基礎設施（如 AWS S3 SDK、PostgreSQL 驅動）。
+  - 探索型拋棄式原型（POC）。
+
+---
+
+## 下一步：跨進程還是進程內？
+
+至此，我們已經掌握了戰略設計的前三大核心法寶：子域劃分定位護城河、限界上下文拆解上帝物件、防腐層捍衛領域純潔。
+
+但當架構師準備將這套設計在伺服器上真正落地時，最後一個致命難題隨之浮現：
+
+> **「我的限界上下文，究竟該拆成 10 個獨立運行的微服務（Microservices），還是該留在同一個單體代碼庫（Modular Monolith）中？」**
+
+過去十年，無數團隊盲目追隨微服務風潮，最後換來的是網路延遲暴增、分散式交易地獄與無止境的 DevOps 痛苦。而在當今 AI Coding Agent 盛行的時代，模組邊界更是隨時面臨被 AI 隨意跨模組 `import` 破壞的危險。
+
+在系列完結篇中，我們將探討：**[《後微服務時代的架構收斂：模組化單體（Modular Monolith）與 AI Agent 的語義隔離護欄》](/blog/ddd-modular-monolith-ai-agent-guardrails/)**，帶你用現代語言特性與 CI 執法，在進程內建立真正固若金湯的架構圍欄。

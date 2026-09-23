@@ -1,0 +1,862 @@
+---
+// src/components/DddAclArchitectureDiagram.astro
+---
+
+<figure class="ddd-acl-diagram" aria-labelledby="ddd-acl-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 620，大字級、高對比、Anti-Quadrant 橫幅 + 三層過濾管線 + 底部原則) -->
+  <svg
+    class="ddd-acl-diagram__desktop"
+    viewBox="0 0 960 620"
+    role="img"
+    aria-labelledby="ddd-acl-diagram-title ddd-acl-diagram-desc"
+  >
+    <title id="ddd-acl-diagram-title">
+      上下文映射（Context Mapping）與防腐層（ACL）三層海關防禦架構
+    </title>
+    <desc id="ddd-acl-diagram-desc">
+      頂部展示上下文映射拓撲法則（Shared Kernel
+      風險、Customer-Supplier、Conformist、OHS/PL）。中間三列由外向內展示防腐層的三道過濾海關：通訊門面（Facade）、協議轉譯（Adapter
+      & Parser）、領域防腐（Domain
+      Translator），徹底阻斷外部髒資料對核心領域模型的污染。底部為海關防禦鐵律。
+    </desc>
+
+    <!-- 頂部：上下文映射法則導覽橫幅 (寬 900, 高 54) -->
+    <g transform="translate(30, 20)">
+      <rect width="900" height="54" rx="10" class="ddd-acl-diagram__banner-bg"
+      ></rect>
+      <circle cx="28" cy="27" r="7" fill="#8b5cf6"></circle>
+      <text x="46" y="33" class="ddd-acl-diagram__banner-title"
+        >上下文拓撲生存法則：</text
+      >
+
+      <text x="210" y="33" class="ddd-acl-diagram__banner-dim"
+        >① Shared Kernel (高危慎用)</text
+      >
+      <text x="390" y="33" class="ddd-acl-diagram__banner-divider">|</text>
+      <text x="405" y="33" class="ddd-acl-diagram__banner-dim"
+        >② Conformist (被迫順從)</text
+      >
+      <text x="560" y="33" class="ddd-acl-diagram__banner-divider">|</text>
+      <text x="575" y="33" class="ddd-acl-diagram__banner-dim"
+        >③ Customer-Supplier (協商)</text
+      >
+      <text x="735" y="33" class="ddd-acl-diagram__banner-divider">|</text>
+      <text x="750" y="33" class="ddd-acl-diagram__banner-dim"
+        >④ OHS + PL (公開語言)</text
+      >
+    </g>
+
+    <!-- 主體三列：防腐層 (ACL) 三道海關防禦關卡 (寬 286, 高 370) -->
+
+    <!-- 第 1 道海關：RPC / HTTP 門面層 (Network Facade) - 絳紫主題 -->
+    <g
+      transform="translate(30, 94)"
+      class="ddd-acl-diagram__col ddd-acl-diagram__col--facade"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--facade"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--facade"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-acl-diagram__badge ddd-acl-diagram__badge--facade"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-acl-diagram__badge-text ddd-acl-diagram__badge-text--facade"
+          >邊界海關 1</text
+        >
+        <text x="86" y="18" class="ddd-acl-diagram__col-title"
+          >Network Facade</text
+        >
+        <text x="0" y="42" class="ddd-acl-diagram__col-subtitle"
+          >外部通訊與重試隔離</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-acl-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-acl-diagram__prop-header"
+          >【底層通訊與穩定性】</text
+        >
+        <text x="12" y="52" class="ddd-acl-diagram__prop-item"
+          >• HTTP / gRPC / Webhook 連線</text
+        >
+        <text x="12" y="78" class="ddd-acl-diagram__prop-item"
+          >• 指數退避重試 (Exponential Retry)</text
+        >
+        <text x="12" y="104" class="ddd-acl-diagram__prop-item"
+          >• 斷路器熔斷 (Circuit Breaker)</text
+        >
+        <text x="12" y="130" class="ddd-acl-diagram__prop-item"
+          >• 簽章校驗 (HMAC SHA-256)</text
+        >
+        <text x="12" y="156" class="ddd-acl-diagram__prop-item"
+          >• 捕獲原始 Socket/5xx 崩潰</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-acl-diagram__tag-label">隔離目標：</text>
+        <text x="75" y="16" class="ddd-acl-diagram__tag-val"
+          >吞吐、網路震盪與協議細節</text
+        >
+        <text x="0" y="40" class="ddd-acl-diagram__tag-label">輸出產物：</text>
+        <text x="75" y="40" class="ddd-acl-diagram__tag-val"
+          >原始 Payload (string / unknown)</text
+        >
+        <text x="0" y="64" class="ddd-acl-diagram__tag-label">錯誤防線：</text>
+        <text x="75" y="64" class="ddd-acl-diagram__tag-val"
+          >抹平外部 HTTP/RPC 例外</text
+        >
+      </g>
+    </g>
+
+    <!-- 第 2 道海關：協議適配與資料解析 (Adapter & Parser) - 湛藍主題 -->
+    <g
+      transform="translate(337, 94)"
+      class="ddd-acl-diagram__col ddd-acl-diagram__col--adapter"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--adapter"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--adapter"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-acl-diagram__badge ddd-acl-diagram__badge--adapter"></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-acl-diagram__badge-text ddd-acl-diagram__badge-text--adapter"
+          >邊界海關 2</text
+        >
+        <text x="86" y="18" class="ddd-acl-diagram__col-title"
+          >Adapter & Parser</text
+        >
+        <text x="0" y="42" class="ddd-acl-diagram__col-subtitle"
+          >語法校驗與結構抹平</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-acl-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-acl-diagram__prop-header"
+          >【Schema 驗證與阻斷】</text
+        >
+        <text x="12" y="52" class="ddd-acl-diagram__prop-item"
+          >• 外部畸形 DTO 解析</text
+        >
+        <text x="12" y="78" class="ddd-acl-diagram__prop-item"
+          >• 執行 Zod / TypeBox 嚴格校驗</text
+        >
+        <text x="12" y="104" class="ddd-acl-diagram__prop-item"
+          >• Snake_case $\to$ camelCase 抹平</text
+        >
+        <text x="12" y="130" class="ddd-acl-diagram__prop-item"
+          >• 字串金額 $\to$ 整數分 (cents)</text
+        >
+        <text x="12" y="156" class="ddd-acl-diagram__prop-item"
+          >• 欄位缺失直接在邊界拋出 ParseErr</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-acl-diagram__tag-label">隔離目標：</text>
+        <text x="75" y="16" class="ddd-acl-diagram__tag-val"
+          >外部 Schema 變更與欄位污染</text
+        >
+        <text x="0" y="40" class="ddd-acl-diagram__tag-label">輸出產物：</text>
+        <text x="75" y="40" class="ddd-acl-diagram__tag-val"
+          >已驗證的外部契約 DTO</text
+        >
+        <text x="0" y="64" class="ddd-acl-diagram__tag-label">錯誤防線：</text>
+        <text x="75" y="64" class="ddd-acl-diagram__tag-val"
+          >攔截任何非預期的 Null/型別</text
+        >
+      </g>
+    </g>
+
+    <!-- 第 3 道海關：領域轉譯器 (Domain Translator) - 翠綠主題 -->
+    <g
+      transform="translate(644, 94)"
+      class="ddd-acl-diagram__col ddd-acl-diagram__col--translator"
+    >
+      <rect
+        width="286"
+        height="370"
+        rx="12"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--translator"
+      ></rect>
+      <rect
+        width="286"
+        height="6"
+        rx="3"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--translator"
+      ></rect>
+
+      <!-- 卡片 Header -->
+      <g transform="translate(18, 28)">
+        <rect
+          width="76"
+          height="24"
+          rx="5"
+          class="ddd-acl-diagram__badge ddd-acl-diagram__badge--translator"
+        ></rect>
+        <text
+          x="38"
+          y="16"
+          text-anchor="middle"
+          class="ddd-acl-diagram__badge-text ddd-acl-diagram__badge-text--translator"
+          >邊界海關 3</text
+        >
+        <text x="86" y="18" class="ddd-acl-diagram__col-title"
+          >Domain Translator</text
+        >
+        <text x="0" y="42" class="ddd-acl-diagram__col-subtitle"
+          >語義對齊與純粹模型</text
+        >
+      </g>
+
+      <!-- 核心職責 -->
+      <g transform="translate(18, 92)">
+        <rect width="250" height="178" rx="8" class="ddd-acl-diagram__prop-box"
+        ></rect>
+        <text x="12" y="24" class="ddd-acl-diagram__prop-header"
+          >【純淨領域映射】</text
+        >
+        <text x="12" y="52" class="ddd-acl-diagram__prop-item"
+          >• 外部狀態碼 $\to$ 核心領域狀態</text
+        >
+        <text x="12" y="78" class="ddd-acl-diagram__prop-item"
+          >• 封裝為不可變 Value Object (Money)</text
+        >
+        <text x="12" y="104" class="ddd-acl-diagram__prop-item"
+          >• 建構強型別 PaymentTransactionId</text
+        >
+        <text x="12" y="130" class="ddd-acl-diagram__prop-item"
+          >• 觸發內部專屬 Domain Event</text
+        >
+        <text x="12" y="156" class="ddd-acl-diagram__prop-item"
+          >• 核心領域完全感受不到外部 API</text
+        >
+      </g>
+
+      <!-- 職責總結 -->
+      <g transform="translate(18, 288)">
+        <text x="0" y="16" class="ddd-acl-diagram__tag-label">隔離目標：</text>
+        <text x="75" y="16" class="ddd-acl-diagram__tag-val"
+          >外部語義毒害與實體概念浸染</text
+        >
+        <text x="0" y="40" class="ddd-acl-diagram__tag-label">輸出產物：</text>
+        <text x="75" y="40" class="ddd-acl-diagram__tag-val"
+          >純粹本地 Entity / Value Object</text
+        >
+        <text x="0" y="64" class="ddd-acl-diagram__tag-label">錯誤防線：</text>
+        <text x="75" y="64" class="ddd-acl-diagram__tag-val"
+          >不合領域不變量直接拒簽入關</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：防腐層架構鐵律通欄 (寬 900, 高 100) -->
+    <g transform="translate(30, 482)">
+      <rect
+        width="900"
+        height="106"
+        rx="10"
+        class="ddd-acl-diagram__footer-card"></rect>
+      <rect width="6" height="106" rx="3" class="ddd-acl-diagram__footer-strip"
+      ></rect>
+
+      <g transform="translate(24, 20)">
+        <circle cx="8" cy="8" r="8" fill="#10b981"></circle>
+        <text x="24" y="13" class="ddd-acl-diagram__footer-title">
+          【海關防禦鐵律】外部 API 回應與第三方 SDK 類別，絕對不可跨過 ACL
+          滲透進 Domain 核心層
+        </text>
+        <text x="0" y="40" class="ddd-acl-diagram__footer-desc">
+          • <tspan class="ddd-acl-diagram__highlight-bad"
+            >拒絕被動順從（Conformist）：</tspan
+          > 不要把 Stripe.Charge 或綠界 TradeNo 當成系統內部的支付模型，上游變更將引發全代碼庫連環雪崩。
+        </text>
+        <text x="0" y="64" class="ddd-acl-diagram__footer-desc">
+          • <tspan class="ddd-acl-diagram__highlight-good"
+            >海關檢驗合格才准入境：</tspan
+          > 核心層只認識自己的 Payment 與 Money；所有跨邊界轉換邏輯全部被封裝在 ACL，外部升級只需抽換
+          Adapter。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (單列縱向流式堆疊，寬度 360，高度 1040) -->
+  <svg
+    class="ddd-acl-diagram__mobile"
+    viewBox="0 0 360 1040"
+    role="img"
+    aria-hidden="true"
+  >
+    <!-- 頂部橫幅 -->
+    <g transform="translate(16, 16)">
+      <rect width="328" height="88" rx="8" class="ddd-acl-diagram__banner-bg"
+      ></rect>
+      <circle cx="20" cy="24" r="6" fill="#8b5cf6"></circle>
+      <text x="34" y="28" class="ddd-acl-diagram__m-title"
+        >上下文拓撲生存法則</text
+      >
+      <text x="20" y="52" class="ddd-acl-diagram__m-desc"
+        >① Shared Kernel (高危慎用) ② Conformist (順從)</text
+      >
+      <text x="20" y="74" class="ddd-acl-diagram__m-desc"
+        >③ Customer-Supplier (協商) ④ OHS+PL (公開語言)</text
+      >
+    </g>
+
+    <!-- 卡片 1：Network Facade -->
+    <g transform="translate(16, 116)" class="ddd-acl-diagram__col--facade">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--facade"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--facade"
+      ></rect>
+      <text x="16" y="32" class="ddd-acl-diagram__m-card-title"
+        >海關 1：Network Facade</text
+      >
+      <text x="16" y="54" class="ddd-acl-diagram__m-card-sub"
+        >外部通訊與重試隔離門面</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-acl-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-acl-diagram__m-prop"
+        >• HTTP / gRPC / Webhook 連線</text
+      >
+      <text x="26" y="110" class="ddd-acl-diagram__m-prop"
+        >• 指數退避重試、斷路器熔斷防護</text
+      >
+      <text x="26" y="132" class="ddd-acl-diagram__m-prop"
+        >• 簽章驗證 (HMAC SHA-256)</text
+      >
+      <text x="26" y="152" class="ddd-acl-diagram__m-prop"
+        >• 吞吐底層異常，回傳 raw payload</text
+      >
+      <text x="16" y="186" class="ddd-acl-diagram__m-feature"
+        >隔離目標：網路震盪、連線崩潰與協議細節</text
+      >
+      <text x="16" y="208" class="ddd-acl-diagram__m-feature"
+        >防線價值：不讓 504 Gateway 超時干擾領域邏輯</text
+      >
+    </g>
+
+    <!-- 卡片 2：Adapter & Parser -->
+    <g transform="translate(16, 370)" class="ddd-acl-diagram__col--adapter">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--adapter"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--adapter"
+      ></rect>
+      <text x="16" y="32" class="ddd-acl-diagram__m-card-title"
+        >海關 2：Adapter & Parser</text
+      >
+      <text x="16" y="54" class="ddd-acl-diagram__m-card-sub"
+        >語法校驗與結構抹平海關</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-acl-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-acl-diagram__m-prop"
+        >• 執行 Zod / TypeBox 嚴格校驗</text
+      >
+      <text x="26" y="110" class="ddd-acl-diagram__m-prop"
+        >• Snake_case $\to$ camelCase 命名抹平</text
+      >
+      <text x="26" y="132" class="ddd-acl-diagram__m-prop"
+        >• 單位換算：浮點元 $\to$ 整數分 (cents)</text
+      >
+      <text x="26" y="152" class="ddd-acl-diagram__m-prop"
+        >• 欄位缺失在邊界立即熔斷拋出</text
+      >
+      <text x="16" y="186" class="ddd-acl-diagram__m-feature"
+        >隔離目標：第三方 API 欄位悄悄異動與髒資料</text
+      >
+      <text x="16" y="208" class="ddd-acl-diagram__m-feature"
+        >防線價值：任何畸形封包被第一時間攔截並告警</text
+      >
+    </g>
+
+    <!-- 卡片 3：Domain Translator -->
+    <g transform="translate(16, 624)" class="ddd-acl-diagram__col--translator">
+      <rect
+        width="328"
+        height="240"
+        rx="10"
+        class="ddd-acl-diagram__main-card ddd-acl-diagram__main-card--translator"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-acl-diagram__col-strip ddd-acl-diagram__col-strip--translator"
+      ></rect>
+      <text x="16" y="32" class="ddd-acl-diagram__m-card-title"
+        >海關 3：Domain Translator</text
+      >
+      <text x="16" y="54" class="ddd-acl-diagram__m-card-sub"
+        >語義對齊與純粹模型轉譯</text
+      >
+      <rect
+        x="16"
+        y="66"
+        width="296"
+        height="98"
+        rx="6"
+        class="ddd-acl-diagram__prop-box"></rect>
+      <text x="26" y="88" class="ddd-acl-diagram__m-prop"
+        >• 外部枚舉 $\to$ 本地領域狀態碼</text
+      >
+      <text x="26" y="110" class="ddd-acl-diagram__m-prop"
+        >• 封裝不可變 Value Object (Money/Currency)</text
+      >
+      <text x="26" y="132" class="ddd-acl-diagram__m-prop"
+        >• 綁定領域交易 ID，觸發 Domain Event</text
+      >
+      <text x="26" y="152" class="ddd-acl-diagram__m-prop"
+        >• 核心層完全零依賴任何第三方 SDK</text
+      >
+      <text x="16" y="186" class="ddd-acl-diagram__m-feature"
+        >隔離目標：外部名詞與實體思維入侵本地核心</text
+      >
+      <text x="16" y="208" class="ddd-acl-diagram__m-feature"
+        >防線價值：更換金流商只需換 Adapter，核心不動</text
+      >
+    </g>
+
+    <!-- 底部通欄 -->
+    <g transform="translate(16, 878)">
+      <rect
+        width="328"
+        height="142"
+        rx="10"
+        class="ddd-acl-diagram__footer-card"></rect>
+      <rect width="4" height="142" rx="2" class="ddd-acl-diagram__footer-strip"
+      ></rect>
+      <circle cx="16" cy="22" r="5" fill="#10b981"></circle>
+      <text x="28" y="26" class="ddd-acl-diagram__m-footer-title"
+        >海關防禦鐵律：ACL 零洩漏</text
+      >
+      <text x="16" y="52" class="ddd-acl-diagram__m-footer-p"
+        >• 拒絕 Conformist：不順從外部髒模型。</text
+      >
+      <text x="16" y="76" class="ddd-acl-diagram__m-footer-p"
+        >• 嚴格驗證阻斷：Schema 不合直接拒絕簽收。</text
+      >
+      <text x="16" y="100" class="ddd-acl-diagram__m-footer-p"
+        >• 領域模型純潔性：100% 保持自主演進能力。</text
+      >
+      <text x="16" y="124" class="ddd-acl-diagram__m-footer-p"
+        >• 替換外部供應商成本從「月」降至「天」。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ddd-acl-diagram-caption" class="ddd-acl-diagram__caption">
+    圖解：上下文映射（Context Mapping）防禦拓撲與防腐層（ACL）三道海關過濾架構
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-acl-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-acl-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 960px;
+  }
+
+  .ddd-acl-diagram__mobile {
+    display: none;
+    width: 100%;
+    height: auto;
+    max-width: 360px;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-acl-diagram__desktop {
+      display: none;
+    }
+    .ddd-acl-diagram__mobile {
+      display: block;
+    }
+  }
+
+  /* 視覺樣式與語義色彩 (支援深淺色模式) */
+  .ddd-acl-diagram__banner-bg {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-acl-diagram__banner-bg {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-acl-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-acl-diagram__banner-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-acl-diagram__banner-dim {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #334155);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-acl-diagram__banner-dim {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-acl-diagram__banner-divider {
+    font-size: 14px;
+    font-weight: 400;
+    fill: var(--dg-border, #94a3b8);
+  }
+
+  /* 主體卡片樣式 */
+  .ddd-acl-diagram__main-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-acl-diagram__main-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  /* 海關 1 色系 (紫) */
+  .ddd-acl-diagram__col-strip--facade {
+    fill: #8b5cf6;
+  }
+  .ddd-acl-diagram__badge--facade {
+    fill: #f5f3ff;
+    stroke: #ddd6fe;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-acl-diagram__badge--facade {
+    fill: rgba(139, 92, 246, 0.2);
+    stroke: #7c3aed;
+  }
+  .ddd-acl-diagram__badge-text--facade {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #7c3aed;
+  }
+  :global(.dark) .ddd-acl-diagram__badge-text--facade {
+    fill: #c4b5fd;
+  }
+
+  /* 海關 2 色系 (藍) */
+  .ddd-acl-diagram__col-strip--adapter {
+    fill: #2563eb;
+  }
+  .ddd-acl-diagram__badge--adapter {
+    fill: #eff6ff;
+    stroke: #bfdbfe;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-acl-diagram__badge--adapter {
+    fill: rgba(37, 99, 235, 0.2);
+    stroke: #1d4ed8;
+  }
+  .ddd-acl-diagram__badge-text--adapter {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #1d4ed8;
+  }
+  :global(.dark) .ddd-acl-diagram__badge-text--adapter {
+    fill: #93c5fd;
+  }
+
+  /* 海關 3 色系 (綠) */
+  .ddd-acl-diagram__col-strip--translator {
+    fill: #059669;
+  }
+  .ddd-acl-diagram__badge--translator {
+    fill: #ecfdf5;
+    stroke: #a7f3d0;
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-acl-diagram__badge--translator {
+    fill: rgba(5, 150, 105, 0.2);
+    stroke: #047857;
+  }
+  .ddd-acl-diagram__badge-text--translator {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #047857;
+  }
+  :global(.dark) .ddd-acl-diagram__badge-text--translator {
+    fill: #6ee7b7;
+  }
+
+  /* 標題與內文 */
+  .ddd-acl-diagram__col-title {
+    font-size: 16.5px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-acl-diagram__col-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-acl-diagram__col-subtitle {
+    font-size: 13.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #475569);
+    font-family: inherit;
+  }
+  :global(.dark) .ddd-acl-diagram__col-subtitle {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-acl-diagram__prop-box {
+    fill: rgba(148, 163, 184, 0.08);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1;
+  }
+  :global(.dark) .ddd-acl-diagram__prop-box {
+    fill: rgba(15, 23, 42, 0.5);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-acl-diagram__prop-header {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-acl-diagram__prop-header {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-acl-diagram__prop-item {
+    font-size: 12.5px;
+    font-family: inherit;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-acl-diagram__prop-item {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-acl-diagram__tag-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-acl-diagram__tag-label {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-acl-diagram__tag-val {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-acl-diagram__tag-val {
+    fill: var(--dg-text, #f1f5f9);
+  }
+
+  /* 底部通欄卡片 */
+  .ddd-acl-diagram__footer-card {
+    fill: var(--dg-card-bg, #ffffff);
+    stroke: var(--dg-border, #e2e8f0);
+    stroke-width: 1.5;
+  }
+  :global(.dark) .ddd-acl-diagram__footer-card {
+    fill: var(--dg-card-bg, #111827);
+    stroke: var(--dg-border, #1f2937);
+  }
+
+  .ddd-acl-diagram__footer-strip {
+    fill: #10b981;
+  }
+
+  .ddd-acl-diagram__footer-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-acl-diagram__footer-title {
+    fill: #34d399;
+  }
+
+  .ddd-acl-diagram__footer-desc {
+    font-size: 13.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-acl-diagram__footer-desc {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-acl-diagram__highlight-bad {
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  :global(.dark) .ddd-acl-diagram__highlight-bad {
+    fill: #f87171;
+  }
+
+  .ddd-acl-diagram__highlight-good {
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-acl-diagram__highlight-good {
+    fill: #34d399;
+  }
+
+  /* 行動版文字 */
+  .ddd-acl-diagram__m-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-acl-diagram__m-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-acl-diagram__m-desc {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-acl-diagram__m-desc {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-acl-diagram__m-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-text, #0f172a);
+  }
+  :global(.dark) .ddd-acl-diagram__m-card-title {
+    fill: var(--dg-text, #f9fafb);
+  }
+
+  .ddd-acl-diagram__m-card-sub {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--dg-text-secondary, #64748b);
+  }
+  :global(.dark) .ddd-acl-diagram__m-card-sub {
+    fill: var(--dg-text-secondary, #94a3b8);
+  }
+
+  .ddd-acl-diagram__m-prop {
+    font-size: 11.5px;
+    font-family: inherit;
+    fill: var(--dg-text, #1e293b);
+  }
+  :global(.dark) .ddd-acl-diagram__m-prop {
+    fill: var(--dg-text, #e2e8f0);
+  }
+
+  .ddd-acl-diagram__m-feature {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--dg-text-secondary, #475569);
+  }
+  :global(.dark) .ddd-acl-diagram__m-feature {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-acl-diagram__m-footer-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(.dark) .ddd-acl-diagram__m-footer-title {
+    fill: #34d399;
+  }
+
+  .ddd-acl-diagram__m-footer-p {
+    font-size: 11.5px;
+    fill: var(--dg-text-secondary, #334155);
+  }
+  :global(.dark) .ddd-acl-diagram__m-footer-p {
+    fill: var(--dg-text-secondary, #cbd5e1);
+  }
+
+  .ddd-acl-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-text-secondary, #64748b);
+    text-align: center;
+  }
+</style>
