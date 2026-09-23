@@ -1,0 +1,772 @@
+---
+// Hotel Reservation Locking & Reservation Pipeline Diagram Component
+---
+
+<figure class="hr-diag" aria-labelledby="hr-diag-caption">
+  <!-- Desktop SVG Layout -->
+  <svg
+    class="hr-diag__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="hr-diag-title hr-diag-desc"
+  >
+    <title id="hr-diag-title">
+      飯店預訂系統高併發防超賣：資料模型與鎖機制對比架構圖
+    </title>
+    <desc id="hr-diag-desc">
+      展示飯店預訂從房型庫存維度模型、悲觀鎖、樂觀鎖與資料庫 CHECK
+      條件約束的架構權衡，以及結合 Idempotency Key
+      與狀態機超時釋放的完整預扣管線。
+    </desc>
+
+    <defs>
+      <marker
+        id="hr-arrow-blue"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="hr-diag__arrow-head--blue"
+        ></path>
+      </marker>
+      <marker
+        id="hr-arrow-amber"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="hr-diag__arrow-head--amber"
+        ></path>
+      </marker>
+      <marker
+        id="hr-arrow-emerald"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="hr-diag__arrow-head--emerald"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Top Section: 3-Way Locking Strategies Comparison (Y: 20 to 230) -->
+    <!-- Card 1: Pessimistic Locking (SELECT ... FOR UPDATE) -->
+    <g class="hr-diag__card" transform="translate(25, 20)">
+      <rect
+        width="285"
+        height="210"
+        rx="10"
+        class="hr-diag__card-bg hr-diag__card-bg--blue"></rect>
+      <rect
+        x="16"
+        y="16"
+        width="130"
+        height="22"
+        rx="4"
+        class="hr-diag__pill hr-diag__pill--blue"></rect>
+      <text x="81" y="31" class="hr-diag__pill-text hr-diag__pill-text--blue"
+        >PESSIMISTIC LOCK</text
+      >
+      <text x="16" y="60" class="hr-diag__title hr-diag__title--blue"
+        >1. 悲觀鎖（FOR UPDATE）</text
+      >
+
+      <rect
+        x="16"
+        y="74"
+        width="253"
+        height="48"
+        rx="6"
+        class="hr-diag__code-box"></rect>
+      <text x="26" y="93" class="hr-diag__code-text"
+        >SELECT ... FOR UPDATE;</text
+      >
+      <text x="26" y="110" class="hr-diag__code-text"
+        >UPDATE room_type_inventory...</text
+      >
+
+      <text x="16" y="142" class="hr-diag__bullet"
+        >✅ 強行序列化防超賣，邏輯最直覺</text
+      >
+      <text x="16" y="162" class="hr-diag__bullet hr-diag__bullet--warn"
+        >⚠️ 跨多天連續鎖定易爆發死鎖（Deadlock）</text
+      >
+      <text x="16" y="182" class="hr-diag__bullet hr-diag__bullet--warn"
+        >⚠️ 資料庫連線池迅速耗盡，無法橫向擴展</text
+      >
+    </g>
+
+    <!-- Card 2: Optimistic Locking (Version / CAS) -->
+    <g class="hr-diag__card" transform="translate(337, 20)">
+      <rect
+        width="285"
+        height="210"
+        rx="10"
+        class="hr-diag__card-bg hr-diag__card-bg--amber"></rect>
+      <rect
+        x="16"
+        y="16"
+        width="120"
+        height="22"
+        rx="4"
+        class="hr-diag__pill hr-diag__pill--amber"></rect>
+      <text x="76" y="31" class="hr-diag__pill-text hr-diag__pill-text--amber"
+        >OPTIMISTIC (CAS)</text
+      >
+      <text x="16" y="60" class="hr-diag__title hr-diag__title--amber"
+        >2. 樂觀鎖（版本號檢驗）</text
+      >
+
+      <rect
+        x="16"
+        y="74"
+        width="253"
+        height="48"
+        rx="6"
+        class="hr-diag__code-box"></rect>
+      <text x="26" y="93" class="hr-diag__code-text"
+        >UPDATE ... SET reserved = +1,</text
+      >
+      <text x="26" y="110" class="hr-diag__code-text"
+        >version = v+1 WHERE version = v;</text
+      >
+
+      <text x="16" y="142" class="hr-diag__bullet"
+        >✅ 無鎖讀取，正常低爭搶情境極快</text
+      >
+      <text x="16" y="162" class="hr-diag__bullet hr-diag__bullet--warn"
+        >⚠️ 熱門旺季大量重試（Retry Storm）</text
+      >
+      <text x="16" y="182" class="hr-diag__bullet hr-diag__bullet--warn"
+        >⚠️ 跨多晚預訂只要 1 天版本衝突即全單回滾</text
+      >
+    </g>
+
+    <!-- Card 3: Database CHECK Constraint (Atomic SQL) -->
+    <g class="hr-diag__card" transform="translate(650, 20)">
+      <rect
+        width="285"
+        height="210"
+        rx="10"
+        class="hr-diag__card-bg hr-diag__card-bg--emerald"></rect>
+      <rect
+        x="16"
+        y="16"
+        width="135"
+        height="22"
+        rx="4"
+        class="hr-diag__pill hr-diag__pill--emerald"></rect>
+      <text x="83" y="31" class="hr-diag__pill-text hr-diag__pill-text--emerald"
+        >ATOMIC CONSTRAINT</text
+      >
+      <text x="16" y="60" class="hr-diag__title hr-diag__title--emerald"
+        >3. 資料庫原子約束（推薦）</text
+      >
+
+      <rect
+        x="16"
+        y="74"
+        width="253"
+        height="48"
+        rx="6"
+        class="hr-diag__code-box"></rect>
+      <text x="26" y="93" class="hr-diag__code-text"
+        >UPDATE ... SET reserved = reserved + N</text
+      >
+      <text x="26" y="110" class="hr-diag__code-text"
+        >WHERE reserved + N &lt;= 1.1 * inventory;</text
+      >
+
+      <text x="16" y="142" class="hr-diag__bullet"
+        >✅ 單一 SQL 原子遞增，消除應用層加鎖</text
+      >
+      <text x="16" y="162" class="hr-diag__bullet"
+        >✅ 支援 10% 超賣額度（Overbooking Buffer）</text
+      >
+      <text x="16" y="182" class="hr-diag__bullet"
+        >✅ 檢查 rows_affected 即可判定成功與否</text
+      >
+    </g>
+
+    <!-- Bottom Section: End-to-End Two-Phase Reservation Flow (Y: 250 to 460) -->
+    <g class="hr-diag__card" transform="translate(25, 250)">
+      <rect
+        width="910"
+        height="205"
+        rx="10"
+        class="hr-diag__card-bg hr-diag__card-bg--neutral"></rect>
+      <text x="20" y="30" class="hr-diag__section-title"
+        >兩階段房態預扣生命週期：預約、扣款與過期自動補償架構</text
+      >
+
+      <!-- Step 1: Client Request -->
+      <g transform="translate(20, 50)">
+        <rect width="180" height="135" rx="8" class="hr-diag__node"></rect>
+        <rect
+          x="12"
+          y="12"
+          width="70"
+          height="18"
+          rx="3"
+          class="hr-diag__step-pill"></rect>
+        <text x="47" y="25" class="hr-diag__step-text">STEP 1</text>
+        <text x="12" y="50" class="hr-diag__node-title">客戶端發起預訂</text>
+        <text x="12" y="72" class="hr-diag__node-desc"
+          >• 攜帶 Idempotency Key</text
+        >
+        <text x="12" y="92" class="hr-diag__node-desc"
+          >• 房型 + 連續入住日期</text
+        >
+        <text x="12" y="112" class="hr-diag__node-desc"
+          >• 防止重複點擊二次下單</text
+        >
+      </g>
+
+      <!-- Arrow 1 -> 2 -->
+      <path
+        d="M 205 117 L 235 117"
+        class="hr-diag__line--blue"
+        marker-end="url(#hr-arrow-blue)"></path>
+
+      <!-- Step 2: Inventory Pre-hold -->
+      <g transform="translate(240, 50)">
+        <rect
+          width="210"
+          height="135"
+          rx="8"
+          class="hr-diag__node hr-diag__node--active"></rect>
+        <rect
+          x="12"
+          y="12"
+          width="70"
+          height="18"
+          rx="3"
+          class="hr-diag__step-pill hr-diag__step-pill--blue"></rect>
+        <text x="47" y="25" class="hr-diag__step-text hr-diag__step-text--blue"
+          >STEP 2</text
+        >
+        <text x="12" y="50" class="hr-diag__node-title">原子預扣房態庫存</text>
+        <text x="12" y="72" class="hr-diag__node-desc"
+          >• 單一交易批次更新 N 晚</text
+        >
+        <text x="12" y="92" class="hr-diag__node-desc">• 狀態設為 PENDING</text>
+        <text x="12" y="112" class="hr-diag__node-desc"
+          >• 註冊 15 分鐘過期延時任務</text
+        >
+      </g>
+
+      <!-- Arrow 2 -> 3 -->
+      <path
+        d="M 455 117 L 485 117"
+        class="hr-diag__line--amber"
+        marker-end="url(#hr-arrow-amber)"></path>
+
+      <!-- Step 3: Payment Gateway -->
+      <g transform="translate(490, 50)">
+        <rect width="190" height="135" rx="8" class="hr-diag__node"></rect>
+        <rect
+          x="12"
+          y="12"
+          width="70"
+          height="18"
+          rx="3"
+          class="hr-diag__step-pill hr-diag__step-pill--amber"></rect>
+        <text x="47" y="25" class="hr-diag__step-text hr-diag__step-text--amber"
+          >STEP 3</text
+        >
+        <text x="12" y="50" class="hr-diag__node-title">第三方支付處理</text>
+        <text x="12" y="72" class="hr-diag__node-desc"
+          >• 彈出信用卡 / 行動支付</text
+        >
+        <text x="12" y="92" class="hr-diag__node-desc"
+          >• 呼叫 Stripe / 銀行閘道</text
+        >
+        <text x="12" y="112" class="hr-diag__node-desc"
+          >• 非同步 Webhook 回呼確認</text
+        >
+      </g>
+
+      <!-- Arrow 3 -> 4 (Success / Cancel Branches) -->
+      <path
+        d="M 685 95 L 715 95"
+        class="hr-diag__line--emerald"
+        marker-end="url(#hr-arrow-emerald)"></path>
+      <path
+        d="M 685 140 L 715 140"
+        class="hr-diag__line--amber"
+        marker-end="url(#hr-arrow-amber)"></path>
+
+      <!-- Step 4: Final State -->
+      <g transform="translate(720, 50)">
+        <rect width="170" height="135" rx="8" class="hr-diag__node"></rect>
+        <rect
+          x="12"
+          y="12"
+          width="70"
+          height="18"
+          rx="3"
+          class="hr-diag__step-pill hr-diag__step-pill--emerald"></rect>
+        <text
+          x="47"
+          y="25"
+          class="hr-diag__step-text hr-diag__step-text--emerald">STEP 4</text
+        >
+        <text x="12" y="50" class="hr-diag__node-title">狀態終局收斂</text>
+        <text x="12" y="75" class="hr-diag__node-desc-success"
+          >✅ 付款成功：PAID</text
+        >
+        <text x="12" y="95" class="hr-diag__node-desc"
+          >• 鎖定訂單與正式房號</text
+        >
+        <text x="12" y="118" class="hr-diag__node-desc-fail"
+          >❌ 逾時/失敗：CANCELLED</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- Mobile View (Vertical Cards) -->
+  <div class="hr-diag__mobile">
+    <div class="hr-mobile-card hr-mobile-card--blue">
+      <span class="hr-mobile-badge hr-mobile-badge--blue"
+        >STRATEGY 1 · PESSIMISTIC</span
+      >
+      <h4>1. 悲觀鎖（SELECT FOR UPDATE）</h4>
+      <p>
+        <strong>原理</strong
+        >：查詢時對該房型日期區間的所有資料列加上行級排他鎖，直至交易結束。
+      </p>
+      <p>
+        <strong>代價</strong
+        >：跨多天預約易導致鎖等待暴增或死鎖，在高併發預約時會快速打滿資料庫連線池。
+      </p>
+    </div>
+
+    <div class="hr-mobile-card hr-mobile-card--amber">
+      <span class="hr-mobile-badge hr-mobile-badge--amber"
+        >STRATEGY 2 · OPTIMISTIC</span
+      >
+      <h4>2. 樂觀鎖（版本號 / CAS）</h4>
+      <p>
+        <strong>原理</strong>：讀取時不加鎖，更新時透過 <code
+          >WHERE version = @old_version</code
+        > 比對更新。
+      </p>
+      <p>
+        <strong>代價</strong
+        >：秒殺或熱門大促時衝突率極高，產生大量無效重試（Retry
+        Storm），連續多天預訂失敗率激增。
+      </p>
+    </div>
+
+    <div class="hr-mobile-card hr-mobile-card--emerald">
+      <span class="hr-mobile-badge hr-mobile-badge--emerald"
+        >STRATEGY 3 · ATOMIC SQL</span
+      >
+      <h4>3. 原子條件更新約束（推薦實踐）</h4>
+      <p>
+        <strong>原理</strong>：利用單一 SQL 語句原子更新：<code
+          >UPDATE ... SET reserved = reserved + N WHERE reserved + N &lt;= 1.1 *
+          inventory</code
+        >。
+      </p>
+      <p>
+        <strong>優勢</strong>：消除複雜鎖機制，將超賣容錯（110%
+        Overbooking）直接內嵌至資料庫約束條件中。
+      </p>
+    </div>
+
+    <div class="hr-mobile-step-card">
+      <span class="hr-mobile-badge hr-mobile-badge--purple"
+        >LIFECYCLE · 兩階段房態預扣流轉</span
+      >
+      <div class="hr-mobile-step">
+        <strong>步驟 1</strong>：客戶端攜帶全域唯一 <code>reservation_id</code> 發起請求（防重複提交）。
+      </div>
+      <div class="hr-mobile-step">
+        <strong>步驟 2</strong>：原子預扣房態庫存，建立 <code>PENDING</code> 訂單並註冊
+        15 分鐘超時回滾任務。
+      </div>
+      <div class="hr-mobile-step">
+        <strong>步驟 3</strong>：導向第三方支付閘道處理扣款。
+      </div>
+      <div class="hr-mobile-step">
+        <strong>步驟 4</strong>：支付成功則轉為 <code>PAID</code
+        >；超時未付則自動釋放預扣庫存並轉為 <code>CANCELLED</code>。
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="hr-diag-caption">
+    圖
+    1：飯店預訂系統高併發防超賣設計——從三種資料庫鎖定機制（悲觀鎖、樂觀鎖、原子更新）到兩階段預扣釋放生命週期
+  </figcaption>
+</figure>
+
+<style>
+  .hr-diag {
+    margin: 2rem 0;
+    width: 100%;
+  }
+
+  .hr-diag__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .hr-diag__mobile {
+    display: none;
+  }
+
+  /* SVG Base Styling */
+  .hr-diag__card-bg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .hr-diag__card-bg--blue {
+    stroke: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__card-bg--blue {
+    stroke: #60a5fa;
+  }
+
+  .hr-diag__card-bg--amber {
+    stroke: #f59e0b;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__card-bg--amber {
+    stroke: #fbbf24;
+  }
+
+  .hr-diag__card-bg--emerald {
+    stroke: #10b981;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__card-bg--emerald {
+    stroke: #34d399;
+  }
+
+  .hr-diag__pill {
+    rx: 4;
+  }
+
+  .hr-diag__pill--blue {
+    fill: rgba(59, 130, 246, 0.12);
+  }
+  .hr-diag__pill--amber {
+    fill: rgba(245, 158, 11, 0.12);
+  }
+  .hr-diag__pill--emerald {
+    fill: rgba(16, 185, 129, 0.12);
+  }
+
+  .hr-diag__pill-text {
+    font-size: 10.5px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    text-anchor: middle;
+  }
+
+  .hr-diag__pill-text--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__pill-text--blue {
+    fill: #93c5fd;
+  }
+
+  .hr-diag__pill-text--amber {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__pill-text--amber {
+    fill: #fcd34d;
+  }
+
+  .hr-diag__pill-text--emerald {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__pill-text--emerald {
+    fill: #6ee7b7;
+  }
+
+  .hr-diag__title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .hr-diag__title--blue {
+    fill: #1d4ed8;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__title--blue {
+    fill: #bfdbfe;
+  }
+
+  .hr-diag__title--amber {
+    fill: #b45309;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__title--amber {
+    fill: #fde68a;
+  }
+
+  .hr-diag__title--emerald {
+    fill: #047857;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__title--emerald {
+    fill: #a7f3d0;
+  }
+
+  .hr-diag__code-box {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .hr-diag__code-text {
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    fill: var(--dg-ink);
+  }
+
+  .hr-diag__bullet {
+    font-size: 12.5px;
+    fill: var(--dg-ink-2);
+  }
+
+  .hr-diag__bullet--warn {
+    fill: var(--dg-muted);
+  }
+
+  .hr-diag__section-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .hr-diag__node {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .hr-diag__node--active {
+    stroke: #3b82f6;
+    stroke-width: 1.5;
+  }
+
+  .hr-diag__step-pill {
+    fill: var(--dg-rule);
+  }
+
+  .hr-diag__step-pill--blue {
+    fill: rgba(59, 130, 246, 0.15);
+  }
+  .hr-diag__step-pill--amber {
+    fill: rgba(245, 158, 11, 0.15);
+  }
+  .hr-diag__step-pill--emerald {
+    fill: rgba(16, 185, 129, 0.15);
+  }
+
+  .hr-diag__step-text {
+    font-size: 10px;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    text-anchor: middle;
+    fill: var(--dg-muted);
+  }
+
+  .hr-diag__step-text--blue {
+    fill: #2563eb;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__step-text--blue {
+    fill: #93c5fd;
+  }
+
+  .hr-diag__step-text--amber {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__step-text--amber {
+    fill: #fcd34d;
+  }
+
+  .hr-diag__step-text--emerald {
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__step-text--emerald {
+    fill: #6ee7b7;
+  }
+
+  .hr-diag__node-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .hr-diag__node-desc {
+    font-size: 11.5px;
+    fill: var(--dg-ink-2);
+  }
+
+  .hr-diag__node-desc-success {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: #059669;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__node-desc-success {
+    fill: #34d399;
+  }
+
+  .hr-diag__node-desc-fail {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__node-desc-fail {
+    fill: #f87171;
+  }
+
+  /* Connectors */
+  .hr-diag__line--blue {
+    stroke: #3b82f6;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__line--blue {
+    stroke: #60a5fa;
+  }
+
+  .hr-diag__line--amber {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__line--amber {
+    stroke: #fbbf24;
+  }
+
+  .hr-diag__line--emerald {
+    stroke: #10b981;
+    stroke-width: 2;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__line--emerald {
+    stroke: #34d399;
+  }
+
+  .hr-diag__arrow-head--blue {
+    fill: #3b82f6;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__arrow-head--blue {
+    fill: #60a5fa;
+  }
+
+  .hr-diag__arrow-head--amber {
+    fill: #f59e0b;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__arrow-head--amber {
+    fill: #fbbf24;
+  }
+
+  .hr-diag__arrow-head--emerald {
+    fill: #10b981;
+  }
+  :global(:root[data-theme="dark"]) .hr-diag__arrow-head--emerald {
+    fill: #34d399;
+  }
+
+  /* Figcaption */
+  #hr-diag-caption {
+    margin-top: 0.75rem;
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* Mobile Responsive View */
+  @media (max-width: 48rem) {
+    .hr-diag__desktop {
+      display: none !important;
+    }
+
+    .hr-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .hr-mobile-card {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .hr-mobile-card--blue {
+      border-left: 4px solid #3b82f6;
+    }
+    .hr-mobile-card--amber {
+      border-left: 4px solid #f59e0b;
+    }
+    .hr-mobile-card--emerald {
+      border-left: 4px solid #10b981;
+    }
+
+    .hr-mobile-step-card {
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1rem 1.125rem;
+    }
+
+    .hr-mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-family: var(--font-mono, monospace);
+    }
+
+    .hr-mobile-badge--blue {
+      color: #3b82f6;
+    }
+    .hr-mobile-badge--amber {
+      color: #f59e0b;
+    }
+    .hr-mobile-badge--emerald {
+      color: #10b981;
+    }
+    .hr-mobile-badge--purple {
+      color: #8b5cf6;
+    }
+
+    .hr-mobile-card h4 {
+      margin: 0 0 0.375rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+    }
+
+    .hr-mobile-card p {
+      margin: 0.25rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .hr-mobile-step {
+      margin: 0.5rem 0;
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>

@@ -1,0 +1,237 @@
+---
+title: "高併發飯店預訂系統架構：房型庫存模型、防超賣鎖策略與兩階段狀態機流轉"
+description: "深入剖析連鎖飯店與 OTA 預訂系統（Hotel Reservation System）核心架構：從房間號到「房型日期庫存矩陣」的資料模型重構、悲觀鎖 vs 樂觀鎖 vs 原子條件更新（Atomic Constraint）防超賣權衡、10% 超賣額度（Overbooking Buffer）精算，以及結合冪等鍵與延遲佇列的兩階段預扣釋放生命週期。"
+publishDate: 2026-09-23T15:05:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 系統面試
+  - 高併發
+  - 資料庫
+  - 後端架構
+repositoryUrl: https://github.com/liquidslr/system-design-notes
+series: 系統設計面試與架構方法論
+seriesOrder: 8
+cover: ../../assets/covers/hotel-reservation-system-architecture.jpg
+coverAlt: "高併發飯店預訂系統立體剖面架構圖：豪華飯店樓層切面中流轉著青色與金色資料電路，連接著客房房態、前台預訂櫃台、支付閘道與底層房型庫存金庫。"
+---
+
+import HotelReservationSystemDiagram from "../../components/HotelReservationSystemDiagram.astro";
+
+在系統設計面試中，**「設計一個連鎖飯店預訂系統（Hotel Reservation System，如萬豪 Marriott、Booking.com 或 Airbnb）」** 是一道極為經典且高頻出現的高階架構題。
+
+這類業務場景看似與一般電商購物類似，但其底層有著截然不同的**時間連續性約束**：
+
+- **商品購買 vs 連續住宿**：電商買一雙球鞋只需扣減單一庫存；而預訂飯店通常是一次預訂連續 $N$ 晚（例如從週五住到週日），只要其中任何一晚房態售罄，整筆預訂即告失敗。
+- **特定房間號 vs 房型配額**：真實飯店通常在預訂當下只承諾「房型類別（如豪華雙人房）」，而非具體房號；具體房號是直到客人當天 Check-in 時才由前台或演算法動態分配。
+- **商業超賣容錯（Overbooking）**：航空公司與連鎖飯店在商業慣例上普遍允許一定比例（例如 10%）的「超額預訂」，以對沖旅客臨時取消（Cancel）或未如期入住（No-show）的空房損失。
+
+如何設計出既能靈活查詢跨日房態、在高併發搶房時**百分之百杜絕非預期超賣**，又能優雅處理超時未支付自動釋放庫存的架構？
+
+本文基於 Alex Xu 經典著作《System Design Interview》第二卷與開源社群實戰經驗，深入剖析飯店預訂系統的端到端架構演進與工程權衡。
+
+<HotelReservationSystemDiagram />
+
+---
+
+## 1. 核心需求與容量規模估算（Back-of-the-Envelope）
+
+在進入架構設計前，必須先與面試官對齊業務邊界與非功能性約束：
+
+### 核心業務邊界
+
+- **規模範圍**：全球連鎖體系，涵蓋 5,000 間飯店、共計 1,000,000 間客房。
+- **付費模式**：線上預訂時需全額付款，支援彈性取消退款。
+- **超賣政策**：支援商業配置的 10% 超賣緩衝（Overbooking Buffer）。
+- **房價動態性**：各房型每日價格動態浮動（與入住率動態掛鉤）。
+
+### 儲存與併發估算
+
+1. **每日預訂量**：假設平均客房入住率為 70%，旅客平均連續入住 3 晚。
+   `每日訂單數 = 1,000,000 × 70% ÷ 3 ≈ 233,333 筆/天`
+2. **預訂峰值 TPS**：
+   `平均預訂 TPS = 233,333 ÷ 86,400 秒 ≈ 2.7 TPS`
+   即使考慮旅遊大促與旺季 10 倍峰值突波，預訂寫入 TPS 也僅約 **30 ~ 50 TPS**。
+3. **查詢 QPS（讀多寫極少）**：
+   在 OTA 網站中，多數使用者都在瀏覽飯店列表與房態日曆。若以「看房詳情 ➔ 進入結帳頁 ➔ 完成預訂」轉換率 10% 推算：
+   `房態查詢 QPS = 預訂 TPS × 100 ≈ 3,000 ~ 5,000 QPS`
+
+> [!NOTE]
+> 許多工程師初聽題目便盲目引入 Kafka 異步削峰或分庫分表。然而估算清楚揭示：**飯店預訂本質上是讀多寫極少的系統，核心痛點不在極限吞吐量，而在跨連續日期的資料一致性與防超賣鎖定機制**。
+
+---
+
+## 2. 資料模型重構：從「房間實體」到「房型日期矩陣」
+
+初學者最容易犯的第一個架構錯誤，是直接替每間房建一張 `room` 表，並試圖記錄每間房何時被佔用。
+
+### 反模式：以特定房間綁定預訂
+
+如果資料表設計為：
+
+- `room_id`: 201（具體房號）
+- `status`: AVAILABLE / RESERVED
+
+當使用者預訂 5/1 ~ 5/4 的豪華套房時，系統必須去暴力搜尋「哪一間特定房號在這 3 天都是空的」。這不僅導致 SQL 查詢包含極為昂貴的跨日期範圍重疊比對（Range Overlap Query），更抹煞了飯店在現場將散客換房升等的彈性。
+
+### 正確解法：房型日期庫存表（`room_type_inventory`）
+
+將庫存維度收斂至「**（飯店 ID + 房型 ID + 具體日期）**」的最小粒度單元：
+
+```sql
+CREATE TABLE room_type_inventory (
+    hotel_id INT NOT NULL,
+    room_type_id INT NOT NULL,
+    date DATE NOT NULL,
+    total_inventory INT NOT NULL,    -- 實體房間總數（扣除維修中）
+    total_reserved INT NOT NULL DEFAULT 0, -- 已預訂數量
+    version INT NOT NULL DEFAULT 0,  -- 樂觀鎖版本號（可選）
+    PRIMARY KEY (hotel_id, room_type_id, date)
+);
+```
+
+#### 資料量試算
+
+若為 5,000 間飯店、每間平均 20 種房型、預先預載未來 2 年（730 天）的房態：
+`5,000 × 20 × 730 ≈ 7,300 萬列`
+
+在 MySQL InnoDB 叢集索引架構下，7,300 萬列整數與日期索引僅佔數個 GB 的記憶體空間。單台配備 32GB RAM 的主流關聯式資料庫即可將全量索引放進 Buffer Pool，毫秒級響應查詢。
+
+---
+
+## 3. 防超賣鎖機制之深度權衡
+
+當兩名旅客同時在搶購跨年夜同一間五星級飯店的最後一間海景房時，系統如何避免兩筆訂單同時成功？
+
+### 策略 1：悲觀行鎖（`SELECT ... FOR UPDATE`）
+
+在交易開始時，直接鎖定連續日期的庫存列：
+
+```sql
+BEGIN;
+
+-- 鎖定目標日期區間的所有庫存行
+SELECT date, total_inventory, total_reserved
+FROM room_type_inventory
+WHERE hotel_id = ? AND room_type_id = ?
+  AND date BETWEEN '2026-12-31' AND '2027-01-02'
+FOR UPDATE;
+
+-- 應用層檢驗：任一天 (total_reserved + 1) > 1.1 * total_inventory 則 ROLLBACK
+
+UPDATE room_type_inventory
+SET total_reserved = total_reserved + 1
+WHERE hotel_id = ? AND room_type_id = ?
+  AND date BETWEEN '2026-12-31' AND '2027-01-02';
+
+COMMIT;
+```
+
+- **優點**：強一致性保證，邏輯極度直觀。
+- **致命代價**：
+  1. **鎖等待阻塞**：當該房型熱門時，所有查詢該日期的交易將排隊等待，資料庫連線池瞬間被吃滿。
+  2. **死鎖風險（Deadlock）**：若交易 A 預訂 12/31 到 1/2，交易 B 預訂 1/1 到 1/3，兩者鎖定不同日期的順序若非全域嚴格排序，極易在 InnoDB 內部觸發死鎖偵測與強制回滾。
+
+### 策略 2：樂觀版本號鎖（Optimistic CAS）
+
+讀取時不加鎖，提交時比對版本號：
+
+```sql
+-- 1. 讀取版本號
+SELECT date, total_inventory, total_reserved, version
+FROM room_type_inventory
+WHERE hotel_id = ? AND room_type_id = ?
+  AND date BETWEEN '2026-12-31' AND '2027-01-02';
+
+-- 2. 應用層檢驗通過後更新（需同時比對多列版本）
+UPDATE room_type_inventory
+SET total_reserved = total_reserved + 1, version = version + 1
+WHERE hotel_id = ? AND room_type_id = ? AND date = '2026-12-31' AND version = ?;
+```
+
+- **優點**：讀取無鎖，在淡季爭搶低時延遲最低。
+- **致命代價**：在跨 $N$ 天預訂場景中，只要其中 1 天的版本被其他人先修改，整筆多晚交易就必須回滾重試。在熱門搶購時會引發惡性「重試風暴（Retry Storm）」，整體成功率暴跌。
+
+### 策略 3：資料庫原子條件更新約束（Atomic Constraint，業界推薦）
+
+利用關聯式資料庫單行更新自帶行鎖與 ACID 特性，將業務判定直接推入 SQL `WHERE` 條件：
+
+```sql
+-- 單一原子更新語句（包含 10% 商業超賣防護）
+UPDATE room_type_inventory
+SET total_reserved = total_reserved + :num_rooms
+WHERE hotel_id = :hotel_id
+  AND room_type_id = :room_type_id
+  AND date BETWEEN :start_date AND :end_date
+  AND (total_reserved + :num_rooms) <= (total_inventory * 1.1);
+```
+
+#### 工程判定邏輯
+
+應用程式執行此 SQL 後，檢查受影響列數（`rows_affected`）：
+
+- **若 `rows_affected == 住宿夜數`**：代表所有連續日期均有足夠配額，成功扣減，交易安全提交！
+- **若 `rows_affected < 住宿夜數`**：代表至少有某一晚庫存不足，立即發起 `ROLLBACK`，並回報使用者客滿。
+
+這種做法**徹底消除了應用層持有悲觀鎖的時間視窗**，將行級鎖定時間壓縮在微秒級的更新執行瞬間，既抗高併發又能精準防超賣。
+
+---
+
+## 4. 兩階段房態預扣生命週期與延遲釋放狀態機
+
+在電商或飯店流程中，旅客從按下「預約」到完成信用卡扣款通常需要數分鐘。這段時間房態處於**「已預扣但尚未支付」**的中間態。
+
+系統必須落實完整的兩階段預扣流程，防止旅客卡住庫存不結帳：
+
+### 流程步驟拆解
+
+1. **防止重複下單（Idempotency Key）**：
+   前端在旅客進入結帳填單頁面時，由後端簽發全域唯一的 `reservation_id`（UUIDv7）。後續提交請求無論點擊幾次，後端皆依此 ID 去重，底層以 `reservation_id` 的唯一索引（Unique Constraint）阻擋併發重複插入。
+2. **建立 PENDING 預扣訂單**：
+   使用上述原子更新語句預扣目標日期的配額，並在 `reservation` 主表中建立狀態為 `PENDING` 的訂單記錄。
+3. **註冊 15 分鐘超時回滾佇列**：
+   訂單建立成功的瞬間，向延時任務系統（如 Kafka 延時隊列、Redis Sorted Set 或分級時間輪 Timing Wheel）推送一筆 15 分鐘到期的監控任務。
+4. **終局狀態收斂**：
+   - **支付成功**：第三方支付回呼確認成功，訂單狀態流轉為 `PAID`。
+   - **逾時未付 / 旅客取消**：若 15 分鐘後訂單仍處於 `PENDING`，背景 Worker 自動執行反向補償事務：
+     ```sql
+     UPDATE room_type_inventory
+     SET total_reserved = total_reserved - :num_rooms
+     WHERE hotel_id = :hotel_id AND room_type_id = :room_type_id
+       AND date BETWEEN :start_date AND :end_date;
+     ```
+     並將訂單狀態更新為 `CANCELLED`。
+
+---
+
+## 5. 面試官進階追問與架構擴展（Deep Dive）
+
+在白板面試最後 10 分鐘，資深面試官通常會提出以下進階擴展場景：
+
+### Q1：如果流量規模擴大 100 倍（如 Booking.com 全球等級），單庫撐不住怎麼辦？
+
+- **Sharding 策略**：以 `hotel_id` 為分片鍵（Shard Key），透過 `hash(hotel_id) % N` 進行水平分庫。因為所有房態查詢與預約下單都嚴格限定在單一飯店內，分片後**完全不會產生跨分庫分散式事務（Cross-Shard Transactions）**。
+- **快取架構與非同步同步**：以 Redis 快取熱門飯店的房態日曆。為了避免 Cache 與 DB 雙寫不一致，底層以 Debezium 監聽 MySQL Binlog（CDC 機制），非同步將資料庫變更串流回寫 Redis。即使快取發生微秒級延遲，最終預約依然會穿透到資料庫進行原子條件更新，保證絕對不超賣。
+
+### Q2：飯店允許超賣 10%，如果當天真的 100% 旅客都抵達 Check-in，該如何收尾？
+
+這是一個非常考察候選人「真實工程經驗」的業務問題：
+
+- **架構降級與補償政策**：超賣是商業決策而非系統缺陷。當超賣真正爆發（所有人都來了且無人取消），飯店有一套標準 SOP：
+  1. 免費將客戶升等至高階套房（利用套房庫存消化標準房超賣）；
+  2. 若全館客滿，主動將客人安排至同集團鄰近星級飯店，並提供免單補償與點數。
+- 在系統設計層面，只要確保超賣數量嚴格鎖定在 `1.1 * total_inventory` 的配置上限內，即可確保超賣風險始終處於財務與營運模型可承擔的範疇。
+
+---
+
+## 6. 架構決策清單與下一步
+
+在實施高併發預訂與預扣系統時，建議團隊依循以下工程清單驗收：
+
+- [ ] **維度解耦**：資料庫核心模型按「房型 + 日期」設計，不與具體實體房號提前綁定。
+- [ ] **無鎖原子扣減**：捨棄傳統悲觀鎖與脆弱的 CAS 樂觀鎖，改用 SQL 原生原子條件約束（`WHERE reserved + N <= limit`）。
+- [ ] **全鏈路冪等性**：結帳入口全面強制要求客戶端傳遞唯一 `reservation_id`，防止網路抖動重試造成的重疊扣減。
+- [ ] **兩階段超時防禦**：建立以延時佇列或分級時間輪為基礎的自動過期解鎖管線，避免未付款訂單長期佔死房態。
+
+延伸閱讀：[系統設計面試黃金方法論：PEDALS 4 步架構法](/blog/system-design-interview-pedals-framework/)、[高併發秒殺庫存扣減架構：樂觀鎖、悲觀鎖與分段加鎖](/blog/high-concurrency-inventory-locking-strategies/)、[Shopify 如何用 MySQL 8 SKIP LOCKED 扛住百萬級庫存預扣](/blog/shopify-inventory-reservations-mysql/)。

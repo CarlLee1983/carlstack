@@ -18,6 +18,7 @@
 | [checkcheckzz/system-design-interview](https://github.com/checkcheckzz/system-design-interview)           | 精準的面試題目實戰（如 TinyURL, 搜尋自動補全, 訂票系統等）                           | 具體場景的端到端（E2E）系統設計題目                                      |
 | [chiphuyen/machine-learning-systems-design](https://github.com/chiphuyen/machine-learning-systems-design) | Chip Huyen 的經典 ML 系統架構，聚焦 ML/AI 落地與生產環境工程                         | **ML/AI System Design** 專題（特徵工程、模型服務化、線上監控、資料漂移） |
 | [systemdesign42/system-design-academy](https://github.com/systemdesign42/system-design-academy)           | 體系化的架構學院教材與系統化評估指南                                                 | 系統設計思考框架與系統性查核清單                                         |
+| [liquidslr/system-design-notes](https://github.com/liquidslr/system-design-notes)                         | Alex Xu 經典《System Design Interview》Vol 1 & 2 全 28 章筆記精煉與架構梳理          | 體系化面試實戰、高併發業務場景（支付、S3、遊戲排行榜、地圖、飯店預約）   |
 
 ---
 
