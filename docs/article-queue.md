@@ -42,7 +42,7 @@
 > 跳脫 Tactical 代碼實作，專注於系統分析端（Strategic System Analysis）四大核心工具：Wardley Mapping、Big Picture EventStorming、Domain Storytelling 與 Bounded Context Canvas。詳細規劃見 [docs/research/ddd-strategic-system-analysis-series-plan.md](docs/research/ddd-strategic-system-analysis-series-plan.md)。
 
 - [x] **第 1 篇（已發布）：** [別急著開 IDE：如何用 Wardley Mapping 在系統分析端精準錨定 DDD 核心域](src/content/blog/ddd-wardley-mapping-system-analysis.mdx)（價值鏈展開、演進軸、資本配置防線、自研與採購決策）
-- [ ] **第 2 篇（待撰寫）：** 讓業務與工程在白板前停止吵架：Big Picture EventStorming 的跨職能探索與邊界識別（全景事件風暴、時間軸梳理、衝突熱點收斂、候選上下文浮現）
+- [x] **第 2 篇（已發布）：** [讓業務與工程在白板前停止吵架：Big Picture EventStorming 的跨職能探索與邊界識別](src/content/blog/ddd-event-storming-system-analysis.mdx)（全景事件風暴、時間軸梳理、衝突熱點收斂、候選上下文浮現）
 - [ ] **第 3 篇（待撰寫）：** 抓出藏在句子裡的語義衝突：Domain Storytelling 如何用業務敘事提煉通用語言（角色與工作物件、同名異義詞識別、業務場景圖解、邊界通用語言字典）
 - [ ] **第 4 篇（待撰寫）：** 從業務分析到架構契約：Bounded Context Canvas 的規格交付與通訊拓撲（Nick Tune 戰略畫布、領域角色類型、不變量與規則、進出站通訊契約）
 
