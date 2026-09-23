@@ -1,0 +1,1063 @@
+---
+// src/components/DddBoundedContextCanvasDiagram.astro
+---
+
+<figure class="ddd-canvas-diagram" aria-labelledby="ddd-canvas-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 600，大字級、高對比、清爽透氣、Anti-Quadrant) -->
+  <svg
+    class="ddd-canvas-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-canvas-diagram-title ddd-canvas-diagram-desc"
+  >
+    <title id="ddd-canvas-diagram-title">
+      Bounded Context Canvas 戰略畫布五大核心維度全景
+    </title>
+    <desc id="ddd-canvas-diagram-desc">
+      頂部展示畫布定義橫幅（名稱、戰略分類、商業價值目標）。主體四欄展示畫布四大核心模組：領域角色特徵、核心業務規則不變量、邊界通用語言字典、入站出站通訊契約。底部展示系統分析交付規格與架構契約防禦原則。
+    </desc>
+
+    <!-- 頂部：畫布戰略導覽橫幅 (高 52px) -->
+    <g transform="translate(30, 20)">
+      <rect
+        width="900"
+        height="52"
+        rx="10"
+        class="ddd-canvas-diagram__banner-bg"></rect>
+      <circle cx="28" cy="26" r="7" fill="#f59e0b"></circle>
+      <text x="46" y="32" class="ddd-canvas-diagram__banner-title"
+        >Bounded Context Canvas 戰略交付規格：</text
+      >
+      <text x="365" y="32" class="ddd-canvas-diagram__banner-dim"
+        >【定位】限界上下文正式契約</text
+      >
+      <text x="560" y="32" class="ddd-canvas-diagram__banner-divider">|</text>
+      <text x="580" y="32" class="ddd-canvas-diagram__banner-dim"
+        >【產出】一頁紙終結 100 頁無效 PRD</text
+      >
+    </g>
+
+    <!-- 主體四欄：四大核心規格維度 (單欄寬 213px，間距 16px，高 355px) -->
+
+    <!-- 1. 第一欄：領域角色與職責 (Domain Roles & Purpose) -->
+    <g transform="translate(30, 92)" class="ddd-canvas-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--blue"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--blue"
+          >DIMENSION 1 · 核心定位</text
+        >
+        <text y="25" class="ddd-canvas-diagram__col-title">角色與戰略分類</text>
+        <text y="46" class="ddd-canvas-diagram__col-subtitle"
+          >職責單一 · 確立領域類型</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-canvas-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-canvas-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-canvas-diagram__meta-label"
+          >四大領域角色分類</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-canvas-diagram__meta-val ddd-canvas-diagram__meta-val--blue"
+          >Execution / Ledger</text
+        >
+        <text x="12" y="58" class="ddd-canvas-diagram__meta-sub"
+          >Gateway / Operations 角色明確</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-canvas-diagram__section-label">畫布規格要求</text>
+        <text y="20" class="ddd-canvas-diagram__bullet"
+          >• 用一句話定義存在目的</text
+        >
+        <text y="40" class="ddd-canvas-diagram__bullet"
+          >• 標明 Core / Supporting / Generic</text
+        >
+        <text y="60" class="ddd-canvas-diagram__bullet"
+          >• 明確所有權（Ownership 團隊）</text
+        >
+        <text y="80" class="ddd-canvas-diagram__bullet"
+          >• 劃定禁止涉足之非職責範圍</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-canvas-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-canvas-diagram__action-title"
+          >架構職責</text
+        >
+        <text x="12" y="38" class="ddd-canvas-diagram__action-desc"
+          >確立邊界使命與責任歸屬</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 第二欄：業務規則與不變量 (Business Rules & Invariants) -->
+    <g transform="translate(259, 92)" class="ddd-canvas-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-canvas-diagram__main-card ddd-canvas-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--gold"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--gold"
+          >DIMENSION 2 · 核心邏輯</text
+        >
+        <text
+          y="25"
+          class="ddd-canvas-diagram__col-title ddd-canvas-diagram__col-title--gold"
+          >業務規則不變量</text
+        >
+        <text y="46" class="ddd-canvas-diagram__col-subtitle"
+          >強一致性 · 業務底線防禦</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-canvas-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-canvas-diagram__meta-box ddd-canvas-diagram__meta-box--gold"
+        ></rect>
+        <text x="12" y="22" class="ddd-canvas-diagram__meta-label"
+          >不變量約束性質</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-canvas-diagram__meta-val ddd-canvas-diagram__meta-val--gold"
+          >Invariants & Policies</text
+        >
+        <text x="12" y="58" class="ddd-canvas-diagram__meta-sub"
+          >任何情況下都不允許被破壞的真理</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-canvas-diagram__section-label">畫布規格要求</text>
+        <text y="20" class="ddd-canvas-diagram__bullet"
+          >• 記錄狀態機合法躍遷規則</text
+        >
+        <text y="40" class="ddd-canvas-diagram__bullet"
+          >• 定義交易強一致性邊界</text
+        >
+        <text y="60" class="ddd-canvas-diagram__bullet"
+          >• 標註法律與合規不可違逆約束</text
+        >
+        <text y="80" class="ddd-canvas-diagram__bullet"
+          >• 驅動 Aggregate Root 最小設計</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-canvas-diagram__action-box ddd-canvas-diagram__action-box--gold"
+        ></rect>
+        <text
+          x="12"
+          y="20"
+          class="ddd-canvas-diagram__action-title ddd-canvas-diagram__action-title--gold"
+          >架構職責</text
+        >
+        <text x="12" y="38" class="ddd-canvas-diagram__action-desc"
+          >界定聚合根事務保護邊界</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 第三欄：通用語言字典 (Ubiquitous Language) -->
+    <g transform="translate(488, 92)" class="ddd-canvas-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--emerald"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--emerald"
+          >DIMENSION 3 · 語義防線</text
+        >
+        <text y="25" class="ddd-canvas-diagram__col-title">通用語言字典</text>
+        <text y="46" class="ddd-canvas-diagram__col-subtitle"
+          >定義清晰 · 杜絕同名異義</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-canvas-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-canvas-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-canvas-diagram__meta-label"
+          >語義精確度</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-canvas-diagram__meta-val ddd-canvas-diagram__meta-val--emerald"
+          >Context Glossary</text
+        >
+        <text x="12" y="58" class="ddd-canvas-diagram__meta-sub"
+          >對話與代碼 100% 同頻映射</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-canvas-diagram__section-label">畫布規格要求</text>
+        <text y="20" class="ddd-canvas-diagram__bullet"
+          >• 列出核心 Entity / Value Object</text
+        >
+        <text y="40" class="ddd-canvas-diagram__bullet"
+          >• 每一個詞彙提供一段不可爭辯定義</text
+        >
+        <text y="60" class="ddd-canvas-diagram__bullet"
+          >• 明確標註易混淆同名詞之區別</text
+        >
+        <text y="80" class="ddd-canvas-diagram__bullet"
+          >• 成為 AI Agent 與新人的最高標準</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-canvas-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-canvas-diagram__action-title"
+          >架構職責</text
+        >
+        <text x="12" y="38" class="ddd-canvas-diagram__action-desc"
+          >建立邊界內純淨無歧義語彙</text
+        >
+      </g>
+    </g>
+
+    <!-- 4. 第四欄：通訊契約與拓撲 (Communication Contracts) -->
+    <g transform="translate(717, 92)" class="ddd-canvas-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--purple"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--purple"
+          >DIMENSION 4 · 系統接口</text
+        >
+        <text y="25" class="ddd-canvas-diagram__col-title"
+          >入站出站通訊契約</text
+        >
+        <text y="46" class="ddd-canvas-diagram__col-subtitle"
+          >API 與事件 · 明確外部依賴</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-canvas-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-canvas-diagram__meta-box"></rect>
+        <text x="12" y="22" class="ddd-canvas-diagram__meta-label"
+          >通訊接縫設計</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-canvas-diagram__meta-val ddd-canvas-diagram__meta-val--purple"
+          >Inbound / Outbound</text
+        >
+        <text x="12" y="58" class="ddd-canvas-diagram__meta-sub"
+          >Commands, Queries, Events</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-canvas-diagram__section-label">畫布規格要求</text>
+        <text y="20" class="ddd-canvas-diagram__bullet"
+          >• 入站：接收哪些指令與外部事件</text
+        >
+        <text y="40" class="ddd-canvas-diagram__bullet"
+          >• 出站：發布哪些不可逆領域事件</text
+        >
+        <text y="60" class="ddd-canvas-diagram__bullet"
+          >• 標明依賴上下文與 ACL 防腐策略</text
+        >
+        <text y="80" class="ddd-canvas-diagram__bullet"
+          >• 決定同步 RPC 與異步訊息切分</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-canvas-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-canvas-diagram__action-title"
+          >架構職責</text
+        >
+        <text x="12" y="38" class="ddd-canvas-diagram__action-desc"
+          >定義物理通訊拓撲與合約接縫</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：畫布交付防線與原則 (高 105px) -->
+    <g transform="translate(30, 465)">
+      <rect
+        width="900"
+        height="105"
+        rx="10"
+        class="ddd-canvas-diagram__warning-bg"></rect>
+      <rect
+        width="900"
+        height="5"
+        rx="2"
+        class="ddd-canvas-diagram__warning-strip"></rect>
+
+      <circle cx="36" cy="35" r="14" fill="#3b82f6" opacity="0.15"></circle>
+      <text
+        x="36"
+        y="41"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="900"
+        fill="#2563eb">i</text
+      >
+      <text x="62" y="40" class="ddd-canvas-diagram__warning-title"
+        >Bounded Context Canvas 的架構契約精神：以可執行的精準邊界取代繁冗文檔</text
+      >
+
+      <g transform="translate(62, 54)">
+        <text class="ddd-canvas-diagram__warning-bullet" x="0" y="16">
+          <tspan font-weight="700">單一責任一頁紙：</tspan> 畫布必須在一頁 A4 或單一
+          Markdown 文件內完整呈現，如果寫不下一頁，說明上下文切分過大或缺乏聚焦。
+        </text>
+        <text class="ddd-canvas-diagram__warning-bullet" x="0" y="36">
+          <tspan font-weight="700">跨職能簽字契約：</tspan> 畫布是由業務主管、系統分析師、架構師與技術
+          Lead 共同審閱簽字的「架構規格契約」，直接作為 CI 邊界守護的基準。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (寬度 360，高度 1040，縱向堆疊卡片) -->
+  <svg
+    class="ddd-canvas-diagram__mobile"
+    viewBox="0 0 360 1040"
+    role="img"
+    aria-labelledby="ddd-canvas-diagram-mobile-title ddd-canvas-diagram-mobile-desc"
+  >
+    <title id="ddd-canvas-diagram-mobile-title">
+      Bounded Context Canvas 戰略畫布四大維度（行動版）
+    </title>
+    <desc id="ddd-canvas-diagram-mobile-desc">
+      Bounded Context Canvas
+      四大核心維度縱向卡片版：角色與戰略分類、業務規則不變量、通用語言字典、通訊契約拓撲。
+    </desc>
+
+    <!-- 頂部標題 (高 66px) -->
+    <g transform="translate(16, 16)">
+      <rect width="328" height="66" rx="8" class="ddd-canvas-diagram__banner-bg"
+      ></rect>
+      <text x="16" y="28" class="ddd-canvas-diagram__mobile-title"
+        >Bounded Context Canvas</text
+      >
+      <text x="16" y="48" class="ddd-canvas-diagram__mobile-subtitle"
+        >從系統分析到架構合約的正式規格交付物</text
+      >
+    </g>
+
+    <!-- 1. 角色與戰略分類 (高 205px) -->
+    <g transform="translate(16, 96)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--blue"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--blue"
+        >DIMENSION 1 · 核心定位</text
+      >
+      <text x="16" y="52" class="ddd-canvas-diagram__col-title"
+        >角色與戰略分類（Roles & Classification）</text
+      >
+      <text x="16" y="74" class="ddd-canvas-diagram__mobile-domain"
+        >類別：Core / Supporting / Generic</text
+      >
+      <text x="16" y="102" class="ddd-canvas-diagram__mobile-text"
+        >• 特徵：一句話定義存在使命，明確團隊 Ownership</text
+      >
+      <text x="16" y="124" class="ddd-canvas-diagram__mobile-text"
+        >• 姿態：選定 Execution, Ledger, Gateway 或 Operations</text
+      >
+      <text x="16" y="146" class="ddd-canvas-diagram__mobile-text"
+        >• 典型：明確劃定「本模組絕對不做」之非職責範圍</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-canvas-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-canvas-diagram__mobile-action"
+        >架構姿態：確立邊界責任歸屬，終結職責不清</text
+      >
+    </g>
+
+    <!-- 2. 業務規則不變量 (高 205px，黃金高亮) -->
+    <g transform="translate(16, 315)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-canvas-diagram__main-card ddd-canvas-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--gold"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--gold"
+        >DIMENSION 2 · 核心邏輯（業務底線）</text
+      >
+      <text
+        x="16"
+        y="52"
+        class="ddd-canvas-diagram__col-title ddd-canvas-diagram__col-title--gold"
+        >業務規則不變量（Business Invariants）</text
+      >
+      <text
+        x="16"
+        y="74"
+        class="ddd-canvas-diagram__mobile-domain ddd-canvas-diagram__mobile-domain--gold"
+        >核心：任何情況下都不能被破壞的真理</text
+      >
+      <text x="16" y="102" class="ddd-canvas-diagram__mobile-text"
+        >• 特徵：定義狀態機合法躍遷路徑與強一致性約束</text
+      >
+      <text x="16" y="124" class="ddd-canvas-diagram__mobile-text"
+        >• 姿態：直接驅動 Aggregate Root 的最小高內聚設計</text
+      >
+      <text x="16" y="146" class="ddd-canvas-diagram__mobile-text"
+        >• 典型：「退款金額不得大於訂單實付金額」</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="28"
+        rx="4"
+        class="ddd-canvas-diagram__action-box ddd-canvas-diagram__action-box--gold"
+      ></rect>
+      <text
+        x="24"
+        y="180"
+        class="ddd-canvas-diagram__mobile-action ddd-canvas-diagram__action-title--gold"
+        >架構姿態：界定事務邊界，守護核心領域不變量</text
+      >
+    </g>
+
+    <!-- 3. 通用語言字典 (高 205px) -->
+    <g transform="translate(16, 534)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--emerald"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--emerald"
+        >DIMENSION 3 · 語義防線</text
+      >
+      <text x="16" y="52" class="ddd-canvas-diagram__col-title"
+        >通用語言字典（Ubiquitous Language）</text
+      >
+      <text x="16" y="74" class="ddd-canvas-diagram__mobile-domain"
+        >精準：對話與代碼 100% 一對一映射</text
+      >
+      <text x="16" y="102" class="ddd-canvas-diagram__mobile-text"
+        >• 特徵：收錄 Entity、Value Object 與特定領域術語</text
+      >
+      <text x="16" y="124" class="ddd-canvas-diagram__mobile-text"
+        >• 姿態：提供精準定義，標記與外部易混淆詞之區別</text
+      >
+      <text x="16" y="146" class="ddd-canvas-diagram__mobile-text"
+        >• 典型：AI Agent 與工程師最權威的語義 Prompt 護欄</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-canvas-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-canvas-diagram__mobile-action"
+        >架構姿態：消滅歧義詞彙，建立邊界自洽字典</text
+      >
+    </g>
+
+    <!-- 4. 通訊契約與拓撲 (高 205px) -->
+    <g transform="translate(16, 753)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-canvas-diagram__main-card"></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-canvas-diagram__col-strip ddd-canvas-diagram__col-strip--purple"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-canvas-diagram__phase-tag ddd-canvas-diagram__phase-tag--purple"
+        >DIMENSION 4 · 系統接口</text
+      >
+      <text x="16" y="52" class="ddd-canvas-diagram__col-title"
+        >入站出站通訊契約（Contracts & Topology）</text
+      >
+      <text x="16" y="74" class="ddd-canvas-diagram__mobile-domain"
+        >接縫：Commands, Queries, Events</text
+      >
+      <text x="16" y="102" class="ddd-canvas-diagram__mobile-text"
+        >• 特徵：接收何種指令，對外發布何種不可逆事件</text
+      >
+      <text x="16" y="124" class="ddd-canvas-diagram__mobile-text"
+        >• 姿態：清楚定義外部依賴上游與 ACL 防腐層架構</text
+      >
+      <text x="16" y="146" class="ddd-canvas-diagram__mobile-text"
+        >• 典型：決定同步 REST/gRPC 與異步 Event 之技術接縫</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-canvas-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-canvas-diagram__mobile-action"
+        >架構姿態：定義物理通訊協定與上下文映射關係</text
+      >
+    </g>
+
+    <!-- 底部警告 (高 55px) -->
+    <g transform="translate(16, 972)">
+      <rect
+        width="328"
+        height="52"
+        rx="8"
+        class="ddd-canvas-diagram__warning-bg"></rect>
+      <text x="16" y="24" class="ddd-canvas-diagram__mobile-warning-title"
+        >📜 一頁紙契約精神：</text
+      >
+      <text x="16" y="42" class="ddd-canvas-diagram__mobile-warning-desc"
+        >一頁紙內講不清邊界，代表模型失焦，拒寫百頁 PRD。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption
+    id="ddd-canvas-diagram-caption"
+    class="ddd-canvas-diagram__caption"
+  >
+    圖解：Bounded Context
+    Canvas（限界上下文畫布）四大核心維度。將業務系統分析產出無縫封裝為架構契約、通用語言字典與通訊拓撲的標準交付物。
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-canvas-diagram {
+    margin: 2.5rem 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-canvas-diagram__desktop {
+    display: block;
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+  }
+
+  .ddd-canvas-diagram__mobile {
+    display: none;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-canvas-diagram__desktop {
+      display: none;
+    }
+    .ddd-canvas-diagram__mobile {
+      display: block;
+    }
+  }
+
+  .ddd-canvas-diagram text {
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+  }
+
+  /* 頂部導覽列 */
+  .ddd-canvas-diagram__banner-bg {
+    fill: var(--card-bg, #f8fafc);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-canvas-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-canvas-diagram__banner-dim {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-canvas-diagram__banner-divider {
+    font-size: 14px;
+    font-weight: 400;
+    fill: var(--border-color, #cbd5e1);
+  }
+
+  /* 卡片主體 */
+  .ddd-canvas-diagram__main-card {
+    fill: var(--card-bg, #ffffff);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-canvas-diagram__main-card--gold {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.08));
+  }
+
+  .ddd-canvas-diagram__col-strip--blue {
+    fill: #3b82f6;
+  }
+  .ddd-canvas-diagram__col-strip--gold {
+    fill: #f59e0b;
+  }
+  .ddd-canvas-diagram__col-strip--emerald {
+    fill: #10b981;
+  }
+  .ddd-canvas-diagram__col-strip--purple {
+    fill: #8b5cf6;
+  }
+
+  /* 標籤層次 */
+  .ddd-canvas-diagram__phase-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+  .ddd-canvas-diagram__phase-tag--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-canvas-diagram__phase-tag--gold {
+    fill: #d97706;
+  }
+  .ddd-canvas-diagram__phase-tag--emerald {
+    fill: #047857;
+  }
+  .ddd-canvas-diagram__phase-tag--purple {
+    fill: #6d28d9;
+  }
+
+  .ddd-canvas-diagram__col-title {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-canvas-diagram__col-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-canvas-diagram__col-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-canvas-diagram__divider {
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  /* Meta 區塊 */
+  .ddd-canvas-diagram__meta-box {
+    fill: var(--bg-surface, #f8fafc);
+    stroke: var(--border-color, #f1f5f9);
+    stroke-width: 1;
+  }
+  .ddd-canvas-diagram__meta-box--gold {
+    fill: #fef3c7;
+    stroke: #fde68a;
+  }
+
+  .ddd-canvas-diagram__meta-label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+  }
+
+  .ddd-canvas-diagram__meta-val {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-canvas-diagram__meta-val--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-canvas-diagram__meta-val--gold {
+    fill: #92400e;
+  }
+  .ddd-canvas-diagram__meta-val--emerald {
+    fill: #047857;
+  }
+  .ddd-canvas-diagram__meta-val--purple {
+    fill: #6d28d9;
+  }
+
+  .ddd-canvas-diagram__meta-sub {
+    font-size: 10px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  /* 清單文字 */
+  .ddd-canvas-diagram__section-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #1e293b);
+  }
+
+  .ddd-canvas-diagram__bullet {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 底盒 */
+  .ddd-canvas-diagram__action-box {
+    fill: var(--bg-surface, #f1f5f9);
+  }
+  .ddd-canvas-diagram__action-box--gold {
+    fill: #fef3c7;
+  }
+
+  .ddd-canvas-diagram__action-title {
+    font-size: 11px;
+    font-weight: 800;
+    fill: #475569;
+  }
+  .ddd-canvas-diagram__action-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-canvas-diagram__action-desc {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  /* 底部警示區塊 */
+  .ddd-canvas-diagram__warning-bg {
+    fill: var(--card-bg, #eff6ff);
+    stroke: #bfdbfe;
+    stroke-width: 1.5;
+  }
+
+  .ddd-canvas-diagram__warning-strip {
+    fill: #3b82f6;
+  }
+
+  .ddd-canvas-diagram__warning-title {
+    font-size: 14px;
+    font-weight: 800;
+    fill: #1e40af;
+  }
+
+  .ddd-canvas-diagram__warning-bullet {
+    font-size: 12.5px;
+    fill: #1e3a8a;
+  }
+
+  /* 行動版專屬樣式 */
+  .ddd-canvas-diagram__mobile-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-canvas-diagram__mobile-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-canvas-diagram__mobile-domain {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-canvas-diagram__mobile-domain--gold {
+    fill: #b45309;
+  }
+
+  .ddd-canvas-diagram__mobile-text {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-canvas-diagram__mobile-action {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-canvas-diagram__mobile-warning-title {
+    font-size: 13px;
+    font-weight: 800;
+    fill: #1e40af;
+  }
+
+  .ddd-canvas-diagram__mobile-warning-desc {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: #1e3a8a;
+  }
+
+  .ddd-canvas-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 深色模式支援 */
+  :global(.dark) .ddd-canvas-diagram__banner-bg {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-canvas-diagram__banner-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__banner-dim {
+    fill: #cbd5e1;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__main-card {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-canvas-diagram__main-card--gold {
+    stroke: #f59e0b;
+    fill: #1f2937;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__col-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__col-title--gold {
+    fill: #fbbf24;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__meta-box {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+  :global(.dark) .ddd-canvas-diagram__meta-box--gold {
+    fill: #451a03;
+    stroke: #78350f;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__meta-val {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__meta-val--blue {
+    fill: #60a5fa;
+  }
+  :global(.dark) .ddd-canvas-diagram__meta-val--gold {
+    fill: #fde68a;
+  }
+  :global(.dark) .ddd-canvas-diagram__meta-val--emerald {
+    fill: #34d399;
+  }
+  :global(.dark) .ddd-canvas-diagram__meta-val--purple {
+    fill: #a78bfa;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__section-label {
+    fill: #cbd5e1;
+  }
+  :global(.dark) .ddd-canvas-diagram__bullet {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__action-box {
+    fill: #0f172a;
+  }
+  :global(.dark) .ddd-canvas-diagram__action-box--gold {
+    fill: #451a03;
+  }
+  :global(.dark) .ddd-canvas-diagram__action-desc {
+    fill: #f8fafc;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__warning-bg {
+    fill: #172554;
+    stroke: #1e40af;
+  }
+  :global(.dark) .ddd-canvas-diagram__warning-title {
+    fill: #dbeafe;
+  }
+  :global(.dark) .ddd-canvas-diagram__warning-bullet {
+    fill: #bfdbfe;
+  }
+
+  :global(.dark) .ddd-canvas-diagram__mobile-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-domain {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-domain--gold {
+    fill: #fbbf24;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-text {
+    fill: #94a3b8;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-action {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-warning-title {
+    fill: #dbeafe;
+  }
+  :global(.dark) .ddd-canvas-diagram__mobile-warning-desc {
+    fill: #bfdbfe;
+  }
+</style>
