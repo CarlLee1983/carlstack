@@ -1,0 +1,1049 @@
+---
+// src/components/DddDomainStorytellingDiagram.astro
+---
+
+<figure class="ddd-story-diagram" aria-labelledby="ddd-story-diagram-caption">
+  <!-- 桌面版 SVG (寬度 960，高度 600，大字級、高對比、清爽透氣、Anti-Quadrant) -->
+  <svg
+    class="ddd-story-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="ddd-story-diagram-title ddd-story-diagram-desc"
+  >
+    <title id="ddd-story-diagram-title">
+      Domain Storytelling 語法要素與同名異義詞解構全景
+    </title>
+    <desc id="ddd-story-diagram-desc">
+      頂部展示 Domain Storytelling 三大核心語法要素（Actors、Work
+      Objects、Activities）。主體四欄展示領域敘事從情境講述、同名異義詞暴露、通用語言銳化到限界上下文隔離的提煉流程。底部展示破除全域統一模型幻覺的架構防禦警示。
+    </desc>
+
+    <!-- 頂部：三語法要素導覽列 (高 52px) -->
+    <g transform="translate(30, 20)">
+      <rect width="900" height="52" rx="10" class="ddd-story-diagram__banner-bg"
+      ></rect>
+      <text x="24" y="32" class="ddd-story-diagram__banner-title"
+        >領域敘事三大微觀要素：</text
+      >
+
+      <!-- 1. Actors (人/系統) -->
+      <circle cx="215" cy="26" r="10" fill="#3b82f6"></circle>
+      <text x="233" y="31" class="ddd-story-diagram__legend-text"
+        >Actors 參與者（誰）</text
+      >
+
+      <!-- 2. Work Objects (資訊載體) -->
+      <rect x="390" y="16" width="22" height="20" rx="3" fill="#10b981"></rect>
+      <text x="420" y="31" class="ddd-story-diagram__legend-text"
+        >Work Objects 工作物件（什麼）</text
+      >
+
+      <!-- 3. Activities (序號動作) -->
+      <polygon points="630,16 648,26 630,36" fill="#f59e0b"></polygon>
+      <text x="656" y="31" class="ddd-story-diagram__legend-text"
+        >Activities 帶序號活動（做了什麼）</text
+      >
+    </g>
+
+    <!-- 主體四欄：領域敘事語義提煉四步 (單欄寬 213px，間距 16px，高 355px) -->
+
+    <!-- 1. 第一步：情境具象故事 (Concrete Scenario) -->
+    <g transform="translate(30, 92)" class="ddd-story-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-story-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--blue"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--blue"
+          >STEP 1 · 具體場景</text
+        >
+        <text y="25" class="ddd-story-diagram__col-title">講述具體故事</text>
+        <text y="46" class="ddd-story-diagram__col-subtitle"
+          >拒絕抽象 · 畫出真實流動</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-story-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect width="181" height="68" rx="6" class="ddd-story-diagram__meta-box"
+        ></rect>
+        <text x="12" y="22" class="ddd-story-diagram__meta-label"
+          >敘事核心原則</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-story-diagram__meta-val ddd-story-diagram__meta-val--blue"
+          >一次只講一個具體案例</text
+        >
+        <text x="12" y="58" class="ddd-story-diagram__meta-sub"
+          >「VIP 客戶退換瑕疵品」真實案例</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-story-diagram__section-label">分析師推進要點</text>
+        <text y="20" class="ddd-story-diagram__bullet"
+          >• 邊聽專家講述邊在白板繪製</text
+        >
+        <text y="40" class="ddd-story-diagram__bullet"
+          >• 箭頭加上嚴格序號（1, 2, 3）</text
+        >
+        <text y="60" class="ddd-story-diagram__bullet"
+          >• 記錄資訊載體而非底層資料表</text
+        >
+        <text y="80" class="ddd-story-diagram__bullet"
+          >• 讓業務專家一眼看出哪裡畫錯</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-story-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-story-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-story-diagram__action-desc"
+          >即時圖解 · 驗證業務流動</text
+        >
+      </g>
+    </g>
+
+    <!-- 2. 第二步：同名異義暴露 (Polysemy Hunting) -->
+    <g transform="translate(259, 92)" class="ddd-story-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-story-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--red"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--red"
+          >STEP 2 · 語義陷阱</text
+        >
+        <text y="25" class="ddd-story-diagram__col-title">捕捉同名異義詞</text>
+        <text y="46" class="ddd-story-diagram__col-subtitle"
+          >名詞相同 · 現實完全割裂</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-story-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-story-diagram__meta-box ddd-story-diagram__meta-box--red"
+        ></rect>
+        <text x="12" y="22" class="ddd-story-diagram__meta-label"
+          >獵殺核心目標</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-story-diagram__meta-val ddd-story-diagram__meta-val--red"
+          >同名異義（Polysemy）</text
+        >
+        <text x="12" y="58" class="ddd-story-diagram__meta-sub"
+          >如「Order」在銷售、倉儲、財務</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-story-diagram__section-label">典型衝突場景</text>
+        <text y="20" class="ddd-story-diagram__bullet"
+          >• 銷售口中：Order 是購物車意向</text
+        >
+        <text y="40" class="ddd-story-diagram__bullet"
+          >• 倉儲口中：Order 是出貨撿料單</text
+        >
+        <text y="60" class="ddd-story-diagram__bullet"
+          >• 會計口中：Order 是應收帳款憑證</text
+        >
+        <text y="80" class="ddd-story-diagram__bullet"
+          >• 強行揉合必然誕生 God Object</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-story-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-story-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-story-diagram__action-desc"
+          >揭露分歧 · 標註語義撕裂</text
+        >
+      </g>
+    </g>
+
+    <!-- 3. 第三步：通用語言銳化 (Sharpen Ubiquitous Language) -->
+    <g transform="translate(488, 92)" class="ddd-story-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-story-diagram__main-card"></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--emerald"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--emerald"
+          >STEP 3 · 語義提純</text
+        >
+        <text y="25" class="ddd-story-diagram__col-title">提煉通用語言</text>
+        <text y="46" class="ddd-story-diagram__col-subtitle"
+          >一詞一意 · 拒絕模稜兩可</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-story-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect width="181" height="68" rx="6" class="ddd-story-diagram__meta-box"
+        ></rect>
+        <text x="12" y="22" class="ddd-story-diagram__meta-label"
+          >通用語言交付</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-story-diagram__meta-val ddd-story-diagram__meta-val--emerald"
+          >精準概念替換</text
+        >
+        <text x="12" y="58" class="ddd-story-diagram__meta-sub"
+          >放棄萬能名詞，賦予純淨命名</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-story-diagram__section-label">名詞銳化實務</text>
+        <text y="20" class="ddd-story-diagram__bullet"
+          >• 銷售端重命名為 SalesOrder</text
+        >
+        <text y="40" class="ddd-story-diagram__bullet"
+          >• 倉儲端重命名為 DispatchOrder</text
+        >
+        <text y="60" class="ddd-story-diagram__bullet"
+          >• 財務端重命名為 Invoice</text
+        >
+        <text y="80" class="ddd-story-diagram__bullet"
+          >• 每個名詞定義專屬狀態不變量</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-story-diagram__action-box"></rect>
+        <text x="12" y="20" class="ddd-story-diagram__action-title"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-story-diagram__action-desc"
+          >精確命名 · 編寫領域詞典</text
+        >
+      </g>
+    </g>
+
+    <!-- 4. 第四步：確立純淨邊界 (Context Boundaries) -->
+    <g transform="translate(717, 92)" class="ddd-story-diagram__col">
+      <rect
+        width="213"
+        height="355"
+        rx="10"
+        class="ddd-story-diagram__main-card ddd-story-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="213"
+        height="6"
+        rx="3"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--gold"
+      ></rect>
+
+      <!-- Header -->
+      <g transform="translate(16, 24)">
+        <text
+          class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--gold"
+          >STEP 4 · 邊界確立</text
+        >
+        <text
+          y="25"
+          class="ddd-story-diagram__col-title ddd-story-diagram__col-title--gold"
+          >劃定語義邊界</text
+        >
+        <text y="46" class="ddd-story-diagram__col-subtitle"
+          >各司其職 · 消除全局依賴</text
+        >
+      </g>
+
+      <line x1="16" y1="84" x2="197" y2="84" class="ddd-story-diagram__divider"
+      ></line>
+
+      <!-- Meta 區塊 -->
+      <g transform="translate(16, 98)">
+        <rect
+          width="181"
+          height="68"
+          rx="6"
+          class="ddd-story-diagram__meta-box ddd-story-diagram__meta-box--gold"
+        ></rect>
+        <text x="12" y="22" class="ddd-story-diagram__meta-label"
+          >架構防線落實</text
+        >
+        <text
+          x="12"
+          y="42"
+          class="ddd-story-diagram__meta-val ddd-story-diagram__meta-val--gold"
+          >獨立 Bounded Context</text
+        >
+        <text x="12" y="58" class="ddd-story-diagram__meta-sub"
+          >各自擁有高內聚的小模型</text
+        >
+      </g>
+
+      <!-- 戰略要點 -->
+      <g transform="translate(16, 180)">
+        <text class="ddd-story-diagram__section-label">工程落地收益</text>
+        <text y="20" class="ddd-story-diagram__bullet"
+          >• 徹底杜絕 Nullable 欄位膨脹</text
+        >
+        <text y="40" class="ddd-story-diagram__bullet"
+          >• 狀態機單純清晰，無跨界污染</text
+        >
+        <text y="60" class="ddd-story-diagram__bullet"
+          >• 跨邊界僅透過 ID 與契約傳遞</text
+        >
+        <text y="80" class="ddd-story-diagram__bullet"
+          >• 程式碼與業務溝通完全零摩擦</text
+        >
+      </g>
+
+      <!-- 處置底標 -->
+      <g transform="translate(16, 290)">
+        <rect
+          width="181"
+          height="48"
+          rx="6"
+          class="ddd-story-diagram__action-box ddd-story-diagram__action-box--gold"
+        ></rect>
+        <text
+          x="12"
+          y="20"
+          class="ddd-story-diagram__action-title ddd-story-diagram__action-title--gold"
+          >分析師職責</text
+        >
+        <text x="12" y="38" class="ddd-story-diagram__action-desc"
+          >界定邊界 · 杜絕大泥球</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部：架構警示 (高 105px) -->
+    <g transform="translate(30, 465)">
+      <rect
+        width="900"
+        height="105"
+        rx="10"
+        class="ddd-story-diagram__warning-bg"></rect>
+      <rect
+        width="900"
+        height="5"
+        rx="2"
+        class="ddd-story-diagram__warning-strip"></rect>
+
+      <circle cx="36" cy="35" r="14" fill="#3b82f6" opacity="0.15"></circle>
+      <text
+        x="36"
+        y="41"
+        text-anchor="middle"
+        font-size="16"
+        font-weight="900"
+        fill="#2563eb">i</text
+      >
+      <text x="62" y="40" class="ddd-story-diagram__warning-title"
+        >系統分析師的核心警醒：拒絕「全局單一真實模型（Single Source of
+        Truth）」的幼稚病</text
+      >
+
+      <g transform="translate(62, 54)">
+        <text class="ddd-story-diagram__warning-bullet" x="0" y="16">
+          <tspan font-weight="700">語義是局部的：</tspan> 沒有任何一個資料模型能夠在整間企業的所有部門中維持相同意義；試圖統一一切名詞，只會製造出誰都不敢維護的上帝實體。
+        </text>
+        <text class="ddd-story-diagram__warning-bullet" x="0" y="36">
+          <tspan font-weight="700">故事驅動邊界：</tspan> 用具體的故事場景迫使隱藏在名詞背後的真實業務動作無所遁形，才是定義通用語言的唯一工程路徑。
+        </text>
+      </g>
+    </g>
+  </svg>
+
+  <!-- 行動版 SVG (寬度 360，高度 1040，縱向堆疊卡片) -->
+  <svg
+    class="ddd-story-diagram__mobile"
+    viewBox="0 0 360 1040"
+    role="img"
+    aria-labelledby="ddd-story-diagram-mobile-title ddd-story-diagram-mobile-desc"
+  >
+    <title id="ddd-story-diagram-mobile-title">
+      Domain Storytelling 語義提煉四步工作流（行動版）
+    </title>
+    <desc id="ddd-story-diagram-mobile-desc">
+      領域敘事四步驟縱向卡片版：講述具體故事、捕捉同名異義詞、提煉通用語言、劃定純淨限界上下文邊界。
+    </desc>
+
+    <!-- 頂部標題 (高 66px) -->
+    <g transform="translate(16, 16)">
+      <rect width="328" height="66" rx="8" class="ddd-story-diagram__banner-bg"
+      ></rect>
+      <text x="16" y="28" class="ddd-story-diagram__mobile-title"
+        >Domain Storytelling 領域敘事</text
+      >
+      <text x="16" y="48" class="ddd-story-diagram__mobile-subtitle"
+        >從微觀業務故事抓出同名異義與語義邊界</text
+      >
+    </g>
+
+    <!-- 1. 具體場景 (高 205px) -->
+    <g transform="translate(16, 96)">
+      <rect width="328" height="205" rx="8" class="ddd-story-diagram__main-card"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--blue"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--blue"
+        >STEP 1 · 具體場景（拒絕抽象）</text
+      >
+      <text x="16" y="52" class="ddd-story-diagram__col-title"
+        >講述具體故事（Concrete Stories）</text
+      >
+      <text x="16" y="74" class="ddd-story-diagram__mobile-domain"
+        >要素：Actors + Work Objects + Activities</text
+      >
+      <text x="16" y="102" class="ddd-story-diagram__mobile-text"
+        >• 特徵：邊聽專家講述邊在白板畫出帶序號箭頭</text
+      >
+      <text x="16" y="124" class="ddd-story-diagram__mobile-text"
+        >• 姿態：一次只講一個特定場景，不談泛化規則</text
+      >
+      <text x="16" y="146" class="ddd-story-diagram__mobile-text"
+        >• 典型：「Alice 透過客服系統為訂單申請換貨」</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-story-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-story-diagram__mobile-action"
+        >分析師姿態：即時視覺化圖解，驗證業務真實流動</text
+      >
+    </g>
+
+    <!-- 2. 捕捉同名異義 (高 205px) -->
+    <g transform="translate(16, 315)">
+      <rect width="328" height="205" rx="8" class="ddd-story-diagram__main-card"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--red"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--red"
+        >STEP 2 · 語義陷阱（名詞撕裂）</text
+      >
+      <text x="16" y="52" class="ddd-story-diagram__col-title"
+        >捕捉同名異義詞（Polysemy）</text
+      >
+      <text x="16" y="74" class="ddd-story-diagram__mobile-domain"
+        >陷阱：同一個詞在不同部門代表完全不同現實</text
+      >
+      <text x="16" y="102" class="ddd-story-diagram__mobile-text"
+        >• 特徵：業務口中的 Order 只是意向，倉儲口中是撿料單</text
+      >
+      <text x="16" y="124" class="ddd-story-diagram__mobile-text"
+        >• 姿態：敏銳辨識跨故事流轉時工作物件的內涵突變</text
+      >
+      <text x="16" y="146" class="ddd-story-diagram__mobile-text"
+        >• 典型：試圖在資料庫建單一 Order 表必然製造上帝物件</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-story-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-story-diagram__mobile-action"
+        >分析師姿態：拒絕統一全域模型，揪出語義分歧</text
+      >
+    </g>
+
+    <!-- 3. 提煉通用語言 (高 205px) -->
+    <g transform="translate(16, 534)">
+      <rect width="328" height="205" rx="8" class="ddd-story-diagram__main-card"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--emerald"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--emerald"
+        >STEP 3 · 語義提純（一詞一意）</text
+      >
+      <text x="16" y="52" class="ddd-story-diagram__col-title"
+        >提煉通用語言（Ubiquitous Language）</text
+      >
+      <text x="16" y="74" class="ddd-story-diagram__mobile-domain"
+        >產出：精準概念替換與詞典定義</text
+      >
+      <text x="16" y="102" class="ddd-story-diagram__mobile-text"
+        >• 特徵：拆分為 SalesOrder、DispatchOrder、Invoice</text
+      >
+      <text x="16" y="124" class="ddd-story-diagram__mobile-text"
+        >• 姿態：每個名詞擁有毫無歧義的不變量與生命週期</text
+      >
+      <text x="16" y="146" class="ddd-story-diagram__mobile-text"
+        >• 典型：程式碼類別名稱與業務對話 100% 一對一完全映射</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="26"
+        rx="4"
+        class="ddd-story-diagram__action-box"></rect>
+      <text x="24" y="179" class="ddd-story-diagram__mobile-action"
+        >分析師姿態：終結曖昧定義，建立精確邊界字典</text
+      >
+    </g>
+
+    <!-- 4. 劃定邊界 (高 205px，黃金高亮) -->
+    <g transform="translate(16, 753)">
+      <rect
+        width="328"
+        height="205"
+        rx="8"
+        class="ddd-story-diagram__main-card ddd-story-diagram__main-card--gold"
+      ></rect>
+      <rect
+        width="328"
+        height="5"
+        rx="2"
+        class="ddd-story-diagram__col-strip ddd-story-diagram__col-strip--gold"
+      ></rect>
+      <text
+        x="16"
+        y="28"
+        class="ddd-story-diagram__phase-tag ddd-story-diagram__phase-tag--gold"
+        >STEP 4 · 邊界確立（架構解耦）</text
+      >
+      <text
+        x="16"
+        y="52"
+        class="ddd-story-diagram__col-title ddd-story-diagram__col-title--gold"
+        >確立限界上下文（Bounded Contexts）</text
+      >
+      <text
+        x="16"
+        y="74"
+        class="ddd-story-diagram__mobile-domain ddd-story-diagram__mobile-domain--gold"
+        >交付：獨立小模型與架構防線</text
+      >
+      <text x="16" y="102" class="ddd-story-diagram__mobile-text"
+        >• 特徵：每個 Context 內部模型高度精簡，無 Nullable 污染</text
+      >
+      <text x="16" y="124" class="ddd-story-diagram__mobile-text"
+        >• 姿態：跨上下文僅傳送純 ID，杜絕跨模組強依賴</text
+      >
+      <text x="16" y="146" class="ddd-story-diagram__mobile-text"
+        >• 典型：銷售、履約與財務各自獨立演進，互不拖累</text
+      >
+      <rect
+        x="16"
+        y="162"
+        width="296"
+        height="28"
+        rx="4"
+        class="ddd-story-diagram__action-box ddd-story-diagram__action-box--gold"
+      ></rect>
+      <text
+        x="24"
+        y="180"
+        class="ddd-story-diagram__mobile-action ddd-story-diagram__action-title--gold"
+        >分析師姿態：以清晰邊界終結大泥球，架構自然落地</text
+      >
+    </g>
+
+    <!-- 底部警告 (高 55px) -->
+    <g transform="translate(16, 972)">
+      <rect width="328" height="52" rx="8" class="ddd-story-diagram__warning-bg"
+      ></rect>
+      <text x="16" y="24" class="ddd-story-diagram__mobile-warning-title"
+        >💡 語義局部性原則：</text
+      >
+      <text x="16" y="42" class="ddd-story-diagram__mobile-warning-desc"
+        >放棄全域統一模型幻想；一詞一意，邊界內純淨自洽。</text
+      >
+    </g>
+  </svg>
+
+  <figcaption id="ddd-story-diagram-caption" class="ddd-story-diagram__caption">
+    圖解：Domain
+    Storytelling（領域敘事）從具體微觀業務故事中識別同名異義詞（Polysemy），提煉通用語言並確立純淨限界上下文邊界的工作流。
+  </figcaption>
+</figure>
+
+<style>
+  .ddd-story-diagram {
+    margin: 2.5rem 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ddd-story-diagram__desktop {
+    display: block;
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+  }
+
+  .ddd-story-diagram__mobile {
+    display: none;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    .ddd-story-diagram__desktop {
+      display: none;
+    }
+    .ddd-story-diagram__mobile {
+      display: block;
+    }
+  }
+
+  .ddd-story-diagram text {
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+  }
+
+  /* 頂部導覽列 */
+  .ddd-story-diagram__banner-bg {
+    fill: var(--card-bg, #f8fafc);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-story-diagram__banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-story-diagram__legend-text {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 卡片主體 */
+  .ddd-story-diagram__main-card {
+    fill: var(--card-bg, #ffffff);
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1.5;
+  }
+
+  .ddd-story-diagram__main-card--gold {
+    stroke: #f59e0b;
+    stroke-width: 2;
+    filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.08));
+  }
+
+  .ddd-story-diagram__col-strip--blue {
+    fill: #3b82f6;
+  }
+  .ddd-story-diagram__col-strip--red {
+    fill: #ef4444;
+  }
+  .ddd-story-diagram__col-strip--emerald {
+    fill: #10b981;
+  }
+  .ddd-story-diagram__col-strip--gold {
+    fill: #f59e0b;
+  }
+
+  /* 標籤層級 */
+  .ddd-story-diagram__phase-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+  .ddd-story-diagram__phase-tag--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-story-diagram__phase-tag--red {
+    fill: #b91c1c;
+  }
+  .ddd-story-diagram__phase-tag--emerald {
+    fill: #047857;
+  }
+  .ddd-story-diagram__phase-tag--gold {
+    fill: #d97706;
+  }
+
+  .ddd-story-diagram__col-title {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-story-diagram__col-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-story-diagram__col-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-story-diagram__divider {
+    stroke: var(--border-color, #e2e8f0);
+    stroke-width: 1;
+  }
+
+  /* Meta 區塊 */
+  .ddd-story-diagram__meta-box {
+    fill: var(--bg-surface, #f8fafc);
+    stroke: var(--border-color, #f1f5f9);
+    stroke-width: 1;
+  }
+  .ddd-story-diagram__meta-box--red {
+    fill: #fef2f2;
+    stroke: #fee2e2;
+  }
+  .ddd-story-diagram__meta-box--gold {
+    fill: #fef3c7;
+    stroke: #fde68a;
+  }
+
+  .ddd-story-diagram__meta-label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #64748b;
+  }
+
+  .ddd-story-diagram__meta-val {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-story-diagram__meta-val--blue {
+    fill: #1d4ed8;
+  }
+  .ddd-story-diagram__meta-val--red {
+    fill: #b91c1c;
+  }
+  .ddd-story-diagram__meta-val--emerald {
+    fill: #047857;
+  }
+  .ddd-story-diagram__meta-val--gold {
+    fill: #92400e;
+  }
+
+  .ddd-story-diagram__meta-sub {
+    font-size: 10px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  /* 清單文字 */
+  .ddd-story-diagram__section-label {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #1e293b);
+  }
+
+  .ddd-story-diagram__bullet {
+    font-size: 11.5px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  /* 底盒 */
+  .ddd-story-diagram__action-box {
+    fill: var(--bg-surface, #f1f5f9);
+  }
+  .ddd-story-diagram__action-box--gold {
+    fill: #fef3c7;
+  }
+
+  .ddd-story-diagram__action-title {
+    font-size: 11px;
+    font-weight: 800;
+    fill: #475569;
+  }
+  .ddd-story-diagram__action-title--gold {
+    fill: #b45309;
+  }
+
+  .ddd-story-diagram__action-desc {
+    font-size: 12px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  /* 底部警示區塊 */
+  .ddd-story-diagram__warning-bg {
+    fill: var(--card-bg, #eff6ff);
+    stroke: #bfdbfe;
+    stroke-width: 1.5;
+  }
+
+  .ddd-story-diagram__warning-strip {
+    fill: #3b82f6;
+  }
+
+  .ddd-story-diagram__warning-title {
+    font-size: 14px;
+    font-weight: 800;
+    fill: #1e40af;
+  }
+
+  .ddd-story-diagram__warning-bullet {
+    font-size: 12.5px;
+    fill: #1e3a8a;
+  }
+
+  /* 行動版專屬樣式 */
+  .ddd-story-diagram__mobile-title {
+    font-size: 15px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-story-diagram__mobile-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+    fill: #64748b;
+  }
+
+  .ddd-story-diagram__mobile-domain {
+    font-size: 13px;
+    font-weight: 800;
+    fill: var(--text-heading, #0f172a);
+  }
+  .ddd-story-diagram__mobile-domain--gold {
+    fill: #b45309;
+  }
+
+  .ddd-story-diagram__mobile-text {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--text-body, #334155);
+  }
+
+  .ddd-story-diagram__mobile-action {
+    font-size: 11.5px;
+    font-weight: 700;
+    fill: var(--text-heading, #0f172a);
+  }
+
+  .ddd-story-diagram__mobile-warning-title {
+    font-size: 13px;
+    font-weight: 800;
+    fill: #1e40af;
+  }
+
+  .ddd-story-diagram__mobile-warning-desc {
+    font-size: 11.5px;
+    font-weight: 600;
+    fill: #1e3a8a;
+  }
+
+  .ddd-story-diagram__caption {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 深色模式支援 */
+  :global(.dark) .ddd-story-diagram__banner-bg {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-story-diagram__banner-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__legend-text {
+    fill: #cbd5e1;
+  }
+
+  :global(.dark) .ddd-story-diagram__main-card {
+    fill: #1e293b;
+    stroke: #334155;
+  }
+  :global(.dark) .ddd-story-diagram__main-card--gold {
+    stroke: #f59e0b;
+    fill: #1f2937;
+  }
+
+  :global(.dark) .ddd-story-diagram__col-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__col-title--gold {
+    fill: #fbbf24;
+  }
+
+  :global(.dark) .ddd-story-diagram__meta-box {
+    fill: #0f172a;
+    stroke: #1e293b;
+  }
+  :global(.dark) .ddd-story-diagram__meta-box--red {
+    fill: #450a0a;
+    stroke: #7f1d1d;
+  }
+  :global(.dark) .ddd-story-diagram__meta-box--gold {
+    fill: #451a03;
+    stroke: #78350f;
+  }
+
+  :global(.dark) .ddd-story-diagram__meta-val {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__meta-val--blue {
+    fill: #60a5fa;
+  }
+  :global(.dark) .ddd-story-diagram__meta-val--red {
+    fill: #f87171;
+  }
+  :global(.dark) .ddd-story-diagram__meta-val--emerald {
+    fill: #34d399;
+  }
+  :global(.dark) .ddd-story-diagram__meta-val--gold {
+    fill: #fde68a;
+  }
+
+  :global(.dark) .ddd-story-diagram__section-label {
+    fill: #cbd5e1;
+  }
+  :global(.dark) .ddd-story-diagram__bullet {
+    fill: #94a3b8;
+  }
+
+  :global(.dark) .ddd-story-diagram__action-box {
+    fill: #0f172a;
+  }
+  :global(.dark) .ddd-story-diagram__action-box--gold {
+    fill: #451a03;
+  }
+  :global(.dark) .ddd-story-diagram__action-desc {
+    fill: #f8fafc;
+  }
+
+  :global(.dark) .ddd-story-diagram__warning-bg {
+    fill: #172554;
+    stroke: #1e40af;
+  }
+  :global(.dark) .ddd-story-diagram__warning-title {
+    fill: #dbeafe;
+  }
+  :global(.dark) .ddd-story-diagram__warning-bullet {
+    fill: #bfdbfe;
+  }
+
+  :global(.dark) .ddd-story-diagram__mobile-title {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-domain {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-domain--gold {
+    fill: #fbbf24;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-text {
+    fill: #94a3b8;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-action {
+    fill: #f8fafc;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-warning-title {
+    fill: #dbeafe;
+  }
+  :global(.dark) .ddd-story-diagram__mobile-warning-desc {
+    fill: #bfdbfe;
+  }
+</style>
