@@ -1,8 +1,8 @@
 # Harness engineering：研究筆記
 
-> 研究日期：2026-08-31（Asia/Taipei）
+> 原始研究日期：2026-08-31（Asia/Taipei）；來源追補：2026-09-24（Asia/Taipei）
 >
-> 範圍：核對 X 貼文 [@0xwhrrari 原文](https://x.com/0xwhrrari/status/2093685107534000560) 所談的 harness engineering，並以 OpenAI、Anthropic 官方材料補足可驗證背景。本文不把模型能力、提示詞技巧與執行環境混為一談。
+> 範圍：核對 [@0xwhrrari 原文](https://x.com/0xwhrrari/status/2093685107534000560) 與 [@iiiichigo_chan 分享的 X Article](https://x.com/iiiichigo_chan/status/2093765205276713218) 所談的 harness engineering，並以 OpenAI、Anthropic 官方材料補足可驗證背景。本文不把模型能力、提示詞技巧與執行環境混為一談。
 
 ## 先說結論
 
@@ -20,6 +20,12 @@
 6. **把腦、手與歷史拆開。** 推理模型、執行 sandbox、持久狀態與 audit log 不該混成一體，否則模型更換、環境故障或工作接手時都難以復原。
 7. **每次執行都留下 change receipt。** 除了最終產物，還要保留變更、驗證與決策摘要，才能比較模型版本、定位退化與稽核過程。
 8. **從能閉環的最小 harness 開始。** 短而低風險的工作不需要平台；能改檔、連網與建立 PR 的長任務，才值得更完整的權限、追蹤與恢復機制。
+
+## 第二篇 X Article：六層責任與故障修復
+
+[@iiiichigo_chan 的貼文](https://x.com/iiiichigo_chan/status/2093765205276713218)連到 X Article [〈Harness Engineering: Build a Reliable AI Agent in 6 Layers〉](https://x.com/i/article/2093704275859767296)。原文將最小 harness 分成六項工作：任務契約、context compiler、受權限控制的工具閘道、持久狀態、證據閘門，以及 trace 與復原迴圈。現有文章把工具介面與權限控制拆成兩個責任，因此以七個控制面呈現。
+
+這篇指南額外給了故障分類到永久修正的例子：context 缺漏要修專案地圖，工具契約問題要修 schema 或錯誤回應，護欄缺漏要新增 policy check，驗證不足則把反例變成 regression test。它也建議以「驗收通過的產出 ÷ 人工審查分鐘」觀察交付效率。這些是作者提出的實務框架與指標，原文沒有提供對照實驗；不應寫成已證明的效能提升或通用標準。
 
 ## 一手資料核對
 

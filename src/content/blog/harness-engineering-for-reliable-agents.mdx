@@ -2,7 +2,7 @@
 title: "AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面"
 description: "從多篇 Harness Engineering 實務出發，拆解任務契約、工具、持久狀態、驗證、權限與追蹤如何把模型能力變成可交付的系統。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-02T07:38:11+08:00
+updatedDate: 2026-09-24T14:38:17+08:00
 draft: false
 featured: true
 tags:
@@ -64,6 +64,15 @@ owner: verification
 hypothesis: 補上 assertion 後可攔下同類錯誤
 falsifier: 在乾淨環境重跑仍讓錯誤輸出通過
 ```
+
+找到偏離點後，還要把修正送到造成它的責任面。[@iiiichigo_chan 的六層指南](https://x.com/iiiichigo_chan/status/2093765205276713218)提供了四種故障到永久修正的對應：
+
+- Context 缺漏：補上專案地圖或按需檢索來源。
+- 工具契約不清：修正輸入 schema、逾時與結構化錯誤回應。
+- 權限護欄缺漏：在模型之外新增 policy check。
+- 驗證太弱：把漏掉的反例加入 regression test。
+
+這是定位修復方向的分類法，不保證涵蓋所有根因。若 trace 還不足以歸因，就保留證據並升級處理，不要硬套類別。
 
 這張卡不需要保存模型的思考過程；它只保存可稽核的外部證據與下一個檢查。OpenAI 對 Codex 的回顧同樣把環境規格、工具與可讀性視為 agent 能力的一部分，而非事後附加的 prompt。[OpenAI：Harness engineering](https://openai.com/index/harness-engineering/)
 
@@ -163,6 +172,8 @@ Harness engineering 不等於先蓋平台。控制面應與失敗面成比例：
 | 可修改 repository 的短任務 | repo map、隔離權限、測試、diff review      |
 | 跨 session 的長任務        | 持久進度、checkpoint、預算、獨立 evaluator |
 | 會連網或產生外部副作用     | allowlist、秘密隔離、動作前核准、audit log |
+
+衡量這套環境是否真的減少交付成本時，不要只看 token 數、工具呼叫數或啟動任務數。[@iiiichigo_chan 的原文](https://x.com/iiiichigo_chan/status/2093765205276713218)提出觀察「驗收通過的產出 ÷ 人工審查分鐘」；這是作者建議的營運指標，不是經驗證的通用 benchmark。實際追蹤時，應固定驗收門檻，並同時看返工與漏出的缺陷，避免只靠降低審查力度讓比值變好。
 
 OpenAI 在 agent-first codebase 的實作回顧中，也把早期進展慢歸因於環境規格不足，後續做法是把缺少的能力變得可被 Agent 讀懂，並由工具或檢查強制執行。[OpenAI：Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/)
 
