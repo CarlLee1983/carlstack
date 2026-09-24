@@ -1,0 +1,88 @@
+---
+title: "DDD 戰略設計的價值，要看它改變了哪個決策"
+description: "從 Labatt、Statoil、QuintoAndar、Xapo 與 Shopify 的第一手案例，拆解 DDD 戰略設計如何改變核心域投資、上下文邊界、單體拆解順序與團隊責任，並辨認案例證據的限制。"
+publishDate: 2026-09-24T15:35:41+08:00
+draft: false
+featured: false
+tags:
+  - "DDD 與 Clean Architecture"
+  - "系統設計"
+  - "專案復盤"
+series: "DDD 戰略設計實戰：從業務邊界到系統架構"
+seriesOrder: 5
+cover: "../../assets/covers/ddd-strategic-design-real-world-cases.jpg"
+coverAlt: "米白色工作桌上鋪著手繪上下文圖的案例檔案，琥珀色線連起蔬果箱、貨運文件與三個模組積木，呈現業務案例如何連結到系統邊界決策"
+---
+
+前四篇文章談過子域分類、限界上下文、上下文映射與模組化單體。但如果只讀框架和示範程式，很容易誤以為 DDD 戰略設計的成果是「畫出一張漂亮的上下文圖」。
+
+實際案例裡，圖不是終點。它得幫團隊做出一個原本難以做的決定：哪段流程值得投資、哪些責任要拆開、先搬哪個上下文、由誰負責，以及跨邊界時要承擔什麼成本。
+
+以下整理五個當事團隊或具名參與者公開的案例。公司文章與經驗報告能說明作者如何理解自己的工作，也能提供做法和結果線索；它們不等於獨立因果研究。閱讀數字時，請把「作者回報的成果」和「我們能從方法推導的建議」分開。
+
+## Labatt：把核心域放進季節性營運問題
+
+美國食品配送商 Labatt 每年開學季都要在短時間內處理大量學校開學訂單。學校訂單在數月淡季後集中湧入，品項又包含易腐食品；庫存預測不準，就會同時增加缺貨與囤貨風險。
+
+Labatt 的 CIO Tony Canty 將這個學校開學系統描述為聚焦在核心域的應用：軟體模型與營運流程同步反覆調整，讓系統記錄學校逐項需要的商品，也讓員工及客戶能提早協作。報告指出，兩個開發團隊在五個月內完成系統；公司回報第一年營運成本節省超過 100 萬美元，前三年庫存投資減少超過 800 萬美元、訂單缺貨品項減少 50%，同期銷售額增加 15%。[Labatt 案例報告](https://www.dddcommunity.org/wp-content/uploads/files/pdf_articles/Tony_Canty_Labatt_Food_2012.pdf)
+
+**可借鏡的決策：** 核心域不一定是最複雜的演算法，也可能是公司每年反覆承受、且能靠知識與流程差異改善的營運環節。先找出業務損失在哪裡，再決定要把哪些規則寫進模型、哪些工作交給人處理。
+
+**證據邊界：** 這些效益來自公司高階主管撰寫的案例報告，沒有獨立評估或對照組。它支持「團隊如此設計，並回報了這些結果」，不能單獨證明 DDD 是數字改善的唯一原因。
+
+## Statoil：把貨運檔案拆成模型邊界與子域
+
+Statoil 的濕式供應鏈（Wet Supply Chain）要把紙本貨運檔案改成數位系統。三位 Statoil 作者指出，原有企業架構太粗，無法清楚呈現軟體邊界與介面；他們因此用上下文地圖補上既有企業架構。數位貨運檔案（Digital Cargo File, DCF）地圖列出 Supply Operation、Invoice、Trading 等既有上下文，也把新系統內的 Front Page、Folder 和 Document Storage 分成不同模型。
+
+這張圖讓兩種架構問題具體可見：Communication Gateway 連結過多，成為依賴網絡中的中心；Front Page 同時承擔流程追蹤與個案管理，和 Folder 的文件歸檔責任混在一起。作者建議把 Front Page / Case Management 從 Folder 分離，透過 Filing Service（Open Host Service）提供介面，並在 Front Page 與舊有 Trading、Supply Operation 模型之間放入防腐層。這不是抽象列出「要用 ACL」，而是指出誰要翻譯哪兩個陌生模型，以及邊界調整後的責任位置。[Statoil 戰略 DDD 經驗報告（PDF）](https://www.dddcommunity.org/wp-content/uploads/files/practitioner_reports/landre_einar_2006_part1.pdf)
+
+同一份報告也按 DCF 專案範圍分類：Front Page / Case Management 是核心域；Folder & Document Control 是支撐域；商用的 Communication Gateway 和 Document Storage 則屬通用域。作者提醒，大型企業可能同時有多個核心域，但每個專案仍應辨認自己要投資的核心。
+
+**可借鏡的決策：** 先問某能力在這個專案裡創造什麼業務價值，再對照現況的模型與依賴。上下文地圖除了畫出「有哪些區塊」，還要揭露誰供應誰、哪個模組過度連結，以及哪些邊界值得調整。
+
+**證據邊界：** 這是 2006 年的從業者經驗報告。文中提出的 DCF 重構和 ACL 是建議中的目標架構，報告說預計稍後重構；不能據此聲稱每個建議都已上線。子域分類則明確限定在 DCF 專案，不能外推為 Statoil 全企業只有一個核心域。
+
+## QuintoAndar：用成本與效益排單體拆解順序
+
+巴西房屋租賃平台 QuintoAndar 已經把部分能力拆成簽約、信用分析、屋主費用管理等服務，但核心單體仍包含使用者、房屋與租賃管理等多個業務上下文。團隊擔心各自為政的拆解會形成分散式單體，因此先用 DDD 技術盤點子域與上下文，再調查各上下文的現況流程、目標設計和彼此依賴。
+
+他們規劃用 ROI 曲線決定拆解順序。成本面納入程式耦合、抽取複雜度、業務規則複雜度與領域依賴；效益面則看業務彈性、單體資料庫負載和故障隔離價值。這使「要不要拆」可以變成一個有成本、有收益的選擇，而不是把所有上下文一律拆成服務。[QuintoAndar 單體拆解規劃經驗](https://medium.com/quintoandar-tech-blog/how-we-planned-for-monolith-decomposition-at-quintoandar-363f160b4427)
+
+**可借鏡的決策：** 上下文邊界提供候選範圍，ROI 評估再決定順序。業務價值高但依賴很多的上下文，未必適合先拆；成本較低、能解除重要限制的能力，可能更適合作為第一步。
+
+**證據邊界：** 這篇文章主要記錄拆解計畫、成本效益模型及先前已完成的服務拆分。依 ROI 排序的後續成果在文中仍屬計畫，不能把預期收益當成已驗證結果。
+
+## Xapo Bank：讓領域邊界靠近團隊與決策
+
+Xapo Bank 從 Bitcoin 服務商轉型為線上銀行後，重新盤點軟體資產。團隊先按 Payments、Cards、Banking Operations、Compliance 等業務子域思考系統，並與產品及營運同事合作調整團隊，接著逐步細化限界上下文，讓上下文更貼近團隊、路線圖和架構演進。
+
+他們也設立 Architecture Advisory Forum，以非集中審批的方式討論架構建議、ADR、團隊耦合和技術方向。共同作者回報，原本要花幾週甚至幾個月的設計與決策，後來能在幾天內完成並留下紀錄。[Xapo 架構實踐報告](https://martinfowler.com/articles/xapo-architecture-experience.html)
+
+**可借鏡的決策：** 邊界要能落到維護責任、產品路線圖和決策權。否則即使程式碼切成模組，跨團隊協調成本仍可能留在原地。
+
+**證據邊界：** Xapo 報告談的是 DDD、Team Topologies、ADR 與架構諮詢等一組同時推動的做法。作者觀察到決策週期縮短，但資料無法把改善單獨歸因於 DDD 或某一項組織措施。
+
+## Shopify：先把單體按業務責任整理，再逐步守住依賴
+
+Shopify 在 2019 年說明，原本同一個 Rails 單體裡，運費計算與結帳等不同業務功能彼此可以任意呼叫。團隊選擇保留單一程式碼庫和部署單位，先按訂單、運送、庫存和帳務等實際業務概念整理程式碼，再逐步建立模組公開介面與依賴檢查工具。[Shopify 的單體模組化經驗](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity)
+
+Shopify 在 2020 年的進度更新才明確指出，主單體的元件化方向受 DDD 啟發，元件是 commerce 領域子域的實作，並對應 stewardship team。當時幾乎沒有元件已形成完整強邊界，Packwerk 也只套用在約三分之一的元件；依賴隔離仍在推進。[Shopify 單體模組化進度](https://shopify.engineering/shopify-monolith)
+
+這個細節值得保留：名稱看起來清楚的元件，不代表上下文邊界已經完整，也不代表加上工具後就會自動守住。
+
+**可借鏡的決策：** 發現耦合後，先按業務責任整理目錄與模組介面，接著持續縮小可違規的依賴面。限界上下文可以先存在單體裡，不必把每條邊界都兌換成網路服務。
+
+## 把案例轉成自己的架構決策
+
+五個案例處理的是不同問題：Labatt 選擇投資哪段營運流程；Statoil 用上下文地圖界定大型系統與專案範圍；QuintoAndar 排定拆解順序；Xapo 把領域理解連到團隊及決策責任；Shopify 在單一程式碼庫裡逐步治理模組依賴。它們沒有共同證明「所有團隊都該採用同一種 DDD 架構」，而是展示領域模型如何協助具體選擇。
+
+下一次做戰略設計時，可以先寫下一句要解的決策，再選工具：
+
+1. **選擇投資方向：** 比較能力與競爭差異、業務損失或營運風險，找出該專案的核心域。
+2. **選擇責任邊界：** 找出各流程的語言、規則、資料生命週期與變更責任，再確認哪些依賴必須跨界。
+3. **選擇演進順序：** 把抽取成本、上下文依賴與預期業務收益放在同一個排序依據裡；尚未執行的方案要標成假設。
+4. **選擇治理方式：** 把模組或上下文對應到明確 owner、公開介面和架構決策流程，並追蹤邊界違規與協調延遲。
+
+驗收成果時，別用「畫了幾張地圖」或「切了幾個服務」作為指標。看當初要改善的決策是否更快、更可逆，業務結果是否有基準值與後續紀錄，以及跨界依賴是否變得可見、可談判、可治理。這也是 [子域劃分的資源配置判斷](/blog/ddd-subdomains-engineering-roi/)、[限界上下文的切分訊號](/blog/ddd-bounded-context-god-object-refactoring/)、[上下文映射與 ACL](/blog/ddd-context-mapping-anti-corruption-layer/) 以及 [模組化單體的邊界治理](/blog/ddd-modular-monolith-ai-agent-guardrails/) 可以回到真實系統接受檢驗的方式。
+
+開始前，請先把你目前最難下決定的一條業務邊界寫成一句話，再邀請真正維護該流程的人一起核對證據與未知之處。
