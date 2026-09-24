@@ -1,7 +1,8 @@
 ---
 title: "Agent 要能並行，先把工作變成可驗收結果"
-description: "從 GrokBot 的 Dune 架構轉述，拆解程式庫、靜態檢查、規則、Skills 與 Style Guide 的責任，並用一條低風險工作線驗證何時該增加 Agent 授權。"
+description: "依 Lauren Tan 2026-09-21 的 Cursor Compile 影片，分開信任曲線、CLI 與 feature map、糾正落點，以及 Grok Bot 的 Dune 架構，並給一條把人的糾正上移到檢查的規則。"
 publishDate: 2026-09-24T10:04:30+08:00
+updatedDate: 2026-09-24T15:15:18+08:00
 draft: false
 featured: false
 tags:
@@ -15,94 +16,132 @@ series: AI Agent 工程化與工作流實戰
 seriesOrder: 23
 ---
 
-2026-09-24，Kieran Zhang 的 [X 貼文](https://x.com/ninthbit_ai/status/2102809969070575802)連到一篇談 GrokBot 工程工作的 [X Article](https://x.com/i/article/2102795423052419072)。他把近四十分鐘的分享整理成三個問題：如何讓人信任 Agent、怎麼把程式庫做得更適合 Agent 工作，以及為什麼要像園丁一樣清理重複的 workaround。
+2026-09-21，Lauren Tan（@poteto）公開了原定在倫敦 Cursor Compile 的分享。影片約 38 分鐘。[貼文](https://x.com/poteto/status/2102050467505430555)寫上個月 2,500 個 PR。口播與開場投影片說的是 2,000 個，貢獻圖註記六個月超過 5,000 個。她沒有說明計數區間、這些 PR 是否包含自動開出的變更，或返工比例。數字只標出當時的出貨量級。
 
-原文標題提到每月 2,500 個 PR，但摘要沒有交代計算區間、驗收率或返工比例。這個數字不能單獨證明工程產能或品質，因此本文聚焦在可移植的控制方法。原文提到的 Dune 五層是作者對演講的轉述，以下不把它寫成 GrokBot 的官方規格。
+同日 Kieran Zhang 的[摘要](https://x.com/i/article/2102795423052419072)把糾正用的五層稱作 Dune。影片約 15:40 的投影片標題是 whenever you correct your agent。Dune 出現在約 26:40，指 Grok Bot 的架構。本文以這支影片為準。
 
-我的立場是：**只有當每個任務都有不靠 Agent 自評的驗收方式，才該增加它能同時處理的工作量。**
+我的立場是：**能同時交給 Agent 的工作量，取決於每條糾正有沒有落到不靠人記得的檢查。**
 
-## 驗證先回答「什麼算完成」
+## 你看住的 Agent 數量，是信任的結果
 
-原文把 verification skill 描述成教 Agent 怎麼驗證成果：啟動本機服務、用 Chrome DevTools 開啟頁面與操作控制項、查看效能追蹤，再保存畫面快照。它也提出 feature map，讓 Agent 知道產品有哪些功能，才能從使用者回報推理出該走哪些驗證路徑。
+她畫了一張示意曲線。橫軸是 Agent 數量，刻度從 1、1 到 5、5 到 10、10 到 20，再到數百與數千。縱軸是信任。這張圖沒有對照實驗。她把自己加入 Cursor 的早期放在 1 到 5。人不在對話裡，工作就停，或做完仍然是錯的。她認為這一段最難離開。信任不夠就開出一百個 cloud agent，得到的是一堆有問題的 PR。
 
-這兩項材料負責不同工作。Feature map 說明有哪些入口、狀態與功能；verification skill 說明怎麼走過這些路徑、觀察什麼訊號，以及失敗時如何回報。若只叫 Agent「跑完測試」，測試通過可能只代表程式能啟動，不能證明使用者回報的問題已修好。
+對照的經歷是六個月前加入 Cursor，先處理 Agents Window。內部代號是 Glass。當時 PR 不斷進來，她自己看 Chrome DevTools、performance trace 與 heap snapshot，成為瓶頸。後來她改讓 Agent 自己跑應用、抓 trace、找熱點。她說每個月 2,000 個 PR 本來不是目標，出貨量是這段投資做出來的。
 
-每項任務開始前，先寫下這幾個欄位：
+她把這套環境比成米其林廚房，並在口播裡劃掉 software factory。要安排的是線上廚師、設備、訓練，以及誰在收拾。成品仍由設置廚房的人負責。
+
+## 正確性來自可重跑的 CLI 與 feature map
+
+她把驗收放在一條光譜上。近端是 verification skill，教 Agent 把應用跑起來，用 Chrome DevTools Protocol 這類介面抓 trace 與 heap snapshot。遠端是 Lean、TLA+ 這類形式化方法。她說遠端更難，而且仍是開放問題。多數團隊走不到那裡。verification skill 已經能把「功能有沒有做對」變成收得回來的證據。
+
+她在 Cursor 做的第一個 skill 叫 Control Glass。它後來分成兩塊，都放在 skill 目錄裡。
+
+- CLI 每次用同一套指令啟動應用、收集 trace 與其他實測。Agent 不必在每個 session 現寫一支 script。
+- Feature map 是她稱為落地的記憶，靈感來自 sitemap。它記錄有哪些功能、使用者怎麼到達、快捷鍵，以及要點的 DOM。
+
+只有 CLI 時，Agent 開得了應用，卻讀不懂內部 Slack 上那種很小的截圖加三個問號。Feature map 補上「使用者指的是哪一個功能」。兩塊合在一起之後，Agent 既能重跑證據，也能對上內部與外部回報。她說這套控制技能變成團隊的關鍵基礎設施，而且有自動化在維護 feature map。
+
+正確性在這裡很窄。她的例子是結帳按鈕會不會真的把購物車結掉。效能要另外看 trace 上的數字。程式怎麼寫，她交給另一組 skills。pstack 是她整理的 Cursor plugin，裝的是她自己的工程 playbook。這支影片沒有展開 plugin。
+
+公開文件裡，同一想法寫成專案內的驗證 skill，段落是 Launch、Doctor、Drive、Evidence、Cleanup，再加上一份 feature map。[pstack 的 Verify and ship](https://github.com/cursor/plugins/blob/main/pstack/docs/guide/06-verify-and-ship.md) 寫的是這五段。她公開的範例再規定每個功能檔用四個標題，依序是子功能、使用者怎麼到達、harness 怎麼驅動、常見誤判。[verification-skill-example](https://github.com/poteto/verification-skill-example) 標成虛構產品 Atlas。形狀可以拿來建檔，名詞不是 Grok Bot 的規格。
+
+任務開始前，把這五欄寫進提示或 skill，讓下一個執行者交證據：
 
 ```text
-功能與路徑：使用者從哪裡進入，會經過哪些狀態？
-成功條件：使用者最後應看到或完成什麼？
-失敗條件：哪些結果代表仍未修好？
-驗證方式：要跑哪個檢查、操作哪個頁面，或查看哪項證據？
-停止條件：遇到什麼資料缺漏或風險時，Agent 必須停下來？
+功能與到達方式：使用者從哪裡進入，畫面或指令上怎麼到達？
+成功證據：哪個輸出、畫面、DOM 狀態或 trace 算數？
+失敗證據：哪種結果代表還沒修好？
+驅動方式：用 skill 目錄裡的哪支 CLI，而不是現場再寫一支 script？
+糾正落點：這次若要改規則，寫進哪一層？
 ```
 
-xAI 截至 2026-09-14 更新的 [Grok Bot Skills 文件](https://docs.x.ai/grok-bot/skills-routines-and-automations)也要求 Skill 說明如何驗證結果、如何處理失敗與哪些操作需要批准，並建議先用安全案例測試，再把流程交給背景 Routine。產品不同，原則相同：可重跑的步驟還要帶著驗收條件，否則只是把猜測保存下來。
+> [!NOTE]
+> 同串回覆另外推薦 [bend-lang.com](https://bend-lang.com)。2026-09-19 她寫過，弱型別與 lint 走不遠，程式庫若能形式化驗證自己，出貨會快很多。那是形式化那一端的延伸看法，不是這支影片的步驟。
 
-## Dune 的五層，各自處理不同缺口
+## 每次糾正，從程式庫往下找能擋下它的那一層
 
-Kieran 將分享中的 Dune 分成 `codebase`、`static analysis`、`rules/bugbot`、`skills` 與 `style guide`。他認為由上往下，對 Agent 的約束力與友善度逐漸降低。工程上可以把這個順序讀成：越上層越接近程式庫的真實狀態或可直接執行的檢查；越下層越需要模型或審查者自行解讀。
+約 15:40 起是她要觀眾記住的順序。投影片標題是 whenever you correct your agent。Agent 會沿用上下文裡已經打開的檔案，所以程式庫裡的寫法會被下一個 PR 複製。糾正若只留在對話裡，下一次還會再犯。
 
-### 1. Codebase：讓專案本身說明規則
+她排的順序是約束力由強到弱。
 
-目錄、型別、測試、介面與既有實作，是 Agent 能在任務中直接讀到的專案脈絡。若一項重要規則只存在於 Slack 或某位工程師的記憶裡，Agent 就無從依它行事。
+### 1. Codebase
 
-OpenAI 在 2026-02-11 分享的 agent-first 工程經驗也把 repository-local 文件當成知識來源，並用 CI 檢查文件是否過期、缺少連結或結構不一致。這是另一個團隊的實作案例，不能證明 Dune 的細節，但支持同一個判斷：重要知識要放在 Agent 能找到、團隊也能驗證的位置。[OpenAI：Harness engineering](https://openai.com/index/harness-engineering/)
+把錯誤變成結構上做不到。資料結構、目錄邊界、合法的 import，都屬於這裡。她把程式庫稱為 Agent 最好的記憶。
 
-### 2. Static analysis：把可判定的要求變成檢查
+### 2. Static analysis
 
-格式、型別、lint、compiler、單元測試與 CI 適合攔下有明確判準的錯誤。檢查必須能重跑，結果也要能指向失敗的檔案或條件；只有描述「要寫好程式」的規則，不能取代它。
+lint、compiler diagnostic、CI。同一種錯誤反覆出現時，先加一條會失敗的檢查。能改程式庫讓它不可能發生時，她把檢查放在第二。
 
-若 PR 必須通過某項檢查才能合併，就把它設成 repository 的 required status check。GitHub 截至 2026-09-24 查閱的 [branch protection 文件](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)說明，受保護分支可以要求狀態檢查通過後才允許合併。這才是平台能拒絕的閘門；單獨一則 Bugbot 評語或 Agent 自述「測試已完成」都不是。
+### 3. Rules 與 Bugbot
 
-### 3. Rules 與 Bugbot：補上檢查還看不懂的脈絡
+規則與 Bugbot 提供工作時的指引。駕駛 Agent 的人可以略過它們，Agent 也可能沒讀到。她把這層放在硬約束之後。
 
-有些要求需要知道任務背景，例如哪些相容性不能破壞、哪種資料不能寫入日誌、遇到特定目錄時該找哪份文件。Rules 可以提供短而具體的條件；Bugbot 可以指出可疑 diff，協助人類把注意力放在高風險處。
+### 4. Skills
 
-但只要一條規則沒有被測試或平台設定強制執行，它就仍是提醒。遇到反覆違規，應判斷能否把條件改成測試、型別或 required check，而不是不斷加長規則檔。
+Skills 教 Agent 依某種工程做法做事，例如除錯或做功能的 playbook。它們處理寫法，仍然可能沒被用到。
 
-### 4. Skills：保存已經驗證過的做法
+### 5. Style guide
 
-Skill 適合描述工作順序、必需輸入、驗證步驟與停止條件。先由人或 Agent 跑通一個真實案例，再保存為可重跑流程；不要把一次成功的對話直接當成可靠作業程序。
+Style guide 只在人審查時生效。她的用法是拿審查留言當缺口清單，再把時間花到上面四層。只靠這層，PR 量上來之後沒有人看得完每一行。
 
-如果 Skill 只留下工具指令，沒有說明如何判斷成功，重跑時就會把同一種錯誤包裝得更熟練。它應讓下一個執行者交付證據，而非只回報「完成」。
+**停止規則：一則糾正若只留在審查留言或 style guide，就還沒有提高你能同時看住的 Agent 數量。**
 
-### 5. Style Guide：留下需要判斷的偏好
+GitHub 的 protected branch 可以把狀態檢查設成合併門檻。Bugbot 評語本身不是這道門。要擋下的條件做成 required status check，才對得上她說的第二層。[GitHub 的 protected branches 說明](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 
-命名、語氣、抽象程度與可讀性常有多種合理選擇，適合由短小、有例子的 Style Guide 協助 Agent 靠近團隊習慣。若這些偏好真的不能被違反，再想辦法設計可檢查的規則；否則應承認它是審查判斷，不要假裝文字能自動執行。
+## Dune 把捷徑收成唯一路徑
 
-## 把程式花園裡的 workaround 清掉
+約 26:40，Dune 的投影片標題是 Architecture for agent-sized context。副標寫著，一個窄的局部修改可以對整個 Electron 應用保持正確。這是 Grok Bot 的 client framework。
 
-原文轉述的「園丁」比喻指向一個常見累積效應：Agent 容易沿用附近已有的模式；若上一個任務留下臨時繞路，後續修改可能複製它，再產生更多相似分支。這是對程式庫的維護責任，不只是提示詞的維護責任。
+動機來自 Agents Window 的效能回退。原則是 Agent 愛走捷徑，所以捷徑必須是對的那條。這樣的程式庫對人很囉嗦，對上下文很短的 Agent 反而合適。她點名的駕駛者包括設計師、產品經理與執行長。
 
-原文也提到演講者曾在自己的 Bot 專案禁止 Agent 寫註解，因為她觀察到註解常被拿來合理化 workaround。這是特定專案的選擇，不適合直接變成所有團隊的規則。註解若只重述程式碼，確實可能增加噪音；若它記錄不變條件、相容性限制或非顯然的決策理由，刪掉反而會讓下一個維護者更難判斷。
+五個名詞各自佔目錄裡的一個位置，執行時也只有一件工作。
 
-可以採用更窄的清理準則：若註解是在解釋為何暫時跳過檢查，就把缺少的檢查補上；若同一 workaround 出現多次，就找出共同根因並移除重複路徑；若限制是系統不變條件，就用測試或型別保護它，再留下必要的理由。園丁要移除的是錯誤範例，不是所有說明。
+- Feature 是一塊產品 UI，放在一個自己的資料夾。
+- Entrypoint 是使用者打得開的一個畫面，角色接近 route。
+- Transcript card 是某一種 entry 在畫面上的內容，由 feature 擁有。
+- Client 是 renderer 上持久的狀態，包在 hooks 與 commands 後面。
+- Host 是常駐行為，包在有型別的契約後面。她說 Host 跑在 Grok Bot 的虛擬機上。
 
-## 用一條低風險工作線測試信任
+約 27:40 的圖把 renderer 與 serving process 分開。renderer 裡是 Feature UI、Navigation、Client。另一側是 Host extensions 與 Electron main。中間是 typed edge。`shared/` 放跨行程型別，每一側只 import 自己被允許的東西。她用 import 與依賴圖在 CI 裡擋下 main process 的程式被拉進 renderer。她給的幀預算是 60 fps 約 16 毫秒、120 fps 約 8 毫秒。重的工作進了 renderer，就會變成畫面上的長任務。
 
-先選一種重複、可逆、容易觀察結果的任務，不要從新增一群 Agent 開始：
+約 29:40 的 Host-backed feature blueprint 把一條功能收成 Feature UI、Client、Shared edge、Host extension。圖上寫著，元件不處理 IPC、Host 查詢、重試順序或行程啟動。Agent-friendly 在那張圖上的意思是，改對一個開檔案的編輯，整個應用的不變條件還在。
 
-1. 記錄目前人工完成時的步驟、常見錯誤與驗收時間，作為比較基準。
-2. 用 feature map 寫出受影響的功能路徑與關鍵狀態，替每條路徑指定驗證方式。
-3. 把驗證方式做成 Skill 或專案內指引，讓 Agent 可以啟動環境、執行檢查並保存輸出。
-4. 讓 Agent 在明確的檔案與權限範圍內完成任務，交付 diff、檢查結果，以及需要時的頁面快照或追蹤資料。
-5. 由獨立檢查或人類確認結果，再記錄返工原因；每次失敗都歸到程式庫、檢查、規則、Skill 或判斷偏好其中一層。
+這些名詞綁在 Grok Bot 的 Electron 行程上。一種工作只留一條慣用路徑，跨邊界的 import 由檢查失敗，原本留在審查留言裡的知識改寫進目錄與 CI。她說花夠久之後，上下文短、推理沒那麼強的 Agent 也能寫出過得去的程式。
 
-比較人工修正次數、驗證失敗類型、審查花費時間與回退情況，比只比較 PR 數量更能看出工作流是否可靠。要提高並行度，先確認同一類任務在代表性案例裡能穩定通過驗收，而且出錯時能看見明確訊號；不必追求永遠零錯誤，但不能把錯誤藏在 Agent 自己的結論裡。
+## 園丁刪的是會被複製的 workaround
 
-若驗收路徑尚未定義，任務就先維持在有人監看的範圍。若同一種錯誤反覆出現，先把它移到最能阻止錯誤的那一層，再考慮擴大授權。
+約 23:40 的圖把一個 workaround 畫成會被連續複製，註記 Each copy makes the next copy likelier。她的說法是，註解或小繞路會在幾天到幾週內變成大家都在抄的寫法。
 
-## 下一步：替最常見的 Agent 任務寫一張驗收地圖
+Dune 因此禁止程式註解。她原先認為註解可以標出邊界情況。後來在 Cursor 的程式庫裡看到 Agent 用註解說明自己為什麼不修真正的問題，只補一個短期解法。禁註解是為了切斷這個複製鏈。
 
-挑一個最近常交給 Agent 的任務，列出使用者路徑、成功與失敗狀態、獨立驗證方式和停止條件。先讓一個 Agent 跑這條路徑，保留檢查輸出，再決定哪些要求值得變成自動化閘門。
+這是 Grok Bot 的選擇。註解若只重述程式，會變成下一個 Agent 的範例。註解若寫下編譯器看不見的不變條件或相容限制，刪掉會讓下一個維護者少一條理由。註解在替「先不修」辯護時，補上缺少的檢查，並刪掉這則辯護。同一種 workaround 出現第二次，就找共同原因。
 
-如果下一個問題是多個 Agent 的工作狀態、任務 owner 與 review 排程，可接著讀[多個 Coding Agents 如何組成工程管理迴路](/blog/grok-bot-engineering-control-plane/)。若要從任務契約、狀態、權限與 trace 建立完整 Harness，參考 [Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/)；本文聚焦於開始並行之前，如何讓程式庫與驗收路徑先變得可檢查。
+園丁的三件事，投影片寫成 delete tech debt、keep one paved path、lint against anti-patterns。
+
+1. 刪掉你不希望被原樣複製的既有債務。
+2. 常見工作只留一條有指引的路徑，Agent 不必猜。
+3. 看到壞模式就先寫 lint，讓它不能再長。她說不必立刻清完。lint 先止血，再排清理。
+
+收尾標準是：這份程式庫若被下一個 Agent 整段抄走，你還願不願意。
+
+## 外圈自動化排在這套檢查之後
+
+約 30:40 她才講 Grok Bot、cloud agents、automations 與 Agent SDK。Grok Bot 在她的分工裡負責外圈，接到 Slack、Datadog、Sentry、PlanetScale 這類她隨口舉的服務，再決定要不要開 cloud agent。有人把這種彙整叫 company brain。她認為這裡用不到那麼重的系統，因為 Agent 已經會用工具。
+
+Grok Bot routines 可以訂閱 Slack 討論串與 Sentry 告警並自動開工。Cursor automations 與 SDK 則重用同一套 skill 與規則，做更長的任務。約 34:40 的畫面是一則 cloud agent 回報，問題在舊版重現，main 上已經修好。這種回覆省下的是「還要不要發一版」的確認，前提是 Agent 真的把應用跑過。
+
+她把這段放在信任曲線的後段。程式庫、檢查、規則與 skill 還沒有讓你離開 1 到 5 的區間時，外圈同時放大的是還沒被擋下的錯誤。
+
+## 下一步：替最近一次糾正指定落點
+
+翻出你最近打給 Agent 的一則糾正。填上成功證據、驅動用的 CLI，以及它現在落在五層的哪一層。若落在 rules、skills 或 style guide，寫下下一個要上移的檢查，指出哪一個目錄邊界、型別或 lint 會讓同樣的錯誤直接失敗。那個檢查進了 CI 之後，再考慮多開一條工作線。
+
+若下一個問題是多個 Agent 的任務狀態與 review 排程，接著讀 [Grok Bot 的工程管理迴路](/blog/grok-bot-engineering-control-plane/)。若要從任務契約、狀態、權限與 trace 建立 Harness，參考 [Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/)。
 
 ### 參考資料
 
-- [Kieran Zhang：原始 X 貼文](https://x.com/ninthbit_ai/status/2102809969070575802)
-- [Kieran Zhang：GrokBot 一個月 2,500 PRs 的 X Article](https://x.com/i/article/2102795423052419072)
-- [xAI：Skills and routines](https://docs.x.ai/grok-bot/skills-routines-and-automations)，更新於 2026-09-14
-- [GitHub：About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
-- [OpenAI：Harness engineering](https://openai.com/index/harness-engineering/)，發布於 2026-02-11
+- [Lauren Tan 的原始影片](https://x.com/poteto/status/2102050467505430555)，2026-09-21
+- [Kieran Zhang 的 X Article](https://x.com/i/article/2102795423052419072)。摘要把糾正五層稱作 Dune；影片把 Dune 用於 Grok Bot 架構
+- [pstack 的 Verify and ship](https://github.com/cursor/plugins/blob/main/pstack/docs/guide/06-verify-and-ship.md)
+- [poteto/verification-skill-example](https://github.com/poteto/verification-skill-example)
+- [GitHub 的 protected branches 說明](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
