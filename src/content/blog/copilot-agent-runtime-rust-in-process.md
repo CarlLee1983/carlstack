@@ -1,7 +1,8 @@
 ---
 title: "Copilot Agent Runtime 改寫成 Rust，真正移除的是 SDK 的 Node 子程序"
-description: "拆解 GitHub Copilot agent runtime 從 TypeScript／Node.js 移植到 Rust 的原因、效能數據與漸進式驗收方法，並說明為何近 30 天的多篇報導不能直接推論成整個 Agent 產業都在遷移。"
+description: "拆解 GitHub Copilot agent runtime 從 TypeScript／Node.js 移植到 Rust 的原因、效能數據與漸進式驗收方法，並比較既有 runtime 移植與 Rust 原生 Agent 開發的差異。"
 publishDate: 2026-09-25T23:50:00+08:00
+updatedDate: 2026-09-25T23:55:28+08:00
 draft: false
 featured: false
 tags:
@@ -16,17 +17,17 @@ cover: ../../assets/covers/copilot-agent-runtime-rust-in-process.png
 coverAlt: "工人把笨重的空心機械外殼移開，將銅紅色的小型引擎直接裝進主機內，呈現執行核心從獨立程序移入宿主程式的邊界改變。"
 ---
 
-近 30 天搜尋 AI Agent 與 Rust，文章看起來不少；但把報導去重後，最完整、可核實的生產級案例集中在同一次移植：GitHub Copilot agent runtime 從 TypeScript／Node.js 改寫為 Rust。GitHub 工程師的長文是第一手紀錄，《The Register》報導的是同一個專案，不能算成兩家公司各自遷移。JetBrains 展示的 Rat Code 則是直接用 Rust 新建一個小型 coding agent，也不是舊系統移植。[GitHub 的專案紀錄](https://github.blog/ai-and-ml/generative-ai/migrating-the-github-copilot-runtime-to-rust-using-copilot/)；[The Register 的報導](https://www.theregister.com/devops/2026/09/18/microsoft-agentically-ports-copilot-runtime-to-rust-for-120k/)；[JetBrains 的 Rat Code 示範](https://blog.jetbrains.com/rust/2026/09/09/rust-ai-in-practice/)
+GitHub 將 Copilot agent runtime 從 TypeScript／Node.js 移植為 Rust，目標是讓 SDK 能把 runtime 當成原生函式庫載入，不必為每個 consumer 額外啟動 Node CLI。GitHub 工程師的文章記錄這次生產級移植；《The Register》報導的是同一專案。JetBrains 展示的 Rat Code 則是以 Rust 新建的小型 coding agent，代表另一種開發方式。[GitHub 的專案紀錄](https://github.blog/ai-and-ml/generative-ai/migrating-the-github-copilot-runtime-to-rust-using-copilot/)；[The Register 的報導](https://www.theregister.com/devops/2026/09/18/microsoft-agentically-ports-copilot-runtime-to-rust-for-120k/)；[JetBrains 的 Rat Code 示範](https://blog.jetbrains.com/rust/2026/09/09/rust-ai-in-practice/)
 
 **我從這個案例得到的判斷是：重寫的關鍵不是把 TypeScript 換成 Rust，而是讓 Agent runtime 從必須另開 Node 程序的 CLI，變成可嵌入宿主程式的原生函式庫。**Rust 是達成低啟動成本、低常駐記憶體和跨語言呼叫的選擇；它不是單獨解釋所有效能差距的答案。
 
-## 多篇文章說的是同一個移植案例
+## 先分清楚既有系統移植與新建 Agent
 
-GitHub 在 2026 年 9 月 16 日發布工程師 Stephen Toub 的第一手紀錄，並於 9 月 23 日更新。《The Register》兩天後報導同一件事，補充成本與回歸問題。兩篇來源能讓我們交叉理解專案，但不是兩個互相獨立的產品遷移案例。[GitHub Blog](https://github.blog/ai-and-ml/generative-ai/migrating-the-github-copilot-runtime-to-rust-using-copilot/)；[The Register](https://www.theregister.com/devops/2026/09/18/microsoft-agentically-ports-copilot-runtime-to-rust-for-120k/)
+Copilot 是既有 Agent runtime 的移植案例。GitHub 的第一手紀錄說明架構與實作；《The Register》補充專案成本和回歸問題。兩篇文章談的是同一個產品遷移，不是兩家公司的獨立案例。[GitHub Blog](https://github.blog/ai-and-ml/generative-ai/migrating-the-github-copilot-runtime-to-rust-using-copilot/)；[The Register](https://www.theregister.com/devops/2026/09/18/microsoft-agentically-ports-copilot-runtime-to-rust-for-120k/)
 
 另一種常被混在一起的案例，是新建 Rust Agent。JetBrains 9 月 9 日介紹的 Rat Code 是一個小型終端 coding agent，以 Rust 的 Rig 管理模型與工具、以 Ratatui 呈現終端介面；示範包含讀寫檔案、執行 shell、串流回應和工具呼叫復原。它證明 Rust 可以作為 Agent 應用的實作選項，卻沒有證明一個既有產品已把底層從其他語言遷走。[JetBrains：Rust AI in Practice](https://blog.jetbrains.com/rust/2026/09/09/rust-ai-in-practice/)
 
-因此，這組資料能支持「Agent runtime 的 Rust 化開始有具體案例，也出現 Rust 原生 Agent 示範」，還不能支持「多數 Agent 團隊正在把底層換成 Rust」。這是截至 2026 年 9 月 25 日的研究快照，也不是整個產業的採用普查。
+目前可確認的做法有兩種：把既有 Agent runtime 移植為 Rust，或直接以 Rust 新建 Agent。它們說明 Rust 可以用來實作 Agent 執行層，尚不足以推論多數團隊正在將底層遷往 Rust。
 
 ## Copilot 要解決的是 SDK 每次都得多養一個 Node 程序
 
