@@ -4,7 +4,7 @@
 
 | 指令                            | 內容                                                                                                                         |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm check`                    | `prettier --check` → `astro check`（TypeScript strict + Astro 模板）→ `astro build`（含 content schema 驗證）                |
+| `pnpm check`                    | `prettier --check` → `astro check`（TypeScript strict + Astro 模板）→ `astro build`（含 content schema 驗證與詞雲頁面驗收）  |
 | `pnpm test`                     | `node --experimental-strip-types --test tests/*.test.ts`                                                                     |
 | `pnpm content:policy -- <base>` | 比對 `<base>` 至工作目錄的文章 diff，擋下 Mermaid fence（[ADR 0004](adr/0004-native-svg-over-mermaid.md)）與無法渲染的 LaTeX |
 
@@ -36,3 +36,5 @@ CI（`.github/workflows/ci.yml`）在 pull request 執行前兩者；`deploy.yml
 ## 沒有自動化的部分
 
 視覺回歸沒有自動測試。圖解與版面改動要人工在桌面與 320 px 視窗、淺色與深色四種組合各看一次，見 [`docs/diagram-guide.md`](diagram-guide.md) 的驗收段落。E2E 目前也沒有；`/search/` 需要 `pnpm preview` 手動驗證，因為 Pagefind 索引只在 production build 產生。
+
+主題詞雲的建置後驗收由 `scripts/validate-wordcloud-page.mjs` 執行：比對圖表前 40 個標籤與完整 HTML 清單，檢查標籤頁及入口連結。圖表點擊、主題切換與 320 px 排版仍需在瀏覽器確認。

@@ -1,0 +1,260 @@
+---
+import EmptyState from "../../../components/EmptyState.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { collectTaxonomy, getVisiblePosts } from "../../../utils/collections";
+import { sortByPostCount } from "../../../utils/content";
+
+const tags = sortByPostCount(collectTaxonomy(await getVisiblePosts(), "tags"));
+const cloudTags = tags.slice(0, 40).map((tag) => ({
+  name: tag.name,
+  value: tag.posts.length,
+  href: `/tags/${tag.slug}/`,
+}));
+---
+
+<BaseLayout
+  title="主題詞雲"
+  description="從 CarlStack 已發布文章的標籤分布探索技術主題。"
+>
+  <div class="page shell wordcloud-page">
+    <header class="page-header">
+      <p class="wordcloud-page__eyebrow">
+        <a href="/tags/">標籤總覽</a> / 主題詞雲
+      </p>
+      <h1>主題詞雲</h1>
+      <p>詞的大小代表這個標籤的文章數。選擇一個主題，繼續閱讀相關文章。</p>
+    </header>
+
+    {
+      tags.length > 0 ? (
+        <>
+          <section
+            class="wordcloud-page__visual"
+            aria-labelledby="cloud-heading"
+          >
+            <div class="wordcloud-page__section-head">
+              <h2 id="cloud-heading">熱門主題</h2>
+              <p>
+                {tags.length > 40
+                  ? "顯示文章數最多的 40 個標籤。"
+                  : `顯示全部 ${tags.length} 個標籤。`}
+              </p>
+            </div>
+            <div
+              class="wordcloud-page__chart"
+              data-wordcloud-chart
+              data-items={JSON.stringify(cloudTags)}
+              aria-hidden="true"
+              hidden
+            />
+          </section>
+
+          <section
+            class="wordcloud-page__all"
+            aria-labelledby="all-tags-heading"
+          >
+            <div class="wordcloud-page__section-head">
+              <h2 id="all-tags-heading">所有標籤</h2>
+              <p>共 {tags.length} 個標籤，依文章數排序。</p>
+            </div>
+            <ul class="wordcloud-page__list">
+              {tags.map((tag) => (
+                <li>
+                  <a href={`/tags/${tag.slug}/`}>
+                    <span>{tag.name}</span>
+                    <span class="wordcloud-page__count">
+                      {tag.posts.length} 篇
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : (
+        <EmptyState
+          title="尚無已發布文章標籤"
+          description="發布第一篇文章後，這裡會自動建立主題詞雲。"
+          href="/tags/"
+          action="返回標籤總覽"
+        />
+      )
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  const chartElement = document.querySelector<HTMLElement>(
+    "[data-wordcloud-chart]",
+  );
+
+  if (chartElement?.dataset.items) {
+    const tags = JSON.parse(chartElement.dataset.items) as {
+      name: string;
+      value: number;
+      href: string;
+    }[];
+    const hrefByName = new Map(tags.map((tag) => [tag.name, tag.href]));
+
+    try {
+      const [echarts] = await Promise.all([
+        import("echarts"),
+        import("echarts-wordcloud"),
+      ]);
+      chartElement.hidden = false;
+      const chart = echarts.init(chartElement);
+      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+      const root = document.documentElement;
+      let compact = chartElement.clientWidth < 500;
+
+      const render = () => {
+        const styles = getComputedStyle(root);
+        const colors = [
+          styles.getPropertyValue("--color-ink").trim(),
+          styles.getPropertyValue("--color-accent").trim(),
+          styles.getPropertyValue("--color-secondary").trim(),
+          styles.getPropertyValue("--color-ink-2").trim(),
+        ];
+        chart.setOption({
+          series: [
+            {
+              type: "wordCloud",
+              shape: "circle",
+              width: "96%",
+              height: "92%",
+              sizeRange: compact ? [14, 29] : [20, 82],
+              rotationRange: [0, 0],
+              gridSize: 6,
+              shrinkToFit: true,
+              drawOutOfBound: false,
+              layoutAnimation: !reducedMotion.matches,
+              textStyle: {
+                fontFamily: styles.getPropertyValue("--font-display").trim(),
+                fontWeight: 700,
+                color: (params: { dataIndex?: number }) =>
+                  colors[(params.dataIndex ?? 0) % colors.length] ?? colors[0],
+              },
+              data: tags.map(({ name, value }) => ({ name, value })),
+            },
+          ],
+        });
+      };
+
+      chart.on("click", ({ name }: { name: string }) => {
+        const href = hrefByName.get(name);
+        if (href) window.location.assign(href);
+      });
+      render();
+      new ResizeObserver(() => {
+        chart.resize();
+        const nextCompact = chartElement.clientWidth < 500;
+        if (nextCompact !== compact) {
+          compact = nextCompact;
+          render();
+        }
+      }).observe(chartElement);
+      new MutationObserver(render).observe(root, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+      reducedMotion.addEventListener("change", render);
+    } catch {
+      chartElement.hidden = true;
+    }
+  }
+</script>
+
+<style>
+  .wordcloud-page {
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .wordcloud-page__eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  .wordcloud-page__eyebrow a {
+    color: var(--color-accent);
+  }
+
+  .wordcloud-page__visual,
+  .wordcloud-page__all {
+    display: grid;
+    gap: var(--space-lg);
+  }
+
+  .wordcloud-page__section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-xs) var(--space-lg);
+  }
+
+  .wordcloud-page__section-head h2 {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: var(--text-xl);
+  }
+
+  .wordcloud-page__section-head p {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  .wordcloud-page__chart {
+    width: 100%;
+    height: clamp(24rem, 40vw, 32rem);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-card);
+  }
+
+  .wordcloud-page__chart[hidden] {
+    display: none;
+  }
+
+  .wordcloud-page__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: var(--space-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .wordcloud-page__list a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    min-height: 2.75rem;
+    padding: var(--space-xs) var(--space-sm);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
+    background: var(--color-card);
+    color: var(--color-ink);
+  }
+
+  .wordcloud-page__list a:hover,
+  .wordcloud-page__list a:focus-visible {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .wordcloud-page__count {
+    flex: none;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 40rem) {
+    .wordcloud-page__chart {
+      height: 26rem;
+    }
+  }
+</style>

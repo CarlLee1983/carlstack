@@ -13,6 +13,7 @@ src/content/{blog,projects}/*.{md,mdx}
   → rehype: rehype-table-scroll, rehypeHeadingIds, rehype-heading-anchor
   → src/pages/**                   透過 src/utils/collections.ts 讀取
   → astro build (output: "static") → dist/
+  → validate-wordcloud-page         驗證詞雲頁面與完整標籤連結
   → pagefind --site dist           掃描 dist HTML 產生 dist/pagefind/
   → wrangler deploy                Workers Static Assets
 ```
@@ -43,7 +44,7 @@ src/content/{blog,projects}/*.{md,mdx}
 
 ## 執行期組成
 
-站台在瀏覽器只有三段 JavaScript：主題與字級偏好（`src/layouts/BaseLayout.astro` 的 inline script，寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`）、Pagefind 搜尋（`/search/`）、以及選用的 Giscus 留言與 Cloudflare Web Analytics。沒有 framework hydration；新增互動前先確認原生瀏覽器能力做不到。
+站台的瀏覽器 JavaScript 依頁面載入：共用版型處理主題與字級偏好（寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`），搜尋頁載入 Pagefind，文章頁可載入 Giscus 留言，站台可載入 Cloudflare Web Analytics。主題詞雲頁另外載入 ECharts 5 與 `echarts-wordcloud` 2；詞雲是額外的視覺入口，頁面仍以靜態 HTML 提供完整標籤清單。沒有 framework hydration。
 
 Mermaid 只在含文章內容的頁面載入，security level 固定 `strict`。新文章已禁用 Mermaid（ADR 0004），此相依只為舊文保留。
 
