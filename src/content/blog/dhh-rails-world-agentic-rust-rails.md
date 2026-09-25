@@ -2,6 +2,7 @@
 title: "DHH 在 Rails World 宣告停止手寫：Rails 還在，工程判斷換了位置"
 description: "從 Rails World 2026 keynote 拆解 37signals 將 Agent 設為實作預設、HEY 新版重建計畫採用原生 App 與 Rust 郵件後端的說法，區分自述效能數字與可驗證結論，整理 Rails 的適用邊界和團隊驗收責任。"
 publishDate: 2026-09-25T22:22:50+08:00
+updatedDate: 2026-09-25T23:50:00+08:00
 draft: false
 featured: false
 tags:
@@ -39,6 +40,8 @@ DHH 回顧 Basecamp 5 的一次 Agent 實驗：設計師各自讓 Agent 提交�
 他也指出 Web 的優點仍是免安裝、可直接抵達；Rails 仍適合這種交付方式，而慣例與一致的架構可以減少 Agent 每次修改時需要猜測的空間。[keynote，約 33:29 起](https://www.youtube.com/watch?v=vDjW_dRyKXY&t=2009s) 所以這不是「原生 App 勝過 Rails」的二選一。HEY 可以為它的新客戶端選擇原生體驗，也可以讓其他產品繼續用 Rails 把服務送到瀏覽器。
 
 適合自己的判斷要回到產品要求：使用者是否需要原生互動或平台能力？Web 的免安裝與快速抵達是否更重要？團隊是否能維護、除錯並輪值支援新增的語言與執行環境？若答案仍不清楚，先改一條可量測的服務路徑，通常比全面重寫更容易驗證。
+
+同樣選擇 Rust，GitHub Copilot 面對的是另一種工程問題：它把既有 Agent runtime 從 Node 子程序移成可嵌入的原生函式庫，量測重點是 SDK 啟動與 session 密度。[Copilot Agent Runtime 移植的拆解](/blog/copilot-agent-runtime-rust-in-process/)
 
 ## 99% 與 95% 是演講者自述，不是 Rust 基準測試
 
