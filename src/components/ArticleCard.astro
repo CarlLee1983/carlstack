@@ -18,6 +18,7 @@ const date = new Intl.DateTimeFormat("zh-TW", {
   year: "numeric",
   month: "short",
   day: "numeric",
+  timeZone: "Asia/Taipei",
 }).format(post.data.publishDate);
 const primaryTag =
   post.data.tags && post.data.tags.length > 0 ? post.data.tags[0] : null;

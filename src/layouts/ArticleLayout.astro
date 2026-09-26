@@ -19,7 +19,10 @@ interface Props {
 const { post, posts } = Astro.props;
 const { Content, headings } = await render(post);
 const body = "body" in post && typeof post.body === "string" ? post.body : "";
-const dateFormatter = new Intl.DateTimeFormat("zh-TW", { dateStyle: "long" });
+const dateFormatter = new Intl.DateTimeFormat("zh-TW", {
+  dateStyle: "long",
+  timeZone: "Asia/Taipei",
+});
 const index = posts.findIndex((item) => item.id === post.id);
 const newer = index > 0 ? posts[index - 1] : undefined;
 const older = index >= 0 ? posts[index + 1] : undefined;

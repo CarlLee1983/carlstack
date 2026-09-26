@@ -27,9 +27,11 @@ const stats = [
   { value: allProjects.length, label: "個開源專案" },
 ];
 const latestLabel = latestDate
-  ? new Intl.DateTimeFormat("zh-TW", { month: "long", day: "numeric" }).format(
-      latestDate,
-    )
+  ? new Intl.DateTimeFormat("zh-TW", {
+      month: "long",
+      day: "numeric",
+      timeZone: "Asia/Taipei",
+    }).format(latestDate)
   : null;
 ---
 
