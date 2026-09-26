@@ -2,6 +2,7 @@
 title: "後微服務時代的架構收斂：模組化單體（Modular Monolith）與 AI Agent 的語義隔離護欄"
 description: "破除 Bounded Context 等同微服務的工程迷思。探討過度拆分引發的分散式單體災難，透過 TypeScript Project References 與 Go internal 建立進程內硬隔離，並運用模組級 BOUNDARY.md 與 CI Dependency-Cruiser 構築抵禦 AI Coding Agent 語義污染的架構圍欄。"
 publishDate: 2026-09-23T10:22:00+08:00
+updatedDate: 2026-09-26T09:30:05+08:00
 draft: false
 featured: false
 tags:
@@ -200,15 +201,13 @@ pnpm depcruise --config .dependency-cruiser.cjs src
 
 ---
 
-## 架構收斂全景覆盤
+## 前四篇工具文建立的邊界
 
-至此，《DDD 戰略設計實戰：從業務邊界到系統架構》全系列四篇迎來完整閉環：
+《DDD 戰略設計實戰：從業務邊界到系統架構》前四篇工具文先建立了從領域到系統邊界的判斷順序，之後再由案例篇檢驗這些工具：
 
 1. **子域劃分（Subdomains）：** 用「開源即倒閉測試」找出核心業務護城河，將 70% 的工程預算鎖死在刀刃上；
 2. **限界上下文（Bounded Context）：** 用四大工程訊號（語義、步調、團隊、交易）揮動手術刀，將臃腫危險的 God Object 解構為純淨的多維模型；
 3. **上下文映射與防腐層（ACL）：** 認清組織權力拓撲，在外部不可靠上游前築起「Facade → Adapter → Translator」三道海關，絕不被動順從；
 4. **模組化單體（Modular Monolith）：** 破除微服務迷思，用進程內硬隔離、Prompt 圍欄與 CI 拓撲執法，在享受單體極致開發速度的同時，具備微服務等級的自治能力。
 
-**架構的最高境界，不是把系統拆得多麼破碎分散，而是在最簡單的物理結構中，維持最深刻的邏輯邊界。**
-
-在 AI 產出代碼量呈幾何級數爆發的現代，唯有堅守這套戰略設計防線的工程師與團隊，才能真正駕馭技術浪潮，建立歷久彌新的軟體帝國。
+**架構的選擇不應由服務數量決定，而應由邊界要解決的問題決定。** 若你的問題是 AI 變更太大、設計審查跟不上，可以接著讀[《AI 寫碼變快，微服務能隔離故障，不能替你審查程式》](/blog/ai-era-microservices-change-containment/)；它把合併前的變更品質和上線後的故障隔離拆成兩項獨立決策。

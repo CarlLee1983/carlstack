@@ -1,0 +1,67 @@
+---
+title: "AI 寫碼變快，微服務能隔離故障，不能替你審查程式"
+description: "從一則 X 討論與 DORA、Google code review、Shopify 等一手資料，拆開 AI 生成程式碼的合併品質與服務故障隔離：何時該加審查護欄，何時才值得拆成微服務。"
+publishDate: 2026-09-26T09:30:05+08:00
+draft: false
+featured: false
+tags:
+  - "DDD 與 Clean Architecture"
+  - "系統設計"
+  - "架構重構"
+  - "AI 工程化"
+series: "DDD 戰略設計實戰：從業務邊界到系統架構"
+seriesOrder: 6
+cover: "../../assets/covers/ai-era-microservices-change-containment.png"
+coverAlt: "暖色金屬檢查閘道把程式模組分流，發亮的故障區段被隔離在獨立軌道上，象徵程式碼審查與執行期故障隔離是兩種不同邊界"
+---
+
+## 微服務隔離的是執行故障，不是差勁的合併請求
+
+一則 X 貼文提出一個焦慮：AI 可以在一個下午把大量程式寫進共用程式庫；如果團隊無法確保多數人有足夠的工程判斷，是否該把業務切成微服務，避免一個人的草率修改拖垮所有人？[原始貼文](https://x.com/d3ad13eef/status/2103137019291717887)
+
+討論串裡，反對者把焦點放在審查流程、程式碼負責人與 CI；支持切分的人則擔心單體跨模組變更太大，審查跟不上 AI 產量。作者補充，他們已有 pipeline 和 AI 程式碼掃描，但一個約千行的 MR 仍可能每個局部改動看起來合理，整體架構卻走歪。[作者後續說明](https://x.com/d3ad13eef/status/2103332439611605065) 也有人分享 300 行以上 MR 要退回的團隊規則，並提醒微服務無法補救不負責任的核准流程。[討論回覆](https://x.com/Super530F/status/2103483027284525549)
+
+這些回覆碰到兩種不同的風險：**合併前，變更是否正確、可理解、符合架構；合併後，服務出錯會影響多大範圍。** 微服務主要提供後者的隔離手段。邊界設計到位時，它能讓某項業務獨立部署、擴縮，也能把部分故障限制在服務內；但不會讓送進該服務的程式碼自動變得正確。
+
+討論串當時顯示 29 則回覆。我查看了近期排序下可讀的回覆並展開可見分支；X 頁面另有一則貼文顯示無法使用，也把一則回覆收在可能垃圾訊息區，因此本文只整理可讀內容，不推測隱藏文字。
+
+## 先把兩種「隔離」分開
+
+**變更隔離**發生在 code review 與合併階段：一個 PR 改了哪些模組、誰能理解其設計、測試能不能指出跨模組回歸、架構規則會不會被破壞。好的變更邊界讓審查者能看懂一個完整且有限的決策。
+
+**故障隔離**發生在上線之後：程序、資源、資料與部署是否有邊界，逾時或過載會不會沿呼叫鏈擴散，某一部分失敗能否被限流、熔斷或降級。這些是服務拓樸與營運設計的問題。
+
+兩者會互相影響，但不是同一項架構決策。把程式庫拆成很多服務，可能縮小單次部署或程序故障的範圍；若每次功能仍要跨多個服務同時改版，變更審查反而更難。反過來說，單一部署單位也能透過模組邊界限制依賴，降低程式碼變更的波及面。
+
+## 服務邊界要換到真正的獨立性
+
+DORA 將鬆耦合描述為團隊能獨立設計、測試與部署變更，並指出這些結果不限定在微服務上；有些名義上的微服務仍因相依而必須一起測試或大版本部署。[DORA：Loosely Coupled Teams](https://dora.dev/capabilities/loosely-coupled-teams/) 因此，服務數量不是自治程度的替代指標。
+
+微服務確實能形成明確的模組與部署邊界，讓服務獨立部署與擴縮；但每一條網路呼叫也會帶來介面、延遲、逾時、重試、資料一致性與值班責任。AWS 的拆分指引建議按子域拆解，前提是領域邊界已經清楚；服務過多則會增加服務探索與整合複雜度。[AWS：Decompose by subdomain](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-decomposing-monoliths/decompose-subdomain.html)
+
+DORA 2025 的報告把 AI 描述為會放大組織既有優勢與弱點的力量。這能支持「生成更快會放大流程品質」這個判斷，卻不能推成「微服務能解決 AI 產生的低品質程式碼」；目前這些來源沒有直接比較兩種架構在 AI 生成變更上的審查成效。[DORA 2025 Report](https://dora.dev/research/2025/dora-report/) 後一句是根據現有資料範圍作出的推論，不是 DORA 的實驗結論。
+
+## 用審查規則處理 PR 風險
+
+Google 的 code review 指引要求審查者看整體設計、功能、複雜度、測試與程式碼健康度，並把變更放回更大的系統脈絡判斷。[Google Code Review: What to look for](https://google.github.io/eng-practices/review/reviewer/looking-for.html) 這也解釋了為什麼只讓另一個模型逐行找 bug，不能替代理解邊界與設計意圖的人類審查。
+
+Google 建議每個 CL 聚焦一個自洽變更；文件提到約 100 行常是合理大小、1000 行通常太大，但同時說明檔案數、變更脈絡和審查者判斷都會影響實際負擔。[Google Code Review: Small CLs](https://google.github.io/eng-practices/review/developer/small-cls.html) 討論串中的「超過 300 行退回」可以是某團隊用來迫使切小 PR 的政策，不能當成適用所有語言和工作的通用門檻。
+
+若要讓流程真的守住邊界，可把高風險模組指定 code owner，並在分支保護設定中要求 code owner 核准；GitHub 的 `CODEOWNERS` 會協助指定審查人，是否強制核准則仍要由 repository 的保護規則設定。[GitHub：About code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners) 再加上必要測試、型別檢查與依賴規則，才能讓審查聚焦於設計而不是只數行數。
+
+## 模組化單體也能守住程式碼邊界
+
+若同一團隊仍共同發布、模組共用資料模型，而且拆成服務沒有換來獨立部署或故障隔離，先把單體內部模組化通常更直接。Shopify 曾在 Rails 單體中按業務責任整理元件，再用 Packwerk 檢查依賴圖與封裝違規，將模組規則放進 PR 工作流程；這是大型程式庫採用模組邊界的實務案例，不是微服務與單體成效的對照實驗。[Shopify：Deconstructing the Monolith](https://shopify.engineering/shopify-monolith)
+
+Martin Fowler 對微服務的說明也把獨立部署和穩定模組邊界列為其重要特性，同時提醒服務架構需要承擔分散式系統的成本。[Microservices](https://martinfowler.com/articles/microservices.html) 因此，是否抽成服務，應看團隊是否需要並能操作真正的部署、測試、資料與故障自治；若目前只需要限制跨模組引用，進程內的模組邊界可能已足夠。這是依上述案例與架構特性得出的工程建議。
+
+## 分兩張清單做決策
+
+在下一次架構討論中，拿最近三個 AI 協作 PR 做一次短稽核，分開記錄：
+
+- **合併前漏了什麼：** 變更是否跨越不相干的模組、設計是否有人完整審查、測試是否覆蓋整體行為、依賴規則是否可自動檢查？
+- **執行期需要隔離什麼：** 哪項能力需要獨立發布、獨立擴縮、不同可用性目標，或在失敗時保護其他能力？
+
+如果主要問題落在第一張清單，就先修 PR 範圍、owner 審查、測試與架構檢查；如果第二張清單有明確而持續的業務需求，再評估服務邊界及其營運成本。不要讓「AI 寫得很快」直接變成「每個模組都要成為微服務」。
+
+這篇是 [模組化單體與 AI Agent 邊界治理](/blog/ddd-modular-monolith-ai-agent-guardrails/) 的延伸：前文處理如何在同一程序內守住模組依賴，本文再把合併品質與執行期故障隔離分開。它也是 [DDD 戰略設計實戰系列](/series/ddd-%E6%88%B0%E7%95%A5%E8%A8%AD%E8%A8%88%E5%AF%A6%E6%88%B0-%E5%BE%9E%E6%A5%AD%E5%8B%99%E9%82%8A%E7%95%8C%E5%88%B0%E7%B3%BB%E7%B5%B1%E6%9E%B6%E6%A7%8B/) 的第六篇，從服務邊界回到一個可操作的架構決策。

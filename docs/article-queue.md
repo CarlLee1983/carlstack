@@ -34,6 +34,8 @@
 - [x] **第 2 篇（已發布）：** [拆解 God Object 的手術刀：限界上下文（Bounded Context）的切分訊號與多模型實踐](src/content/blog/ddd-bounded-context-god-object-refactoring.mdx)（全域模型幻覺、邊界四大訊號、上帝物件拆解、TypeScript 實踐）
 - [x] **第 3 篇（已發布）：** [拒絕被上游餵毒：上下文映射（Context Mapping）與防腐層（ACL）的工程模式](src/content/blog/ddd-context-mapping-anti-corruption-layer.mdx)（系統拓撲關係、ACL 三層結構、生產級防腐轉換器代碼）
 - [x] **第 4 篇（已發布）：** [後微服務時代的架構收斂：模組化單體（Modular Monolith）與 AI Agent 的語義隔離護欄](src/content/blog/ddd-modular-monolith-ai-agent-guardrails.mdx)（Bounded Context 非微服務、進程內硬隔離、Prompt 圍欄、CI 自動化邊界執法）
+- [x] **第 5 篇（已發布）：** [DDD 戰略設計的價值，要看它改變了哪個決策](src/content/blog/ddd-strategic-design-real-world-cases.mdx)（以五個公開案例檢驗子域投資、上下文、拆解順序與團隊責任）
+- [x] **第 6 篇（已發布）：** [AI 寫碼變快，微服務能隔離故障，不能替你審查程式](src/content/blog/ai-era-microservices-change-containment.mdx)（分開治理 AI 變更的合併品質與服務的執行期故障範圍）
 
 ---
 
