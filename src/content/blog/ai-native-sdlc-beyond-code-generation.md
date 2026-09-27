@@ -2,7 +2,7 @@
 title: "當程式碼不再是瓶頸：AI Native SDLC 真正要重構什麼"
 description: "交叉比較 Google、OpenAI、Anthropic 與 LangChain 的軟體開發方法，拆解意圖、驗證、治理與生產回饋如何接手程式碼生成後的新瓶頸。"
 publishDate: 2026-08-31
-updatedDate: 2026-09-04
+updatedDate: 2026-09-27T11:47:40+08:00
 draft: false
 featured: false
 tags:
@@ -154,4 +154,4 @@ AI Native SDLC 不需要一次建立多 Agent 平台。最小起點可以是一�
 
 這個切片若不能降低從意圖到可接受變更的時間，就先修 context、驗證或流程，不要急著增加 Agent 數量。並行只會增加在制品；真正的吞吐量仍受限於團隊能可靠驗證多少結果。
 
-AI Native SDLC 的成熟度，不在於 Agent 能寫多少程式碼，而在於它出錯時，團隊能否及時發現、限制影響、追溯原因，並把同類失敗轉成下一輪不再重複的工程證據。
+AI Native SDLC 的成熟度，不在於 Agent 能寫多少程式碼，而在於它出錯時，團隊能否及時發現、限制影響、追溯原因，並把同類失敗轉成下一輪不再重複的工程證據。若把這條流程往 AI 研發上游延伸，問題還包括模型能否選擇研究方向、驗證證據並建造後繼模型；可接著讀[AI 能自己打造下一代嗎？遞迴自我改進的四道門檻](/blog/recursive-self-improvement-ai-research/)。
