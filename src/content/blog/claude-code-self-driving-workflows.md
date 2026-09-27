@@ -2,6 +2,7 @@
 title: "AGENTS.md 不是越長越好：把 Agent 規則變成可驗證的開發環境"
 description: "從 AGENTS.md、CLAUDE.md、Skills、hooks 到 evals，整理如何刪除過期指令、按需載入工作流程，並用失敗案例維護 Agent 上下文。"
 publishDate: 2026-09-01T09:33:00+08:00
+updatedDate: 2026-09-27T11:32:13+08:00
 draft: false
 featured: false
 tags:
@@ -93,6 +94,8 @@ Subagent 有自己的 context、工具與權限，完成後把摘要交回主 se
 這是本文建議的實作順序。獨立 review 是風險較高時才加入的 gate，不是官方四階段的固定一步。
 
 Plan Mode 的價值是把「理解問題」與「修改程式」分開。驗證的價值則是把「看起來完成」改成「有外部訊號支持完成」。Commit 或 PR 可以是後續交付步驟，但它們涉及 repository history 與外部狀態，仍應由使用者授權，不該被當成 Agent 自動完成的預設條件。
+
+這裡討論的是何時先探索與規劃；若要進一步判斷完整計畫文件是否該成為每個任務的固定前置，可以接著看[Plan Mode 退場，規劃仍在：把決策放回 AI 執行迴圈](/blog/plan-mode-planning-execution-loop/)。
 
 ## 用三個迴圈維護 Agent 上下文
 
