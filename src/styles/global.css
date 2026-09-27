@@ -255,6 +255,26 @@ blockquote {
   width: fit-content;
 }
 
+.eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* 畫面上不顯示、螢幕閱讀器仍會讀到 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

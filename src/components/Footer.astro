@@ -60,7 +60,8 @@ import { siteConfig } from "../config/site";
 <style>
   .site-footer {
     border-block-start: var(--rule-hair) solid var(--color-rule);
-    margin-block-start: var(--space-4xl);
+    /* 頁面底部留白由 .page / .home 的 padding 負責，這裡再加會疊成 15rem */
+    margin-block-start: 0;
     background: var(--color-paper);
     transition: background-color var(--dur-short) var(--ease-out);
   }

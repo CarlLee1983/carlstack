@@ -445,6 +445,23 @@ const articleJsonLd = {
       grid-column: 1;
       grid-row: 1;
     }
+
+    /* 目錄佔掉右欄後，正文在左欄內置中；標題區與文末跟著同一條左緣，
+       不然整頁置中的標題會比正文右移約 9rem。偏移量隨字級縮放同步計算。 */
+    .article-header,
+    .article-footer {
+      margin-inline: max(
+          0px,
+          calc(
+            (
+                100% - 15rem - var(--space-2xl) - var(--prose-width) *
+                  (1 + (var(--font-scale, 1) - 1) * 0.4)
+              ) /
+              2
+          )
+        )
+        auto;
+    }
   }
   .series-section {
     padding: var(--space-xl);

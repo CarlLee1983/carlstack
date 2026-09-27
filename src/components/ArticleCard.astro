@@ -38,11 +38,11 @@ const primaryTag =
         class="article-card-item__cover"
         src={cover}
         alt=""
-        widths={[220, 440]}
+        widths={variant === "row" ? [220, 440] : [440, 720]}
         sizes={
           variant === "row"
             ? "(min-width: 40rem) 8.5rem, 4rem"
-            : "(min-width: 40rem) 9rem, 100vw"
+            : "(min-width: 54rem) 22rem, 100vw"
         }
         loading="lazy"
       />
@@ -137,23 +137,42 @@ const primaryTag =
     background: var(--color-paper-2);
   }
 
-  /* 封面在窄視窗跨滿整列，寬視窗才收成左側縮圖 */
-  .article-card-item--with-cover {
-    grid-template-columns: minmax(0, 1fr) auto;
+  /* Card：封面滿版置頂、內容在下，給格狀精選；卡片等高，摘要截三行 */
+  .article-card-item--card {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "cover cover"
-      "content action";
+      "cover"
+      "content";
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
-  @media (min-width: 40rem) {
-    .article-card-item--with-cover {
-      grid-template-columns: 9rem minmax(0, 1fr) auto;
-      grid-template-areas: "cover content action";
-    }
+  .article-card-item--card .article-card-item__cover {
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    transition: transform var(--dur-long) var(--ease-out);
+  }
 
-    .article-card-item__cover {
-      aspect-ratio: 4 / 3;
-    }
+  .article-card-item--card:hover .article-card-item__cover {
+    transform: scale(1.03);
+  }
+
+  .article-card-item--card .article-card-item__content {
+    padding: var(--space-lg) var(--space-xl) var(--space-xl);
+  }
+
+  .article-card-item--card .article-card-item__action {
+    display: none;
+  }
+
+  .article-card-item--card .article-card-item__desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
   }
 
   .article-card-item__content {
@@ -237,15 +256,6 @@ const primaryTag =
     background: var(--color-accent);
     color: var(--color-accent-ink);
     transform: translateX(3px);
-  }
-
-  @media (max-width: 36rem) {
-    .article-card-item--card {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .article-card-item--card .article-card-item__action {
-      display: none;
-    }
   }
 
   /* Row：去掉盒子，靠髮絲線與留白分段；縮圖在窄視窗也留在左側，清單才不會被封面撐長 */
@@ -366,6 +376,7 @@ const primaryTag =
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .article-card-item--card:hover .article-card-item__cover,
     .article-card-item--row:hover .article-card-item__cover {
       transform: none;
     }

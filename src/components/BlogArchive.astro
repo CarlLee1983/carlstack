@@ -15,9 +15,9 @@ const { pagination, totalPosts } = Astro.props;
 
 <div class="page shell blog-page">
   <header class="page-header blog-header">
-    <div class="hero-eyebrow">
-      <span class="eyebrow-dot"></span>
-      <span>Writing archive / {String(totalPosts).padStart(2, "0")}</span>
+    <div class="eyebrow">
+      <span class="eyebrow-dot" aria-hidden="true"></span>
+      <span>Writing archive · {totalPosts}</span>
     </div>
     <div class="blog-header__copy">
       <h1>文章索引</h1>
@@ -41,21 +41,37 @@ const { pagination, totalPosts } = Astro.props;
       </svg>
     </a>
   </header>
+  <!-- 無 JavaScript 也能用的 GET 搜尋入口；header 的 ⌘K 對話框需要 JS -->
   <div class="blog-toolbar">
-    <form class="search-form" action="/search/" method="get" role="search">
-      <label for="archive-query">搜尋文章</label>
+    <p class="muted">
+      共 {totalPosts} 篇 · 第 {pagination.current} / {pagination.total} 頁 · 最新發布優先
+    </p>
+    <form class="archive-search" action="/search/" method="get" role="search">
+      <label class="visually-hidden" for="archive-query">搜尋文章</label>
+      <svg
+        class="archive-search__icon"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
       <input
         id="archive-query"
         name="q"
         type="search"
-        placeholder="輸入文章關鍵字"
+        placeholder="在文章中搜尋"
         required
       />
-      <button class="button" type="submit">搜尋</button>
+      <button type="submit">搜尋</button>
     </form>
-    <p class="muted">
-      共 {totalPosts} 篇 · 第 {pagination.current} / {pagination.total} 頁 · 最新發布優先
-    </p>
   </div>
   {
     pagination.items.length > 0 ? (
@@ -93,8 +109,9 @@ const { pagination, totalPosts } = Astro.props;
     border-block-end: var(--rule-hair) solid var(--color-rule);
   }
 
-  .blog-header .hero-eyebrow {
+  .blog-header .eyebrow {
     grid-column: 1 / -1;
+    margin: 0;
   }
 
   .blog-header__copy {
@@ -119,9 +136,13 @@ const { pagination, totalPosts } = Astro.props;
     gap: 0;
   }
 
+  /* 頁次資訊與搜尋同一列：左邊說明現在在哪，右邊是精簡的搜尋膠囊 */
   .blog-toolbar {
-    display: grid;
-    gap: var(--space-md);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md) var(--space-xl);
   }
 
   .blog-toolbar p {
@@ -129,8 +150,63 @@ const { pagination, totalPosts } = Astro.props;
     font-variant-numeric: tabular-nums;
   }
 
-  .blog-toolbar .search-form {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .archive-search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    width: min(100%, 24rem);
+    min-height: 2.75rem;
+    padding: 0.25rem 0.25rem 0.25rem var(--space-md);
+    border: var(--rule-hair) solid var(--color-rule-2);
+    border-radius: var(--radius-pill);
+    background: var(--color-card);
+    transition:
+      border-color var(--dur-micro) var(--ease-out),
+      box-shadow var(--dur-micro) var(--ease-out);
+  }
+
+  .archive-search:focus-within {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
+  }
+
+  .archive-search__icon {
+    flex-shrink: 0;
+    color: var(--color-muted);
+  }
+
+  .archive-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+  }
+
+  .archive-search button {
+    flex-shrink: 0;
+    min-height: 2.25rem;
+    padding-inline: var(--space-md);
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-paper-2);
+    color: var(--color-ink-2);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-micro) var(--ease-out),
+      color var(--dur-micro) var(--ease-out);
+  }
+
+  .archive-search button:hover,
+  .archive-search button:focus-visible {
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
   }
 
   .blog-list > :last-child {
