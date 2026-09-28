@@ -1,0 +1,412 @@
+---
+// src/components/VibeCodingDevOpsGuardrailsDiagram.astro
+---
+
+<figure class="vcd-diagram" aria-labelledby="vcd-diagram-caption">
+  <svg
+    class="vcd-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="vcd-diagram-title vcd-diagram-desc"
+  >
+    <title id="vcd-diagram-title">
+      Vibe Coding 時代的 DevOps 五道防禦邊界與治理迴圈
+    </title>
+    <desc id="vcd-diagram-desc">
+      左側為 AI Agent
+      高速生成的變更串流，經由五道核心防護網（架構合約、短週期沙盒、不變量測試、機密與權限隔離、可觀測性防線）逐層過濾驗證，最終交付至具備自動回滾與韌性防禦的生產環境。
+    </desc>
+    <defs>
+      <marker
+        id="vcd-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="vcd-diagram__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path>
+      </marker>
+      <marker
+        id="vcd-arrow-reject"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="vcd-diagram__arrow-reject-head" d="M 0 0 L 8 4 L 0 8 z"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- 背景分區：輸入端、防護層、生產端 -->
+    <rect
+      class="vcd-diagram__zone vcd-diagram__zone--input"
+      x="20"
+      y="24"
+      width="220"
+      height="432"
+      rx="10"></rect>
+    <text class="vcd-diagram__zone-title" x="36" y="52">
+      AGENT GENERATION
+    </text>
+    <text class="vcd-diagram__zone-subtitle" x="36" y="70">
+      高速意圖生成串流
+    </text>
+
+    <!-- 左側輸入卡片 -->
+    <g class="vcd-diagram__card" transform="translate(36, 92)">
+      <rect width="188" height="66" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="26">自然語言 Prompt</text>
+      <text class="vcd-diagram__card-desc" x="14" y="46"
+        >模糊意圖與快速原型</text
+      >
+    </g>
+
+    <g class="vcd-diagram__card" transform="translate(36, 172)">
+      <rect width="188" height="66" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="26">Agent 產生 PR</text>
+      <text class="vcd-diagram__card-desc" x="14" y="46">未通讀的合成代碼</text>
+    </g>
+
+    <g
+      class="vcd-diagram__card vcd-diagram__card--alert"
+      transform="translate(36, 252)"
+    >
+      <rect width="188" height="84" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="26">維運懸崖風險</text>
+      <text class="vcd-diagram__card-desc" x="14" y="46"
+        >隱性相依、連線洩漏</text
+      >
+      <text class="vcd-diagram__card-desc" x="14" y="66"
+        >缺少重試與冪等機制</text
+      >
+    </g>
+
+    <!-- 中央：五道防禦邊界（Guardrails） -->
+    <rect
+      class="vcd-diagram__zone vcd-diagram__zone--guardrails"
+      x="260"
+      y="24"
+      width="440"
+      height="432"
+      rx="10"></rect>
+    <text class="vcd-diagram__zone-title" x="280" y="52">
+      THE 5 DEVOPS GUARDRAILS
+    </text>
+    <text class="vcd-diagram__zone-subtitle" x="280" y="70">
+      機器可驗證的自動化防線
+    </text>
+
+    <!-- Guardrail 1 -->
+    <g class="vcd-diagram__rail-card" transform="translate(280, 92)">
+      <rect width="400" height="58" rx="8"></rect>
+      <circle cx="28" cy="29" r="14" class="vcd-diagram__badge-circle"></circle>
+      <text x="28" y="34" class="vcd-diagram__badge-text">1</text>
+      <text class="vcd-diagram__rail-title" x="54" y="26"
+        >架構邊界合約（Architecture-as-Code）</text
+      >
+      <text class="vcd-diagram__rail-desc" x="54" y="44"
+        >限制 Agent 改動半徑，禁止跨層存取與幽靈依賴</text
+      >
+    </g>
+
+    <!-- Guardrail 2 -->
+    <g class="vcd-diagram__rail-card" transform="translate(280, 160)">
+      <rect width="400" height="58" rx="8"></rect>
+      <circle cx="28" cy="29" r="14" class="vcd-diagram__badge-circle"></circle>
+      <text x="28" y="34" class="vcd-diagram__badge-text">2</text>
+      <text class="vcd-diagram__rail-title" x="54" y="26"
+        >短週期沙盒預覽（Ephemeral Preview）</text
+      >
+      <text class="vcd-diagram__rail-desc" x="54" y="44"
+        >每 PR 獨立資料庫 Branch 與拋棄式容器實例</text
+      >
+    </g>
+
+    <!-- Guardrail 3 -->
+    <g class="vcd-diagram__rail-card" transform="translate(280, 228)">
+      <rect width="400" height="58" rx="8"></rect>
+      <circle cx="28" cy="29" r="14" class="vcd-diagram__badge-circle"></circle>
+      <text x="28" y="34" class="vcd-diagram__badge-text">3</text>
+      <text class="vcd-diagram__rail-title" x="54" y="26"
+        >不變量反向斷言（Invariant Verification）</text
+      >
+      <text class="vcd-diagram__rail-desc" x="54" y="44"
+        >強制檢驗併發扣款、逾時重試與權限越權等失敗案例</text
+      >
+    </g>
+
+    <!-- Guardrail 4 -->
+    <g class="vcd-diagram__rail-card" transform="translate(280, 296)">
+      <rect width="400" height="58" rx="8"></rect>
+      <circle cx="28" cy="29" r="14" class="vcd-diagram__badge-circle"></circle>
+      <text x="28" y="34" class="vcd-diagram__badge-text">4</text>
+      <text class="vcd-diagram__rail-title" x="54" y="26"
+        >機密與最小權限隔離（Zero-Trust IAM）</text
+      >
+      <text class="vcd-diagram__rail-desc" x="54" y="44"
+        >Agent 只能操作 Mock/OIDC 臨時憑證，阻斷靜態金鑰</text
+      >
+    </g>
+
+    <!-- Guardrail 5 -->
+    <g class="vcd-diagram__rail-card" transform="translate(280, 364)">
+      <rect width="400" height="58" rx="8"></rect>
+      <circle cx="28" cy="29" r="14" class="vcd-diagram__badge-circle"></circle>
+      <text x="28" y="34" class="vcd-diagram__badge-text">5</text>
+      <text class="vcd-diagram__rail-title" x="54" y="26"
+        >主動可觀測性防線（Telemetry as Gate）</text
+      >
+      <text class="vcd-diagram__rail-desc" x="54" y="44"
+        >金絲雀發布自動比對 SLO，異常自動觸發原子級回滾</text
+      >
+    </g>
+
+    <!-- 右側：生產交付端 -->
+    <rect
+      class="vcd-diagram__zone vcd-diagram__zone--prod"
+      x="720"
+      y="24"
+      width="220"
+      height="432"
+      rx="10"></rect>
+    <text class="vcd-diagram__zone-title" x="736" y="52">
+      PRODUCTION RESILIENCE
+    </text>
+    <text class="vcd-diagram__zone-subtitle" x="736" y="70">
+      受控的高韌性環境
+    </text>
+
+    <!-- 右側卡片 -->
+    <g
+      class="vcd-diagram__card vcd-diagram__card--success"
+      transform="translate(736, 120)"
+    >
+      <rect width="188" height="74" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="28">受控金絲雀上線</text>
+      <text class="vcd-diagram__card-desc" x="14" y="48">漸進式流量路由</text>
+      <text class="vcd-diagram__card-desc" x="14" y="64">SLO 異常即時回滾</text>
+    </g>
+
+    <g
+      class="vcd-diagram__card vcd-diagram__card--success"
+      transform="translate(736, 230)"
+    >
+      <rect width="188" height="74" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="28"
+        >資產與生命週期登記</text
+      >
+      <text class="vcd-diagram__card-desc" x="14" y="48">綁定負責人與 SLA</text>
+      <text class="vcd-diagram__card-desc" x="14" y="64">明確定案廢棄計畫</text>
+    </g>
+
+    <g class="vcd-diagram__card" transform="translate(736, 340)">
+      <rect width="188" height="74" rx="8"></rect>
+      <text class="vcd-diagram__card-title" x="14" y="28">平台工程進化</text>
+      <text class="vcd-diagram__card-desc" x="14" y="48"
+        >維運經驗沉澱為規則</text
+      >
+      <text class="vcd-diagram__card-desc" x="14" y="64">持續強固守護邊界</text>
+    </g>
+
+    <!-- 連接箭頭 -->
+    <path
+      d="M 224 205 L 260 205"
+      class="vcd-diagram__conn-line"
+      marker-end="url(#vcd-arrow)"></path>
+    <path
+      d="M 680 205 L 720 205"
+      class="vcd-diagram__conn-line"
+      marker-end="url(#vcd-arrow)"></path>
+  </svg>
+
+  <figcaption id="vcd-diagram-caption" class="vcd-diagram__caption">
+    圖 1：Vibe Coding 時代的 DevOps 五道防禦邊界——將人工 Code Review
+    的沈重負擔，轉移為不可逾越的機器驗證守護網。
+  </figcaption>
+</figure>
+
+<style>
+  .vcd-diagram {
+    margin: 2rem 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .vcd-diagram__desktop {
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+    background-color: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #e5e7eb);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__desktop {
+    background-color: var(--color-surface, #111827);
+    border-color: var(--color-border, #374151);
+  }
+
+  .vcd-diagram__zone {
+    fill: var(--color-bg-subtle, #f9fafb);
+    stroke: var(--color-border, #e5e7eb);
+    stroke-width: 1.5;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__zone {
+    fill: #1a2234;
+    stroke: #374151;
+  }
+
+  .vcd-diagram__zone--guardrails {
+    fill: var(--color-bg-subtle, #f0fdf4);
+    stroke: #86efac;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__zone--guardrails {
+    fill: #062817;
+    stroke: #059669;
+  }
+
+  .vcd-diagram__zone-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--color-text-heading, #1f2937);
+    letter-spacing: 0.05em;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__zone-title {
+    fill: #f3f4f6;
+  }
+
+  .vcd-diagram__zone-subtitle {
+    font-size: 11px;
+    fill: var(--color-text-muted, #6b7280);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__zone-subtitle {
+    fill: #9ca3af;
+  }
+
+  .vcd-diagram__card rect {
+    fill: var(--color-surface, #ffffff);
+    stroke: var(--color-border, #d1d5db);
+    stroke-width: 1;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__card rect {
+    fill: #1f2937;
+    stroke: #4b5563;
+  }
+
+  .vcd-diagram__card--alert rect {
+    fill: #fff1f2;
+    stroke: #fca5a5;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__card--alert rect {
+    fill: #4c0519;
+    stroke: #9f1239;
+  }
+
+  .vcd-diagram__card--success rect {
+    fill: #f0fdf4;
+    stroke: #86efac;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__card--success rect {
+    fill: #064e3b;
+    stroke: #10b981;
+  }
+
+  .vcd-diagram__card-title {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--color-text-heading, #111827);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__card-title {
+    fill: #f9fafb;
+  }
+
+  .vcd-diagram__card-desc {
+    font-size: 11px;
+    fill: var(--color-text-muted, #4b5563);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__card-desc {
+    fill: #d1d5db;
+  }
+
+  .vcd-diagram__rail-card rect {
+    fill: var(--color-surface, #ffffff);
+    stroke: #a7f3d0;
+    stroke-width: 1.5;
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__rail-card rect {
+    fill: #132e22;
+    stroke: #047857;
+  }
+
+  .vcd-diagram__badge-circle {
+    fill: #10b981;
+  }
+
+  .vcd-diagram__badge-text {
+    font-size: 12px;
+    font-weight: 700;
+    fill: #ffffff;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  .vcd-diagram__rail-title {
+    font-size: 13px;
+    font-weight: 600;
+    fill: var(--color-text-heading, #111827);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__rail-title {
+    fill: #f9fafb;
+  }
+
+  .vcd-diagram__rail-desc {
+    font-size: 11px;
+    fill: var(--color-text-muted, #4b5563);
+  }
+
+  :root[data-theme="dark"] .vcd-diagram__rail-desc {
+    fill: #d1d5db;
+  }
+
+  .vcd-diagram__conn-line {
+    fill: none;
+    stroke: #10b981;
+    stroke-width: 2.5;
+    stroke-dasharray: 4 2;
+  }
+
+  .vcd-diagram__arrow-head {
+    fill: #10b981;
+  }
+
+  .vcd-diagram__arrow-reject-head {
+    fill: #ef4444;
+  }
+
+  .vcd-diagram__caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #6b7280);
+    text-align: center;
+  }
+</style>
