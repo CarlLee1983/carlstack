@@ -1,0 +1,511 @@
+---
+// src/components/VibeCodingTasteVerificationDiagram.astro
+---
+
+<figure class="vct-diagram" aria-labelledby="vct-diagram-caption">
+  <svg
+    class="vct-diagram__desktop"
+    viewBox="0 0 960 440"
+    role="img"
+    aria-labelledby="vct-diagram-title vct-diagram-desc"
+  >
+    <title id="vct-diagram-title">
+      Vibe Coding 時代的品味驗證與架構裁決雙循環模型
+    </title>
+    <desc id="vct-diagram-desc">
+      左側為生成成本趨近於零的 AI
+      生成湧流，右側為以品味與裁決權為核心的工程約束防線。品味在架構、測試與產品三個層面建立具體驗收閘門，阻斷軟體垃圾進入生產環境。
+    </desc>
+    <defs>
+      <marker
+        id="vct-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="vct-diagram__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path>
+      </marker>
+      <marker
+        id="vct-arrow-reject"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="vct-diagram__arrow-reject-head" d="M 0 0 L 8 4 L 0 8 z"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- 背景邊界與區域劃分 -->
+    <rect
+      class="vct-diagram__zone vct-diagram__zone--generative"
+      x="24"
+      y="28"
+      width="340"
+      height="384"
+      rx="12"></rect>
+    <text class="vct-diagram__zone-title" x="44" y="58">
+      AI GENERATIVE FLOOD（零邊際成本生成）
+    </text>
+
+    <!-- 左側：生成輸入項 -->
+    <g class="vct-diagram__card" transform="translate(44, 80)">
+      <rect width="300" height="74" rx="8"></rect>
+      <text class="vct-diagram__card-title" x="18" y="28"
+        >自然語言意圖（Vibe Prompt）</text
+      >
+      <text class="vct-diagram__card-detail" x="18" y="52"
+        >「幫我刻一個可擴充的排程通知模組」</text
+      >
+    </g>
+
+    <g class="vct-diagram__card" transform="translate(44, 172)">
+      <rect width="300" height="92" rx="8"></rect>
+      <text class="vct-diagram__card-title" x="18" y="28"
+        >LLM 膨脹輸出（High Entropy）</text
+      >
+      <text class="vct-diagram__card-detail" x="18" y="52"
+        >• 產生 800 行看似完美的萬能服務類別</text
+      >
+      <text class="vct-diagram__card-detail" x="18" y="72"
+        >• 靜默吞下邊界錯誤與競態條件</text
+      >
+    </g>
+
+    <g
+      class="vct-diagram__card vct-diagram__card--slop"
+      transform="translate(44, 282)"
+    >
+      <rect width="300" height="106" rx="8"></rect>
+      <text
+        class="vct-diagram__card-title vct-diagram__card-title--danger"
+        x="18"
+        y="28"
+      >
+        無品味失控（Software Landfill）
+      </text>
+      <text class="vct-diagram__card-detail" x="18" y="52"
+        >× 無人理解的深層抽象與幻覺 API</text
+      >
+      <text class="vct-diagram__card-detail" x="18" y="72"
+        >× 閱讀與排錯成本呈指數暴增</text
+      >
+      <text class="vct-diagram__card-detail" x="18" y="92"
+        >× 被視為正常的「隱形技術債危機」</text
+      >
+    </g>
+
+    <!-- 中間裁決過渡連線 -->
+    <path
+      class="vct-diagram__stream"
+      d="M364 218 H 424"
+      marker-end="url(#vct-arrow)"></path>
+    <text
+      class="vct-diagram__stream-label"
+      x="394"
+      y="206"
+      text-anchor="middle"
+    >
+      驗證裁決
+    </text>
+
+    <!-- 右側：品味裁決控制平面 -->
+    <rect
+      class="vct-diagram__zone vct-diagram__zone--authority"
+      x="430"
+      y="28"
+      width="506"
+      height="384"
+      rx="12"></rect>
+    <text
+      class="vct-diagram__zone-title vct-diagram__zone-title--accent"
+      x="452"
+      y="58"
+    >
+      TASTE AS ARCHITECTURAL AUTHORITY（品味即系統裁決權）
+    </text>
+
+    <!-- 右側三層品味防線 -->
+    <g class="vct-diagram__filter-card" transform="translate(452, 80)">
+      <rect width="462" height="88" rx="8"></rect>
+      <text class="vct-diagram__pill" x="18" y="26"
+        >品味第 1 關：邊界與深模組（Architecture Taste）</text
+      >
+      <text class="vct-diagram__filter-body" x="18" y="52">
+        拒絕上帝類別。強迫 Agent 把內部複雜度封進狹窄介面，切斷幽靈依賴。
+      </text>
+      <text class="vct-diagram__filter-rule" x="18" y="72">
+        停止規則：表面積過大或牽涉 3 個以上不相關目錄者，直接打回重構。
+      </text>
+    </g>
+
+    <g class="vct-diagram__filter-card" transform="translate(452, 182)">
+      <rect width="462" height="88" rx="8"></rect>
+      <text class="vct-diagram__pill" x="18" y="26"
+        >品味第 2 關：紅燈測試先行（Verification Taste）</text
+      >
+      <text class="vct-diagram__filter-body" x="18" y="52">
+        不看「跑得通」，看「能否以預期方式失敗」。先寫斷言，再交由 AI 補齊。
+      </text>
+      <text class="vct-diagram__filter-rule" x="18" y="72">
+        停止規則：缺乏失敗邊界證明與覆蓋缺口說明的代碼，不可進入主分支。
+      </text>
+    </g>
+
+    <g class="vct-diagram__filter-card" transform="translate(452, 284)">
+      <rect width="462" height="104" rx="8"></rect>
+      <text class="vct-diagram__pill" x="18" y="26"
+        >品味第 3 關：產品細節的「否定權」（Editorial Taste）</text
+      >
+      <text class="vct-diagram__filter-body" x="18" y="52">
+        品味是敢於拒絕 80% 平庸輸出的勇氣。識別 AI Slop 的模板化設計與偽架構。
+      </text>
+      <text class="vct-diagram__filter-result" x="18" y="76">
+        最終交付：具備高凝聚力、長久生命力且人類與 Agent
+        皆可精準維護的高信賴系統。
+      </text>
+    </g>
+
+    <!-- 打回重修回饋弧線 -->
+    <path
+      class="vct-diagram__reject-arc"
+      d="M 680 388 Q 520 428 220 388"
+      marker-end="url(#vct-arrow-reject)"></path>
+    <text
+      class="vct-diagram__reject-label"
+      x="450"
+      y="426"
+      text-anchor="middle"
+    >
+      否決平庸生成：以品味精確指引 Agent 重新收斂邊界
+    </text>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構化卡片 -->
+  <div class="vct-diagram__mobile">
+    <div class="vct-mcard vct-mcard--generative">
+      <span class="vct-mcard__badge">輸入：AI 生成湧流</span>
+      <h4 class="vct-mcard__title">零邊際成本的程式碼生成</h4>
+      <p class="vct-mcard__desc">
+        自然語言降低了語法門檻，但引發極高的熵增：AI
+        傾向吐出體積肥大、充滿隱形技術債的平庸程式碼（AI Slop）。
+      </p>
+      <div class="vct-mcard__warning">
+        警訊：撰寫程式碼變便宜了，但閱讀、驗證與除錯的代價卻呈指數級暴增。
+      </div>
+    </div>
+
+    <div class="vct-mcard__divider">↓ 通過三大品味驗證閘門</div>
+
+    <div class="vct-mcard vct-mcard--step">
+      <span class="vct-mcard__num">01</span>
+      <h4 class="vct-mcard__step-title">架構品味：深模組與狹窄介面</h4>
+      <p class="vct-mcard__desc">
+        拒絕上帝服務類別。強迫 Agent
+        將複雜實作封裝於簡潔深度的介面之後，杜絕跨目錄的散彈槍式修改。
+      </p>
+    </div>
+
+    <div class="vct-mcard vct-mcard--step">
+      <span class="vct-mcard__num">02</span>
+      <h4 class="vct-mcard__step-title">驗證品味：可重現的失敗證據</h4>
+      <p class="vct-mcard__desc">
+        不問「功能能跑嗎」，只問「在哪些預期條件下會失敗」。以紅燈測試作為驗收防線，不交給
+        AI 盲目自嗨。
+      </p>
+    </div>
+
+    <div class="vct-mcard vct-mcard--step">
+      <span class="vct-mcard__num">03</span>
+      <h4 class="vct-mcard__step-title">編輯品味：行使拒絕平庸的否定權</h4>
+      <p class="vct-mcard__desc">
+        敢於推翻 AI 產出的前三種方案。品味是將 AI
+        從「製造垃圾的怪獸」轉化為「高保真執行手」的主權核心。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="vct-diagram-caption">
+    圖解：Vibe Coding
+    時代的「品味裁決模型」。當技術實作成本趨近於零，區分卓越架構與軟體垃圾的唯一防線在於工程師的系統品味與驗證否定權。
+  </figcaption>
+</figure>
+
+<style>
+  .vct-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .vct-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .vct-diagram__mobile {
+    display: none;
+  }
+
+  /* 區域底色 */
+  .vct-diagram__zone--generative {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5px;
+    stroke-dasharray: 4 4;
+  }
+
+  .vct-diagram__zone--authority {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5px;
+  }
+
+  .vct-diagram__zone-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    fill: var(--dg-muted);
+  }
+
+  .vct-diagram__zone-title--accent {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__zone-title--accent {
+    fill: #38bdf8;
+  }
+
+  /* 左側卡片 */
+  .vct-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .vct-diagram__card--slop rect {
+    stroke: #ef4444;
+    stroke-width: 1.5px;
+    fill: rgba(239, 68, 68, 0.04);
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__card--slop rect {
+    stroke: #f87171;
+    fill: rgba(248, 113, 113, 0.08);
+  }
+
+  .vct-diagram__card-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .vct-diagram__card-title--danger {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__card-title--danger {
+    fill: #f87171;
+  }
+
+  .vct-diagram__card-detail {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+
+  /* 中間流向 */
+  .vct-diagram__stream {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .vct-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .vct-diagram__stream-label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+  }
+
+  /* 右側過濾卡片 */
+  .vct-diagram__filter-card rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .vct-diagram__pill {
+    font-size: 14px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .vct-diagram__filter-body {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+
+  .vct-diagram__filter-rule {
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: #b45309;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__filter-rule {
+    fill: #fbbf24;
+  }
+
+  .vct-diagram__filter-result {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: #15803d;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__filter-result {
+    fill: #4ade80;
+  }
+
+  /* 拒絕回饋弧線 */
+  .vct-diagram__reject-arc {
+    stroke: #dc2626;
+    stroke-width: 1.5px;
+    stroke-dasharray: 5 4;
+    fill: none;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__reject-arc {
+    stroke: #f87171;
+  }
+
+  .vct-diagram__arrow-reject-head {
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__arrow-reject-head {
+    fill: #f87171;
+  }
+
+  .vct-diagram__reject-label {
+    font-size: 12.5px;
+    font-weight: 700;
+    fill: #dc2626;
+  }
+  :global(:root[data-theme="dark"]) .vct-diagram__reject-label {
+    fill: #f87171;
+  }
+
+  figcaption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 窄螢幕媒體查詢 */
+  @media (max-width: 48rem) {
+    .vct-diagram__desktop {
+      display: none !important;
+    }
+
+    .vct-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .vct-mcard {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .vct-mcard--generative {
+      background: var(--dg-surface-2);
+      border-style: dashed;
+    }
+
+    .vct-mcard__badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--dg-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .vct-mcard__title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .vct-mcard__desc {
+      font-size: 0.875rem;
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .vct-mcard__warning {
+      margin-top: 0.75rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.5rem;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #dc2626;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    :global(:root[data-theme="dark"]) .vct-mcard__warning {
+      background: rgba(248, 113, 113, 0.12);
+      border-color: rgba(248, 113, 113, 0.3);
+      color: #f87171;
+    }
+
+    .vct-mcard__divider {
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 800;
+      color: #0284c7;
+      padding: 0.25rem 0;
+    }
+    :global(:root[data-theme="dark"]) .vct-mcard__divider {
+      color: #38bdf8;
+    }
+
+    .vct-mcard--step {
+      position: relative;
+      padding-left: 3.5rem;
+    }
+
+    .vct-mcard__num {
+      position: absolute;
+      left: 1rem;
+      top: 1.25rem;
+      width: 1.8rem;
+      height: 1.8rem;
+      border-radius: 50%;
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8125rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+    }
+
+    .vct-mcard__step-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+      margin: 0 0 0.4rem 0;
+    }
+  }
+</style>
