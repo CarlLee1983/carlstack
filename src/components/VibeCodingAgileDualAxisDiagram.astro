@@ -1,0 +1,517 @@
+---
+// src/components/VibeCodingAgileDualAxisDiagram.astro
+---
+
+<figure class="vc-agile-diagram" aria-labelledby="vc-agile-diagram-caption">
+  <svg
+    class="vc-agile-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="vc-agile-diagram-title vc-agile-diagram-desc"
+  >
+    <title id="vc-agile-diagram-title">
+      Vibe Coding 與敏捷開發：製造速度與方向校準的雙維度收斂
+    </title>
+    <desc id="vc-agile-diagram-desc">
+      圖表展示從隨興盲目 Prompting 到結構化 Spec-driven
+      敏捷工程的轉向。上方維度橫幅對比「產能狂歡」與「方向驗證」，中間為三個獨立縱列卡片（隨興盲目生成、傳統儀式重負、敏捷
+      AI 規範閉環），底部為反模式警示，強調敏捷的核心是短反饋迴圈而非繁文縟節。
+    </desc>
+    <defs>
+      <marker
+        id="vc-agile-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path class="vc-agile-diagram__arrow-head" d="M 0 0 L 8 4 L 0 8 z"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- 頂部維度橫幅導航 (Top Dimension Banner) -->
+    <rect
+      class="vc-agile-diagram__banner-bg"
+      x="20"
+      y="20"
+      width="920"
+      height="64"
+      rx="8"></rect>
+    <text class="vc-agile-diagram__banner-title" x="40" y="48">
+      THE CORE DILEMMA: SPEED OF GENERATION VS. DIRECTION OF VALUE
+    </text>
+    <text class="vc-agile-diagram__banner-subtitle" x="40" y="68">
+      Vibe Coding
+      解決了「寫出程式碼的速度」，敏捷工程解決了「是否做對產品與架構的防腐」
+    </text>
+
+    <!-- 三欄獨立縱列 (Three-Column Layout) -->
+
+    <!-- 第一欄：隨興盲目生成 (Pure Vibe Coding) -->
+    <g class="vc-agile-diagram__col" transform="translate(20, 102)">
+      <rect
+        class="vc-agile-diagram__card-bg vc-agile-diagram__card-bg--alert"
+        width="292"
+        height="240"
+        rx="8"></rect>
+      <rect
+        class="vc-agile-diagram__tag vc-agile-diagram__tag--alert"
+        x="16"
+        y="16"
+        width="110"
+        height="22"
+        rx="4"></rect>
+      <text class="vc-agile-diagram__tag-text" x="24" y="31">
+        純粹 VIBE CODING
+      </text>
+
+      <text class="vc-agile-diagram__col-title" x="16" y="64">
+        產能幻覺與技術債陷阱
+      </text>
+
+      <!-- 條目清單 -->
+      <g transform="translate(16, 84)">
+        <circle class="vc-agile-diagram__bullet--alert" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >無驗收規格的盲目 Prompt</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >依賴 LLM 自行假設邊界與行為</text
+        >
+      </g>
+      <g transform="translate(16, 134)">
+        <circle class="vc-agile-diagram__bullet--alert" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >第 50 天的除熵撞牆期</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >核心邏輯牽一髮動全身，無人敢動</text
+        >
+      </g>
+      <g transform="translate(16, 184)">
+        <circle class="vc-agile-diagram__bullet--alert" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >軟體垃圾掩埋（AI Slop）</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >光速打造「完全沒人想要」的功能</text
+        >
+      </g>
+    </g>
+
+    <!-- 第二欄：傳統敏捷包袱 (Scrum Ceremony Overhead) -->
+    <g class="vc-agile-diagram__col" transform="translate(334, 102)">
+      <rect
+        class="vc-agile-diagram__card-bg vc-agile-diagram__card-bg--neutral"
+        width="292"
+        height="240"
+        rx="8"></rect>
+      <rect
+        class="vc-agile-diagram__tag vc-agile-diagram__tag--neutral"
+        x="16"
+        y="16"
+        width="110"
+        height="22"
+        rx="4"></rect>
+      <text class="vc-agile-diagram__tag-text" x="24" y="31">
+        形式化 SCRUM
+      </text>
+
+      <text class="vc-agile-diagram__col-title" x="16" y="64">
+        儀式重負與效率脫節
+      </text>
+
+      <!-- 條目清單 -->
+      <g transform="translate(16, 84)">
+        <circle class="vc-agile-diagram__bullet--neutral" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >兩週 Sprint 固化排程</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >無法適應小時級別的原型交付</text
+        >
+      </g>
+      <g transform="translate(16, 134)">
+        <circle class="vc-agile-diagram__bullet--neutral" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >點數估算通膨（Point Inflation）</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >把程式碼生成量誤當真實商業價值</text
+        >
+      </g>
+      <g transform="translate(16, 184)">
+        <circle class="vc-agile-diagram__bullet--neutral" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >儀式化會議消耗注意力</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >聚焦於燃盡圖，忽略使用者真實反饋</text
+        >
+      </g>
+    </g>
+
+    <!-- 第三欄：敏捷 AI 規範閉環 (Spec-driven Agile Loop) -->
+    <g class="vc-agile-diagram__col" transform="translate(648, 102)">
+      <rect
+        class="vc-agile-diagram__card-bg vc-agile-diagram__card-bg--primary"
+        width="292"
+        height="240"
+        rx="8"></rect>
+      <rect
+        class="vc-agile-diagram__tag vc-agile-diagram__tag--primary"
+        x="16"
+        y="16"
+        width="110"
+        height="22"
+        rx="4"></rect>
+      <text class="vc-agile-diagram__tag-text" x="24" y="31">
+        SPEC-DRIVEN AGILE
+      </text>
+
+      <text class="vc-agile-diagram__col-title" x="16" y="64">
+        語義約束與真實閉環
+      </text>
+
+      <!-- 條目清單 -->
+      <g transform="translate(16, 84)">
+        <circle class="vc-agile-diagram__bullet--primary" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >User Story 即 Agent 邊界</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >提供防禦型 Context 與明確驗收標準</text
+        >
+      </g>
+      <g transform="translate(16, 134)">
+        <circle class="vc-agile-diagram__bullet--primary" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >TDD / Invariant 自動驗證</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >紅燈測試先於生成，綠燈始得合併</text
+        >
+      </g>
+      <g transform="translate(16, 184)">
+        <circle class="vc-agile-diagram__bullet--primary" cx="6" cy="6" r="3.5"
+        ></circle>
+        <text class="vc-agile-diagram__item-lead" x="16" y="10"
+          >小時級極速真實反饋</text
+        >
+        <text class="vc-agile-diagram__item-desc" x="16" y="26"
+          >把可運行的垂直切片推向真實用戶</text
+        >
+      </g>
+    </g>
+
+    <!-- 底部全幅警示卡片 (Bottom Warning / Anti-Pattern Row) -->
+    <g class="vc-agile-diagram__bottom-row" transform="translate(20, 360)">
+      <rect
+        class="vc-agile-diagram__card-bg vc-agile-diagram__card-bg--summary"
+        width="920"
+        height="96"
+        rx="8"></rect>
+      <text class="vc-agile-diagram__summary-title" x="24" y="32">
+        ENGINEERING VERDICT: 扔掉 Scrum 的外殼儀式，抓牢 Agile
+        的「短反饋迴圈」底線
+      </text>
+      <text class="vc-agile-diagram__summary-desc" x="24" y="56">
+        -
+        速度的意義不在於「產出了多少程式碼」，而在於「多快能拿到使用者的真實反饋並修正方向」。
+      </text>
+      <text class="vc-agile-diagram__summary-desc" x="24" y="76">
+        - 敏捷宣言第一條「可運作的軟體高於詳盡文件」，在 Agent
+        時代升級為「具備可被機器自動驗證的架構契約與切片」。
+      </text>
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構化卡片 -->
+  <div class="vc-agile-diagram__mobile">
+    <div class="vc-agile-diagram__m-banner">
+      <div class="vc-agile-diagram__m-banner-title">
+        THE CORE DILEMMA: 速度 vs. 方向
+      </div>
+      <div class="vc-agile-diagram__m-banner-desc">
+        Vibe Coding 加速了代碼生成，但敏捷工程決定了軟體是否朝正確方向演進。
+      </div>
+    </div>
+
+    <div class="vc-agile-diagram__m-card vc-agile-diagram__m-card--alert">
+      <div class="vc-agile-diagram__m-tag">純粹 VIBE CODING 陷阱</div>
+      <div class="vc-agile-diagram__m-title">產能幻覺與技術債</div>
+      <ul class="vc-agile-diagram__m-list">
+        <li><strong>無規格盲目生成</strong>：依賴 LLM 自行揣測邊界</li>
+        <li><strong>第 50 天維護懸崖</strong>：牽一髮動全身的難以除錯代碼</li>
+        <li><strong>軟體垃圾掩埋</strong>：加速打造完全沒人要的無效功能</li>
+      </ul>
+    </div>
+
+    <div class="vc-agile-diagram__m-card vc-agile-diagram__m-card--neutral">
+      <div class="vc-agile-diagram__m-tag">形式化 SCRUM 包袱</div>
+      <div class="vc-agile-diagram__m-title">儀式繁瑣與進度脫節</div>
+      <ul class="vc-agile-diagram__m-list">
+        <li><strong>兩週 Sprint 固化</strong>：無法跟上小時級原型迭代</li>
+        <li><strong>點數估算通膨</strong>：把生成代碼量當作真實價值</li>
+        <li><strong>儀式化注意力消耗</strong>：沉溺會議而忽略使用者真實體感</li>
+      </ul>
+    </div>
+
+    <div class="vc-agile-diagram__m-card vc-agile-diagram__m-card--primary">
+      <div class="vc-agile-diagram__m-tag">SPEC-DRIVEN AGILE</div>
+      <div class="vc-agile-diagram__m-title">語義約束與驗收閉環</div>
+      <ul class="vc-agile-diagram__m-list">
+        <li><strong>User Story 即邊界</strong>：以防禦型 Context 約束 Agent</li>
+        <li><strong>不變量自動驗收</strong>：失敗測試先行，保障架構不腐</li>
+        <li><strong>小時級極速反饋</strong>：讓真實使用者檢驗垂直切片</li>
+      </ul>
+    </div>
+
+    <div class="vc-agile-diagram__m-card vc-agile-diagram__m-card--summary">
+      <div class="vc-agile-diagram__m-title">核心工程結論</div>
+      <div class="vc-agile-diagram__m-desc">
+        扔掉形式化的會議外殼，徹底貫徹敏捷「小步快跑、以可驗證軟體持續回應變化」的精神。
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="vc-agile-diagram-caption">
+    圖解：Vibe Coding 時代敏捷開發的重構矩陣——從盲目生成到語義規格閉環。
+  </figcaption>
+</figure>
+
+<style>
+  .vc-agile-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .vc-agile-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .vc-agile-diagram__mobile {
+    display: none;
+  }
+
+  /* 桌面端樣式 */
+  .vc-agile-diagram__banner-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+
+  .vc-agile-diagram__banner-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .vc-agile-diagram__banner-title {
+    fill: #38bdf8;
+  }
+
+  .vc-agile-diagram__banner-subtitle {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+
+  .vc-agile-diagram__card-bg {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .vc-agile-diagram__card-bg--alert {
+    stroke: rgba(239, 68, 68, 0.4);
+  }
+  :global(:root[data-theme="dark"]) .vc-agile-diagram__card-bg--alert {
+    stroke: rgba(248, 113, 113, 0.4);
+  }
+
+  .vc-agile-diagram__card-bg--neutral {
+    stroke: var(--dg-rule-strong);
+  }
+
+  .vc-agile-diagram__card-bg--primary {
+    stroke: rgba(14, 165, 233, 0.5);
+  }
+  :global(:root[data-theme="dark"]) .vc-agile-diagram__card-bg--primary {
+    stroke: rgba(56, 189, 248, 0.5);
+  }
+
+  .vc-agile-diagram__card-bg--summary {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+
+  .vc-agile-diagram__tag--alert {
+    fill: rgba(239, 68, 68, 0.15);
+  }
+  .vc-agile-diagram__tag--neutral {
+    fill: var(--dg-rule);
+  }
+  .vc-agile-diagram__tag--primary {
+    fill: rgba(14, 165, 233, 0.15);
+  }
+
+  .vc-agile-diagram__tag-text {
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .vc-agile-diagram__col-title {
+    font-size: 16px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .vc-agile-diagram__bullet--alert {
+    fill: #ef4444;
+  }
+  :global(:root[data-theme="dark"]) .vc-agile-diagram__bullet--alert {
+    fill: #f87171;
+  }
+
+  .vc-agile-diagram__bullet--neutral {
+    fill: var(--dg-muted);
+  }
+
+  .vc-agile-diagram__bullet--primary {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .vc-agile-diagram__bullet--primary {
+    fill: #38bdf8;
+  }
+
+  .vc-agile-diagram__item-lead {
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .vc-agile-diagram__item-desc {
+    font-size: 12.5px;
+    fill: var(--dg-ink-2);
+  }
+
+  .vc-agile-diagram__summary-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+
+  .vc-agile-diagram__summary-desc {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+
+  #vc-agile-diagram-caption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    text-align: center;
+  }
+
+  /* 窄螢幕 Media Query */
+  @media (max-width: 48rem) {
+    .vc-agile-diagram__desktop {
+      display: none !important;
+    }
+
+    .vc-agile-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .vc-agile-diagram__m-banner {
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule-strong);
+    }
+
+    .vc-agile-diagram__m-banner-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #0284c7;
+      margin-bottom: 0.25rem;
+    }
+    :global(:root[data-theme="dark"]) .vc-agile-diagram__m-banner-title {
+      color: #38bdf8;
+    }
+
+    .vc-agile-diagram__m-banner-desc {
+      font-size: 0.8rem;
+      color: var(--dg-ink-2);
+    }
+
+    .vc-agile-diagram__m-card {
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+    }
+
+    .vc-agile-diagram__m-card--alert {
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .vc-agile-diagram__m-card--primary {
+      border-color: rgba(14, 165, 233, 0.5);
+    }
+    .vc-agile-diagram__m-card--summary {
+      background: var(--dg-surface-2);
+      border-color: var(--dg-rule-strong);
+    }
+
+    .vc-agile-diagram__m-tag {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 4px;
+      background: var(--dg-surface-2);
+      color: var(--dg-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .vc-agile-diagram__m-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--dg-ink);
+      margin-bottom: 0.5rem;
+    }
+
+    .vc-agile-diagram__m-list {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--dg-ink-2);
+    }
+
+    .vc-agile-diagram__m-list li {
+      margin-bottom: 0.4rem;
+    }
+
+    .vc-agile-diagram__m-desc {
+      font-size: 0.85rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+  }
+</style>
