@@ -62,4 +62,5 @@
 - `chiphuyen/machine-learning-systems-design`
 - `systemdesign42/system-design-academy`
 - `liquidslr/system-design-notes`
+- `litu54/DevOps-Interview-Guide`
 - `mattpocock/skills` (codebase-design, domain-modeling, ddd-dci-module-builder)

@@ -1,0 +1,690 @@
+<figure class="k8s-diag" aria-labelledby="k8s-diag-caption">
+  <svg
+    class="k8s-diag__desktop"
+    viewBox="0 0 960 520"
+    role="img"
+    aria-labelledby="k8s-diag-title k8s-diag-desc"
+  >
+    <title id="k8s-diag-title">
+      生產級 Kubernetes 故障 5 步定位管線與決策閘門
+    </title>
+    <desc id="k8s-diag-desc">
+      展示由外而內、由控制面到主機核心的 5 步診斷迴圈：Step 1 Pod
+      事件與排程、Step 2 退出碼與歷史日誌、Step 3 探針合約與網路鏈路、Step 4
+      節點與 kubelet CRI、Step 5 核心與 cgroups 實體收割。
+    </desc>
+    <defs>
+      <marker
+        id="k8s-diag-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--dg-rule-strong)"></path>
+      </marker>
+      <marker
+        id="k8s-diag-arrow-accent"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="k8s-diag__arrow-head"></path>
+      </marker>
+    </defs>
+
+    <!-- 頂部標題說明列 -->
+    <rect
+      class="k8s-diag__header-bg"
+      x="20"
+      y="16"
+      width="920"
+      height="44"
+      rx="8"></rect>
+    <text class="k8s-diag__header-title" x="36" y="44">
+      Kubernetes Diagnostic Loop：由控制面到核心層的嚴格排查管線
+    </text>
+    <text class="k8s-diag__header-sub" x="660" y="44">
+      原則：保留現場證據，拒絕盲目重啟
+    </text>
+
+    <!-- 5 欄獨立卡片佈局 -->
+    <!-- Step 1: Pod Events -->
+    <g class="k8s-diag__col" transform="translate(20 76)">
+      <rect class="k8s-diag__card" width="172" height="400" rx="10"></rect>
+      <rect
+        class="k8s-diag__card-banner k8s-diag__card-banner--step1"
+        x="0"
+        y="0"
+        width="172"
+        height="36"
+        rx="10"></rect>
+      <text class="k8s-diag__step-num" x="12" y="24">STEP 01</text>
+      <text class="k8s-diag__step-title" x="12" y="58">Pod 生命週期與事件</text>
+      <text class="k8s-diag__step-sub" x="12" y="76">控制面排程與掛載</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
+
+      <text class="k8s-diag__label" x="12" y="112">核心排查命令</text>
+      <rect
+        class="k8s-diag__code-bg"
+        x="12"
+        y="122"
+        width="148"
+        height="42"
+        rx="4"></rect>
+      <text class="k8s-diag__code" x="18" y="139">kubectl describe</text>
+      <text class="k8s-diag__code" x="18" y="153">pod &lt;pod-name&gt;</text>
+
+      <text class="k8s-diag__label" x="12" y="186">關鍵檢查焦點</text>
+      <text class="k8s-diag__bullet" x="12" y="206">• Pending / 資源不足</text>
+      <text class="k8s-diag__bullet" x="12" y="224">• ImagePullBackOff</text>
+      <text class="k8s-diag__bullet" x="12" y="242">• VolumeMount 掛載卡死</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="260"
+        >• AdmissionWebhook 拒絕</text
+      >
+
+      <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
+
+      <text class="k8s-diag__label k8s-diag__label--gate" x="12" y="302"
+        >終止 / 轉折規則</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="322">若 Events 出現鏡像</text>
+      <text class="k8s-diag__gate-text" x="12" y="338">或權限失敗，直接</text>
+      <text class="k8s-diag__gate-text" x="12" y="354"
+        >查驗 Registry 與 Token</text
+      >
+      <text class="k8s-diag__gate-highlight" x="12" y="380"
+        >↳ 停！不進入容器排查</text
+      >
+    </g>
+
+    <!-- 連接箭頭 1 -> 2 -->
+    <path
+      class="k8s-diag__flow-line"
+      d="M 192 276 L 206 276"
+      marker-end="url(#k8s-diag-arrow)"></path>
+
+    <!-- Step 2: Exit Code & Logs -->
+    <g class="k8s-diag__col" transform="translate(207 76)">
+      <rect class="k8s-diag__card" width="172" height="400" rx="10"></rect>
+      <rect
+        class="k8s-diag__card-banner k8s-diag__card-banner--step2"
+        x="0"
+        y="0"
+        width="172"
+        height="36"
+        rx="10"></rect>
+      <text class="k8s-diag__step-num" x="12" y="24">STEP 02</text>
+      <text class="k8s-diag__step-title" x="12" y="58">退出碼與崩潰日誌</text>
+      <text class="k8s-diag__step-sub" x="12" y="76">容器自毀現場重建</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
+
+      <text class="k8s-diag__label" x="12" y="112">核心排查命令</text>
+      <rect
+        class="k8s-diag__code-bg"
+        x="12"
+        y="122"
+        width="148"
+        height="42"
+        rx="4"></rect>
+      <text class="k8s-diag__code" x="18" y="139">kubectl logs &lt;pod&gt;</text
+      >
+      <text class="k8s-diag__code" x="18" y="153"
+        >--previous -c &lt;app&gt;</text
+      >
+
+      <text class="k8s-diag__label" x="12" y="186">關鍵檢查焦點</text>
+      <text class="k8s-diag__bullet" x="12" y="206">• Exit 0：程序過早結束</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="224"
+        >• Exit 1/2：配置/應用異常</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="242"
+        >• Exit 137：SIGKILL (OOM)</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="260"
+        >• Exit 143：SIGTERM 超時</text
+      >
+
+      <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
+
+      <text class="k8s-diag__label k8s-diag__label--gate" x="12" y="302"
+        >終止 / 轉折規則</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="322"
+        >若為 Exit 137 且日誌</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="338">無 OOM 堆疊，屬</text>
+      <text class="k8s-diag__gate-text" x="12" y="354">cgroup 外部物理收割</text
+      >
+      <text class="k8s-diag__gate-highlight" x="12" y="380"
+        >↳ 跳躍至 Step 05 核驗</text
+      >
+    </g>
+
+    <!-- 連接箭頭 2 -> 3 -->
+    <path
+      class="k8s-diag__flow-line"
+      d="M 379 276 L 393 276"
+      marker-end="url(#k8s-diag-arrow)"></path>
+
+    <!-- Step 3: Probe Contract -->
+    <g class="k8s-diag__col" transform="translate(394 76)">
+      <rect class="k8s-diag__card" width="172" height="400" rx="10"></rect>
+      <rect
+        class="k8s-diag__card-banner k8s-diag__card-banner--step3"
+        x="0"
+        y="0"
+        width="172"
+        height="36"
+        rx="10"></rect>
+      <text class="k8s-diag__step-num" x="12" y="24">STEP 03</text>
+      <text class="k8s-diag__step-title" x="12" y="58">探針合約與網路鏈路</text>
+      <text class="k8s-diag__step-sub" x="12" y="76">健康檢查與端點流量</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
+
+      <text class="k8s-diag__label" x="12" y="112">核心排查命令</text>
+      <rect
+        class="k8s-diag__code-bg"
+        x="12"
+        y="122"
+        width="148"
+        height="42"
+        rx="4"></rect>
+      <text class="k8s-diag__code" x="18" y="139">kubectl get ep,svc</text>
+      <text class="k8s-diag__code" x="18" y="153">--selector=&lt;label&gt;</text
+      >
+
+      <text class="k8s-diag__label" x="12" y="186">關鍵檢查焦點</text>
+      <text class="k8s-diag__bullet" x="12" y="206">• Liveness 誤殺慢啟動</text>
+      <text class="k8s-diag__bullet" x="12" y="224"
+        >• Readiness 抖動踢出 EP</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="242">• 缺少 StartupProbe</text>
+      <text class="k8s-diag__bullet" x="12" y="260">• CoreDNS 5s 解析逾時</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
+
+      <text class="k8s-diag__label k8s-diag__label--gate" x="12" y="302"
+        >終止 / 轉折規則</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="322">若服務正在處理流量</text>
+      <text class="k8s-diag__gate-text" x="12" y="338"
+        >卻持續遭 Liveness 重啟</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="354"
+        >屬探針閥值苛刻反模式</text
+      >
+      <text class="k8s-diag__gate-highlight" x="12" y="380"
+        >↳ 修正探針，禁止改業務</text
+      >
+    </g>
+
+    <!-- 連接箭頭 3 -> 4 -->
+    <path
+      class="k8s-diag__flow-line"
+      d="M 566 276 L 580 276"
+      marker-end="url(#k8s-diag-arrow)"></path>
+
+    <!-- Step 4: Node & Kubelet CRI -->
+    <g class="k8s-diag__col" transform="translate(581 76)">
+      <rect class="k8s-diag__card" width="172" height="400" rx="10"></rect>
+      <rect
+        class="k8s-diag__card-banner k8s-diag__card-banner--step4"
+        x="0"
+        y="0"
+        width="172"
+        height="36"
+        rx="10"></rect>
+      <text class="k8s-diag__step-num" x="12" y="24">STEP 04</text>
+      <text class="k8s-diag__step-title" x="12" y="58">節點狀態與 CRI 運作</text
+      >
+      <text class="k8s-diag__step-sub" x="12" y="76">Worker 主機健康評估</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
+
+      <text class="k8s-diag__label" x="12" y="112">核心排查命令</text>
+      <rect
+        class="k8s-diag__code-bg"
+        x="12"
+        y="122"
+        width="148"
+        height="42"
+        rx="4"></rect>
+      <text class="k8s-diag__code" x="18" y="139">journalctl -u kubelet</text>
+      <text class="k8s-diag__code" x="18" y="153">-u containerd -n 100</text>
+
+      <text class="k8s-diag__label" x="12" y="186">關鍵檢查焦點</text>
+      <text class="k8s-diag__bullet" x="12" y="206">• Node NotReady / PIDs</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="224"
+        >• DiskPressure 磁碟滿載</text
+      >
+      <text class="k8s-diag__bullet" x="12" y="242">• CRI gRPC 通訊逾時</text>
+      <text class="k8s-diag__bullet" x="12" y="260">• kubelet cgroup 驅逐</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
+
+      <text class="k8s-diag__label k8s-diag__label--gate" x="12" y="302"
+        >終止 / 轉折規則</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="322"
+        >若節點處於 DiskPressure</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="338">或 PIDs 耗盡，所有</text>
+      <text class="k8s-diag__gate-text" x="12" y="354">同節點 Pod 均會驅逐</text
+      >
+      <text class="k8s-diag__gate-highlight" x="12" y="380"
+        >↳ 隔離節點 (cordon)</text
+      >
+    </g>
+
+    <!-- 連接箭頭 4 -> 5 -->
+    <path
+      class="k8s-diag__flow-line"
+      d="M 753 276 L 767 276"
+      marker-end="url(#k8s-diag-arrow)"></path>
+
+    <!-- Step 5: Kernel & Cgroups -->
+    <g class="k8s-diag__col" transform="translate(768 76)">
+      <rect class="k8s-diag__card" width="172" height="400" rx="10"></rect>
+      <rect
+        class="k8s-diag__card-banner k8s-diag__card-banner--step5"
+        x="0"
+        y="0"
+        width="172"
+        height="36"
+        rx="10"></rect>
+      <text class="k8s-diag__step-num" x="12" y="24">STEP 05</text>
+      <text class="k8s-diag__step-title" x="12" y="58"
+        >核心日誌與 cgroup 收割</text
+      >
+      <text class="k8s-diag__step-sub" x="12" y="76">實體層級終極收斂</text>
+
+      <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
+
+      <text class="k8s-diag__label" x="12" y="112">核心排查命令</text>
+      <rect
+        class="k8s-diag__code-bg"
+        x="12"
+        y="122"
+        width="148"
+        height="42"
+        rx="4"></rect>
+      <text class="k8s-diag__code" x="18" y="139">dmesg -T | grep -E</text>
+      <text class="k8s-diag__code" x="18" y="153">"oom-killer|invoked"</text>
+
+      <text class="k8s-diag__label" x="12" y="186">關鍵檢查焦點</text>
+      <text class="k8s-diag__bullet" x="12" y="206">• memory cgroup 超標</text>
+      <text class="k8s-diag__bullet" x="12" y="224">• 宿主實體記憶體耗盡</text>
+      <text class="k8s-diag__bullet" x="12" y="242">• oom_score_adj 裁決</text>
+      <text class="k8s-diag__bullet" x="12" y="260"
+        >• CFS 節流 CPU Throttling</text
+      >
+
+      <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
+
+      <text class="k8s-diag__label k8s-diag__label--gate" x="12" y="302"
+        >終止 / 轉折規則</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="322">若 dmesg 明確出現</text>
+      <text class="k8s-diag__gate-text" x="12" y="338"
+        >Task killed as result</text
+      >
+      <text class="k8s-diag__gate-text" x="12" y="354"
+        >of limit in memory cgroup</text
+      >
+      <text class="k8s-diag__gate-highlight" x="12" y="380"
+        >↳ 調高 limit 或修復洩漏</text
+      >
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向卡片結構 -->
+  <div class="k8s-diag__mobile">
+    <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step1">
+      <div class="k8s-diag__mobile-badge">STEP 01</div>
+      <h3>Pod 生命週期與事件（Pod Lifecycle &amp; Events）</h3>
+      <div class="k8s-diag__mobile-code">
+        kubectl describe pod &lt;pod-name&gt;
+      </div>
+      <p class="k8s-diag__mobile-desc">
+        <strong>檢查焦點：</strong> 透過 Events 確認是否卡在調度 Pending、映像檔拉取（ImagePullBackOff）、儲存卷掛載（VolumeMount）超時或
+        Admission Webhook 攔截。
+      </p>
+      <div class="k8s-diag__mobile-gate">
+        <strong>停止規則：</strong> 若 Events 出現鏡像或驗證失敗，直接排查 Registry
+        與 IAM Token，不得直接盲目重啟。
+      </div>
+    </div>
+
+    <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step2">
+      <div class="k8s-diag__mobile-badge">STEP 02</div>
+      <h3>退出碼與崩潰日誌（Exit Code &amp; Logs）</h3>
+      <div class="k8s-diag__mobile-code">
+        kubectl logs &lt;pod&gt; --previous -c &lt;app&gt;
+      </div>
+      <p class="k8s-diag__mobile-desc">
+        <strong>檢查焦點：</strong> 區分 Exit 0（主進程正常結束）、Exit 1/2（應用錯誤）、Exit
+        137（SIGKILL/OOM）與 Exit 143（SIGTERM 正常優雅停機逾時）。務必加 <code
+          >--previous</code
+        > 撈取死前日誌。
+      </p>
+      <div class="k8s-diag__mobile-gate">
+        <strong>停止規則：</strong> 若 Exit Code 為 137 且應用無 OOM 堆疊，代表進程非自行自毀，直接切往
+        Step 05 驗證 cgroup 物理收割。
+      </div>
+    </div>
+
+    <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step3">
+      <div class="k8s-diag__mobile-badge">STEP 03</div>
+      <h3>探針合約與網路鏈路（Probe Contract &amp; Endpoints）</h3>
+      <div class="k8s-diag__mobile-code">
+        kubectl get ep,svc --selector=&lt;app-label&gt;
+      </div>
+      <p class="k8s-diag__mobile-desc">
+        <strong>檢查焦點：</strong> 釐清是進程卡死還是探針設定過苛。排查 Liveness
+        是否過早觸發誤殺冷啟動、Readiness 是否因單次網路延遲將 Pod 踢出 Endpoints
+        導致上游 502/503。
+      </p>
+      <div class="k8s-diag__mobile-gate">
+        <strong>停止規則：</strong> 嚴禁在 Readiness/Liveness Probe 中呼叫下游資料庫；慢啟動應用必須配置
+        StartupProbe，不能單純放大 Liveness 寬限期。
+      </div>
+    </div>
+
+    <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step4">
+      <div class="k8s-diag__mobile-badge">STEP 04</div>
+      <h3>節點狀態與 CRI 運作（Node &amp; Kubelet CRI）</h3>
+      <div class="k8s-diag__mobile-code">
+        journalctl -u kubelet -u containerd -n 100
+      </div>
+      <p class="k8s-diag__mobile-desc">
+        <strong>檢查焦點：</strong> 節點是否處於 Node NotReady、PID 耗盡（PIDPressure）或磁碟滿載（DiskPressure）；檢查
+        containerd 與 kubelet 的 gRPC 通訊是否假死。
+      </p>
+      <div class="k8s-diag__mobile-gate">
+        <strong>停止規則：</strong> 一旦節點爆發資源壓力或 CRI 假死，立刻執行 <code
+          >kubectl cordon</code
+        > 隔離節點，防止調度器將更多流量灌入故障節點。
+      </div>
+    </div>
+
+    <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step5">
+      <div class="k8s-diag__mobile-badge">STEP 05</div>
+      <h3>核心日誌與 cgroup 收割（Kernel &amp; Cgroups）</h3>
+      <div class="k8s-diag__mobile-code">
+        dmesg -T | grep -E "oom-killer|invoked"
+      </div>
+      <p class="k8s-diag__mobile-desc">
+        <strong>檢查焦點：</strong> 檢查 Linux Kernel 的 OOM Killer 記錄。區分是 Pod
+        踩到自身 <code>limits.memory</code> 的 cgroup 限制，還是 Node 整體實體記憶體不足導致的宿主連鎖收割。
+      </p>
+      <div class="k8s-diag__mobile-gate">
+        <strong>停止規則：</strong> 確定為 cgroup OOM 後，檢視 Runtime 的記憶體分配策略（如
+        JVM MaxRAMPercentage），嚴禁無上限調高 memory limit 掩蓋記憶體洩漏。
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="k8s-diag-caption">
+    圖解：生產級 Kubernetes 故障排查的 5 步定位管線（Diagnostic
+    Loop）與具名停止規則
+  </figcaption>
+</figure>
+
+<style>
+  .k8s-diag {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .k8s-diag__desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .k8s-diag__mobile {
+    display: none;
+  }
+
+  /* 頂部 Header */
+  .k8s-diag__header-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .k8s-diag__header-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .k8s-diag__header-sub {
+    font-size: 12px;
+    font-weight: 500;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  /* 欄位卡片通用 */
+  .k8s-diag__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+    transition: stroke 0.2s ease;
+  }
+
+  .k8s-diag__card-banner {
+    opacity: 0.15;
+  }
+
+  .k8s-diag__card-banner--step1 {
+    fill: #0284c7;
+  }
+  .k8s-diag__card-banner--step2 {
+    fill: #e11d48;
+  }
+  .k8s-diag__card-banner--step3 {
+    fill: #0d9488;
+  }
+  .k8s-diag__card-banner--step4 {
+    fill: #d97706;
+  }
+  .k8s-diag__card-banner--step5 {
+    fill: #7c3aed;
+  }
+
+  :global(:root[data-theme="dark"]) .k8s-diag__card-banner {
+    opacity: 0.25;
+  }
+
+  .k8s-diag__step-num {
+    font-size: 11px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  .k8s-diag__step-title {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .k8s-diag__step-sub {
+    font-size: 11px;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+  }
+
+  .k8s-diag__divider {
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+    stroke-dasharray: 2 2;
+  }
+
+  .k8s-diag__label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--dg-muted);
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .k8s-diag__label--gate {
+    fill: #e11d48;
+  }
+  :global(:root[data-theme="dark"]) .k8s-diag__label--gate {
+    fill: #fb7185;
+  }
+
+  .k8s-diag__code-bg {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .k8s-diag__code {
+    font-size: 10px;
+    fill: var(--dg-ink);
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+
+  .k8s-diag__bullet {
+    font-size: 11px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .k8s-diag__gate-text {
+    font-size: 10.5px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .k8s-diag__gate-highlight {
+    font-size: 11px;
+    font-weight: 700;
+    fill: #e11d48;
+    font-family: var(--font-body);
+  }
+  :global(:root[data-theme="dark"]) .k8s-diag__gate-highlight {
+    fill: #fb7185;
+  }
+
+  .k8s-diag__flow-line {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5px;
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* 窄螢幕版面：320px 以上直向排版 */
+  @media (max-width: 52rem) {
+    .k8s-diag__desktop {
+      display: none !important;
+    }
+
+    .k8s-diag__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .k8s-diag__mobile-card {
+      padding: 1.25rem;
+      border-radius: 10px;
+      border: 1px solid var(--dg-rule);
+      background: var(--dg-surface);
+      border-left: 4px solid var(--dg-rule-strong);
+    }
+
+    .k8s-diag__mobile-card--step1 {
+      border-left-color: #0284c7;
+    }
+    .k8s-diag__mobile-card--step2 {
+      border-left-color: #e11d48;
+    }
+    .k8s-diag__mobile-card--step3 {
+      border-left-color: #0d9488;
+    }
+    .k8s-diag__mobile-card--step4 {
+      border-left-color: #d97706;
+    }
+    .k8s-diag__mobile-card--step5 {
+      border-left-color: #7c3aed;
+    }
+
+    .k8s-diag__mobile-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--dg-muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .k8s-diag__mobile-card h3 {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .k8s-diag__mobile-code {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      color: var(--dg-ink);
+      margin-bottom: 0.75rem;
+      word-break: break-all;
+    }
+
+    .k8s-diag__mobile-desc {
+      font-size: var(--text-sm);
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .k8s-diag__mobile-gate {
+      font-size: var(--text-sm);
+      color: #e11d48;
+      background: rgba(225, 29, 72, 0.08);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      line-height: 1.5;
+    }
+    :global(:root[data-theme="dark"]) .k8s-diag__mobile-gate {
+      color: #fb7185;
+      background: rgba(251, 113, 133, 0.12);
+    }
+  }
+</style>

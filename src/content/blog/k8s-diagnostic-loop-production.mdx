@@ -1,0 +1,291 @@
+---
+title: "排查不是猜測：生產級 Kubernetes 故障的 5 步定位法與防禦型探針設計"
+description: "直覺式重啟 Pod 往往是二次雪崩的開始。本文從現場 SRE 排錯鏈路出發，拆解從 Pod 生命週期、退出碼、探針合約到主機 cgroups 的 5 步定位迴圈，並給出停止規則與防禦型探針架構。"
+publishDate: 2026-09-29T16:35:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 軟體品質
+  - 技術選型
+  - 專案復盤
+series: "系統設計面試與架構方法論"
+seriesOrder: 5
+cover: "../../assets/covers/k8s-diagnostic-loop-production.jpg"
+coverAlt: "科技感立體檢測基座中央放置發光容器 Pod，外圍有多層透明診斷環與青色光束，象徵由外向內穿透控制面到作業系統核心的排查定位迴圈。"
+repositoryUrl: "https://github.com/litu54/DevOps-Interview-Guide"
+---
+
+import K8sDiagnosticLoopDiagram from "../../components/K8sDiagnosticLoopDiagram.astro";
+
+凌晨三點，生產環境核心服務的警報聲響起：數十個 Pod 連續崩潰，錯誤率直線飆升。
+
+在許多團隊的 On-call 現狀裡，工程師被叫醒後的第一個動作往往是肌肉記憶般的反射：連上叢集、執行 `kubectl rollout restart deployment`，或者直接 `kubectl delete pod`。
+
+如果運氣好，服務可能在短暫重啟後看似恢復穩定；但如果這是一次高負載下的級聯故障、冷啟動需要預熱快取的重型應用，或者受限於外部 API 配額的服務，**盲目重啟往往只是二次雪崩的起點**。
+
+隨機重啟抹除了容器消亡前的最後現場證據，讓臨時目錄日誌、死前堆疊與核心崩潰信號化為烏有；同時，幾十個容器集體冷啟動瞬間對資料庫湧入的連線風暴，足以在兩分鐘內擊垮整個連線池。
+
+現場排查的核心思維從來不是「碰運氣修復」，而是**嚴格的證據保全與假設驗證（Diagnostic Loop）**。
+
+<K8sDiagnosticLoopDiagram />
+
+---
+
+## 為什麼必須抗拒「直覺式重啟」？
+
+Kubernetes 本身就是一個巨型的狀態收斂引擎（Reconciliation Loop）。當 Pod 進入異常狀態時，Controller-Manager、Kube-Scheduler 與 Kubelet 已經在背後執行了大量的自我修復邏輯。
+
+如果容器反覆重啟並落入 `CrashLoopBackOff`，這不是排程器當機，而是**系統以指數退避（Exponential Backoff）在保護你的基礎設施**。每次失敗後，Kubelet 會將重啟間隔依序拉長（10s、20s、40s 直至 5 分鐘上限），防止崩潰進程把 CPU 吃滿、把磁碟塞爆，或是對下游資料庫進行無差別 DoS 攻擊。
+
+直接手動刪除 Pod 唯一的「效果」，是強行把這個退避保護計時器歸零，讓脆弱的下游再次直面洪峰衝擊。
+
+在碰觸任何修改指令前，必須嚴格遵守第一條停止規則：
+
+> [!IMPORTANT]
+> **排查現場保留準則（Preserve Ephemeral State）**  
+> 在未確認 Pod 的最後退出碼（Exit Code）與死前日誌（`--previous`）之前，**絕對禁止** 執行 `rollout restart` 或刪除 Pod；必要時應立刻將異常 Pod 的 Label 拔除，將其從 Service Endpoints 隔離為除錯孤島，保留現場供即時取證。
+
+---
+
+## Kubernetes 故障排查的 5 步定位管線
+
+面對叢集故障，高階 SRE 與資深架構師的共同特徵，是具備一套由外而內、由抽象控制面層層收斂至實體層的診斷決策鏈路。
+
+### Step 1: Pod 生命週期與控制面事件（Lifecycle & Events）
+
+所有診斷的第一個動作，永遠是檢查控制面給出的歷史判決：
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+不要直接略過輸出跳到最後，必須先看最底部的 `Events` 區塊與中段的 `State` 狀態機：
+
+- **Pending 狀態：** 代表調度器（kube-scheduler）無法為 Pod 找到合適的宿主。常見原因包含節點資源不足（Insufficient cpu/memory）、節點具備不可容忍的污點（Taints/Tolerations 不匹配），或是 PVC 處於 `WaitForFirstConsumer` 卻找不到符合拓撲條件的儲存節點。
+- **ImagePullBackOff / ErrImagePull：** 映像檔拉取受阻。這通常不是單純的 Tag 拼錯，而是多層網路或驗證邊界失效（詳見後文陷阱拆解）。
+- **FailedMount：** 磁碟卷掛載逾時。常見於雲端 EBS 仍被前一台當機的 Worker 鎖定尚未卸載（Multi-Attach error），或是 ConfigMap/Secret 鍵值遺失。
+
+**停止規則：** 若 Events 明顯卡在排程、映像檔或儲存掛載階段，排查邊界停留在控制面與雲基礎設施，**絕不要進入容器內部查應用程式碼**。
+
+---
+
+### Step 2: 退出碼語義與歷史崩潰日誌（Exit Code & Crash Logs）
+
+當 Pod 狀態為 `CrashLoopBackOff` 時，容器已經成功被 Kubelet 啟動過，但進程隨後終止。此時的關鍵是抓出「上一世」的最後遺言：
+
+```bash
+# 抓取容器死前最後吐出的標準輸出
+kubectl logs <pod-name> -c <container-name> --previous --tail=200
+```
+
+搭配 `kubectl get pod <pod-name> -o yaml` 觀察 `lastState.terminated` 中的數值。Linux 進程退出碼遵循嚴格約定，它是最可靠的現場判決書：
+
+- **Exit Code 0：** 代表主進程「正常退出」。容器內部的 PID 1 進程跑完了任務並正常結束。這通常發生在 Web 應用被錯誤包裝在非守護行程的啟動指令中，或者背景 Job 提前執行完畢。
+- **Exit Code 1 / 2：** 應用層主動拋出致命異常退出。例如 Spring Boot / Node.js 啟動時讀不到必填環境變數、資料庫連線逾時或依賴套件版本衝突。日誌內必然留有完整的語言層堆疊（Stack Trace）。
+- **Exit Code 137（128 + 9 = SIGKILL）：** 進程被作業系統以無條件強制訊號 `KILL -9` 斬首。容器自己根本沒有機會抓取這個信號，也不可能留下任何 Graceful Shutdown 日誌。這幾乎是 **cgroup Out of Memory（OOM）** 的鐵證。
+- **Exit Code 143（128 + 15 = SIGTERM）：** 進程收到優雅終止請求，但在 `terminationGracePeriodSeconds`（預設 30 秒）內未能及時清理完畢退出，最後被 Kubelet 補刀強殺。
+
+---
+
+### Step 3: 探針合約與端點健康路由（Probe Contract & Endpoints）
+
+容器明明正在運行，日誌裡沒有任何報錯，但外部流量卻瘋狂收到 HTTP 502/503？或者容器啟動到一半，日誌剛印出 "Starting server..." 就突然重啟？
+
+這是排查鏈路中極容易被忽視的「探針誤殺陷阱」：
+
+```bash
+# 檢查 Pod 是否實際進入端點列表
+kubectl get endpoints <service-name> -n <namespace>
+```
+
+- 如果 Pod 狀態是 `Running`，但 Endpoints 的 IP 列表是空的，代表 **Readiness Probe（就緒探針）** 正在持續失敗。Service 判定該容器尚未準備好承接流量，因此主動在 iptables/IPVS 轉發鏈中將其摘除。
+- 如果 Pod 反覆重啟，且 `kubectl describe pod` 的 Events 中出現 `Liveness probe failed: HTTP probe failed with statuscode: 500`，代表 **Liveness Probe（存活探針）** 正在扮演劊子手。
+
+**停止規則：** 探針的職責是探測「進程是否死鎖」，而不是探測「系統負載是否沉重」。當應用在高負載下回應變慢時，苛刻的 Liveness Probe 會認定容器已死並發動重啟，導致剩餘 Pod 負擔瞬間加劇，觸發毀滅性的級聯雪崩。
+
+---
+
+### Step 4: Worker 節點狀態與 Kubelet CRI 鏈路（Node & Kubelet CRI）
+
+若同一個節點上的多個不同業務 Pod 同步出現不可預期的異常，問題焦點必須立即從單一 Pod 提升到 Worker 實體節點：
+
+```bash
+# 查看節點是否有異常壓力標記
+kubectl describe node <node-name>
+```
+
+重點檢查 `Conditions` 欄位中的四個關鍵指標：
+
+- **MemoryPressure：** 節點整體可用記憶體低於警戒閥值（預設剩餘 < 100Mi）。Kubelet 將啟動 QoS 驅逐演算法，依照 `BestEffort` → `Burstable` 的順序主動收割 Pod。
+- **DiskPressure：** 根檔案系統或映像檔儲存分區可用空間不足（預設可用空間 < 10% 或 inodes < 5%）。此時節點將直接拒絕新容器排程，並開始瘋狂清理未使用的映像檔與死容器。
+- **PIDPressure：** 節點上運行的 Linux 進程總數超過上限，無法再 fork 新線程。
+- **Ready = False / Unknown：** Kubelet 停止向 API Server 發送心跳。可能是主機底層當機、網路隔離，或者 Docker/Containerd 守護行程因為 dead-lock 假死。
+
+**現場搶修指令：**  
+登入該 Worker 節點，調閱 Kubelet 與 Container Runtime（containerd）的系統日誌：
+
+```bash
+journalctl -u kubelet -u containerd -n 200 --no-pager
+```
+
+---
+
+### Step 5: 作業系統核心與 cgroups 實體收割（Kernel & OOM Killer）
+
+排查鏈路的最底層，是 Linux Kernel 的物理真相。
+
+當容器因為 Exit Code 137 消失，且應用日誌中一片空白時，不要在 Pod 層級漫無目的地翻找，直接登入該 Pod 所在的宿主機，調閱內核緩衝區：
+
+```bash
+dmesg -T | grep -E -i "oom-killer|killed process"
+```
+
+你將會看到 Linux 核心最冷酷的判決輸出：
+
+```text
+[Tue Sep 29 16:12:04 2026] Memory cgroup out of memory: Kill process 28491 (node) score 982 or sacrifice child
+[Tue Sep 29 16:12:04 2026] Killed process 28491 (node) total-vm:2847120kB, anon-rss:1048576kB, file-rss:0kB, shmem-rss:0kB
+[Tue Sep 29 16:12:04 2026] oom_reaper: reaped process 28491 (node), now anon-rss:0kB
+```
+
+這行日誌給出兩個不可推翻的工程事實：
+
+1. **Memory cgroup out of memory：** 說明殺手是 cgroup 記憶體控制器，該容器超越了 Pod Spec 中設定的 `resources.limits.memory`。
+2. **Killed process：** 標明了被處決的具體實體 PID 與當時佔用的實體記憶體大小（RSS）。
+
+---
+
+## 兩大經典故障陷阱深度拆解
+
+在面試考題與現場維運中，有兩類故障出現頻率最高，卻也最常因誤判而耗費數小時：
+
+### 陷阱 A：`ImagePullBackOff` 的三層真實邊界
+
+多數人看到 `ImagePullBackOff`，下意識只會確認鏡像名稱與 Tag 是否打錯。然而在成熟的雲原生架構中，鏡像拉取失敗通常是由以下三層邊界破裂引起：
+
+- **第一層：節點層 DNS 解析失效**  
+  Worker 節點無法解析私人 Registry（例如 `harbor.internal.corp` 或 AWS ECR 域名）。嘗試登入節點執行 `dig <registry-domain>`，檢查是否因為 CoreDNS 轉發設定異常或節點 `/etc/resolv.conf` 被覆蓋。
+- **第二層：公開 Registry 節流（Docker Hub Rate Limiting）**  
+  若映像檔來自 Docker Hub 且未設定全域 ImagePullSecret，當整個叢集以相同的 NAT Gateway 公有 IP 對外拉取時，會迅速觸發 Docker Hub 匿名拉取配額（每 6 小時 100 次），返回 `HTTP 429 Too Many Requests`。
+- **第三層：雲端 IAM / OIDC 憑證輪替超時**  
+  在 AWS EKS 或 GCP GKE 中，Kubelet 透過內部 Helper 取得動態存取 Token。若 Node IAM Role 權限收窄，或是節點元數據服務（IMDSv2）因 hop limit 限制被拒絕存取，拉取將在毫無提示的情況下返回 `401 Unauthorized`。
+
+---
+
+### 陷阱 B：`OOMKilled` 的真假邊界——Heap 限制 vs. cgroup 物理限制
+
+很多 Java 與 Node.js 開發者感到困惑：「我的 JVM 明明設定了 `-Xmx4g`，Pod 的 memory limit 設為 `5Gi`，為什麼應用完全沒有噴出 `java.lang.OutOfMemoryError`，容器就暴斃了？」
+
+**這正是執行環境 Heap 與作業系統 cgroup 的語意斷層：**
+
+- JVM 的 `-Xmx` 只限制了 **Java 堆積記憶體（Heap Memory）**。
+- 但進程在 Linux 視角下消耗的記憶體，還包含 **非堆積記憶體（Metaspace / Off-Heap Direct Memory）、JIT 編譯快取、每個執行緒的 Native Stack（預設每個 Thread 佔 1MB），以及 glibc 的記憶體碎片（Memory Fragmentation）**。
+- 當 Heap 吃到 4GB，非 Heap 區段默默爬升到 1.1GB 時，進程的總記憶體消耗已經達到 5.1GB，直接觸撞 Pod Spec 設下的 5GB cgroup 鐵壁。
+- Linux 核心的 cgroup subsystem 絕不會通知 JVM「你超標了請印出堆疊」，而是直接在微秒級別發射 `SIGKILL` 抹殺進程。
+
+```yaml
+# 錯誤示範：Heap 上限等同 cgroup limit（必然導致 cgroup 物理收割）
+spec:
+  containers:
+    - name: api-service
+      resources:
+        limits:
+          memory: "4Gi"
+      env:
+        - name: JAVA_OPTS
+          value: "-Xmx4g -Xms4g" # 毫無安全緩衝區！
+
+# 正確防禦設計：預留至少 25%~30% 給 Off-Heap 與作業系統開銷
+spec:
+  containers:
+    - name: api-service
+      resources:
+        requests:
+          memory: "4Gi"
+        limits:
+          memory: "4Gi"
+      env:
+        - name: JAVA_TOOL_OPTIONS
+          value: "-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+```
+
+---
+
+## 防禦型探針架構：終結「探針殺死容器」的雪崩循環
+
+探針配置不當是分散式系統引發連鎖雪崩最常見的元凶。要終結探針誤殺，必須在架構上徹底切分三種探針的職責：
+
+### 探針職責三要素
+
+- **Startup Probe（啟動探針）：**  
+  **只負責吸收慢啟動延遲。** 對於需要載入巨量機器學習模型、預載靜態快取或執行 JIT 預熱的服務，設定高容忍的 Startup Probe。在它通過之前，Kubelet 會完全停用 Liveness 與 Readiness 檢查，給容器充足的暖機空間。
+- **Readiness Probe（就緒探針）：**  
+  **只負責流量路由控制。** 當容器瞬間並發過高、暫時無力處理新請求時，Readiness 失敗會將其從負載平衡端點中剔除，讓容器能專注消化隊列，待恢復後自動掛回。**嚴格禁止在 Readiness Probe 內連線下游 MySQL 或 Redis**——如果 MySQL 抖動，所有 Pod 的就緒探針會集體轉紅，導致所有 Service 端點被瞬間拔光，引發全站 503 崩潰。
+- **Liveness Probe（存活探針）：**  
+  **只負責進程死鎖復原。** 它應該只檢查最輕量級的進程健康狀態（例如 `/healthz` 回傳 200）。它的逾時時間（timeoutSeconds）與失敗閥值（failureThreshold）必須極其寬鬆，避免在 CPU 滿載排隊時被視為死鎖而遭重啟。
+
+### 生產級防禦範本
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resilient-core-api
+spec:
+  replicas: 5
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0 # 確保滾動更新時容量絕不縮水
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60 # 給予充裕的優雅停機時間
+      containers:
+        - name: core-api
+          image: internal-registry.corp/core-api:v2.4.1
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi" # Guaranteed QoS，降低被驅逐機率
+          # 1. 吸收啟動峰值：最多允許 30 * 3s = 90s 的純啟動時間
+          startupProbe:
+            httpGet:
+              path: /healthz/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 3
+          # 2. 流量閥門：嚴格與外部依賴解耦，只探測本機 HTTP 伺服器
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: 8080
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          # 3. 死鎖防線：極寬鬆的容忍度，絕不在業務忙碌時背刺容器
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: 8080
+            initialDelaySeconds: 0 # 由 startupProbe 承擔保護，此處設 0
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 5
+```
+
+---
+
+## 下一步：將 Diagnostic Loop 固化為工程防線
+
+一個工程團隊是否成熟，不在於是否會遇到故障，而在於**面對故障時，團隊是依賴個人的直覺猜測，還是依賴不可被繞過的診斷防線**：
+
+1. **固化瞬態事件（Ephemeral Events）：**  
+   Kubernetes 預設的 Event 在 1 小時後會被 etcd 自動清理。在生產叢集中部署 `kubernetes-event-exporter`，將所有 Warning 級別的 Event 即時導向 Loki、Elasticsearch 或 CloudWatch，確保事後復盤有據可查。
+2. **制定標準 On-call 決策書（Runbook）：**  
+   將上述的「5 步定位管線」寫入團隊的 incident response 規範。凡是發生 CrashLoopBackOff 或 502 警報，事故處理小組必須先在 Slack 貼出 Step 1 到 Step 3 的指令輸出截圖，才能申請重啟授權。
+3. **消除無效探針：**  
+   審計全站現有的 Deployment 配置，全面檢視是否仍有「在存活探針裡 SELECT 1 資料庫」的雪崩定時炸彈，並為所有冷啟動大於 10 秒的服務補上 `startupProbe`。

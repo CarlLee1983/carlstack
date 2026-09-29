@@ -7,18 +7,19 @@
 
 ## 📚 來源清單與定位分析
 
-| 來源 Repo                                                                                                 | 特色與定位                                                                           | 適合的切入方向                                                           |
-| :-------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| [donnemartin/system-design-primer](https://github.com/donnemartin/system-design-primer)                   | 系統設計界經典教科書，涵蓋擴展性基礎原則、CAP/PACELC、資料庫分片、快取模式與計算估算 | 底層核心理論、經典基礎架構觀念補完                                       |
-| [ByteByteGoHq/system-design-101](https://github.com/ByteByteGoHq/system-design-101)                       | 視覺化架構圖、軟體工程日常模式（站內已發布 97 篇基礎與企業案例）                     | 持續追蹤其最新更新的主題、微架構模式                                     |
-| [karanpratapsingh/system-design](https://github.com/karanpratapsingh/system-design)                       | 條理分明的架構指南，包含架構原則、通訊模式與容錯設計                                 | 架構模組精華與系統拆解指南                                               |
-| [ashishps1/awesome-system-design-resources](https://github.com/ashishps1/awesome-system-design-resources) | 綜合資源清單、各類系統設計主題與面試速查手冊                                         | 選題索引、面試考點橫向對比                                               |
-| [binhnguyennus/awesome-scalability](https://github.com/binhnguyennus/awesome-scalability)                 | 海量高擴展性資源彙整，包含巨頭實踐、資料庫架構、失敗案例復盤                         | 企業級高併發實戰與容災復盤專題                                           |
-| [madd86/awesome-system-design](https://github.com/madd86/awesome-system-design)                           | 分散式系統理論與實踐的高質量架構精選集                                               | 分散式協同、一致性協定深化                                               |
-| [checkcheckzz/system-design-interview](https://github.com/checkcheckzz/system-design-interview)           | 精準的面試題目實戰（如 TinyURL, 搜尋自動補全, 訂票系統等）                           | 具體場景的端到端（E2E）系統設計題目                                      |
-| [chiphuyen/machine-learning-systems-design](https://github.com/chiphuyen/machine-learning-systems-design) | Chip Huyen 的經典 ML 系統架構，聚焦 ML/AI 落地與生產環境工程                         | **ML/AI System Design** 專題（特徵工程、模型服務化、線上監控、資料漂移） |
-| [systemdesign42/system-design-academy](https://github.com/systemdesign42/system-design-academy)           | 體系化的架構學院教材與系統化評估指南                                                 | 系統設計思考框架與系統性查核清單                                         |
-| [liquidslr/system-design-notes](https://github.com/liquidslr/system-design-notes)                         | Alex Xu 經典《System Design Interview》Vol 1 & 2 全 28 章筆記精煉與架構梳理          | 體系化面試實戰、高併發業務場景（支付、S3、遊戲排行榜、地圖、飯店預約）   |
+| 來源 Repo                                                                                                 | 特色與定位                                                                                  | 適合的切入方向                                                           |
+| :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------- |
+| [donnemartin/system-design-primer](https://github.com/donnemartin/system-design-primer)                   | 系統設計界經典教科書，涵蓋擴展性基礎原則、CAP/PACELC、資料庫分片、快取模式與計算估算        | 底層核心理論、經典基礎架構觀念補完                                       |
+| [ByteByteGoHq/system-design-101](https://github.com/ByteByteGoHq/system-design-101)                       | 視覺化架構圖、軟體工程日常模式（站內已發布 97 篇基礎與企業案例）                            | 持續追蹤其最新更新的主題、微架構模式                                     |
+| [karanpratapsingh/system-design](https://github.com/karanpratapsingh/system-design)                       | 條理分明的架構指南，包含架構原則、通訊模式與容錯設計                                        | 架構模組精華與系統拆解指南                                               |
+| [ashishps1/awesome-system-design-resources](https://github.com/ashishps1/awesome-system-design-resources) | 綜合資源清單、各類系統設計主題與面試速查手冊                                                | 選題索引、面試考點橫向對比                                               |
+| [binhnguyennus/awesome-scalability](https://github.com/binhnguyennus/awesome-scalability)                 | 海量高擴展性資源彙整，包含巨頭實踐、資料庫架構、失敗案例復盤                                | 企業級高併發實戰與容災復盤專題                                           |
+| [madd86/awesome-system-design](https://github.com/madd86/awesome-system-design)                           | 分散式系統理論與實踐的高質量架構精選集                                                      | 分散式協同、一致性協定深化                                               |
+| [checkcheckzz/system-design-interview](https://github.com/checkcheckzz/system-design-interview)           | 精準的面試題目實戰（如 TinyURL, 搜尋自動補全, 訂票系統等）                                  | 具體場景的端到端（E2E）系統設計題目                                      |
+| [chiphuyen/machine-learning-systems-design](https://github.com/chiphuyen/machine-learning-systems-design) | Chip Huyen 的經典 ML 系統架構，聚焦 ML/AI 落地與生產環境工程                                | **ML/AI System Design** 專題（特徵工程、模型服務化、線上監控、資料漂移） |
+| [systemdesign42/system-design-academy](https://github.com/systemdesign42/system-design-academy)           | 體系化的架構學院教材與系統化評估指南                                                        | 系統設計思考框架與系統性查核清單                                         |
+| [liquidslr/system-design-notes](https://github.com/liquidslr/system-design-notes)                         | Alex Xu 經典《System Design Interview》Vol 1 & 2 全 28 章筆記精煉與架構梳理                 | 體系化面試實戰、高併發業務場景（支付、S3、遊戲排行榜、地圖、飯店預約）   |
+| [litu54/DevOps-Interview-Guide](https://github.com/litu54/DevOps-Interview-Guide)                         | 彙整 85+ 家企業、150+ 場 2025-2026 現役 DevOps/SRE 真實面試題（K8s, IaC, 觀測性, 故障排查） | SRE/DevOps 生產線排錯、維運防禦、CI/CD 與高可用基礎設施實戰              |
 
 ---
 
