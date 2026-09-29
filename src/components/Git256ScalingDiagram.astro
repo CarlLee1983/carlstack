@@ -1,0 +1,580 @@
+---
+// Git 2.56 Core Scaling & Safety Architecture Diagram
+---
+
+<figure class="git256-diagram" aria-labelledby="git256-caption">
+  <svg
+    class="git256-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="git256-title git256-desc"
+  >
+    <title id="git256-title">
+      Git 2.56 核心架構演進：拓撲遍歷截斷、伺服器端 Path-Walk 與防禦型暫存
+    </title>
+    <desc id="git256-desc">
+      展示 Git 2.56 的三大架構改進：單側獨佔染色提前終止演算法、結合點陣圖與
+      Delta Island 的 Path-Walk Repack，以及原子掃描未合併檔案的 git add
+      --resolved 防禦工作流。
+    </desc>
+
+    <defs>
+      <marker
+        id="git256-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="git256-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- Column 1: Merge Base Early Stopping -->
+    <g class="git256-diagram__card" transform="translate(20, 25)">
+      <rect width="295" height="425" rx="12"></rect>
+      <text
+        class="git256-diagram__badge git256-diagram__badge--blue"
+        x="18"
+        y="26">TOPOLOGY ENGINE</text
+      >
+      <text class="git256-diagram__title" x="18" y="54"
+        >Merge-Base 染色提前終止</text
+      >
+
+      <g transform="translate(16, 72)">
+        <rect
+          width="263"
+          height="96"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--blue"></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--blue"
+          x="14"
+          y="22">過去困境：長尾歷史無效回溯</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >傳統雙向染色為防交錯合併</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >持續掃描早已是共同祖先的長尾</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >Linux 核心需遍歷 16.7 萬步驟</text
+        >
+      </g>
+
+      <path
+        class="git256-diagram__conn"
+        d="M147 176 V194"
+        marker-end="url(#git256-arrow)"></path>
+
+      <g transform="translate(16, 202)">
+        <rect
+          width="263"
+          height="110"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--teal"></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--teal"
+          x="14"
+          y="22">2.56 機制：單側獨佔計數器</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >追蹤兩端「獨佔染色」候選佇列</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >當任一側獨佔 Commit 耗盡時</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >保證無新交會點，立即安全截斷</text
+        >
+      </g>
+
+      <g transform="translate(16, 322)">
+        <rect
+          width="263"
+          height="84"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--metric"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--metric"
+          x="14"
+          y="22">效能躍升：0.29s ➔ 0.01s</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >遍歷從 167,441 驟降至 3,887 步</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >Monorepo 實測平均提速 20~70 倍</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 2: Path-Walk Repack Productionization -->
+    <g class="git256-diagram__card" transform="translate(332, 25)">
+      <rect width="295" height="425" rx="12"></rect>
+      <text
+        class="git256-diagram__badge git256-diagram__badge--purple"
+        x="18"
+        y="26">STORAGE & REPACK</text
+      >
+      <text class="git256-diagram__title" x="18" y="54"
+        >Path-Walk 伺服器端解鎖</text
+      >
+
+      <g transform="translate(16, 72)">
+        <rect
+          width="263"
+          height="96"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--purple"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--purple"
+          x="14"
+          y="22">過去阻礙：高壓縮卻缺防護</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >Path-Walk 節省 71% pack 體積</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >但無法生成可達性點陣圖 (Bitmap)</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >且不支援 Delta Island 隔離邊界</text
+        >
+      </g>
+
+      <path
+        class="git256-diagram__conn"
+        d="M147 176 V194"
+        marker-end="url(#git256-arrow)"></path>
+
+      <g transform="translate(16, 202)">
+        <rect
+          width="263"
+          height="110"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--indigo"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--indigo"
+          x="14"
+          y="22">2.56 突破：雙重架構解鎖</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >1. 支援選取 Commit 產生 Bitmap</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >2. 完整向 Tree 傳播 Island 成員權限</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >伺服器兼得快速枚舉與極致壓縮</text
+        >
+      </g>
+
+      <g transform="translate(16, 322)">
+        <rect
+          width="263"
+          height="84"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--metric"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--metric"
+          x="14"
+          y="22">儲存指標：-71% 容量</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >Fluent UI: 558.5MB ➔ 164.4MB</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >消除了託管平台採用的核心阻礙</text
+        >
+      </g>
+    </g>
+
+    <!-- Column 3: Defensive CLI & git add --resolved -->
+    <g class="git256-diagram__card" transform="translate(645, 25)">
+      <rect width="295" height="425" rx="12"></rect>
+      <text
+        class="git256-diagram__badge git256-diagram__badge--amber"
+        x="18"
+        y="26">DEFENSIVE CLI</text
+      >
+      <text class="git256-diagram__title" x="18" y="54"
+        >git add --resolved 防禦暫存</text
+      >
+
+      <g transform="translate(16, 72)">
+        <rect
+          width="263"
+          height="96"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--amber"></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--amber"
+          x="14"
+          y="22">過去風險：誤暫存與殘留標記</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >`git add -u` 常誤暫存無關修改</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >且會盲目將殘留的 conflict marker</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >寫入 index 進入正式提交</text
+        >
+      </g>
+
+      <path
+        class="git256-diagram__conn"
+        d="M147 176 V194"
+        marker-end="url(#git256-arrow)"></path>
+
+      <g transform="translate(16, 202)">
+        <rect
+          width="263"
+          height="110"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--emerald"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--emerald"
+          x="14"
+          y="22">2.56 機制：原子檢驗護欄</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >僅篩選 index 中 unmerged 衝突檔</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >All-or-nothing: 發現標記全數拒絕</text
+        >
+        <text class="git256-diagram__desc" x="14" y="84"
+          >無關本機變更（如 notes.txt）不受擾</text
+        >
+      </g>
+
+      <g transform="translate(16, 322)">
+        <rect
+          width="263"
+          height="84"
+          rx="8"
+          class="git256-diagram__subcard git256-diagram__subcard--metric"
+        ></rect>
+        <text
+          class="git256-diagram__header git256-diagram__header--metric"
+          x="14"
+          y="22">工程防線：零壞髒提交</text
+        >
+        <text class="git256-diagram__desc" x="14" y="44"
+          >從人肉視覺排查升級為指令級攔截</text
+        >
+        <text class="git256-diagram__desc" x="14" y="64"
+          >維護者與複雜合併工作流標配</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構化卡片 -->
+  <div class="git256-diagram__mobile">
+    <div class="git256-diagram__mcard">
+      <div class="git256-diagram__mbadge git256-diagram__mbadge--blue">
+        TOPOLOGY ENGINE
+      </div>
+      <h3 class="git256-diagram__mtitle">1. Merge-Base 雙向染色提前終止</h3>
+      <p class="git256-diagram__mdesc">
+        追蹤佇列中「僅被單側獨佔染色」的 Commit
+        數量。一旦其中一側候選佇列耗盡，拓撲上便不可能產生新交會點，Git
+        立即終止無效遍歷。Linux 核心 <code>merge-base</code> 步驟由 16.7 萬降至 3,887
+        步，耗時從 0.29s 降至 0.01s。
+      </p>
+    </div>
+
+    <div class="git256-diagram__mcard">
+      <div class="git256-diagram__mbadge git256-diagram__mbadge--purple">
+        STORAGE & REPACK
+      </div>
+      <h3 class="git256-diagram__mtitle">2. Path-Walk 伺服器端架構解鎖</h3>
+      <p class="git256-diagram__mdesc">
+        以檔案路徑深度聚類 delta 壓縮（體積縮減達
+        71%），並首次補全可達性點陣圖（Bitmap）支援與 Delta Island
+        權限傳播簿記，消除了大型託管平台採用的關鍵障礙。
+      </p>
+    </div>
+
+    <div class="git256-diagram__mcard">
+      <div class="git256-diagram__mbadge git256-diagram__mbadge--amber">
+        DEFENSIVE CLI
+      </div>
+      <h3 class="git256-diagram__mtitle">3. git add --resolved 防禦暫存</h3>
+      <p class="git256-diagram__mdesc">
+        僅針對未合併路徑暫存，並在寫入前執行「全有或全無」衝突標記掃描。只要有殘留
+        <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 立即拒絕暫存，同時杜絕 <code
+          >git add -u</code
+        > 誤觸無關本地修改的風險。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="git256-caption">
+    圖解：Git 2.56 核心架構突破——從拓撲遍歷截斷、伺服器端 Repack 到工程防禦暫存
+  </figcaption>
+</figure>
+
+<style>
+  .git256-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .git256-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .git256-diagram__mobile {
+    display: none;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* SVG Tokens */
+  .git256-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1px;
+  }
+
+  .git256-diagram__title {
+    font-size: 17px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+  }
+
+  .git256-diagram__desc {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+  }
+
+  .git256-diagram__header {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-body);
+  }
+
+  .git256-diagram__badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+  }
+
+  .git256-diagram__conn {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .git256-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  /* Subcards and Semantic Accents */
+  .git256-diagram__subcard rect {
+    stroke-width: 1px;
+  }
+
+  .git256-diagram__subcard--blue {
+    fill: #f0f7ff;
+    stroke: #bae0ff;
+  }
+  .git256-diagram__badge--blue {
+    fill: #0958d9;
+  }
+  .git256-diagram__header--blue {
+    fill: #0958d9;
+  }
+
+  .git256-diagram__subcard--teal {
+    fill: #e6fffb;
+    stroke: #87e8de;
+  }
+  .git256-diagram__header--teal {
+    fill: #08979c;
+  }
+
+  .git256-diagram__subcard--purple {
+    fill: #f9f0ff;
+    stroke: #d3adf7;
+  }
+  .git256-diagram__badge--purple {
+    fill: #531dab;
+  }
+  .git256-diagram__header--purple {
+    fill: #531dab;
+  }
+
+  .git256-diagram__subcard--indigo {
+    fill: #f0f5ff;
+    stroke: #adc6ff;
+  }
+  .git256-diagram__header--indigo {
+    fill: #1d39c4;
+  }
+
+  .git256-diagram__subcard--amber {
+    fill: #fffbe6;
+    stroke: #ffe58f;
+  }
+  .git256-diagram__badge--amber {
+    fill: #d46b08;
+  }
+  .git256-diagram__header--amber {
+    fill: #d46b08;
+  }
+
+  .git256-diagram__subcard--emerald {
+    fill: #f6ffed;
+    stroke: #b7eb8f;
+  }
+  .git256-diagram__header--emerald {
+    fill: #389e0d;
+  }
+
+  .git256-diagram__subcard--metric {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+  .git256-diagram__header--metric {
+    fill: var(--dg-ink);
+  }
+
+  /* Dark Mode Styles */
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--blue {
+    fill: rgba(22, 119, 255, 0.12);
+    stroke: rgba(22, 119, 255, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__badge--blue,
+  :global(:root[data-theme="dark"]) .git256-diagram__header--blue {
+    fill: #69b1ff;
+  }
+
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--teal {
+    fill: rgba(19, 194, 194, 0.12);
+    stroke: rgba(19, 194, 194, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__header--teal {
+    fill: #5cdbd3;
+  }
+
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--purple {
+    fill: rgba(114, 46, 209, 0.12);
+    stroke: rgba(114, 46, 209, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__badge--purple,
+  :global(:root[data-theme="dark"]) .git256-diagram__header--purple {
+    fill: #b37feb;
+  }
+
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--indigo {
+    fill: rgba(47, 84, 235, 0.12);
+    stroke: rgba(47, 84, 235, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__header--indigo {
+    fill: #85a5ff;
+  }
+
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--amber {
+    fill: rgba(250, 140, 22, 0.12);
+    stroke: rgba(250, 140, 22, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__badge--amber,
+  :global(:root[data-theme="dark"]) .git256-diagram__header--amber {
+    fill: #ffc069;
+  }
+
+  :global(:root[data-theme="dark"]) .git256-diagram__subcard--emerald {
+    fill: rgba(82, 196, 26, 0.12);
+    stroke: rgba(82, 196, 26, 0.35);
+  }
+  :global(:root[data-theme="dark"]) .git256-diagram__header--emerald {
+    fill: #95de64;
+  }
+
+  figcaption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  /* Mobile Layout */
+  @media (max-width: 48rem) {
+    .git256-diagram__desktop {
+      display: none !important;
+    }
+
+    .git256-diagram__mobile {
+      display: flex !important;
+    }
+
+    .git256-diagram__mcard {
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--color-rule);
+      background-color: var(--color-card);
+    }
+
+    .git256-diagram__mbadge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      margin-bottom: 0.5rem;
+    }
+
+    .git256-diagram__mbadge--blue {
+      color: #0958d9;
+    }
+    .git256-diagram__mbadge--purple {
+      color: #531dab;
+    }
+    .git256-diagram__mbadge--amber {
+      color: #d46b08;
+    }
+
+    :global(:root[data-theme="dark"]) .git256-diagram__mbadge--blue {
+      color: #69b1ff;
+    }
+    :global(:root[data-theme="dark"]) .git256-diagram__mbadge--purple {
+      color: #b37feb;
+    }
+    :global(:root[data-theme="dark"]) .git256-diagram__mbadge--amber {
+      color: #ffc069;
+    }
+
+    .git256-diagram__mtitle {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      color: var(--color-ink);
+    }
+
+    .git256-diagram__mdesc {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      margin: 0;
+      color: var(--color-ink-2);
+    }
+  }
+</style>
