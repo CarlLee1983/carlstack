@@ -2,7 +2,7 @@
 title: "Agent 要能並行，先把工作變成可驗收結果"
 description: "依 Lauren Tan 2026-09-21 的 Cursor Compile 影片，分開信任曲線、CLI 與 feature map、糾正落點，以及 Grok Bot 的 Dune 架構，並給一條把人的糾正上移到檢查的規則。"
 publishDate: 2026-09-24T10:04:30+08:00
-updatedDate: 2026-09-27T14:18:00+08:00
+updatedDate: 2026-09-29T10:58:00+08:00
 draft: false
 featured: false
 tags:
@@ -137,6 +137,8 @@ Grok Bot routines 可以訂閱 Slack 討論串與 Sentry 告警並自動開工�
 翻出你最近打給 Agent 的一則糾正。填上成功證據、驅動用的 CLI，以及它現在落在五層的哪一層。若落在 rules、skills 或 style guide，寫下下一個要上移的檢查，指出哪一個目錄邊界、型別或 lint 會讓同樣的錯誤直接失敗。那個檢查進了 CI 之後，再考慮多開一條工作線。
 
 若下一個問題是多個 Agent 的任務狀態與 review 排程，接著讀 [Grok Bot 的工程管理迴路](/blog/grok-bot-engineering-control-plane/)。若要從任務契約、狀態、權限與 trace 建立 Harness，參考 [Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/)。
+
+驗收能跑之後，下一個問題是怎麼決定要做什麼。她在 pstack 指南第二篇改用原型與型別草圖規劃，整理在[Agent 的計畫要能被程式推翻](/blog/plan-with-code-prototype-over-plan-mode/)。
 
 若你已能把單條工作線做成可驗收結果，接下來可讀[如何把多 Agent 工作從 Session 搬到可交接任務](/blog/coding-agent-session-to-task-handoff/)，看執行者、狀態與審查入口如何一起改變。
 

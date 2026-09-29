@@ -1,0 +1,263 @@
+<figure class="pwc" aria-labelledby="pwc-caption">
+  <svg
+    class="pwc__desktop"
+    viewBox="0 0 960 300"
+    role="img"
+    aria-labelledby="pwc-title pwc-desc"
+  >
+    <title id="pwc-title">用程式規劃的五個階段</title>
+    <desc id="pwc-desc"
+      >Agent 先用自己的話重述問題並追查 how 與
+      why，接著把規格寫成使用者會讀的教學文件，再用拋棄式原型回答開放問題，之後從呼叫端推出型別草圖，最後依草圖實作並以活體驗證收尾。實作若出現同形
+      workaround 或型別逃生門，就丟掉草圖回到第四階段重畫。</desc
+    >
+    <defs>
+      <marker
+        id="pwc-arrow"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path class="pwc__arrow-head" d="M 0 0 L 8 4 L 0 8 z"></path></marker
+      >
+      <marker
+        id="pwc-arrow-return"
+        viewBox="0 0 8 8"
+        refX="7"
+        refY="4"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path class="pwc__arrow-head--return" d="M 0 0 L 8 4 L 0 8 z"
+        ></path></marker
+      >
+    </defs>
+    <path class="pwc__arrow" d="M180 190H206" marker-end="url(#pwc-arrow)"
+    ></path>
+    <path class="pwc__arrow" d="M370 190H396" marker-end="url(#pwc-arrow)"
+    ></path>
+    <path class="pwc__arrow" d="M560 190H586" marker-end="url(#pwc-arrow)"
+    ></path>
+    <path class="pwc__arrow" d="M750 190H776" marker-end="url(#pwc-arrow)"
+    ></path>
+    <path
+      class="pwc__arrow pwc__arrow--return"
+      d="M860 124C840 58 690 58 674 122"
+      marker-end="url(#pwc-arrow-return)"></path>
+    <text class="pwc__return-label" x="765" y="52" text-anchor="middle"
+      >Scrap：證據說形狀錯了就重畫</text
+    >
+    <g class="pwc__card" transform="translate(20 130)"
+      ><rect width="160" height="120" rx="8"></rect><text
+        class="pwc__step"
+        x="14"
+        y="26">01 · GROUND</text
+      ><text class="pwc__title" x="14" y="54">先讓它重述</text><text
+        class="pwc__detail"
+        x="14"
+        y="80">teach · how · why</text
+      ><text class="pwc__detail" x="14" y="100">recall 舊對話</text></g
+    >
+    <g class="pwc__card" transform="translate(210 130)"
+      ><rect width="160" height="120" rx="8"></rect><text
+        class="pwc__step"
+        x="14"
+        y="26">02 · SPEC</text
+      ><text class="pwc__title" x="14" y="54">先寫教學文件</text><text
+        class="pwc__detail"
+        x="14"
+        y="80">Diátaxis 四種模式</text
+      ><text class="pwc__detail" x="14" y="100">可對照的目標</text></g
+    >
+    <g class="pwc__card pwc__card--focus" transform="translate(400 130)"
+      ><rect width="160" height="120" rx="8"></rect><text
+        class="pwc__step"
+        x="14"
+        y="26">03 · PROTOTYPE</text
+      ><text class="pwc__title" x="14" y="54">原型回答問題</text><text
+        class="pwc__detail"
+        x="14"
+        y="80">變體放同一切換器</text
+      ><text class="pwc__detail" x="14" y="100">截圖或量測決定</text></g
+    >
+    <g class="pwc__card pwc__card--focus" transform="translate(590 130)"
+      ><rect width="160" height="120" rx="8"></rect><text
+        class="pwc__step"
+        x="14"
+        y="26">04 · SKETCH</text
+      ><text class="pwc__title" x="14" y="54">呼叫端推型別</text><text
+        class="pwc__detail"
+        x="14"
+        y="80">至少兩種結構</text
+      ><text class="pwc__detail" x="14" y="100">跨模型交叉評審</text></g
+    >
+    <g class="pwc__card" transform="translate(780 130)"
+      ><rect width="160" height="120" rx="8"></rect><text
+        class="pwc__step"
+        x="14"
+        y="26">05 · BUILD</text
+      ><text class="pwc__title" x="14" y="54">照草圖實作</text><text
+        class="pwc__detail"
+        x="14"
+        y="80">小 PR 各自驗收</text
+      ><text class="pwc__detail" x="14" y="100">跑過才算驗證</text></g
+    >
+  </svg>
+  <div class="pwc__mobile" aria-label="用程式規劃的五個階段，直向排列">
+    <div>
+      <span>01 · GROUND</span><strong>先讓它重述</strong><p>
+        用自己的話說出問題，再以 how、why、recall 補齊機制、動機與舊脈絡。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>02 · SPEC</span><strong>先寫教學文件</strong><p>
+        規格寫成使用者會讀的文件，Diátaxis 四種模式不混寫。
+      </p>
+    </div><b>↓</b>
+    <div class="pwc__mobile-focus">
+      <span>03 · PROTOTYPE</span><strong>原型回答問題</strong><p>
+        變體放在同一個切換器，用截圖或量測做決定。
+      </p>
+    </div><b>↓</b>
+    <div class="pwc__mobile-focus">
+      <span>04 · SKETCH</span><strong>呼叫端推型別</strong><p>
+        至少兩種結構不同的草圖，跨模型交叉評審後合成。
+      </p>
+    </div><b>↓</b>
+    <div>
+      <span>05 · BUILD</span><strong>照草圖實作</strong><p>
+        小 PR 各自驗收。證據說形狀錯了，就丟掉草圖回到 04。
+      </p>
+    </div>
+  </div>
+  <figcaption id="pwc-caption">
+    圖：計畫的主體落在 03 與 04，兩者都產出可以被執行推翻的東西。
+  </figcaption>
+</figure>
+
+<style>
+  .pwc {
+    margin: var(--space-xl) 0;
+  }
+  .pwc__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .pwc__mobile {
+    display: none;
+  }
+  .pwc__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .pwc__arrow--return {
+    stroke: #c66a28;
+    stroke-dasharray: 6 5;
+  }
+  .pwc__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .pwc__arrow-head--return {
+    fill: #c66a28;
+  }
+  .pwc__return-label {
+    fill: #a8531a;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .pwc__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .pwc__card--focus rect {
+    fill: #fff3ea;
+    stroke: #c66a28;
+    stroke-width: 2;
+  }
+  .pwc__step {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .pwc__title {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .pwc__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  :global(:root[data-theme="dark"]) .pwc__card--focus rect {
+    fill: #442716;
+    stroke: #f0a15e;
+  }
+  :global(:root[data-theme="dark"]) .pwc__arrow--return {
+    stroke: #f0a15e;
+  }
+  :global(:root[data-theme="dark"]) .pwc__arrow-head--return {
+    fill: #f0a15e;
+  }
+  :global(:root[data-theme="dark"]) .pwc__return-label {
+    fill: #f0a15e;
+  }
+  @media (max-width: 48rem) {
+    .pwc__desktop {
+      display: none !important;
+    }
+    .pwc__mobile {
+      display: grid !important;
+      gap: var(--space-sm);
+    }
+    .pwc__mobile > div {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-md);
+    }
+    .pwc__mobile-focus {
+      background: #fff3ea !important;
+      border-color: #c66a28 !important;
+    }
+    .pwc__mobile span {
+      color: var(--dg-muted);
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .pwc__mobile strong {
+      color: var(--dg-ink);
+      display: block;
+      margin-top: 0.3rem;
+    }
+    .pwc__mobile p {
+      color: var(--dg-ink-2);
+      font-size: var(--text-sm);
+      margin: 0.35rem 0 0;
+    }
+    .pwc__mobile b {
+      color: var(--dg-muted);
+      text-align: center;
+    }
+    :global(:root[data-theme="dark"]) .pwc__mobile-focus {
+      background: #442716 !important;
+      border-color: #f0a15e !important;
+    }
+  }
+</style>

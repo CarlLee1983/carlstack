@@ -1,0 +1,142 @@
+---
+title: "Agent 的計畫要能被程式推翻：用原型與型別草圖取代抽象 Plan"
+description: "依 Lauren Tan 2026-09-09 的〈The Complete Guide to pstack Pt. 2〉與 pstack 0.15.5 原始檔，拆解重述、教學文件、原型、/architect 草圖與多階段計畫五個階段，並給一條決定何時寫計畫、何時做原型的停止規則。"
+publishDate: 2026-09-29T10:58:00+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 軟體品質
+  - 技術選型
+cover: ../../assets/covers/plan-with-code-prototype-over-plan-mode.jpg
+coverAlt: "木工桌左側一卷寫滿草圖的長藍圖被推到桌邊垂落，中央並排拱橋、斜張橋與懸索橋三個結構不同的木製模型，前方另有一組拆開待重組的零件與一把游標卡尺，象徵用可實測的原型取代抽象計畫。"
+series: AI Agent 工程化與工作流實戰
+seriesOrder: 34
+---
+
+import PlanWithCodeDiagram from "../../components/PlanWithCodeDiagram.astro";
+
+2026-09-09，Lauren Tan（@poteto）發了 [pstack 指南第二篇](https://x.com/poteto/status/2097732320606507506)，標題是〈The Complete Guide to pstack Pt. 2〉。第一篇講驗證。這篇接著問：驗證能跑之後，要怎麼決定該做什麼。文中一張截圖的圖說是「八月底，2,462 個 PR 進入 production」。她在 9 月 21 日的影片裡說的是上個月 2,000 個，貼文寫 2,500 個。三個數字的計數區間不同，只能看出量級，不能當成品質證據。
+
+pstack 是她放在 [cursor/plugins](https://github.com/cursor/plugins/tree/main/pstack) 的 Cursor plugin。本文以 2026-09-29 讀到的 0.15.5 原始檔核對文章說法。X Article 裡有幾個超連結錯位，例如 `/teach` 連到 diataxis.fr、「multi-phase planning playbook」連到 `why/SKILL.md`。下文引用的路徑都直接指向 repository。
+
+我的立場是：**規劃的產物必須能被執行推翻，推翻不了的計畫只是在累積信心。**她把這句話換成一套流程。原型、型別草圖、教學文件都能被跑、被編譯、被照著操作，抽象的計畫文件做不到。
+
+<PlanWithCodeDiagram />
+
+## 先讓 Agent 用自己的話重述，再給它你的假設
+
+她觀察到兩種常見失敗。一是意圖沒講清楚，二是 Agent 沒有足夠脈絡去做對。兩者都是 context 的問題。
+
+她的對策是間接提示。Slack 上有人回報問題，她不先寫自己的診斷，而是要 Agent 讀完討論串，用白話重述它認為的根因。這樣做有三個效果。雜訊多的對話被壓成一段問題敘述。Agent 若盯上錯的線索，她能在它寫程式前糾正。她自己的假設也沒機會把 Agent 帶偏。
+
+重述之後，她用四個 skill 補脈絡。原始檔的分工如下：
+
+- **`/how`** 追執行機制。子系統跨多個目錄或服務時，先平行派出 explorer，預設模型是 `grok-4.7-xhigh-fast`，再交給 `claude-opus-5-5-max` 當 explainer 統整。
+- **`/why`** 追動機。它盤點可用的 MCP，把證據分成原始碼控制、議題追蹤、長文件、即時聊天、基礎設施觀測、錯誤追蹤、產品分析倉儲七類，每類派一個調查者平行查。git 永遠可用，其他六類有才查，查不到也記成發現。
+- **`/teach`** 在 `/how` 與 `/why` 之上，把結果寫成人讀得懂的一段說明。
+- **`/recall`** 從過去的對話紀錄重建脈絡，預設範圍是最近 7 天，並要求再用 `git` 與 `gh` 核對 PR 狀態。
+
+她特別提到 `/teach` 對 Agent 本身也有用。模型常在沒讀過程式碼的情況下篤定陳述。要它先解釋給人聽，它就得先把證據找齊。
+
+這一段可以直接帶走的是一個順序：**先要重述，再給診斷**。下面是我會貼進 Agent 的開場，不依賴 pstack：
+
+```text
+讀完這串回報。先不要改任何檔案。
+1. 用白話重述你認為的根本問題，一段以內。
+2. 列出你讀過的檔案與 commit，以及還沒讀但需要讀的。
+3. 標出哪些是推論、哪些有證據。
+我確認重述正確後，你再動手。
+```
+
+## 規格先寫成使用者會讀的文件
+
+她認為多數 harness 的 plan mode 把實作細節寫得太多，其他東西寫得太少。pstack README 的 [why are there no planning skills](https://github.com/cursor/plugins/blob/main/pstack/README.md#why-are-there-no-planning-skills) 一節寫著「i don't believe in planning. the best spec is code.」她在文章裡補充，她其實會規劃，只是用程式規劃。
+
+要做共用套件時，她用 README 驅動開發。先寫給假想使用者看的 API 說明，再倒推實作與架構。她做 Dune 時就是這樣起頭。文中 Dune 指她們內部的桌面應用 client framework。她先要 Agent 寫一份教學，第一版把教學、操作指南、架構說明和 API 參考混在同一份文件裡，讀起來很痛苦。她因此先做了 `/technical-writing`，用 [Diátaxis](https://diataxis.fr/) 把文件拆成四種模式，再接 `/unslop` 處理文字。
+
+這個做法對 Agent 的價值不只是可讀。教學文件是一個具體目標。Agent 寫完程式後，可以照著教學自己操作一遍，看步驟是否成立。計畫裡的「支援虛擬捲動」沒辦法這樣驗。
+
+她示範的組合提示分三段。先 `/recall` 最近 7 天修虛擬化 bug 的紀錄，用 `/how` 與 `/why` 理解現行實作。接著以 `/technical-writing` 寫一份新虛擬化引擎的教學，目標是從根本消除閃爍與抖動。最後要 Agent 用 `/teach` 證明新做法比現行引擎好。第三段要靠第一篇講的驗證 skill，否則「證明」只是另一段論述。
+
+## 開放問題交給原型回答，不交給審查
+
+她點名兩個常見錯誤：接受 Agent 的第一個設計，以及在沒有實證的情況下把計畫越寫越細。
+
+pstack 用 playbook 處理第一個錯誤。playbook 不是 skill，是 `/poteto-mode` 底下依任務類型條件載入的參考檔。她寫 0.15.0 有 23 個。我在 0.15.5 的 [playbooks 目錄](https://github.com/cursor/plugins/tree/main/pstack/skills/poteto-mode/playbooks)數到的也是 23 個。
+
+[prototype playbook](https://github.com/cursor/plugins/blob/main/pstack/skills/poteto-mode/playbooks/prototype.md) 的第一條是限定這個原型要做的決定：哪種版面、哪種互動、哪種行為或時序。原文寫「No decision means no prototype.」接著在與正式程式碼分開的 scratch 目錄做拋棄式實作。要比較多個方案時，全部放在同一個切換器後面並標名。視覺決定用控制 skill 截圖並實際操作。時序決定就記錄時間、印出輸出。產出是決定本身與拋棄式成品，不是可出貨的程式碼。
+
+第二個錯誤，她的處理更直接。她說從不對抽象計畫做對抗式審查，因為 Agent 會開始幻想理論風險，替不會發生的問題設計複雜的防護。這點我同意，也補一個邊界：對抗式審查放在有程式碼、有量測結果之後才有東西可以打。
+
+**停止規則**：一個開放問題若能用一次原型觀察到答案，就不寫進計畫文件辯論。寫不出「這個原型要做哪個決定」時，代表問題本身還沒成形，回到上一節重述。
+
+## 用 /architect 從呼叫端推出型別
+
+她說 Agent 時代的工程師應把時間花在架構、資料結構和系統之間怎麼協作，實作細節交給 Agent。[`/architect`](https://github.com/cursor/plugins/blob/main/pstack/skills/architect/SKILL.md) 把設計拆成幾個階段。原始檔的五段是 Ground、Sketch、Agree、Implement、Scrap，和文章的寫法有一處差異：
+
+- **Ground**：用 `/how` 建出受影響系統的模型。設計若改動所有權或分層，再跑 `/why`，讓既有理由變成限制條件而不是猜測。
+- **Sketch**：透過 `/arena` 平行派出候選設計者，預設三個模型家族各一。每份候選要先寫呼叫端用法，再由此推出型別與函式簽名，主體留 `not implemented`。至少要有兩個結構不同的候選，並逐一比對設計紅旗清單。
+- **Agree**：文章沒提這段。原始檔預設不停下來問人，只有呼叫者明確要求檢查點時才暫停。交叉評審寫在 `/arena` 裡：挑一個與主 Agent 不同家族的模型，依評分標準逐項打分，再合成成一份設計。
+- **Implement**：照草圖填實作。需要草圖沒預期的參數，要回報偏差，不能默默吸收。
+- **Scrap**：證據顯示形狀錯了就整份丟掉，從更小的草圖重來。
+
+Scrap 的訊號寫得很具體，這是整份 skill 裡我最想抄走的部分。同一種 workaround 在不相關的地方反覆出現。多個不相關的邊界情況都要特例分支。型別需要 `any`、強制轉型，或「永遠有值的 optional 欄位」才能編譯。草圖說狀態沒共享，實作卻想加鎖。呼叫端必須知道抽象的內部規則才能用。原始檔也提醒，單一例外不構成判決，資料本身的複雜不等於設計的複雜。
+
+以她的第二個例子「為外部 webhook 加上 rate limiting」來說，Sketch 階段的產出大致長這樣。這是概念片段，不是 pstack 的輸出：
+
+```ts
+// 呼叫端先寫：handler 不應該知道限流怎麼算
+const decision = await webhookLimiter.admit({
+  source: "stripe",
+  endpoint: "/hooks/payments",
+});
+if (decision.kind === "deferred") return respond202(decision.retryAt);
+
+// 由呼叫端推出的型別，主體尚未實作
+type AdmitRequest = { source: WebhookSource; endpoint: string };
+type AdmitDecision = { kind: "admitted" } | { kind: "deferred"; retryAt: Date };
+
+interface WebhookLimiter {
+  admit(req: AdmitRequest): Promise<AdmitDecision>;
+}
+```
+
+另一個候選可能把限流放在 gateway，handler 完全不碰。兩份都能編譯、都能寫原型量測，這才讓交叉評審有可以比較的東西。
+
+## 需要計畫文件時，它是一張驗收清單
+
+pstack 沒有規劃 skill，但有 [multi-phase plan playbook](https://github.com/cursor/plugins/blob/main/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md)。她在設計定案後才用，把它當成戰術層的執行清單。
+
+原始檔的幾條規則值得照搬。變更只有一兩個檔案、做法明顯時，跳過計畫。動筆前先用 prototype playbook 解掉開放問題，只有沒有任何執行能回答的產品或偏好問題才問人。一個 PR 是一個有自己證據的變更。寫完後跑 `check-plan.mjs` 檢查結構。驗證段落固定以一句話開頭：「Tests alone are not sufficient verification.」PR 要單元、活體與效能三組勾選都完成才算驗證。
+
+她也說明計畫的生命週期。一週以上的大專案，她可能暫時把計畫 commit 進 codebase，讓其他 Agent 知道進行中的工作。做完就刪，她不覺得長期保留計畫有價值。
+
+這裡我和她的做法有一處不同。刪計畫沒問題，前提是計畫裡的決定理由已經搬到別處。`/why` 能運作，靠的正是 PR 評論、議題、Slack 裡留下的理由。計畫若是某個取捨唯一的記錄，刪掉它就等於讓下一次 `/why` 查不到答案。我的做法是刪除前掃一遍：難以回頭、沒有脈絡會讓人意外、真的做過取捨的決定，寫成 ADR 或放進 PR 描述，其餘隨計畫一起刪。
+
+## 哪些不要照抄
+
+她的流程建立在幾個你未必有的條件上。
+
+模型分工是她的預設。`/how` 的 explorer、`/arena` 的三個候選、交叉評審都綁特定模型，可以用 `/setup-pstack` 改。重點是候選來自不同家族、評審不和主 Agent 同家族，不是這三個名字。
+
+`/architect`、`/teach`、`/recall` 都設了 `disable-model-invocation: true`，要人手動叫。她說大多數時候只打 `/poteto-mode` 就好，因為 playbook 會自動套用。但這幾個設計階段的 skill 仍然要由人決定何時啟動。
+
+活體驗證要有控制 skill 能驅動的介面。瀏覽器、Electron 與 CLI 有現成做法。沒有控制 skill 的介面，multi-phase plan 要求把它列為風險，而不是假裝有驗證。這和[前一篇談的驗收鏈](/blog/agent-work-requires-verifiable-codebase/)是同一件事：原型和草圖能推翻計畫，前提是有東西能跑它們。
+
+## 下一步
+
+挑你下一個預計要寫計畫文件的非小型變更，先不寫計畫。依序做三件事：讓 Agent 用白話重述問題並列出它讀過的檔案；寫下呼叫端用法，要求至少兩份結構不同的型別草圖；每個開放問題寫成「這個原型要決定什麼」，做不出這句話的問題不准進計畫。做完這三步，剩下需要寫進計畫的，通常只剩 PR 切分與每個 PR 的驗收證據。
+
+## 參考資料
+
+- [Lauren Tan〈The Complete Guide to pstack Pt. 2〉](https://x.com/poteto/status/2097732320606507506)，2026-09-09
+- [Lauren Tan 的 pstack 指南第一篇](https://x.com/poteto/status/2094457600259842065)
+- [cursor/plugins：pstack README](https://github.com/cursor/plugins/blob/main/pstack/README.md)，0.15.5
+- [pstack：architect SKILL](https://github.com/cursor/plugins/blob/main/pstack/skills/architect/SKILL.md)
+- [pstack：arena SKILL](https://github.com/cursor/plugins/blob/main/pstack/skills/arena/SKILL.md)
+- [pstack：prototype playbook](https://github.com/cursor/plugins/blob/main/pstack/skills/poteto-mode/playbooks/prototype.md)
+- [pstack：multi-phase plan playbook](https://github.com/cursor/plugins/blob/main/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md)
+- [pstack：how](https://github.com/cursor/plugins/blob/main/pstack/skills/how/SKILL.md)、[why](https://github.com/cursor/plugins/blob/main/pstack/skills/why/SKILL.md)、[teach](https://github.com/cursor/plugins/blob/main/pstack/skills/teach/SKILL.md)、[recall](https://github.com/cursor/plugins/blob/main/pstack/skills/recall/SKILL.md)
+- [Diátaxis](https://diataxis.fr/)
