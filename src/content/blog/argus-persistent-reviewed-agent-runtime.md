@@ -2,6 +2,7 @@
 title: "長任務不要從聊天紀錄續命：用驗收證據讓 Agent 接著交付"
 description: "以 Microsoft Argus 與一個公開效能 PR 為例，拆解長時間 Agent 工作真正需要保存的狀態、獨立審查與停止規則；用最小任務契約判斷何時值得增加一層 runtime。"
 publishDate: 2026-09-07T09:30:00+08:00
+updatedDate: 2026-09-29
 draft: false
 featured: false
 tags:
@@ -99,3 +100,4 @@ Argus 官方 README 支援多種既有 Agent CLI，也明確列出安裝前提�
 - [Microsoft ArgusAgent 官方倉庫](https://github.com/microsoft/ArgusAgent)
 - [Flash Linear Attention PR #1045](https://github.com/fla-org/flash-linear-attention/pull/1045)
 - [Skill 不會死：把 Agent 指令縮成可驗證的方法，而不是更短的咒語](/blog/agent-methods-over-skill-bulk/)
+- [AI Agent 的擴容單位，不該是整台沙盒](/blog/ai-agent-runtime-durable-scaling/)
