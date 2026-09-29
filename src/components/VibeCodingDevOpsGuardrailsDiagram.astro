@@ -224,6 +224,129 @@
       marker-end="url(#vcd-arrow)"></path>
   </svg>
 
+  <!-- 行動裝置專屬直向結構化卡片版面 -->
+  <div class="vcd-diagram__mobile">
+    <!-- 輸入端 -->
+    <div class="vcd-msection">
+      <div class="vcd-msection__header">
+        <span class="vcd-msection__tag">AGENT GENERATION</span>
+        <span class="vcd-msection__sub">高速意圖生成串流</span>
+      </div>
+      <div class="vcd-mcard">
+        <div class="vcd-mcard__title">自然語言 Prompt</div>
+        <div class="vcd-mcard__desc">模糊意圖與快速原型</div>
+      </div>
+      <div class="vcd-mcard">
+        <div class="vcd-mcard__title">Agent 產生 PR</div>
+        <div class="vcd-mcard__desc">未通讀的合成代碼</div>
+      </div>
+      <div class="vcd-mcard vcd-mcard--alert">
+        <div class="vcd-mcard__title">維運懸崖風險</div>
+        <div class="vcd-mcard__desc">隱性相依、連線洩漏與缺少重試/冪等機制</div>
+      </div>
+    </div>
+
+    <div class="vcd-mflow-arrow">
+      <span class="vcd-mflow-arrow__label">推向生產前強制過濾</span>
+      <span class="vcd-mflow-arrow__icon">↓</span>
+    </div>
+
+    <!-- 五道核心防線 -->
+    <div class="vcd-msection vcd-msection--guardrails">
+      <div class="vcd-msection__header">
+        <span class="vcd-msection__tag vcd-msection__tag--primary"
+          >THE 5 DEVOPS GUARDRAILS</span
+        >
+        <span class="vcd-msection__sub">機器可驗證的自動化防線</span>
+      </div>
+
+      <div class="vcd-mrail-card">
+        <div class="vcd-mrail-card__badge">1</div>
+        <div class="vcd-mrail-card__body">
+          <div class="vcd-mrail-card__title">
+            架構邊界合約（Architecture-as-Code）
+          </div>
+          <div class="vcd-mrail-card__desc">
+            限制 Agent 改動半徑，禁止跨層存取與幽靈依賴
+          </div>
+        </div>
+      </div>
+
+      <div class="vcd-mrail-card">
+        <div class="vcd-mrail-card__badge">2</div>
+        <div class="vcd-mrail-card__body">
+          <div class="vcd-mrail-card__title">
+            短週期沙盒預覽（Ephemeral Preview）
+          </div>
+          <div class="vcd-mrail-card__desc">
+            每 PR 獨立資料庫 Branch 與拋棄式容器實例
+          </div>
+        </div>
+      </div>
+
+      <div class="vcd-mrail-card">
+        <div class="vcd-mrail-card__badge">3</div>
+        <div class="vcd-mrail-card__body">
+          <div class="vcd-mrail-card__title">
+            不變量反向斷言（Invariant Verification）
+          </div>
+          <div class="vcd-mrail-card__desc">
+            強制檢驗併發扣款、逾時重試與權限越權等失敗案例
+          </div>
+        </div>
+      </div>
+
+      <div class="vcd-mrail-card">
+        <div class="vcd-mrail-card__badge">4</div>
+        <div class="vcd-mrail-card__body">
+          <div class="vcd-mrail-card__title">
+            機密與最小權限隔離（Zero-Trust IAM）
+          </div>
+          <div class="vcd-mrail-card__desc">
+            Agent 只能操作 Mock/OIDC 臨時憑證，阻斷靜態金鑰
+          </div>
+        </div>
+      </div>
+
+      <div class="vcd-mrail-card">
+        <div class="vcd-mrail-card__badge">5</div>
+        <div class="vcd-mrail-card__body">
+          <div class="vcd-mrail-card__title">
+            主動可觀測性防線（Telemetry as Gate）
+          </div>
+          <div class="vcd-mrail-card__desc">
+            金絲雀發布自動比對 SLO，異常自動觸發原子級回滾
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="vcd-mflow-arrow">
+      <span class="vcd-mflow-arrow__label">全數綠燈驗收通過</span>
+      <span class="vcd-mflow-arrow__icon">↓</span>
+    </div>
+
+    <!-- 生產交付端 -->
+    <div class="vcd-msection vcd-msection--prod">
+      <div class="vcd-msection__header">
+        <span class="vcd-msection__tag">PRODUCTION RESILIENCE</span>
+        <span class="vcd-msection__sub">受控的高韌性環境</span>
+      </div>
+      <div class="vcd-mcard vcd-mcard--success">
+        <div class="vcd-mcard__title">受控金絲雀上線</div>
+        <div class="vcd-mcard__desc">漸進式流量路由，SLO 異常即時回滾</div>
+      </div>
+      <div class="vcd-mcard vcd-mcard--success">
+        <div class="vcd-mcard__title">資產與生命週期登記</div>
+        <div class="vcd-mcard__desc">綁定負責人與 SLA，明確定案廢棄計畫</div>
+      </div>
+      <div class="vcd-mcard">
+        <div class="vcd-mcard__title">平台工程進化</div>
+        <div class="vcd-mcard__desc">維運經驗沉澱為規則，持續強固守護邊界</div>
+      </div>
+    </div>
+  </div>
+
   <figcaption id="vcd-diagram-caption" class="vcd-diagram__caption">
     圖 1：Vibe Coding 時代的 DevOps 五道防禦邊界——將人工 Code Review
     的沈重負擔，轉移為不可逾越的機器驗證守護網。
@@ -232,7 +355,7 @@
 
 <style>
   .vcd-diagram {
-    margin: 2rem 0;
+    margin: 2.5rem 0;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -240,71 +363,54 @@
   }
 
   .vcd-diagram__desktop {
+    display: block;
     width: 100%;
     max-width: 960px;
     height: auto;
-    background-color: var(--color-surface, #ffffff);
-    border: 1px solid var(--color-border, #e5e7eb);
+    background-color: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
     border-radius: 12px;
     padding: 8px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
 
-  :root[data-theme="dark"] .vcd-diagram__desktop {
-    background-color: var(--color-surface, #111827);
-    border-color: var(--color-border, #374151);
+  .vcd-diagram__mobile {
+    display: none;
+    width: 100%;
   }
 
   .vcd-diagram__zone {
-    fill: var(--color-bg-subtle, #f9fafb);
-    stroke: var(--color-border, #e5e7eb);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
-  :root[data-theme="dark"] .vcd-diagram__zone {
-    fill: #1a2234;
-    stroke: #374151;
-  }
-
   .vcd-diagram__zone--guardrails {
-    fill: var(--color-bg-subtle, #f0fdf4);
+    fill: rgba(16, 185, 129, 0.06);
     stroke: #86efac;
   }
 
-  :root[data-theme="dark"] .vcd-diagram__zone--guardrails {
-    fill: #062817;
+  :global(:root[data-theme="dark"]) .vcd-diagram__zone--guardrails {
+    fill: rgba(5, 150, 105, 0.12);
     stroke: #059669;
   }
 
   .vcd-diagram__zone-title {
     font-size: 13px;
     font-weight: 700;
-    fill: var(--color-text-heading, #1f2937);
+    fill: var(--dg-ink);
     letter-spacing: 0.05em;
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__zone-title {
-    fill: #f3f4f6;
   }
 
   .vcd-diagram__zone-subtitle {
     font-size: 11px;
-    fill: var(--color-text-muted, #6b7280);
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__zone-subtitle {
-    fill: #9ca3af;
+    fill: var(--dg-muted);
   }
 
   .vcd-diagram__card rect {
-    fill: var(--color-surface, #ffffff);
-    stroke: var(--color-border, #d1d5db);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1;
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__card rect {
-    fill: #1f2937;
-    stroke: #4b5563;
   }
 
   .vcd-diagram__card--alert rect {
@@ -312,7 +418,7 @@
     stroke: #fca5a5;
   }
 
-  :root[data-theme="dark"] .vcd-diagram__card--alert rect {
+  :global(:root[data-theme="dark"]) .vcd-diagram__card--alert rect {
     fill: #4c0519;
     stroke: #9f1239;
   }
@@ -322,7 +428,7 @@
     stroke: #86efac;
   }
 
-  :root[data-theme="dark"] .vcd-diagram__card--success rect {
+  :global(:root[data-theme="dark"]) .vcd-diagram__card--success rect {
     fill: #064e3b;
     stroke: #10b981;
   }
@@ -330,29 +436,21 @@
   .vcd-diagram__card-title {
     font-size: 13px;
     font-weight: 600;
-    fill: var(--color-text-heading, #111827);
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__card-title {
-    fill: #f9fafb;
+    fill: var(--dg-ink);
   }
 
   .vcd-diagram__card-desc {
     font-size: 11px;
-    fill: var(--color-text-muted, #4b5563);
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__card-desc {
-    fill: #d1d5db;
+    fill: var(--dg-ink-2);
   }
 
   .vcd-diagram__rail-card rect {
-    fill: var(--color-surface, #ffffff);
+    fill: var(--dg-surface);
     stroke: #a7f3d0;
     stroke-width: 1.5;
   }
 
-  :root[data-theme="dark"] .vcd-diagram__rail-card rect {
+  :global(:root[data-theme="dark"]) .vcd-diagram__rail-card rect {
     fill: #132e22;
     stroke: #047857;
   }
@@ -372,20 +470,12 @@
   .vcd-diagram__rail-title {
     font-size: 13px;
     font-weight: 600;
-    fill: var(--color-text-heading, #111827);
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__rail-title {
-    fill: #f9fafb;
+    fill: var(--dg-ink);
   }
 
   .vcd-diagram__rail-desc {
     font-size: 11px;
-    fill: var(--color-text-muted, #4b5563);
-  }
-
-  :root[data-theme="dark"] .vcd-diagram__rail-desc {
-    fill: #d1d5db;
+    fill: var(--dg-ink-2);
   }
 
   .vcd-diagram__conn-line {
@@ -406,7 +496,180 @@
   .vcd-diagram__caption {
     margin-top: 0.75rem;
     font-size: 0.875rem;
-    color: var(--color-text-muted, #6b7280);
+    color: var(--dg-muted);
     text-align: center;
+    line-height: 1.5;
+  }
+
+  /* 窄螢幕媒體查詢切換 */
+  @media (max-width: 48rem) {
+    .vcd-diagram__desktop {
+      display: none !important;
+    }
+
+    .vcd-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .vcd-msection {
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      border-radius: 10px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .vcd-msection--guardrails {
+      background: rgba(16, 185, 129, 0.05);
+      border-color: #86efac;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-msection--guardrails {
+      background: rgba(5, 150, 105, 0.12);
+      border-color: #059669;
+    }
+
+    .vcd-msection--prod {
+      background: rgba(16, 185, 129, 0.03);
+      border-color: var(--dg-rule-strong);
+    }
+
+    .vcd-msection__header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .vcd-msection__tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--dg-ink);
+    }
+
+    .vcd-msection__tag--primary {
+      color: #059669;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-msection__tag--primary {
+      color: #34d399;
+    }
+
+    .vcd-msection__sub {
+      font-size: 0.8125rem;
+      color: var(--dg-muted);
+    }
+
+    .vcd-mcard {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: 0.75rem 0.875rem;
+    }
+
+    .vcd-mcard--alert {
+      background: #fff1f2;
+      border-color: #fca5a5;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-mcard--alert {
+      background: #4c0519;
+      border-color: #9f1239;
+    }
+
+    .vcd-mcard--success {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-mcard--success {
+      background: #064e3b;
+      border-color: #10b981;
+    }
+
+    .vcd-mcard__title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin-bottom: 0.25rem;
+    }
+
+    .vcd-mcard__desc {
+      font-size: 0.8125rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
+
+    .vcd-mflow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0;
+      color: #059669;
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-mflow-arrow {
+      color: #34d399;
+    }
+
+    .vcd-mflow-arrow__icon {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .vcd-mrail-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: var(--dg-surface);
+      border: 1.5px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 0.75rem 0.875rem;
+    }
+
+    :global(:root[data-theme="dark"]) .vcd-mrail-card {
+      background: #132e22;
+      border-color: #047857;
+    }
+
+    .vcd-mrail-card__badge {
+      width: 1.625rem;
+      height: 1.625rem;
+      border-radius: 50%;
+      background: #10b981;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+
+    .vcd-mrail-card__body {
+      flex: 1;
+    }
+
+    .vcd-mrail-card__title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin-bottom: 0.25rem;
+    }
+
+    .vcd-mrail-card__desc {
+      font-size: 0.8125rem;
+      color: var(--dg-ink-2);
+      line-height: 1.5;
+    }
   }
 </style>
