@@ -1,6 +1,9 @@
 export interface BlogDataShape {
   publishDate: Date;
+  updatedDate?: Date;
   draft: boolean;
+  featured?: boolean;
+  featuredUntil?: Date;
   tags: string[];
   series?: string;
   seriesOrder?: number;
@@ -70,4 +73,36 @@ export function sortByPostCount<T extends WithPosts>(groups: T[]): T[] {
       right.posts.length - left.posts.length ||
       left.name.localeCompare(right.name, "zh-Hant"),
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function isActiveFeatured(data: BlogDataShape, now: Date): boolean {
+  if (!data.featured || !data.featuredUntil) return false;
+  // featuredUntil 是日期，當天整天仍算有效。
+  return now.getTime() < data.featuredUntil.getTime() + DAY_MS;
+}
+
+function lastTouched(data: BlogDataShape): number {
+  return (data.updatedDate ?? data.publishDate).getTime();
+}
+
+/**
+ * 首頁精選：先取未過期的精選（保留輸入順序），不足 limit 時以最近更新的文章補位。
+ * exclude 用來避開同頁已露出的文章（例如最新文章區）。
+ */
+export function selectFeaturedPosts<T extends WithBlogData>(
+  entries: T[],
+  options: { now: Date; limit: number; exclude?: T[] },
+): T[] {
+  const { now, limit, exclude = [] } = options;
+  const active = entries
+    .filter((entry) => isActiveFeatured(entry.data, now))
+    .slice(0, limit);
+  const taken = new Set<T>([...active, ...exclude]);
+  const fill = [...entries]
+    .filter((entry) => !taken.has(entry))
+    .sort((left, right) => lastTouched(right.data) - lastTouched(left.data))
+    .slice(0, limit - active.length);
+  return [...active, ...fill];
 }

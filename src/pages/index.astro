@@ -6,11 +6,16 @@ import ProjectCard from "../components/ProjectCard.astro";
 import { siteConfig } from "../config/site";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { collectTaxonomy, getVisiblePosts } from "../utils/collections";
-import { sortByPostCount } from "../utils/content";
+import { selectFeaturedPosts, sortByPostCount } from "../utils/content";
 
 const posts = await getVisiblePosts();
 const latest = posts.slice(0, 5);
-const featured = posts.filter((post) => post.data.featured).slice(0, 3);
+// build 時計算：過期精選自動退場，不足 3 篇以最近更新的文章補位（ADR 0006）。
+const featured = selectFeaturedPosts(posts, {
+  now: new Date(),
+  limit: 3,
+  exclude: latest,
+});
 const tags = collectTaxonomy(posts, "tags");
 const topics = sortByPostCount(tags).slice(0, 8);
 const topicMax = topics[0]?.posts.length ?? 1;
@@ -166,8 +171,8 @@ const latestLabel = latestDate
           </div>
         ) : (
           <EmptyState
-            title="尚未標記精選文章"
-            description="文章 frontmatter 設為 featured: true 後，會自動出現在這裡。"
+            title="尚未有精選文章"
+            description="文章 frontmatter 設定 featured: true 與 featuredUntil 後，會出現在這裡。"
           />
         )
       }

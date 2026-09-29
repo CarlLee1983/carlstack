@@ -11,3 +11,4 @@
 | [0003](0003-git-content-as-source-of-truth.md)    | 內容以 Git repository 為唯一來源，不引入 CMS       | accepted |
 | [0004](0004-native-svg-over-mermaid.md)           | 新文章圖解改用原生 SVG，禁用 Mermaid               | accepted |
 | [0005](0005-diagram-dark-mode-selector.md)        | 圖解深色模式：解析後的 data-theme 作為唯一主題訊號 | accepted |
+| [0006](0006-featured-posts-expire.md)             | 首頁精選改為有期限的人工策展加自動補位             | accepted |

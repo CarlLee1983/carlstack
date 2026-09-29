@@ -22,6 +22,7 @@ const blog = defineCollection({
         updatedDate: z.coerce.date().optional(),
         draft: z.boolean(),
         featured: z.boolean().default(false),
+        featuredUntil: z.coerce.date().optional(),
         tags: z.array(taxonomyName).default([]),
         series: taxonomyName.optional(),
         seriesOrder: z.number().int().positive().optional(),
@@ -50,6 +51,14 @@ const blog = defineCollection({
             code: "custom",
             path: ["coverAlt"],
             message: "設定 cover 時必須提供 coverAlt。",
+          });
+        }
+        if (data.featured && !data.featuredUntil) {
+          context.addIssue({
+            code: "custom",
+            path: ["featuredUntil"],
+            message:
+              "featured: true 必須設定 featuredUntil，精選到期後自動退場。",
           });
         }
         if (data.seriesOrder && !data.series) {

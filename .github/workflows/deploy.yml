@@ -3,6 +3,9 @@ name: Deploy to Cloudflare Workers
 on:
   push:
     branches: [main]
+  # 每週一台北 08:00 重建，讓精選文章的 featuredUntil 到期後自動退場（ADR 0006）
+  schedule:
+    - cron: "0 0 * * 1"
   workflow_dispatch:
 
 permissions:
