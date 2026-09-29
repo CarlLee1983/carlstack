@@ -1,0 +1,506 @@
+<figure class="paperclip-diagram" aria-labelledby="paperclip-diagram-caption">
+  <svg
+    class="paperclip-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="paperclip-diagram-title paperclip-diagram-desc"
+  >
+    <title id="paperclip-diagram-title">
+      Paperclip 心跳驅動與 AI 組織治理架構
+    </title>
+    <desc id="paperclip-diagram-desc">
+      展示 Paperclip 如何透過 Heartbeat
+      喚醒機制、組織架構權限樹、預算硬圍欄與不可篡改審計日誌，將非同步的 Agent
+      CLI 整合為結構化的企業管理控制面。
+    </desc>
+    <defs>
+      <marker
+        id="paperclip-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="paperclip-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- 頂部：四大心跳喚醒觸發源 (Trigger Sources) -->
+    <g class="paperclip-diagram__row" transform="translate(40 24)">
+      <rect
+        class="paperclip-diagram__panel"
+        x="0"
+        y="0"
+        width="880"
+        height="96"
+        rx="12"></rect>
+      <text
+        class="paperclip-diagram__badge paperclip-diagram__badge--blue"
+        x="24"
+        y="28"
+      >
+        1. 喚醒層 · 嚴格 Heartbeat 驅動（拒絕無限背景輪詢）
+      </text>
+
+      <g transform="translate(24 40)">
+        <!-- Trigger 1: Timer -->
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="0"
+          y="0"
+          width="195"
+          height="42"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="14" y="26"
+          >⏱️ 定時排程 (Timer)</text
+        >
+
+        <!-- Trigger 2: Assignment -->
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="210"
+          y="0"
+          width="195"
+          height="42"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="224" y="26"
+          >🎫 工單指派 (Assignment)</text
+        >
+
+        <!-- Trigger 3: On-demand -->
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="420"
+          y="0"
+          width="195"
+          height="42"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="434" y="26"
+          >⚡ 隨選觸發 (On-demand)</text
+        >
+
+        <!-- Trigger 4: Automation -->
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="630"
+          y="0"
+          width="202"
+          height="42"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="644" y="26"
+          >🤖 事件自動化 (Automation)</text
+        >
+      </g>
+    </g>
+
+    <!-- 下行箭頭 1 -->
+    <path
+      class="paperclip-diagram__arrow"
+      d="M 480 120 L 480 148"
+      marker-end="url(#paperclip-arrow)"></path>
+
+    <!-- 中間：Paperclip Control Plane 核心層 -->
+    <g class="paperclip-diagram__row" transform="translate(40 152)">
+      <rect
+        class="paperclip-diagram__panel paperclip-diagram__panel--main"
+        x="0"
+        y="0"
+        width="880"
+        height="220"
+        rx="14"></rect>
+      <text
+        class="paperclip-diagram__badge paperclip-diagram__badge--amber"
+        x="24"
+        y="28"
+      >
+        2. 治理控制面 · Paperclip Control Plane（責任邊界與合約）
+      </text>
+      <text class="paperclip-diagram__lead" x="24" y="52">
+        將目標拆解為職責，並在呼叫前後強制執行預算配額與安全檢驗
+      </text>
+
+      <g transform="translate(24 68)">
+        <!-- 模組 1: Org Chart & RBAC -->
+        <rect
+          class="paperclip-diagram__subcard"
+          x="0"
+          y="0"
+          width="265"
+          height="132"
+          rx="10"></rect>
+        <text class="paperclip-diagram__card-title" x="18" y="28"
+          >組織拓撲 (Org Chart)</text
+        >
+        <text class="paperclip-diagram__card-desc" x="18" y="54"
+          >• 混合團隊：人類審批 + AI 角色</text
+        >
+        <text class="paperclip-diagram__card-desc" x="18" y="78"
+          >• 職級向上升級與跨部門委派</text
+        >
+        <text class="paperclip-diagram__card-desc" x="18" y="102"
+          >• 委派授權與安全金鑰邊界</text
+        >
+
+        <!-- 模組 2: Budget & Cost Guard -->
+        <rect
+          class="paperclip-diagram__subcard"
+          x="282"
+          y="0"
+          width="265"
+          height="132"
+          rx="10"></rect>
+        <text class="paperclip-diagram__card-title" x="300" y="28"
+          >成本與配額 (Budget Gate)</text
+        >
+        <text class="paperclip-diagram__card-desc" x="300" y="54"
+          >• 依 Agent 設定每月預算上限</text
+        >
+        <text class="paperclip-diagram__card-desc" x="300" y="78"
+          >• 達標即刻中斷（Hard Stop）</text
+        >
+        <text class="paperclip-diagram__card-desc" x="300" y="102"
+          >• 杜絕 Token 迴圈失控帳單</text
+        >
+
+        <!-- 模組 3: Session & Ticket Ledger -->
+        <rect
+          class="paperclip-diagram__subcard"
+          x="564"
+          y="0"
+          width="268"
+          height="132"
+          rx="10"></rect>
+        <text class="paperclip-diagram__card-title" x="582" y="28"
+          >工單與審計 (Audit Ledger)</text
+        >
+        <text class="paperclip-diagram__card-desc" x="582" y="54"
+          >• TaskKey 隔離獨立 Session</text
+        >
+        <text class="paperclip-diagram__card-desc" x="582" y="78"
+          >• 完整 Tool Call 與對話 Trace</text
+        >
+        <text class="paperclip-diagram__card-desc" x="582" y="102"
+          >• 漂移時單一任務重置復原</text
+        >
+      </g>
+    </g>
+
+    <!-- 下行箭頭 2 -->
+    <path
+      class="paperclip-diagram__arrow"
+      d="M 480 372 L 480 400"
+      marker-end="url(#paperclip-arrow)"></path>
+
+    <!-- 底部：異質執行期適配層 (Execution Runtime Layer) -->
+    <g class="paperclip-diagram__row" transform="translate(40 404)">
+      <rect
+        class="paperclip-diagram__panel"
+        x="0"
+        y="0"
+        width="880"
+        height="126"
+        rx="12"></rect>
+      <text
+        class="paperclip-diagram__badge paperclip-diagram__badge--cyan"
+        x="24"
+        y="28"
+      >
+        3. 執行期適配層 · Bring Your Own Agent（只要能接收心跳，就能入職）
+      </text>
+
+      <g transform="translate(24 44)">
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="0"
+          y="0"
+          width="195"
+          height="64"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="16" y="28"
+          >claude_local</text
+        >
+        <text class="paperclip-diagram__pill-desc" x="16" y="48"
+          >本機 Claude Code CLI</text
+        >
+
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="210"
+          y="0"
+          width="195"
+          height="64"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="226" y="28"
+          >codex_local</text
+        >
+        <text class="paperclip-diagram__pill-desc" x="226" y="48"
+          >Codex CLI / Harness</text
+        >
+
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="420"
+          y="0"
+          width="195"
+          height="64"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="436" y="28"
+          >process (Shell)</text
+        >
+        <text class="paperclip-diagram__pill-desc" x="436" y="48"
+          >OpenClaw / 自訂命令</text
+        >
+
+        <rect
+          class="paperclip-diagram__pill-box"
+          x="630"
+          y="0"
+          width="202"
+          height="64"
+          rx="8"></rect>
+        <text class="paperclip-diagram__pill-title" x="646" y="28"
+          >http (Remote API)</text
+        >
+        <text class="paperclip-diagram__pill-desc" x="646" y="48"
+          >雲端 Agent / 外部微服務</text
+        >
+      </g>
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：直向結構化卡片 -->
+  <div class="paperclip-diagram__mobile">
+    <div
+      class="paperclip-diagram__mobile-card paperclip-diagram__mobile-card--blue"
+    >
+      <span class="paperclip-diagram__mobile-tag">階段 1</span>
+      <h4>嚴格 Heartbeat 心跳喚醒</h4>
+      <p>
+        拒絕在背景無限輪詢消耗 CPU。僅由<strong
+          >定時排程、工單指派、手動隨選或系統自動化</strong
+        >喚醒短期工作視窗。
+      </p>
+    </div>
+
+    <div
+      class="paperclip-diagram__mobile-card paperclip-diagram__mobile-card--amber"
+    >
+      <span class="paperclip-diagram__mobile-tag">階段 2</span>
+      <h4>Paperclip 組織與治理控制面</h4>
+      <ul>
+        <li>
+          <strong>組織架構（Org Chart）：</strong
+          >人機混合匯報拓撲，向上升級與職權隔離。
+        </li>
+        <li>
+          <strong>成本圍欄（Budget Gate）：</strong>設定單一 Agent
+          每月花費上限，超標硬性熔斷。
+        </li>
+        <li>
+          <strong>工單審計（Ticket Ledger）：</strong>依 TaskKey 隔離
+          Session，支援單點重置。
+        </li>
+      </ul>
+    </div>
+
+    <div
+      class="paperclip-diagram__mobile-card paperclip-diagram__mobile-card--cyan"
+    >
+      <span class="paperclip-diagram__mobile-tag">階段 3</span>
+      <h4>Bring Your Own Agent (BYOA) 適配</h4>
+      <p>
+        支援 Claude Code、Codex、OpenClaw 或 HTTP 遠端服務；底層 Agent
+        專注產出，治理與狀態交由控制面收斂。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="paperclip-diagram-caption">
+    圖 1：Paperclip 的核心架構拓撲 ——
+    透過心跳調度、組織權責邊界與預算熔斷，取代混亂的本機終端進程堆疊。
+  </figcaption>
+</figure>
+
+<style>
+  .paperclip-diagram {
+    margin: 2.5rem 0;
+    width: 100%;
+  }
+
+  .paperclip-diagram__desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+    font-family: var(--font-body);
+  }
+
+  .paperclip-diagram__mobile {
+    display: none;
+  }
+
+  /* 幾何與色彩 */
+  .paperclip-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .paperclip-diagram__panel--main {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+
+  .paperclip-diagram__badge {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .paperclip-diagram__badge--blue {
+    fill: #0284c7;
+  }
+  :global(:root[data-theme="dark"]) .paperclip-diagram__badge--blue {
+    fill: #38bdf8;
+  }
+
+  .paperclip-diagram__badge--amber {
+    fill: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .paperclip-diagram__badge--amber {
+    fill: #fbbf24;
+  }
+
+  .paperclip-diagram__badge--cyan {
+    fill: #0891b2;
+  }
+  :global(:root[data-theme="dark"]) .paperclip-diagram__badge--cyan {
+    fill: #22d3ee;
+  }
+
+  .paperclip-diagram__lead {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+
+  .paperclip-diagram__pill-box {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .paperclip-diagram__pill-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .paperclip-diagram__pill-desc {
+    font-size: 12px;
+    fill: var(--dg-muted);
+  }
+
+  .paperclip-diagram__subcard {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .paperclip-diagram__card-title {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+
+  .paperclip-diagram__card-desc {
+    font-size: 12.5px;
+    fill: var(--dg-ink-2);
+  }
+
+  .paperclip-diagram__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+
+  .paperclip-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  figcaption {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* 窄螢幕斷點相容 */
+  @media (max-width: 48rem) {
+    .paperclip-diagram__desktop {
+      display: none !important;
+    }
+
+    .paperclip-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .paperclip-diagram__mobile-card {
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--dg-rule);
+      background: var(--dg-surface);
+    }
+
+    .paperclip-diagram__mobile-card--blue {
+      border-left: 4px solid #0284c7;
+    }
+
+    .paperclip-diagram__mobile-card--amber {
+      border-left: 4px solid #d97706;
+    }
+
+    .paperclip-diagram__mobile-card--cyan {
+      border-left: 4px solid #0891b2;
+    }
+
+    .paperclip-diagram__mobile-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--dg-muted);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .paperclip-diagram__mobile-card h4 {
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--dg-ink);
+      margin: 0 0 0.5rem 0;
+    }
+
+    .paperclip-diagram__mobile-card p {
+      font-size: var(--text-sm);
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .paperclip-diagram__mobile-card ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: var(--text-sm);
+      color: var(--dg-ink-2);
+      line-height: 1.6;
+    }
+
+    .paperclip-diagram__mobile-card li {
+      margin-bottom: 0.25rem;
+    }
+  }
+</style>
