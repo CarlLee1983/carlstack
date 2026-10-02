@@ -1,7 +1,8 @@
 ---
-title: "給五歲小孩也能懂的 ForgeFlow：如何不讓熱心過頭的 AI 機器人把你的樂高城堡拆了？"
-description: "用組裝樂高積木的生動比喻，三分鐘搞懂 ForgeFlow 軟體開發協議：為什麼不能讓 AI 自己說「我做好了」、什麼是有界圖紙、以及驗收印章機如何拯救工程師。"
+title: "ForgeFlow 歷史版本：用樂高城堡理解 AI 的工作邊界"
+description: "用樂高城堡解釋 ForgeFlow／PraxisBound 舊版的工作邊界、驗證與交接規則，並補充接替專案 Warrant 如何簡化 Story 與完成回報。"
 publishDate: 2026-09-03T15:45:00+08:00
+updatedDate: 2026-10-02
 draft: false
 featured: false
 cover: ../../assets/covers/forgeflow-eli5-ai-coding-explained.png
@@ -10,8 +11,13 @@ tags:
   - AI 工程化
   - 開源專案
   - 技術選型
-repositoryUrl: https://github.com/CarlLee1983/ForgeFlowV2
+repositoryUrl: https://github.com/CarlLee1983/PraxisBound
 ---
+
+> [!IMPORTANT]
+> 2026-10-02 更新：ForgeFlow 後更名為 PraxisBound，目前已封存，由 [Warrant](https://github.com/CarlLee1983/Warrant) 接替。下文保留舊版的積木比喻；小資料夾、`SPEC_BLOCKED` 與 `specs/handoff.md` 是歷史設計，並非 Warrant 的現行要求。
+
+換成 Warrant，圖紙是一份 `specs/stories/<slug>.md`：寫下要做什麼、哪些事不做、怎樣算合格，並由人核准。檢查機使用儲存庫自己在 `AGENTS.md` 指定的唯一驗證命令，不必叫做 `make verify`。交件時要逐條附上驗收證據，列出跳過或受阻的檢查與殘餘風險；有一條缺少通過證據，就只能說「部分完成」。這些規則的落實仍靠採用端的 CI 與人工審查，詳見 [Warrant 現行說明](https://github.com/CarlLee1983/Warrant/blob/main/README.zh-TW.md)。
 
 想像一下，你家裡來了一個速度超級快、力氣超級大的**小機器人助手**。
 
@@ -34,7 +40,7 @@ repositoryUrl: https://github.com/CarlLee1983/ForgeFlowV2
 1. **我們只用「嘴巴講講」（模糊的 Prompt）**，以為機器人能心靈感應。
 2. **我們竟然讓「機器人自己決定是不是做好了」**。機器人的天性就是想討好你，遇到卡關時，他最擅長的就是「把規則偷偷改簡單一點，假裝自己成功了」。
 
-為了解決這個問題，[ForgeFlow](https://github.com/CarlLee1983/ForgeFlowV2) 替我們的工作坊定下了三條非常簡單的規矩。
+為了解決這個問題，舊版 [ForgeFlow（後更名為 PraxisBound）](https://github.com/CarlLee1983/PraxisBound) 替我們的工作坊定下了三條非常簡單的規矩。
 
 ---
 
@@ -118,4 +124,4 @@ AI 很聰明、速度很快，但他就像一個充滿活力但容易分心的�
 
 你不需要教他怎麼拿工具，你只需要給他一個**清楚的積木桌（有界 Story）**、一台**鐵面無私的檢查機（`make verify`）**，以及一張**交接便條紙（Handoff）**。
 
-這就是 [ForgeFlow](https://github.com/CarlLee1983/ForgeFlowV2) 的全部秘密——**用規矩保護你的城堡，讓 AI 成為最強大也最安全的得力幫手！**
+這就是舊版 [ForgeFlow](https://github.com/CarlLee1983/PraxisBound) 的設計方向。若要在現在的專案採用這套工作原則，請從 [Warrant 的 Story 範本](https://github.com/CarlLee1983/Warrant/blob/main/plugin/skills/warrant/story-template.md) 開始，先為一個小變更寫下目標、範圍外事項與驗收條件，再交由人核准。

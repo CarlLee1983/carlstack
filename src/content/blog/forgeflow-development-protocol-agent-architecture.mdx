@@ -1,10 +1,10 @@
 ---
-title: "別再讓 AI 自己宣告完工：ForgeFlow 如何用儲存庫原生契約馴服 AI Coding Agent"
-description: "深入剖析非侵入式 AI 輔助開發協議 ForgeFlow：責任分離權威三角、有界 Story 契約、防作弊 Guardrail、基準覆寫遷移、分層驗證管線與企業 Brownfield 落地實踐。"
+title: "ForgeFlow 歷史版本：用儲存庫原生契約約束 AI Coding Agent"
+description: "保留 ForgeFlow／PraxisBound 舊版的 Story、交接契約與驗證管線分析，並說明接替專案 Warrant 的三段式 Story 與採用端驗證規則。"
 publishDate: 2026-09-03T15:15:00+08:00
+updatedDate: 2026-10-02
 draft: false
-featured: true
-featuredUntil: 2026-12-31
+featured: false
 cover: ../../assets/covers/forgeflow-development-protocol-agent-architecture.png
 coverAlt: "等角投影幾何架構圖，展示抽象機械核心、管線通道與光芒驗證閘門"
 tags:
@@ -12,10 +12,15 @@ tags:
   - 系統設計
   - 軟體架構
   - 開源專案
-repositoryUrl: https://github.com/CarlLee1983/ForgeFlowV2
+repositoryUrl: https://github.com/CarlLee1983/PraxisBound
 ---
 
 import ForgeFlowPipelineDiagram from "../../components/ForgeFlowPipelineDiagram.astro";
+
+> [!IMPORTANT]
+> 2026-10-02 更新：ForgeFlow 後更名為 PraxisBound，目前已封存，由 [Warrant](https://github.com/CarlLee1983/Warrant) 接替。本文保留舊版設計與圖解，供歷史參考；下文的目錄式 Story、`specs/handoff.md` 與固定 `make verify` 流程不適用於現行 Warrant。
+
+Warrant 的 [Story 範本](https://github.com/CarlLee1983/Warrant/blob/main/plugin/skills/warrant/story-template.md) 改為單一 `specs/stories/<slug>.md`，只有 Goal、Out of Scope、Acceptance Criteria 三段。驗證命令由採用端在 `AGENTS.md` 指定，每條驗收條件都要有實際觀察的證據；缺少通過證據就只能回報部分完成。Warrant 只提供 skill、規則與範本，強制力來自採用端的 CI 與人工審查；開始採用時請依 [Warrant 現行說明](https://github.com/CarlLee1983/Warrant/blob/main/README.zh-TW.md)，不要照搬下文的舊版安裝與交接設計。
 
 當前 Coding Agent（不論是 Claude Code、Codex、Cursor 還是 Gemini CLI）展現出令人驚豔的生成速度。只要幾句 Prompt，模型就能在數十秒內長出數百行程式碼與測試。
 
@@ -25,7 +30,7 @@ import ForgeFlowPipelineDiagram from "../../components/ForgeFlowPipelineDiagram.
 - **作弊式通過（Verification Tampering）**：當測試跑不過時，Agent 為了達成對話完成的目標，常常「順手把測試 Assert 改弱」、加入 `@ts-ignore` 甚至註解掉報錯案例。
 - **廠商綁定與脆弱重構**：流程深度綁定在特定平台的工作流引擎或 Prompt 樣版中，只要模型升級或更換工具鏈，整套協作體系就必須推倒重來。
 
-[ForgeFlow（CarlLee1983/ForgeFlowV2）](https://github.com/CarlLee1983/ForgeFlowV2) 提出了一個極簡卻高度收斂的解法：**以儲存庫為中心（Repository-Centric）的非侵入式開發協議**。它不教 Agent 寫程式，而是定義一套跨語言、跨模型的邊界契約與責任分離模型。
+[ForgeFlow（後更名為 PraxisBound）](https://github.com/CarlLee1983/PraxisBound) 提出了一個極簡卻高度收斂的解法：**以儲存庫為中心（Repository-Centric）的非侵入式開發協議**。它不教 Agent 寫程式，而是定義一套跨語言、跨模型的邊界契約與責任分離模型。
 
 ---
 

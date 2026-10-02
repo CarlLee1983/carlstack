@@ -2,6 +2,7 @@
 title: "Uncle Bob 不看 Agent 寫的 code：真正被審查的是哪一層？"
 description: "Robert C. Martin 的 Agentic Discipline 把高層規格、專職 agent、Gherkin、coverage、mutation testing 與 UI QA 串成品質閘門；本文拆解它如何落地，以及哪些責任仍不能交給指標。"
 publishDate: 2026-09-06T09:00:00+08:00
+updatedDate: 2026-10-02
 draft: false
 featured: false
 tags:
@@ -38,12 +39,12 @@ coverAlt: "六個以規格、程式、清理、架構、盾牌與測試符號代
 
 這不是「六個聊天視窗一起寫 code」。它比較像一串品質閘門：前一關沒有可驗證的輸出，下一關就沒有資格開始。
 
-## 接進 ForgeFlow，而不是複製一個 swarm
+## 用 Warrant 約束一個 Story 的交付
 
-ForgeFlow 已經把這個精神收斂成更小的核心：Small Story、repository 自己擁有的 `make verify`，以及最後的 Human Review。下面是我會採用的對照，**不是 Martin 的固定設定，也不會改 ForgeFlow protocol**：
+2026-10-02 更新：原先採用的 ForgeFlow／PraxisBound 已封存，現在由 [Warrant](https://github.com/CarlLee1983/Warrant) 接替。Warrant 把工作限定在一份人類核准的 Story，完成證據則來自儲存庫在 `AGENTS.md` 指定的唯一驗證命令與逐條驗收觀察。它不規定 agent 角色或人工審查方式；下面是我的工作流示意，角色分工由團隊選擇：
 
 ```yaml
-story: "一個可回滾、帶 acceptance criteria 的小變更"
+story: "specs/stories/<slug>.md：Goal、Out of Scope、Acceptance Criteria"
 source: "approved Story + business rules + constraints"
 roles:
   specifier: "補齊可重跑情境與必要的 QA procedure"
@@ -52,11 +53,12 @@ roles:
   architect: "檢查邊界與依賴，不替人做產品決策"
   hardener: "repository 能支援才執行 mutation/property checks"
   qa: "用原始程序驗證使用者可觀察行為"
-canonical_gate: "make verify"
+canonical_gate: "AGENTS.md 宣告的唯一驗證命令（例如 make verify）"
+completion_report: "逐條驗收證據、跳過或受阻的檢查、殘餘風險"
 human_gate: "確認產品意圖、架構與風險後才 merge"
 ```
 
-落地時先只做一個 Story。若 `make verify` 已能阻擋一種錯誤，就不為了湊角色增加 agent；若某種失敗重複出現，才新增一個能留下獨立證據的 specialist。這也符合 ForgeFlow 的 [concepts](https://github.com/CarlLee1983/ForgeFlowV2/blob/main/docs/concepts.md) 與 [handoff contract](https://github.com/CarlLee1983/ForgeFlowV2/blob/main/protocol/handoff.md)：流程存在普通 repository artifacts 裡，不依賴特定 runtime。
+落地時先只做一個 Story。若既有驗證已能阻擋一種錯誤，就不為了湊角色增加 agent；若某種失敗重複出現，才新增一個能留下獨立證據的 specialist。採用時以 [Warrant 規則區塊](https://github.com/CarlLee1983/Warrant/blob/main/plugin/skills/warrant/agents-block.md) 為準：Agent 不得改需求、放寬驗收標準或擴大範圍，任何一條驗收條件缺少通過證據，就只能回報部分完成。Warrant 本身提供規則，強制力仍由採用端的 CI 與人工審查負責。
 
 ## 指標是閘門，不是判決
 
@@ -69,8 +71,8 @@ human_gate: "確認產品意圖、架構與風險後才 merge"
 挑一個兩小時內能完成、失敗可撤回的 Story，留下四樣東西：
 
 1. 一份寫清楚規則與錯誤情境的 source。
-2. 一個模型外可執行的 acceptance gate（先用既有 `make verify`）。
-3. 一份記錄 changed paths、指令輸出與未解風險的 handoff。
+2. 在 `AGENTS.md` 宣告一個模型外可執行的驗證命令（可沿用既有 `make verify`），並讓 CI 執行同一命令。
+3. 一份逐條驗收證據、跳過或受阻的檢查與殘餘風險的完成回報。
 4. 一個明確的 human stop：意圖、架構、資安或效能有疑問就停止，不讓 agent 自己批准。
 
 做完再問：哪一種錯誤仍只能靠人看？那個答案，才是下一個值得加入的 agent。
