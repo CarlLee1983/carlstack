@@ -1,0 +1,4 @@
+interface:
+  display_name: "Humanize Writing"
+  short_description: "Remove AI tone from English and Traditional Chinese"
+  default_prompt: "Use $humanize-writing to make this draft sound less like AI while preserving facts, stance, and voice."
