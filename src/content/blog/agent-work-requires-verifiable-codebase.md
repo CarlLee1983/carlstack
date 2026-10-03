@@ -202,6 +202,8 @@ Michael 的摘要把人離線後的工作列為訪談主題。要判斷它能否
 
 若你已能把單條工作線做成可驗收結果，接下來可讀[如何把多 Agent 工作從 Session 搬到可交接任務](/blog/coding-agent-session-to-task-handoff/)，看執行者、狀態與審查入口如何一起改變。
 
+要把這些條件用在第一次導入，可接著讀 [在 Cursor 導入 pstack 的第一個可重跑修復](/blog/pstack-first-verifiable-workflow/)，逐項檢查官方 plugin 的模型配置、工具權限與本機驗收紀錄。
+
 ### 參考資料
 
 - [Lauren Tan 的原始影片](https://x.com/poteto/status/2102050467505430555)，2026-09-21
