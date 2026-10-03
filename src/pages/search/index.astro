@@ -117,7 +117,7 @@ const topics = sortByPostCount(
         heading.append(link);
         article.append(heading);
         appendText(article, "p", result.excerpt.replace(/<[^>]+>/g, ""));
-        const metadata = [result.meta.date?.slice(0, 10), result.meta.tags]
+        const metadata = [result.meta.dateLabel, result.meta.tags]
           .filter(Boolean)
           .join(" · ");
         if (metadata) appendText(article, "p", metadata, "article-card__meta");

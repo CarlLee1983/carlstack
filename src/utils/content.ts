@@ -14,6 +14,23 @@ export interface WithBlogData {
   data: BlogDataShape;
 }
 
+/** 列表日期與排序同源；台北日期供讀者閱讀，ISO 時間供 time 與搜尋索引使用。 */
+export function getArticleListDate(
+  data: Pick<BlogDataShape, "publishDate" | "updatedDate">,
+): { datetime: string; text: string } {
+  const date = data.updatedDate ?? data.publishDate;
+  const formatted = new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Taipei",
+  }).format(date);
+  return {
+    datetime: date.toISOString(),
+    text: `${data.updatedDate ? "更新" : "發布"} ${formatted}`,
+  };
+}
+
 /** 時序清單依最近更新倒序；未更新時使用發布日，同時間以發布日與 ID 穩定排序。 */
 export function sortByUpdatedDate<T extends WithBlogData>(entries: T[]): T[] {
   return [...entries].sort((left, right) => {

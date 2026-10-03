@@ -2,7 +2,7 @@
 import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import { postHref } from "../utils/collections";
-import { estimateReadingMinutes } from "../utils/content";
+import { estimateReadingMinutes, getArticleListDate } from "../utils/content";
 
 interface Props {
   post: CollectionEntry<"blog">;
@@ -14,12 +14,7 @@ interface Props {
 const { post, headingLevel: Heading = "h2", variant = "card" } = Astro.props;
 const cover = post.data.cover;
 const body = "body" in post && typeof post.body === "string" ? post.body : "";
-const date = new Intl.DateTimeFormat("zh-TW", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  timeZone: "Asia/Taipei",
-}).format(post.data.publishDate);
+const listDate = getArticleListDate(post.data);
 const primaryTag =
   post.data.tags && post.data.tags.length > 0 ? post.data.tags[0] : null;
 ---
@@ -69,7 +64,7 @@ const primaryTag =
         <span>{estimateReadingMinutes(body)} 分鐘</span>
       </div>
       <span class="meta-dot">·</span>
-      <time datetime={post.data.publishDate.toISOString()}>{date}</time>
+      <time datetime={listDate.datetime}>{listDate.text}</time>
       {post.data.draft && <span class="draft-pill">草稿</span>}
     </div>
     <Heading class="article-card-item__title">{post.data.title}</Heading>
