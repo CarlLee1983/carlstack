@@ -95,6 +95,8 @@ ChatGPT、Slack 與 Teams 可以連到同一個 dot，但各自的可見對話�
 
 下一步再決定是否擴大來源與行動權限。這份文章提出的驗收標準是：交付工作時能說清楚範圍，執行時能看見證據，收回責任時能查出剩餘工作。先證明這三件事，再把更重要的流程交給常駐 Agent。
 
+這些持續責任一旦累積，也會影響更換平台的成本；關於使用者與主要助理之間的默契如何形成，我在[〈AI 的下一場競爭，是成為你不想更換的助理〉](/blog/ai-agent-primary-assistant-switching-costs/)另談競爭與遷移的個人預測。
+
 ## 一手資料
 
 - [ChatGPT Learn：Meet dots](https://learn.chatgpt.com/docs/dots)，2026-09-30 查閱。
