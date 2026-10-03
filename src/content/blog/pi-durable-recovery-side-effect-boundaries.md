@@ -1,7 +1,8 @@
 ---
 title: "Pi Durable 能接續任務，但重啟後的副作用仍要自己驗收"
-description: "Pi 1.0 與實驗套件 Pi Durable 同日發布。從 checkpoint、工具重播與 requestId 的不同保證，建立部署 Agent 的中斷恢復、外部操作去重與人工介入驗收方法。"
+description: "Pi 1.0 與實驗套件 Pi Durable 同日發布。從 checkpoint、工具重播與 requestId 的不同保證，區分結果重用與中途恢復，建立部署 Agent 的副作用去重、狀態一致性與人工介入驗收方法。"
 publishDate: 2026-10-02T10:06:52+08:00
+updatedDate: 2026-10-04T05:09:00+08:00
 draft: false
 featured: false
 tags:
@@ -18,13 +19,15 @@ coverAlt: "陶土步道在斷裂處由陶瓷檢查點閘門接續，另一道閘
 
 Earendil 在 2026 年 10 月 1 日發布 [Pi 1.0](https://earendil.com/posts/pi-1-0/)，同時推出 [Pi Durable](https://earendil.com/posts/pi-durable/)。前者是團隊稱已經加固的 coding harness；後者是另行探索長任務的實驗套件，API 仍可能改變。本文閱讀官方公告與文件，沒有安裝 Pi 或做當機實測。
 
+2026 年 10 月 4 日補充：jiangkoumo 的〈[Pi Durable 实战指南：给自己的 Agent 加上断点续跑](https://x.com/jiangkoumo_/status/2106317420961112392)〉以多章閱讀示範恢復測試。以下沿用本站原有的副作用邊界分析，加入「已完成結果重用」與「未完成工作接續」的分辨方式；原作者的執行結果不代表本站重現。
+
 我的判斷是：Durable 值得評估的地方，在於它把「哪些工作可以恢復」變成介面契約。外部服務已經做了什麼，仍需要應用自己的證據。
 
 ## 1.0 的穩定定位，不等於 Durable 的 API 承諾
 
 Pi 1.0 公告列出 Codemode、virtual models、延後載入工具與提示變更等功能，但把 Durable 明確列為 experimental package。[官方發布說明](https://earendil.com/posts/pi-1-0/)不能當成 Durable 已適合所有正式服務的保證。
 
-昨日〈[Pi 開始支援 MCP：工具接得上之後，還要能組合](/blog/pi-mcp-codemode-tool-composition/)〉討論工具發現與資料組合。本篇換一個驗收問題：程式在任何一步被中斷，下一個 process 能否知道哪些事已完成、哪些事不能直接重做？
+站內〈[Pi 開始支援 MCP：工具接得上之後，還要能組合](/blog/pi-mcp-codemode-tool-composition/)〉討論工具發現與資料組合。本篇換一個驗收問題：程式在任何一步被中斷，下一個 process 能否知道哪些事已完成、哪些事不能直接重做？
 
 站內〈[AI Agent 的擴容單位，不該是整台沙盒](/blog/ai-agent-runtime-durable-scaling/)〉已談狀態、runtime 與冪等的通用邊界。這裡聚焦 Pi 的 `requestId`、`replay` 與取消契約，讓那些原則有具體可查的介面。
 
@@ -58,6 +61,16 @@ Pi 1.0 公告列出 Codemode、virtual models、延後載入工具與提示變�
 
 先把「查詢部署狀態」與「建立新部署」做成不同工具。前者可以在確認其讀取契約後評估重播；後者保留人工決策，或要求服務端提供可核對的去重機制。
 
+## 已讀紀錄也有副作用，safe 要檢查整段工具
+
+jiangkoumo 的範例提醒了一個容易漏掉的空窗：工具已更新應用的已讀章節紀錄，卻還沒保存工具結果就中斷。恢復時重跑整段 `execute()`，若每次都把章節加進陣列，即使 `readFile` 本身可重做，應用狀態仍會重複。
+
+官方 [Your Own State](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/README.md#your-own-state) 允許在 commit 中更新 document；這不會自動把任意工具函式、遠端副作用與後續結果保存合成一個交易。我的建議是先定義紀錄代表什麼，再檢查每個 commit 間的中斷位置。
+
+例如 `readChapters` 只能表示工具已讀取指定版本的章節，不能代表模型已理解、已完成摘要或已通過驗收。以穩定章節 ID 加內容版本去重，重跑時先查現有紀錄；需要證明摘要完成，就另外保存摘要及其驗收結果。不要把含糊的 `done` 欄位同時用在這幾個階段。
+
+**只有整段工具在重做後仍符合狀態與副作用契約，才宣告 `replay: "safe"`。** 只檢查工具名稱像不像讀取操作，證據不夠。
+
 ## 人類介入也要記得批准了哪個版本
 
 官方 hooks 範例將部署核准結果存成 memo，恢復時取回先前決定。[Hooks 說明](https://earendil.com/posts/pi-durable/#hooks)提供的是保存決策的機制；核准範圍仍由應用定義。
@@ -80,6 +93,19 @@ Pi 1.0 公告列出 Codemode、virtual models、延後載入工具與提示變�
 使用者也需要知道「停止」會停到哪裡。官方 ownership 設計區分前景與背景工作，一般 abort 可能留下背景 task。[Abort and Subagents 文件](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/README.md#abort-and-subagents)可作為 UI 契約的起點。取消等待、取消 task 與撤銷已完成的遠端操作，應分別顯示，不能共用一句「已取消」。
 
 子工作是否跟著停，要看它的 ownership；官方設計由被取消的 owner 向下取消其擁有的工作。前景工作取消不包含背景 task，若要停止背景工作，必須明確取消該 task，或使用包含背景工作的 conversation 取消方式。這是應用 UI 與驗收要展示的差異，不應靠使用者猜。
+
+## 完成後重開，只驗證結果重用
+
+同一份任務做完後重開 storage，拿回舊 submission，且沒有新模型請求，能證明結果可重用。它沒有覆蓋「工具執行一半時被殺掉」的路徑。jiangkoumo 的原文把這兩種情境分開；這個區分值得直接納入測試名稱。
+
+中途恢復測試需要一個可控制的暫停點。例如第一章已完成、第二章讀取後尚未保存結果時終止 process，再以相同輸入與 storage 重開。觀察既有 submission 與未完成 task 是否接續、第一章是否被重做，最後再驗證所有章節的答案。固定程式、依賴與章節內容版本，才知道差異來自恢復流程。這是依原文整理的驗收設計，本文沒有執行。
+
+恢復環境還有兩個容易讓測試失真的前提：
+
+- 官方 [Storage 文件](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/README.md#storage) 說明 `MemoryStorage` 不持久化；SQLite 使用 WAL 與 `synchronous = NORMAL`，程序崩潰與主機斷電的保證不同。殺掉 process 的成功結果，不能延伸成斷電測試通過。
+- 官方 [規格第 2.2 節](https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/docs/spec.md#22-public-harness-surface) 明訂：既有 root 會忽略建立時的 `agent` 與 `init`。修改啟動程式裡的模型設定，不代表舊會話已改設定；要檢查實際 agent，並以 `configure()` 明確變更。
+
+恢復成功後仍要驗答案。`done` 表示該 input 已被回答，不能替代章節覆蓋、引用正確與內容品質檢查。若驗收失敗後改了需求，就建立可追溯的新提交；重送舊 `requestId` 的目的仍是找回原提交，不能把它當成重新求解的按鈕。
 
 ## 先在四個中斷點驗收，再讓它碰正式環境
 

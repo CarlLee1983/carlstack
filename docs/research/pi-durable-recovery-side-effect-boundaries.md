@@ -30,3 +30,13 @@
 資產：`src/assets/covers/pi-durable-recovery-side-effect-boundaries.png`，1672 × 941。完整圖與文章／索引卡片均已視覺檢查，無文字或商標，裁切仍可辨識檢查點與第二閘門。
 
 隔離 Chrome profile 檢查預覽：1440 px 與 320 px 深淺色，封面均載入；320 px document scrollWidth 為 320。截圖保留於任務 workspace，不提交 QA 腳本或截圖。必要依賴已以 pnpm 12.1.0 完成 `pnpm install --frozen-lockfile`。
+
+## 2026-10-04 更新：jiangkoumo 恢復驗收
+
+- 使用者新來源原始 URL：https://x.com/jiangkoumo_/status/2106317420961112392?s=46 。正規化 URL：https://x.com/jiangkoumo_/status/2106317420961112392 。移除追蹤參數 s，保留穩定 ID 2106317420961112392。作者 jiangkoumo（@jiangkoumo_），標題「Pi Durable 实战指南：给自己的 Agent 加上断点续跑」。X 顯示 2026-10-03 02:36，時區未確認，不推算精確發文時間。
+- 修改前在 blog、research、article queue 查完整 URL／正規化 URL／ID／作者／pi-durable／Pi Durable。ID 無既有紀錄，但 Pi Durable 的主題與本篇相同，因此更新既有 URL，不新增文章或系列順序；publishDate 保持不變，更新 updatedDate。基準 main d43ed5ca218b46ad5f0ac9b113c70e9bbe22f9e8。
+- 已由雲端瀏覽器讀原 X article。新增讀者收穫：完成後重新開啟只證明結果重用；中途故障另需控制暫停點與核對 submission／task／已完成工具；Doc 已讀狀態不代表模型理解；safe 應涵蓋整段 execute 的狀態變動；done 不能代替業務品質驗收。不複製全文或長程式，不把原作者 DeepSeek 執行结果寫成本站實測。
+- 再讀官方 README current main（內容 blob fef41c069a65678833325a42cc10a294d214aa90）及既有 commit 7fbbd5f4a1d982bb02d63472dde0774fa639f99b 的 spec。新增引用保持固定 commit。Storage 支持 MemoryStorage 不持久化、SQLite WAL/NORMAL 的 process crash 與 power/host failure 區別；spec 第 2.2 節明訂既有 root 忽略 agent/init。沒有宣稱本次 API 更新，也沒有宣稱完成主機斷電測試。
+- 官方 spec：https://github.com/earendil-works/pi/blob/7fbbd5f4a1d982bb02d63472dde0774fa639f99b/packages/durable/docs/spec.md#22-public-harness-surface 。原來源與官方事實、本文驗收建議分開標示。
+- 維持 AI Agent 工程化與工作流實戰 seriesOrder 52；沿用符合恢復／授權主題的原封面。已重新檢視 1672×941 完整圖與 320×180 卡片，無不應有的文字或商標，雙閘門與斷裂路徑可辨。
+- 本次瀏覽器版面驗收依使用者明確授權交由發布後線上檢視；不宣稱重新完成桌面／320 px 深淺色預覽，不繞過既有 loopback 限制。仍執行完整 format、staged policy、check、test、build 與索引檢查。
