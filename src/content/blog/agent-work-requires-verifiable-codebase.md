@@ -1,8 +1,8 @@
 ---
 title: "Agent 要能並行，先把工作變成可驗收結果"
-description: "依 Lauren Tan 2026-09-21 的 Cursor Compile 影片，分開信任曲線、CLI 與 feature map、糾正落點，以及 Grok Bot 的 Dune 架構，並給一條把人的糾正上移到檢查的規則。"
+description: "從 Lauren Tan 的 Cursor Compile 分享與 Matt Pocock 訪談摘要，拆解可重跑的驗證環境、糾正落點與 pstack 的交付邊界：技能要實跑，驗收要對準最後提交，合併需要獨立授權。"
 publishDate: 2026-09-24T10:04:30+08:00
-updatedDate: 2026-09-29T10:58:00+08:00
+updatedDate: 2026-10-03T16:28:04+08:00
 draft: false
 featured: false
 tags:
@@ -19,6 +19,11 @@ seriesOrder: 23
 2026-09-21，Lauren Tan（@poteto）公開了原定在倫敦 Cursor Compile 的分享。影片約 38 分鐘。[貼文](https://x.com/poteto/status/2102050467505430555)寫上個月 2,500 個 PR。口播與開場投影片說的是 2,000 個，貢獻圖註記六個月超過 5,000 個。她沒有說明計數區間、這些 PR 是否包含自動開出的變更，或返工比例。數字只標出當時的出貨量級。
 
 同日 Kieran Zhang 的[摘要](https://x.com/i/article/2102795423052419072)把糾正用的五層稱作 Dune。影片約 15:40 的投影片標題是 whenever you correct your agent。Dune 出現在約 26:40，指 Grok Bot 的架構。本文以這支影片為準。
+
+2026-10-02，Michael Guo 又整理了她與 Matt Pocock 的[另一場訪談](https://www.youtube.com/watch?v=MN9dGgmLyso)。他的 [X 文章](https://x.com/michaelzsguo/status/2106219013978140679)再次以每月 2,500 個 PR 為題，也說明這是受訪者自述，工作包含大量維護、修 bug 與重構。這些計數沒有一致的任務大小、返工與產品價值基準，不能用來推導生產力倍數。
+
+> [!NOTE]
+> 本文前半的影片時間碼仍指 9/21 Cursor Compile 分享。10/3 更新採用 Michael 的訪談摘要，未取得可逐字核對的完整訪談稿；新增的技能與合併規則另以截至 10/3 的 pstack 官方 repository 交叉查核，不視為訪談當日版本或實測結果。
 
 我的立場是：**能同時交給 Agent 的工作量，取決於每條糾正有沒有落到不靠人記得的檢查。**
 
@@ -132,9 +137,64 @@ Grok Bot routines 可以訂閱 Slack 討論串與 Sentry 告警並自動開工�
 
 她把這段放在信任曲線的後段。程式庫、檢查、規則與 skill 還沒有讓你離開 1 到 5 的區間時，外圈同時放大的是還沒被擋下的錯誤。
 
+## 訪談補充：巡查發現可以先留下，修改要另立任務
+
+Michael 的整理提到一種分工：巡查 Agent 找出 React 程式裡反覆出現的不良模式，先留下紀錄，隔幾天再集中看共同原因。人的抽查也用來找不同 Agent 一再複製的壞習慣。這延續前面的園丁觀點，但多了一個操作上的區分：發現問題與動手修改，可以有不同的節奏。
+
+我的工程推論是，外圈每找到一個症狀就開修復 PR，容易讓同一個架構問題長出多份局部補丁。巡查應交付足夠聚類的證據，再由負責人決定修一個共用邊界，或保留各處獨立行為。以下是假設的巡查紀錄格式，並非訪談展示的工具，也不是已跑過的案例：
+
+```yaml
+finding:
+  symptom: "離開頁面後仍有背景輪詢"
+  entrypoint: "搜尋頁 → 離開 → 再次進入"
+  evidence: "待填：對應提交與實際 trace"
+  suspected_boundary: "頁面生命週期與共用訂閱管理"
+  action: "record-only"
+  product_edit_authorized: false
+```
+
+`record-only` 是工作授權；`evidence` 是判斷材料。找得到相似程式碼，只足以提出待查問題。若幾份 trace 指向同一個訂閱擁有者，再開一個有範圍與回歸條件的修復任務。這樣能把人的時間用在「是否同一個原因」，而非逐一批准長得很像的補丁。
+
+## 安裝 pstack 後，驗證技能本身還要跑過
+
+截至 2026-10-03，[pstack README 的固定版本](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/README.md#not-shipped-here)列明，`control-cli` 與 `control-ui` 放在另一個 `cursor-team-kit` plugin。安裝 pstack 並不表示當前專案已具備可操作的應用環境。
+
+更具體的要求在 [`create-verification-skill`](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/create-verification-skill/SKILL.md)。它要求從 repository 找出啟動命令、就緒訊號、真實操作入口、證據位置，以及多個實例能否隔離。生成技能後，還要依照技能自己的說明，完整啟動、檢查環境、操作一個已列出的功能、收集證據，再清理實例。清理後，證據必須仍在指定位置。
+
+這裡有兩種不同的驗收範圍。第一次跑通一個功能，證明的是這份驗證技能至少有一條可用路徑，並不代表整個產品通過。後續 [`maintain-verification-skill`](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/maintain-verification-skill/SKILL.md)則要求 feature map 中每個已列出的功能都有原始碼與實際操作覆蓋，並區分文件過期、harness 缺口與產品回歸；它的修改範圍限於驗證技能自己的目錄，不能順手改產品。
+
+對導入者的驗收，我會保留四件事：
+
+- 記下被測的提交、實例與前置條件，避免操作到別人的服務
+- 保留使用者動作及其結果，不能只交一張看起來正常的最後畫面
+- 檢查應有的副作用，例如檔案、資料列或事件；測試模式省略的副作用要另列
+- 清理後重新讀取證據，確認交給下一個人的路徑仍然可用
+
+這是對官方流程的工程化採用建議，本文沒有安裝 pstack 或測量它的成功率。**停止規則：驗證入口跑不通，就回報缺少的前置條件；不能把「已生成 SKILL.md」算成環境完成。**
+
+## 驗收要對準最後的 patch，合併權限要另外說清楚
+
+Michael 的摘要把人離線後的工作列為訪談主題。要判斷它能否照搬，pstack 的 [Run work while you sleep](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/docs/guide/07-overnight.md)提供了比「讓 Agent 自己跑」更精確的分界。
+
+`autopilot-full` 面向彼此獨立的 PR，每個 PR 有一位 owner。owner 不能只靠自己的通過判定合併；從 code-ready head 開始，每次後續 push 改變 patch，都要再開一輪新的驗證。允許合併的乾淨 verdict，必須對應實際要合併的 patch。
+
+`autopilot-stack` 則建立一串線性的 base-branch stack，附上每一層的驗證判定，交由人審查與合併。文件明說它不負責出貨。兩種模式共享執行與驗證能力，交付權限不同。
+
+我的採用方式會把完成條件拆成三個可讀欄位，而不只寫「CI 綠燈」：
+
+```text
+工作完成：目標行為已完成，未解項目逐一列明
+驗證完成：證據與 verdict 指向目前的 patch，後續修改已重驗
+交付權限：本次只交審查，或已明確授權合併／部署
+```
+
+最後一欄不能由前兩欄自動補成「可以」。測試通過不會擴大原先授權；新 push 也不能沿用舊 patch 的通過判定。對資料遷移、權限或其他難回復的修改，團隊仍須自行制定審查與回復條件，這份 playbook 沒有替所有風險提供通用答案。
+
+因此，第一輪導入可以交付已驗證、待人審查的 stack。等證據格式、更新後重驗與停止條件確實能運作，再針對範圍明確的任務授予合併權限。PR 數量不參與這個授權判斷。
+
 ## 下一步：替最近一次糾正指定落點
 
-翻出你最近打給 Agent 的一則糾正。填上成功證據、驅動用的 CLI，以及它現在落在五層的哪一層。若落在 rules、skills 或 style guide，寫下下一個要上移的檢查，指出哪一個目錄邊界、型別或 lint 會讓同樣的錯誤直接失敗。那個檢查進了 CI 之後，再考慮多開一條工作線。
+翻出你最近打給 Agent 的一則糾正。填上成功證據、驅動用的 CLI，以及它現在落在五層的哪一層。若落在 rules、skills 或 style guide，寫下下一個要上移的檢查，指出哪一個目錄邊界、型別或 lint 會讓同樣的錯誤直接失敗。那個檢查進了 CI 之後，再考慮多開一條工作線。若驗證技能還沒完整跑過，這次先交出一個功能的可重跑證據，並在任務上寫清楚「交審查」或「可合併」。
 
 若下一個問題是多個 Agent 的任務狀態與 review 排程，接著讀 [Grok Bot 的工程管理迴路](/blog/grok-bot-engineering-control-plane/)。若要從任務契約、狀態、權限與 trace 建立 Harness，參考 [Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/)。
 
@@ -149,3 +209,5 @@ Grok Bot routines 可以訂閱 Slack 討論串與 Sentry 告警並自動開工�
 - [pstack 的 Verify and ship](https://github.com/cursor/plugins/blob/main/pstack/docs/guide/06-verify-and-ship.md)
 - [poteto/verification-skill-example](https://github.com/poteto/verification-skill-example)
 - [GitHub 的 protected branches 說明](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [Michael Guo 的 Matt Pocock × Lauren Tan 訪談摘要](https://x.com/michaelzsguo/status/2106219013978140679)，2026-10-02；[原訪談](https://www.youtube.com/watch?v=MN9dGgmLyso)，長度 1:06:45，與 9/21 分享不同
+- [pstack README](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/README.md)、[建立驗證技能](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/create-verification-skill/SKILL.md)、[維護驗證技能](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/skills/maintain-verification-skill/SKILL.md)、[離線工作契約](https://github.com/cursor/plugins/blob/23e4138daa01c42d4969f7a5465f82704e64f798/pstack/docs/guide/07-overnight.md)，固定於 2026-10-03 查核的 commit `23e4138`
