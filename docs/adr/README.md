@@ -12,3 +12,4 @@
 | [0004](0004-native-svg-over-mermaid.md)           | 新文章圖解改用原生 SVG，禁用 Mermaid               | accepted |
 | [0005](0005-diagram-dark-mode-selector.md)        | 圖解深色模式：解析後的 data-theme 作為唯一主題訊號 | accepted |
 | [0006](0006-featured-posts-expire.md)             | 首頁精選改為有期限的人工策展加自動補位             | accepted |
+| [0007](0007-article-order-by-update.md)           | 時序文章清單依更新時間排序                         | accepted |

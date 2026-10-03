@@ -3,13 +3,13 @@ import {
   filterDrafts,
   getEntrySlug,
   normalizeTaxonomy,
-  sortByPublishDate,
+  sortByUpdatedDate,
   sortSeries,
 } from "./content";
 
 export async function getVisiblePosts(): Promise<CollectionEntry<"blog">[]> {
   const entries = await getCollection("blog");
-  return sortByPublishDate(filterDrafts(entries, import.meta.env.DEV));
+  return sortByUpdatedDate(filterDrafts(entries, import.meta.env.DEV));
 }
 
 export function postHref(post: CollectionEntry<"blog">): string {

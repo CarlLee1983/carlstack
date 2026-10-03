@@ -10,14 +10,21 @@ export interface BlogDataShape {
 }
 
 export interface WithBlogData {
+  id?: string;
   data: BlogDataShape;
 }
 
-export function sortByPublishDate<T extends WithBlogData>(entries: T[]): T[] {
-  return [...entries].sort(
-    (left, right) =>
-      right.data.publishDate.getTime() - left.data.publishDate.getTime(),
-  );
+/** 時序清單依最近更新倒序；未更新時使用發布日，同時間以發布日與 ID 穩定排序。 */
+export function sortByUpdatedDate<T extends WithBlogData>(entries: T[]): T[] {
+  return [...entries].sort((left, right) => {
+    const dateOrder =
+      lastTouched(right.data) - lastTouched(left.data) ||
+      right.data.publishDate.getTime() - left.data.publishDate.getTime();
+    if (dateOrder) return dateOrder;
+    const leftId = left.id ?? "";
+    const rightId = right.id ?? "";
+    return leftId < rightId ? -1 : leftId > rightId ? 1 : 0;
+  });
 }
 
 export function filterDrafts<T extends WithBlogData>(
@@ -100,9 +107,8 @@ export function selectFeaturedPosts<T extends WithBlogData>(
     .filter((entry) => isActiveFeatured(entry.data, now))
     .slice(0, limit);
   const taken = new Set<T>([...active, ...exclude]);
-  const fill = [...entries]
-    .filter((entry) => !taken.has(entry))
-    .sort((left, right) => lastTouched(right.data) - lastTouched(left.data))
-    .slice(0, limit - active.length);
+  const fill = sortByUpdatedDate(
+    entries.filter((entry) => !taken.has(entry)),
+  ).slice(0, limit - active.length);
   return [...active, ...fill];
 }
