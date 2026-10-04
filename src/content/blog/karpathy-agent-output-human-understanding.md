@@ -2,6 +2,7 @@
 title: "Karpathy 談 AI 解說：把人能否理解，寫進 Agent 的交付條件"
 description: "從 Karpathy 的受控語言、圖解、互動 HTML 與解說影片建議出發，用重試機制審查說明如何選擇表達形式、保留證據，並以重述與反例驗收人的理解。"
 publishDate: 2026-10-03T08:39:22+08:00
+updatedDate: 2026-10-04T09:51:21+08:00
 draft: false
 featured: false
 tags:
@@ -124,3 +125,5 @@ Karpathy 看好為單次理解需求生成大型客製產物的可能性。對�
 下一次讓 Agent 交付變更時，在既有測試之外加上一個反例問題。要求它附上證據，讓接手的人先預測結果，再打開測試核對。這比多生成一支精緻影片，更容易知道目前還缺哪一段理解。
 
 若問題是人根本沒注意到輸出中的關鍵資訊，可接著讀[Claude Code 的 You should know 提醒驗收](/blog/claude-code-you-should-know-attention/)；該文處理漏報與介入時機，再把需要理解的問題交回解說流程。
+
+若要把受控語言的思路用在中文文件，〈[中文技術寫作借用 STE](/blog/chinese-technical-writing-evidence-contract/)〉進一步示範術語表、原句對照與條件保留檢查，避免 Agent 在潤稿時擴大驗證範圍。
