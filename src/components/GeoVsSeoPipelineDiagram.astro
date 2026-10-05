@@ -1,0 +1,639 @@
+---
+// src/components/GeoVsSeoPipelineDiagram.astro
+---
+
+<figure class="geo-diagram" aria-labelledby="geo-diagram-caption">
+  <svg
+    class="geo-diagram__desktop"
+    viewBox="0 0 960 480"
+    role="img"
+    aria-labelledby="geo-diagram-title geo-diagram-desc"
+  >
+    <title id="geo-diagram-title">
+      SEO 與 GEO 雙軌分流與五道檢驗關卡架構圖
+    </title>
+    <desc id="geo-diagram-desc">
+      展示從內容產出、邊緣網關放行、爬蟲存檔到雙軌分流的全流程。左軌傳統 SEO
+      提供藍色搜尋連結，右軌 GEO 經由大語言模型即時合成與引用段落。下方列出
+      Find、Open、Read、Pick、Quote 五道核心過濾關卡。
+    </desc>
+
+    <defs>
+      <marker
+        id="geo-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="geo-diagram__arrow-head"></path>
+      </marker>
+      <marker
+        id="geo-arrow-seo"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="geo-diagram__arrow-head--seo"
+        ></path>
+      </marker>
+      <marker
+        id="geo-arrow-geo"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 1 L 9 5 L 0 9 z" class="geo-diagram__arrow-head--geo"
+        ></path>
+      </marker>
+    </defs>
+
+    <!-- 連接線與箭頭 -->
+    <!-- 1 -> 2 -->
+    <path
+      class="geo-diagram__arrow"
+      d="M190 105 H228"
+      marker-end="url(#geo-arrow)"></path>
+    <!-- 2 -> 3 -->
+    <path
+      class="geo-diagram__arrow"
+      d="M410 105 H448"
+      marker-end="url(#geo-arrow)"></path>
+    <!-- 3 -> Fork Top (SEO) -->
+    <path
+      class="geo-diagram__arrow geo-diagram__arrow--seo"
+      d="M630 85 C660 85 665 65 698 65"
+      marker-end="url(#geo-arrow-seo)"></path>
+    <!-- 3 -> Fork Bottom (GEO) -->
+    <path
+      class="geo-diagram__arrow geo-diagram__arrow--geo"
+      d="M630 125 C660 125 665 145 698 145"
+      marker-end="url(#geo-arrow-geo)"></path>
+
+    <!-- Stage 1: 原始內容產出 -->
+    <g class="geo-diagram__card" transform="translate(20, 45)">
+      <rect width="170" height="120" rx="12"></rect>
+      <text class="geo-diagram__step" x="16" y="26">STAGE 01</text>
+      <text class="geo-diagram__title" x="16" y="52">內容發布與格式</text>
+      <text class="geo-diagram__detail" x="16" y="76">HTML 結構化標題</text>
+      <text class="geo-diagram__detail" x="16" y="96">附帶 .md 純文字端點</text>
+    </g>
+
+    <!-- Stage 2: 邊緣網關與 HTTP 狀態 -->
+    <g class="geo-diagram__card" transform="translate(240, 45)">
+      <rect width="170" height="120" rx="12"></rect>
+      <text class="geo-diagram__step" x="16" y="26">STAGE 02</text>
+      <text class="geo-diagram__title" x="16" y="52">邊緣檢驗 (Edge)</text>
+      <text class="geo-diagram__detail" x="16" y="76"
+        >Cloudflare 機器人規則</text
+      >
+      <text class="geo-diagram__detail" x="16" y="96">嚴格保證 HTTP 200</text>
+    </g>
+
+    <!-- Stage 3: 爬蟲抓取與索引建庫 -->
+    <g class="geo-diagram__card" transform="translate(460, 45)">
+      <rect width="170" height="120" rx="12"></rect>
+      <text class="geo-diagram__step" x="16" y="26">STAGE 03</text>
+      <text class="geo-diagram__title" x="16" y="52">爬蟲分類與索引</text>
+      <text class="geo-diagram__detail" x="16" y="76"
+        >搜尋索引器 vs 對話代理</text
+      >
+      <text class="geo-diagram__detail" x="16" y="96"
+        >解析 sitemap 與 llms.txt</text
+      >
+    </g>
+
+    <!-- Stage 4A: 經典 SEO 分流 -->
+    <g
+      class="geo-diagram__card geo-diagram__card--seo"
+      transform="translate(710, 20)"
+    >
+      <rect width="230" height="85" rx="10"></rect>
+      <text class="geo-diagram__badge geo-diagram__badge--seo" x="16" y="24"
+        >SEO 路徑</text
+      >
+      <text class="geo-diagram__title" x="16" y="48">SERP 搜尋藍色連結</text>
+      <text class="geo-diagram__detail" x="16" y="68"
+        >Google / Bing 索引排序與使用者點擊</text
+      >
+    </g>
+
+    <!-- Stage 4B: 生成式 GEO 分流 -->
+    <g
+      class="geo-diagram__card geo-diagram__card--geo"
+      transform="translate(710, 115)"
+    >
+      <rect width="230" height="85" rx="10"></rect>
+      <text class="geo-diagram__badge geo-diagram__badge--geo" x="16" y="24"
+        >GEO 路徑</text
+      >
+      <text class="geo-diagram__title" x="16" y="48">LLM 即時合成與引用</text>
+      <text class="geo-diagram__detail" x="16" y="68"
+        >ChatGPT / Claude / Perplexity 引用段落</text
+      >
+    </g>
+
+    <!-- 分隔橫線與標籤 -->
+    <line class="geo-diagram__divider" x1="20" y1="205" x2="940" y2="205"
+    ></line>
+    <text class="geo-diagram__section-label" x="20" y="230"
+      >FIVE GATES OF VISIBILITY（五道檢驗關卡：任一關失敗即不可見）</text
+    >
+
+    <!-- Gate 1: Find -->
+    <g class="geo-diagram__gate" transform="translate(20, 250)">
+      <rect width="172" height="195" rx="10"></rect>
+      <text class="geo-diagram__gate-num" x="16" y="26">GATE 01</text>
+      <text class="geo-diagram__gate-name" x="16" y="52">Find（能找到嗎）</text>
+      <text class="geo-diagram__gate-desc" x="16" y="78"
+        >爬蟲能否發現網址？</text
+      >
+      <line class="geo-diagram__gate-line" x1="16" y1="92" x2="156" y2="92"
+      ></line>
+      <text class="geo-diagram__gate-pass" x="16" y="112"
+        >✓ sitemap.xml 完整</text
+      >
+      <text class="geo-diagram__gate-pass" x="16" y="132"
+        >✓ 內部主題叢集連結</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="162">✗ 孤島頁面無入口</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="180"
+        >✗ robots.txt Disallow</text
+      >
+    </g>
+
+    <!-- Gate 2: Open -->
+    <g class="geo-diagram__gate" transform="translate(208, 250)">
+      <rect width="172" height="195" rx="10"></rect>
+      <text class="geo-diagram__gate-num" x="16" y="26">GATE 02</text>
+      <text class="geo-diagram__gate-name" x="16" y="52">Open（打得開嗎）</text>
+      <text class="geo-diagram__gate-desc" x="16" y="78"
+        >造訪是否回傳 200？</text
+      >
+      <line class="geo-diagram__gate-line" x1="16" y1="92" x2="156" y2="92"
+      ></line>
+      <text class="geo-diagram__gate-pass" x="16" y="112"
+        >✓ HTTP 200 乾淨回應</text
+      >
+      <text class="geo-diagram__gate-pass" x="16" y="132"
+        >✓ 放行對話抓取爬蟲</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="162"
+        >✗ Cloudflare 403 誤殺</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="180"
+        >✗ 驗證碼挑戰 / 登入牆</text
+      >
+    </g>
+
+    <!-- Gate 3: Read -->
+    <g class="geo-diagram__gate" transform="translate(396, 250)">
+      <rect width="172" height="195" rx="10"></rect>
+      <text class="geo-diagram__gate-num" x="16" y="26">GATE 03</text>
+      <text class="geo-diagram__gate-name" x="16" y="52">Read（讀得懂嗎）</text>
+      <text class="geo-diagram__gate-desc" x="16" y="78"
+        >主題與答案是否清晰？</text
+      >
+      <line class="geo-diagram__gate-line" x1="16" y1="92" x2="156" y2="92"
+      ></line>
+      <text class="geo-diagram__gate-pass" x="16" y="112"
+        >✓ 工具+動作+情境標題</text
+      >
+      <text class="geo-diagram__gate-pass" x="16" y="132"
+        >✓ 前 100 字直奔答案</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="162">✗ 標題抽象無主題</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="180"
+        >✗ 冗長暖身抒情前言</text
+      >
+    </g>
+
+    <!-- Gate 4: Pick -->
+    <g class="geo-diagram__gate" transform="translate(584, 250)">
+      <rect width="172" height="195" rx="10"></rect>
+      <text class="geo-diagram__gate-num" x="16" y="26">GATE 04</text>
+      <text class="geo-diagram__gate-name" x="16" y="52">Pick（會選你嗎）</text>
+      <text class="geo-diagram__gate-desc" x="16" y="78"
+        >是否為最精確權威來源？</text
+      >
+      <line class="geo-diagram__gate-line" x1="16" y1="92" x2="156" y2="92"
+      ></line>
+      <text class="geo-diagram__gate-pass" x="16" y="112"
+        >✓ 第一手工程驗證紀錄</text
+      >
+      <text class="geo-diagram__gate-pass" x="16" y="132"
+        >✓ 鮮明論點與取捨架構</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="162"
+        >✗ AI 產生的公版洗稿</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="180"
+        >✗ 站內多篇關鍵字打架</text
+      >
+    </g>
+
+    <!-- Gate 5: Quote -->
+    <g class="geo-diagram__gate" transform="translate(772, 250)">
+      <rect width="168" height="195" rx="10"></rect>
+      <text class="geo-diagram__gate-num" x="16" y="26">GATE 05</text>
+      <text class="geo-diagram__gate-name" x="16" y="52">Quote（能引用嗎）</text
+      >
+      <text class="geo-diagram__gate-desc" x="16" y="78"
+        >能否提煉成一完整段落？</text
+      >
+      <line class="geo-diagram__gate-line" x1="16" y1="92" x2="152" y2="92"
+      ></line>
+      <text class="geo-diagram__gate-pass" x="16" y="112"
+        >✓ 獨立可引用金句區塊</text
+      >
+      <text class="geo-diagram__gate-pass" x="16" y="132"
+        >✓ 維護標準 llms.txt</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="162">✗ 結論被雜訊深埋</text
+      >
+      <text class="geo-diagram__gate-fail" x="16" y="180"
+        >✗ 無純文字解析入口</text
+      >
+    </g>
+  </svg>
+
+  <!-- 窄螢幕版面：結構化 HTML 卡片 -->
+  <div class="geo-diagram__mobile">
+    <div class="geo-diagram__m-flow">
+      <div class="geo-diagram__m-step">
+        <span class="geo-diagram__m-badge">01 內容端</span>
+        <h4>內容發布與格式</h4>
+        <p>結構化 HTML + 支援 .md 純文字端點</p>
+      </div>
+      <div class="geo-diagram__m-step">
+        <span class="geo-diagram__m-badge">02 邊緣層</span>
+        <h4>邊緣防火牆檢驗</h4>
+        <p>Cloudflare 精準放行，嚴格回傳 HTTP 200</p>
+      </div>
+      <div class="geo-diagram__m-step">
+        <span class="geo-diagram__m-badge">03 索引層</span>
+        <h4>爬蟲分類與索引</h4>
+        <p>區分搜尋爬蟲與對話抓取代理，讀取 sitemap 與 llms.txt</p>
+      </div>
+      <div class="geo-diagram__m-step geo-diagram__m-step--seo">
+        <span class="geo-diagram__m-badge geo-diagram__m-badge--seo"
+          >SEO 分流</span
+        >
+        <h4>SERP 搜尋藍色連結</h4>
+        <p>Google / Bing 經典索引庫挑選與排序</p>
+      </div>
+      <div class="geo-diagram__m-step geo-diagram__m-step--geo">
+        <span class="geo-diagram__m-badge geo-diagram__m-badge--geo"
+          >GEO 分流</span
+        >
+        <h4>LLM 即時合成與引用</h4>
+        <p>ChatGPT / Claude / Perplexity 摘錄句子並附註來源</p>
+      </div>
+    </div>
+
+    <div class="geo-diagram__m-gates">
+      <h4 class="geo-diagram__m-gates-title">
+        五道過濾關卡（任一關卡失敗即失去曝光）
+      </h4>
+      <div class="geo-diagram__m-gate-item">
+        <strong>Gate 1: Find</strong>
+        <p>
+          爬蟲能否看見網址？依賴 sitemap.xml 與主題集群內鏈，防範 robots.txt
+          Disallow。
+        </p>
+      </div>
+      <div class="geo-diagram__m-gate-item">
+        <strong>Gate 2: Open</strong>
+        <p>
+          造訪是否成功回傳 200？嚴防 Cloudflare 403 誤殺、機器人挑戰與登入牆。
+        </p>
+      </div>
+      <div class="geo-diagram__m-gate-item">
+        <strong>Gate 3: Read</strong>
+        <p>
+          主題是否一目了然？標題採用「工具+動作+情境」，前 100 字直接給出答案。
+        </p>
+      </div>
+      <div class="geo-diagram__m-gate-item">
+        <strong>Gate 4: Pick</strong>
+        <p>
+          是否為最佳權威來源？拒絕 AI 模板廢話，確保第一手踩坑經驗與論點獨特性。
+        </p>
+      </div>
+      <div class="geo-diagram__m-gate-item">
+        <strong>Gate 5: Quote</strong>
+        <p>
+          模型能否直接提煉引用？提供可獨立抽取的段落結構，並維護 llms.txt
+          文件地圖。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <figcaption id="geo-diagram-caption">
+    圖 1：SEO 與 GEO 的雙軌分流架構，以及內容被 AI
+    檢索與引用必須通過的五道檢驗關卡。
+  </figcaption>
+</figure>
+
+<style>
+  .geo-diagram {
+    margin: var(--space-xl) 0;
+  }
+
+  .geo-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .geo-diagram__mobile {
+    display: none !important;
+  }
+
+  /* 基礎卡片樣式 */
+  .geo-diagram__card rect,
+  .geo-diagram__gate rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+
+  .geo-diagram__card--seo rect {
+    stroke: #2563eb;
+    fill: var(--dg-surface-2);
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__card--seo rect {
+    stroke: #60a5fa;
+  }
+
+  .geo-diagram__card--geo rect {
+    stroke: #0d9488;
+    fill: var(--dg-surface-2);
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__card--geo rect {
+    stroke: #2dd4bf;
+  }
+
+  /* 文字階層 */
+  .geo-diagram__step,
+  .geo-diagram__gate-num {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .geo-diagram__title,
+  .geo-diagram__gate-name {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .geo-diagram__detail,
+  .geo-diagram__gate-desc {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+
+  .geo-diagram__badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .geo-diagram__badge--seo {
+    fill: #2563eb;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__badge--seo {
+    fill: #60a5fa;
+  }
+
+  .geo-diagram__badge--geo {
+    fill: #0d9488;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__badge--geo {
+    fill: #2dd4bf;
+  }
+
+  .geo-diagram__divider {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .geo-diagram__section-label {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .geo-diagram__gate-line {
+    stroke: var(--dg-rule);
+    stroke-width: 1;
+  }
+
+  .geo-diagram__gate-pass {
+    fill: #16a34a;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__gate-pass {
+    fill: #4ade80;
+  }
+
+  .geo-diagram__gate-fail {
+    fill: #dc2626;
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__gate-fail {
+    fill: #f87171;
+  }
+
+  /* 箭頭線條 */
+  .geo-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  .geo-diagram__arrow--seo {
+    stroke: #2563eb;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__arrow--seo {
+    stroke: #60a5fa;
+  }
+
+  .geo-diagram__arrow--geo {
+    stroke: #0d9488;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__arrow--geo {
+    stroke: #2dd4bf;
+  }
+
+  .geo-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+
+  .geo-diagram__arrow-head--seo {
+    fill: #2563eb;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__arrow-head--seo {
+    fill: #60a5fa;
+  }
+
+  .geo-diagram__arrow-head--geo {
+    fill: #0d9488;
+  }
+
+  :global(:root[data-theme="dark"]) .geo-diagram__arrow-head--geo {
+    fill: #2dd4bf;
+  }
+
+  figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  /* 行動版樣式 */
+  @media (max-width: 48rem) {
+    .geo-diagram__desktop {
+      display: none !important;
+    }
+
+    .geo-diagram__mobile {
+      display: flex !important;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .geo-diagram__m-flow {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .geo-diagram__m-step {
+      background: var(--dg-surface);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .geo-diagram__m-step--seo {
+      border-color: #2563eb;
+      background: var(--dg-surface-2);
+    }
+
+    .geo-diagram__m-step--geo {
+      border-color: #0d9488;
+      background: var(--dg-surface-2);
+    }
+
+    .geo-diagram__m-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--dg-muted);
+      margin-bottom: 4px;
+    }
+
+    .geo-diagram__m-badge--seo {
+      color: #2563eb;
+    }
+
+    .geo-diagram__m-badge--geo {
+      color: #0d9488;
+    }
+
+    :global(:root[data-theme="dark"]) .geo-diagram__m-badge--seo {
+      color: #60a5fa;
+    }
+
+    :global(:root[data-theme="dark"]) .geo-diagram__m-badge--geo {
+      color: #2dd4bf;
+    }
+
+    .geo-diagram__m-step h4 {
+      margin: 0 0 4px 0;
+      font-size: 15px;
+      color: var(--dg-ink);
+    }
+
+    .geo-diagram__m-step p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dg-ink-2);
+    }
+
+    .geo-diagram__m-gates {
+      background: var(--dg-surface-2);
+      border: 1px solid var(--dg-rule);
+      border-radius: 8px;
+      padding: var(--space-md);
+    }
+
+    .geo-diagram__m-gates-title {
+      margin: 0 0 var(--space-sm) 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--dg-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .geo-diagram__m-gate-item {
+      padding: var(--space-xs) 0;
+      border-bottom: 1px solid var(--dg-rule);
+    }
+
+    .geo-diagram__m-gate-item:last-child {
+      border-bottom: none;
+    }
+
+    .geo-diagram__m-gate-item strong {
+      display: block;
+      font-size: 14px;
+      color: var(--dg-ink);
+      margin-bottom: 2px;
+    }
+
+    .geo-diagram__m-gate-item p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dg-ink-2);
+    }
+  }
+</style>
