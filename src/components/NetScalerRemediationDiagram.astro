@@ -1,0 +1,150 @@
+---
+const tracks = [
+  {
+    title: "修補軌",
+    detail: "核對 SAML 與版本分支",
+    check: "每個節點升級，再驗證正常登入",
+  },
+  {
+    title: "調查軌",
+    detail: "保存時序與可取得的證據",
+    check: "分析異常，明列證據範圍與缺口",
+  },
+];
+---
+
+<figure class="nsrem-diagram" aria-labelledby="nsrem-caption">
+  <svg
+    class="nsrem-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="nsrem-title nsrem-desc"
+  >
+    <title id="nsrem-title">NetScaler 修補與調查的雙軌驗收</title>
+    <desc id="nsrem-desc"
+      >適用條件確認後，修補軌驗證節點版本與正常登入，調查軌分析修補前的事件證據。兩軌各自取得紀錄，再由負責人覆核結案。</desc
+    >
+    <rect
+      x="24"
+      y="24"
+      width="912"
+      height="88"
+      rx="12"
+      class="nsrem-diagram__card"></rect>
+    <text x="48" y="59" class="nsrem-diagram__title"
+      >入口：資產、SAML 角色、版本、暴露與管理責任</text
+    >
+    <text x="48" y="89" class="nsrem-diagram__detail"
+      >資訊不足 → 待確認；符合條件 → 開啟兩軌</text
+    >
+    {
+      tracks.map((track, index) => (
+        <g transform={`translate(24, ${144 + index * 148})`}>
+          <rect width="912" height="116" rx="12" class="nsrem-diagram__card" />
+          <text x="24" y="38" class="nsrem-diagram__title">
+            {track.title}
+          </text>
+          <text x="170" y="38" class="nsrem-diagram__lead">
+            {track.detail}
+          </text>
+          <text x="170" y="78" class="nsrem-diagram__detail">
+            {track.check}
+          </text>
+        </g>
+      ))
+    }
+    <rect
+      x="24"
+      y="444"
+      width="912"
+      height="88"
+      rx="12"
+      class="nsrem-diagram__card"></rect>
+    <text x="48" y="479" class="nsrem-diagram__title"
+      >覆核：兩種結論各自留證據</text
+    >
+    <text x="48" y="509" class="nsrem-diagram__detail"
+      >已升級 ≠ 修補前沒有事件；未發現證據 ≠ 證明從未利用</text
+    >
+  </svg>
+  <div class="nsrem-diagram__mobile">
+    <p class="nsrem-diagram__heading">先確認適用條件</p>
+    <p>資產、SAML、分支、暴露及管理責任。資訊不足時保持待確認。</p>
+    {
+      tracks.map((track) => (
+        <section>
+          <>
+            <h4>{track.title}</h4>
+            <p>{track.detail}</p>
+            <p>{track.check}</p>
+          </>
+        </section>
+      ))
+    }
+    <p class="nsrem-diagram__heading">各自留證據，再覆核</p>
+    <p>升級完成不代表修補前沒有事件；未發現證據不代表從未遭利用。</p>
+  </div>
+  <figcaption id="nsrem-caption">
+    本文建議的處置分工：版本與服務驗收、修補前事件調查分別留下結論。
+  </figcaption>
+</figure>
+<style>
+  .nsrem-diagram {
+    margin: var(--space-8) 0;
+  }
+  .nsrem-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .nsrem-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .nsrem-diagram__title {
+    fill: var(--dg-ink);
+    font: 800 19px var(--font-body);
+  }
+  .nsrem-diagram__lead {
+    fill: var(--dg-ink);
+    font: 700 16px var(--font-body);
+  }
+  .nsrem-diagram__detail {
+    fill: var(--dg-ink-2);
+    font: 14px var(--font-body);
+  }
+  .nsrem-diagram__line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 3;
+  }
+  .nsrem-diagram__mobile {
+    display: none;
+    padding: var(--space-4);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+  }
+  .nsrem-diagram__mobile section {
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 8px;
+  }
+  .nsrem-diagram__mobile h4,
+  .nsrem-diagram__heading {
+    color: var(--dg-ink);
+    font-weight: 800;
+  }
+  figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .nsrem-diagram__desktop {
+      display: none !important;
+    }
+    .nsrem-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
