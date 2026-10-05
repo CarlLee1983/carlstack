@@ -127,3 +127,5 @@ Karpathy 看好為單次理解需求生成大型客製產物的可能性。對�
 若問題是人根本沒注意到輸出中的關鍵資訊，可接著讀[Claude Code 的 You should know 提醒驗收](/blog/claude-code-you-should-know-attention/)；該文處理漏報與介入時機，再把需要理解的問題交回解說流程。
 
 若要把受控語言的思路用在中文文件，〈[中文技術寫作借用 STE](/blog/chinese-technical-writing-evidence-contract/)〉進一步示範術語表、原句對照與條件保留檢查，避免 Agent 在潤稿時擴大驗證範圍。
+
+我把過去用 show me 生成本地暫存 HTML 的習慣整理成 AnswerMe。〈[我為什麼做 AnswerMe](/blog/answerme-vibe-coding-understanding-debt/)〉記錄理解債如何促成這個 skill，以及來源核對、格式選擇與交付檢查的取捨。
