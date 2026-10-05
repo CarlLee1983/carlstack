@@ -13,6 +13,8 @@ tags:
   - 文件工程
 ---
 
-AnswerMe 是可供支援 Agent Skills 的工具使用的解說技能。它先釐清要理解的問題，再依需求交付對話回答、Markdown 文件或可離線開啟的 HTML；解說中的關鍵主張保留來源，並交代驗證限制。專案網站提供介紹與實際產生的範例。
+AnswerMe 是可供支援 Agent Skills 的工具使用的解說技能。它先釐清要理解的問題，再依需求交付對話回答、Markdown 文件或可離線開啟的 HTML；解說中的關鍵主張保留來源，並交代驗證限制。專案網站提供介紹、[操作實錄](https://carllee1983.github.io/AnswerMe/)與實際產生的範例。
 
 〈[我為什麼做 AnswerMe](/blog/answerme-vibe-coding-understanding-debt/)〉記錄這項技能如何從理解 AI 工作成果的需求發展而來。
+
+〈[AnswerMe 操作實錄與 TicketService 解說範例](/blog/answerme-demo-source-grounded-explanation/)〉分別檢查錄影、網站另存的 HTML 範例和原始程式，說明讀者能核對什麼。

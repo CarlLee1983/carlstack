@@ -24,6 +24,8 @@ AI 可以完成實作、整理 diff、補上測試，再告訴我做了哪些事
 
 [AnswerMe](https://github.com/CarlLee1983/AnswerMe) 就是從這個需求長出來的。我想把「幫我看懂」變成工作流程中可以重複使用的一步，讓自己知道哪些已經有依據，哪些還需要回頭查。
 
+如果想先看一次實際操作與交付，可以接著讀〈[AnswerMe 操作實錄與 TicketService 解說範例](/blog/answerme-demo-source-grounded-explanation/)〉；本文以下說明的是我為什麼要做這項技能。
+
 ## 從 show me 開始
 
 在做 AnswerMe 之前，我會用「show me」請 agent 生成本地暫存 HTML，協助理解眼前的問題。
