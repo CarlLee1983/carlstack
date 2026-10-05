@@ -1,0 +1,330 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import { estimateReadingMinutes } from "../utils/content";
+
+interface Props {
+  name: string;
+  slug: string;
+  posts: CollectionEntry<"blog">[];
+  index?: number;
+}
+
+const { name, slug, posts, index } = Astro.props;
+
+// 找到第一篇（或最新一篇）有封面圖的文章作為代表封面
+const postWithCover = posts.find((p) => p.data.cover) ?? posts[0];
+const cover = postWithCover?.data.cover;
+
+// 計算總估計閱讀時間
+const totalReadingMinutes = posts.reduce((acc, p) => {
+  const body = "body" in p && typeof p.body === "string" ? p.body : "";
+  return acc + estimateReadingMinutes(body);
+}, 0);
+
+// 最新收錄篇章（系列通常依 seriesOrder 排序，最後一篇或是第一篇）
+const latestPost = posts[posts.length - 1];
+const seriesOrderLabel =
+  typeof index === "number"
+    ? `SERIES · ${String(index + 1).padStart(2, "0")}`
+    : "SERIES";
+---
+
+<a class="series-card" href={`/series/${slug}/`}>
+  <div class="series-card__visual">
+    <div class="series-card__badge">{seriesOrderLabel}</div>
+    {
+      cover ? (
+        <Image
+          class="series-card__cover"
+          src={cover}
+          alt=""
+          widths={[400, 720]}
+          sizes="(min-width: 54rem) 24rem, 100vw"
+          loading="lazy"
+        />
+      ) : (
+        <div class="series-card__placeholder" aria-hidden="true">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+            <path d="M6 6h10" />
+            <path d="M6 10h10" />
+          </svg>
+        </div>
+      )
+    }
+    <div class="series-card__overlay"></div>
+  </div>
+
+  <div class="series-card__body">
+    <div class="series-card__meta">
+      <span class="meta-item">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"
+          ></path>
+        </svg>
+        <span>{posts.length} 篇收錄</span>
+      </span>
+      <span class="meta-dot">·</span>
+      <span class="meta-item">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>預估 {totalReadingMinutes} 分鐘</span>
+      </span>
+    </div>
+
+    <h2 class="series-card__title">{name}</h2>
+
+    {
+      latestPost && (
+        <div class="series-card__latest">
+          <div class="latest-label">
+            <span>收錄精選</span>
+            <span>Vol. {String(posts.length).padStart(2, "0")}</span>
+          </div>
+          <p class="latest-title">{latestPost.data.title}</p>
+        </div>
+      )
+    }
+
+    <div class="series-card__action">
+      <span>完整目錄與閱讀</span>
+      <svg
+        class="action-arrow"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+        <polyline points="12 5 19 12 12 19"></polyline>
+      </svg>
+    </div>
+  </div>
+</a>
+
+<style>
+  .series-card {
+    display: flex;
+    flex-direction: column;
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-lg);
+    background: var(--color-card);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition:
+      border-color var(--dur-short) var(--ease-out),
+      transform var(--dur-short) var(--ease-out),
+      box-shadow var(--dur-short) var(--ease-out);
+  }
+
+  .series-card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-3px);
+    box-shadow:
+      0 12px 32px -8px rgba(0, 0, 0, 0.15),
+      0 0 0 1px var(--color-accent-soft);
+  }
+
+  :global([data-theme="dark"]) .series-card:hover {
+    box-shadow:
+      0 16px 36px -12px rgba(0, 0, 0, 0.6),
+      0 0 20px -4px var(--color-accent-soft);
+  }
+
+  .series-card__visual {
+    position: relative;
+    height: 11.5rem;
+    background: var(--color-surface);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .series-card__cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.88;
+    transition:
+      transform var(--dur-medium) var(--ease-out),
+      opacity var(--dur-medium) var(--ease-out);
+  }
+
+  .series-card:hover .series-card__cover {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+
+  .series-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--color-muted);
+    background: linear-gradient(
+      135deg,
+      var(--color-surface),
+      var(--color-card)
+    );
+  }
+
+  .series-card__badge {
+    position: absolute;
+    top: var(--space-md);
+    left: var(--space-md);
+    z-index: 2;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-radius: var(--radius-sm);
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .series-card__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, var(--color-card) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .series-card__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: var(--space-xl);
+    gap: var(--space-md);
+  }
+
+  .series-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+  }
+
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .meta-dot {
+    opacity: 0.5;
+  }
+
+  .series-card__title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    margin: 0;
+    transition: color var(--dur-micro) var(--ease-out);
+  }
+
+  .series-card:hover .series-card__title {
+    color: var(--color-accent);
+  }
+
+  .series-card__latest {
+    margin-top: auto;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--color-surface);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .latest-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+  }
+
+  .latest-title {
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+
+  .series-card__action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--space-sm);
+    font-size: var(--text-sm);
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-accent);
+  }
+
+  .action-arrow {
+    transition: transform var(--dur-micro) var(--ease-out);
+  }
+
+  .series-card:hover .action-arrow {
+    transform: translateX(4px);
+  }
+</style>

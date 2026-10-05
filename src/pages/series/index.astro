@@ -1,5 +1,6 @@
 ---
 import EmptyState from "../../components/EmptyState.astro";
+import SeriesCard from "../../components/SeriesCard.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { collectTaxonomy, getVisiblePosts } from "../../utils/collections";
 
@@ -12,19 +13,25 @@ const series = collectTaxonomy(await getVisiblePosts(), "series");
 >
   <div class="page shell">
     <header class="page-header">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot"></span>
+        <span>CURATED TECHNICAL SERIES</span>
+      </div>
       <h1>系列文章</h1>
       <p>
-        需要連續閱讀的主題會組成系列，並依 frontmatter 的 seriesOrder 排序。
+        收錄深入、完整的體系化專題。主題依序連載編排，陪伴您從架構底層到工程落地完整推演。
       </p>
     </header>
     {
       series.length > 0 ? (
-        <div class="project-grid">
-          {series.map((item) => (
-            <a class="article-card" href={`/series/${item.slug}/`}>
-              <h2>{item.name}</h2>
-              <p>{item.posts.length} 篇文章</p>
-            </a>
+        <div class="series-grid">
+          {series.map((item, index) => (
+            <SeriesCard
+              name={item.name}
+              slug={item.slug}
+              posts={item.posts}
+              index={index}
+            />
           ))}
         </div>
       ) : (
@@ -36,3 +43,38 @@ const series = collectTaxonomy(await getVisiblePosts(), "series");
     }
   </div>
 </BaseLayout>
+
+<style>
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: -0.25rem;
+  }
+
+  .eyebrow-dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+  }
+
+  .series-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(21rem, 1fr));
+    gap: var(--space-xl);
+  }
+
+  @media (max-width: 48rem) {
+    .series-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-lg);
+    }
+  }
+</style>
