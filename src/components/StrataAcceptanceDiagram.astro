@@ -1,0 +1,128 @@
+---
+const stages = [
+  {
+    label: "01 · 相容性",
+    title: "工具呼叫 → 結果回傳 → 下一輪",
+    detail: "固定客戶端版本；不支援的 API 能力明列為缺口",
+  },
+  {
+    label: "02 · 延遲與並行",
+    title: "冷啟動、首字、排隊、全部完成",
+    detail: "同一任務集合跑 1／2／4 個請求；分開等待與吞吐",
+  },
+  {
+    label: "03 · 資源與品質",
+    title: "RAM／VRAM 峰值與任務驗證",
+    detail: "增加 context 前，確認換頁、取消、工具隔離與結果",
+  },
+];
+---
+
+<figure class="strata-diagram" aria-labelledby="strata-caption">
+  <svg
+    class="strata-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="strata-title strata-desc"
+  >
+    <title id="strata-title">本機 Coding Agent 的三道驗收</title>
+    <desc id="strata-desc"
+      >先確認工具迴圈可完成，再分別量測延遲與並行，最後檢查記憶體峰值與任務品質。每個階段保存固定的版本與配置。</desc
+    >
+    <text x="24" y="40" class="strata-diagram__title"
+      >固定：引擎、模型 pack、客戶端、硬體、context 與工具 schema</text
+    >
+    {
+      stages.map((stage, index) => (
+        <g transform={`translate(24, ${70 + index * 170})`}>
+          <rect width="912" height="144" rx="12" class="strata-diagram__card" />
+          <text x="24" y="36" class="strata-diagram__label">
+            {stage.label}
+          </text>
+          <text x="24" y="74" class="strata-diagram__title">
+            {stage.title}
+          </text>
+          <text x="24" y="112" class="strata-diagram__detail">
+            {stage.detail}
+          </text>
+        </g>
+      ))
+    }
+    <text x="24" y="586" class="strata-diagram__detail"
+      >完成一個短任務只是起點；長 context 與多 slot 各自重新驗收。</text
+    >
+  </svg>
+  <div class="strata-diagram__mobile">
+    <p>固定引擎、pack、客戶端、硬體、context 與工具 schema。</p>
+    {
+      stages.map((stage) => (
+        <section>
+          <>
+            <h4>{stage.label}</h4>
+            <p>{stage.title}</p>
+            <p>{stage.detail}</p>
+          </>
+        </section>
+      ))
+    }
+    <p>長 context 與多 slot 各自重新驗收。</p>
+  </div>
+  <figcaption id="strata-caption">
+    本文建議的驗收順序；沒有通過工具迴圈，tokens/s 不能代表完成工作的速度。
+  </figcaption>
+</figure>
+<style>
+  .strata-diagram {
+    margin: var(--space-8) 0;
+  }
+  .strata-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .strata-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .strata-diagram__title {
+    fill: var(--dg-ink);
+    font: 800 19px var(--font-body);
+  }
+  .strata-diagram__label {
+    fill: var(--dg-ink-2);
+    font: 700 16px var(--font-body);
+  }
+  .strata-diagram__detail {
+    fill: var(--dg-ink-2);
+    font: 14px var(--font-body);
+  }
+  .strata-diagram__mobile {
+    display: none;
+    padding: var(--space-4);
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+  }
+  .strata-diagram__mobile section {
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 8px;
+  }
+  .strata-diagram__mobile h4 {
+    color: var(--dg-ink);
+    font-weight: 800;
+  }
+  figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .strata-diagram__desktop {
+      display: none !important;
+    }
+    .strata-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

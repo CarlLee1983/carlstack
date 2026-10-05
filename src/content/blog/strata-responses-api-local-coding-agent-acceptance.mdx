@@ -1,0 +1,85 @@
+---
+title: "Strata 接上 Coding Agent：先驗工具迴圈，再算並行與記憶體的代價"
+description: "Strata v0.1.39 新增 Responses API 與可選並行請求。本文區分作者量測與未實測範圍，拆解 Qwen3.8-Flash-Next 的硬體、量化與授權條件，並給出本機 Coding Agent 的延遲、吞吐、記憶體及工具相容驗收方法。"
+publishDate: 2026-10-05T10:17:07+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+  - 開源專案
+series: AI Agent 工程化與工作流實戰
+seriesOrder: 62
+repositoryUrl: https://github.com/Niko1221/Strata
+cover: ../../assets/covers/strata-responses-api-local-coding-agent-acceptance.webp
+coverAlt: "三個錯落的陶瓷托盤分放少量方塊、成堆方塊與排列板片，木橋上的四個黃銅球分道等待，象徵記憶體分層及並行排程的取捨"
+---
+
+import StrataAcceptanceDiagram from "../../components/StrataAcceptanceDiagram.astro";
+
+本機模型能快速吐字，還不足以讓 Coding Agent 完成工作。Agent 要送工具定義、接收工具呼叫、回傳執行結果，再帶著變長的對話繼續下一輪；其中一個事件格式不合，模型再快也只能停在半途。
+
+[Strata v0.1.39](https://github.com/Niko1221/Strata/releases/tag/v0.1.39)於 2026 年 10 月 4 日 12:32:47 UTC 發布，台北時間是當晚 20:32:47。這版新增 Responses API、可選的並行請求，並調整解碼與長提示處理。本文核對 release、版本固定的官方專案文件及模型卡；沒有在 GPU 上執行 Strata，以下效能與相容性數字均為作者回報，驗收步驟則是本文建議。
+
+## Responses API 把工具迴圈帶進相容性驗收
+
+發布說明表示，`POST /v1/responses` 已用 Codex CLI `0.160.0` 測過工具迴圈，支援 function tools、工具結果、reasoning effort、JSON schemas 與串流事件；但不支援 `previous_response_id`、hosted tools 或 reasoning summaries。作者將這條 Responses 路徑描述為無伺服器端狀態。[v0.1.39 API 文件](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/DETAILS.md)
+
+這個範圍已值得測試本機 Coding Agent，卻不能推論成「完整相容所有 OpenAI API」或「任何版本的 Agent 都能直接換上」。模型提示的前綴快取與 API 層的 response ID 狀態也是兩件事；有 prompt cache，不等於可以透過 `previous_response_id` 接續對話。
+
+我的驗收起點是一次完整但小型的修改：在沒有正式憑證的測試 repository 讀取檔案、呼叫一個可控工具、回傳結果、修改一處程式並跑既有測試。保存模型／引擎／客戶端版本與工具事件時序，先回答「這個客戶端是否能完成工作」，再談速度。工具無回應、參數不符合 schema、結果送回後模型無法續行，都應記為相容性失敗，而非只歸咎模型不夠聰明。
+
+## 模型的稀疏架構與量化條件不能省略
+
+[Qwen 官方模型卡](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)列出主模型 125B 參數、每次啟動 6B，另有 51B n-gram embedding 與 4B MTP。這種架構讓特定運算與儲存能分開處理，並不等於任何 125B dense 模型都能套用 Strata 的資源需求。
+
+依 [Strata v0.1.39 架構說明](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/HOW_IT_WORKS.md)，GPU 保存常用專家及共用運算資料；RAM 中的專家由 CPU 同步參與運算；SSD 承載大型 n-gram 表。MTP 先提出候選 token，再由主模型驗證。這是特定模型、pack 與 runtime 的組合，不是把所有權重搬到 SSD 後便能維持原速度。
+
+[安裝文件](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/INSTALL.md)的主要路徑是 Windows／Linux、x86-64 AVX2 CPU，以及 NVIDIA／AMD GPU；通常建議至少 12 GB VRAM。一般 NVIDIA 路徑需 580 或更新的驅動。舊 GPU、舊 CPU 與 Intel Arc 有實驗路徑及個別限制，不能將「編譯通過」當作所有硬體都經過實機驗證。這套配置也不是本文先前討論的 Apple Silicon／MLX 路徑。
+
+記憶體還要按 pack 選擇：[MODELS.md](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/MODELS.md)建議 48 GB RAM 使用 Q2_0／IQ2_XS，64 GB 可選較大的 pack，但 IQ3_S 要少開其他程式。32 GB 的 Coder 路徑裁掉部分專家；文件也提示它在程式以外及非英語情境較弱。這些是作者的配置建議，不能保證每台機器在任何 context 下都能容納工作。繁體中文需求應加入自己的工具任務，而非只用英文短問答驗收。
+
+磁碟、RAM 與 VRAM 必須各記一筆：下載空間、常駐專家、KV／session、prefill 暫態配置及桌面程式餘裕不能混成一個「模型大小」。這延續了[48GB Mac 部署案例](/blog/local-qwen-moe-on-48gb-mac/)的容量問題，但這次還要納入客戶端多輪工具事件與並行排程。
+
+## 四個請求較早開始，不代表總吞吐增加
+
+v0.1.39 的並行是選配。作者在 RTX 5070、12 GB VRAM、Q2_0 的四請求測試中，最後一個請求開始等待由 11.2 秒縮至 1.8 秒，合計解碼卻由 70.7 降至 63.1 tok/s，約慢 11%。批次文件說明，32K context、8-bit KV 時每個 slot 的 session 佔用 0.56 GiB，會擠壓專家快取。[release 的條件與結果](https://github.com/Niko1221/Strata/releases/tag/v0.1.39)
+
+[BATCHING.md](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/BATCHING.md)補充並行、slot 與記憶體的配置邊界。這組數據支持的是：在該硬體及工作負載下，排隊等待改善，同時總解碼速度下降。它沒有證明四個工作更早全部完成，也不能把 1.8 秒當成完整任務時間或所有請求的首字延遲。
+
+工程上可以把「我不想等另一個長工作」與「我想提高機器每秒產出」分開選擇。單人互動可能更在乎主工作何時恢復；背景批次可能更在乎總完成時間。如果加 slot 後 prompt cache 或專家快取被擠走，多輪任務甚至可能更慢。這是待量測的推論，本文未在此環境驗證。
+
+長提示也不能照搬短回覆的速度。release 說明此版改善解碼與長 prompt 路徑，但收益依可用 VRAM 與 pack 改變，部分設定沒有增益。README 的舊速度表並未為這次 release 全部重測，因此不應把表中的最高值貼成「v0.1.39 實測表現」。
+
+## 用相同任務量測四種成本
+
+<StrataAcceptanceDiagram />
+
+以下是本文的測試設計，數值門檻應由團隊依工作方式訂定。先固定引擎版本、模型 revision／pack、context、工具 schema、採樣與 slot 數，記錄 GPU／VRAM、CPU、RAM、SSD、驅動及是否同時運行 IDE、瀏覽器等程式。
+
+### 先保住工具事件與結果的完整性
+
+測試一次工具呼叫、結果回傳後的下一輪、帶錯誤訊息的修正，以及取消後的新任務。客戶端若會用不支援的 response ID 或 hosted tools，先明確列為不適用；不要修改工具契約來掩蓋失敗。只要事件格式有未解決的缺口，後續速度數字便不能代表可用的 Agent 工作流。
+
+### 延遲分開冷啟動、首輪與後續回合
+
+先記冷載入到可服務的時間，再量送出請求至第一個有效串流事件、第一個可顯示 token、第一個工具呼叫，以及整個修改通過測試的時間。用同一段 repository context 做初次與後續回合，觀察前綴快取是否真的降低後續等待。把第一次下載時間另外列出，避免與日常使用延遲混淆。
+
+### 並行用完成時間與公平性一起判斷
+
+先跑一個任務，再跑兩個及四個；固定任務集合，記每個請求的排隊等待、開始時間、完成時間、有效輸出及全部任務的總用時。測試取消一個請求後其他請求能否完成，並檢查不同對話的工具結果是否保持分離。
+
+**若並行只改善等待，卻讓主要任務超過自己的延遲預算，便退回較少 slot。** 這是本文建議的停止規則；不是宣稱某個 slot 數在所有機器上最佳。
+
+### 記憶體看峰值與工作期間的變化
+
+同時保存峰值 RAM／VRAM、swap／page-in、長 prompt 時的變化與工具回合累積後的資源狀態。再用幾個具代表性的長度測試，不直接從短 prompt 推定整個標稱 context 都可用。若系統開始嚴重換頁、桌面失去回應、請求失敗或回覆出現重複，留下當時的配置與日誌，縮小 context 或並行再重測，別把一次載入成功當成容量驗收。
+
+## 引擎授權、模型授權與本機服務邊界分別確認
+
+Strata 的[引擎 LICENSE](https://github.com/Niko1221/Strata/blob/v0.1.39/LICENSE)是 MIT；Qwen 原模型卡標示 **Qwen Community License 1.0**。專案[授權說明](https://github.com/Niko1221/Strata/blob/v0.1.39/docs/HOW_IT_WORKS.md#license)也指出元件與模型檔案有各自的條款。下載哪個量化／微調版本，就核對那份權重的授權與上游要求；不能因推論程式是 MIT 就把所有權重也寫成 MIT。本文不替讀者判定個別商業用途是否符合授權。
+
+依 [SECURITY.md](https://github.com/Niko1221/Strata/blob/v0.1.39/SECURITY.md)，一般設定預設只聽 `127.0.0.1`，網路暴露與 API key 是另一個配置決定。Docker 路徑的預設監聽範圍不同，需按安裝方式確認。本機推論也不會替客戶端執行的工具建立沙盒；Agent 是否可讀取檔案、執行命令或呼叫網路仍由工具與客戶端權限決定。
+
+下一步先選一個可丟棄的程式庫任務，固定版本與 pack，跑完「讀檔、工具結果、修改、測試、下一輪」並留下時序。只有這條迴圈通過，再增加 context 或 slot；新 release 的價值才會落在可驗證的工作改善上。
