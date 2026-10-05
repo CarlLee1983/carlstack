@@ -1,0 +1,440 @@
+{
+  "artifact_kind": "selected_sanitized_fixture_replay",
+  "observed_on": "2026-10-05",
+  "fixture": {
+    "case_id": "rsg-game-transfer-wallet",
+    "source_url": "https://docs.rsg-games.com/transfer/zh-tw/#api",
+    "source_version": "1.28.0",
+    "sanitized_source_sha256": "74ecbad355e8b7d2a051c61257a286a01d06493192404ed967fc5c4390ccc3e0",
+    "assurance": "sanitized_fixture_exact_evidence",
+    "strict_local_eligible": false
+  },
+  "scope": "Selected OpenAPI and provenance fields; complete validation report and Core comparison. Fixed generated_at is a test timestamp, not source capture time.",
+  "reproduce_test": "uv run pytest 'tests/test_sanitized_benchmarks.py::test_sanitized_fixture_proves_fixture_backed_exact_evidence_parity[rsg-game-transfer-wallet]' -q",
+  "openapi_excerpt": {
+    "openapi": "3.1.0",
+    "create_player": {
+      "summary": "建立會員(幣別帳戶)",
+      "parameters": [
+        {
+          "name": "X-API-ClientID",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "請求的連線端 ID"
+        },
+        {
+          "name": "X-API-Signature",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "請求的簽章"
+        },
+        {
+          "name": "X-API-Timestamp",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "description": "請求的時間戳記，格式為 unix timestamp"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "SystemCode": {
+                  "type": "string",
+                  "description": "系統代碼(只限英數)"
+                },
+                "WebId": {
+                  "type": "string",
+                  "description": "站台代碼(只限英數)"
+                },
+                "UserId": {
+                  "type": "string",
+                  "description": "會員惟一識別碼(只限英數)"
+                },
+                "Currency": {
+                  "type": "string",
+                  "description": "幣別代碼(請參照 代碼表 )"
+                }
+              },
+              "required": ["SystemCode", "WebId", "UserId", "Currency"]
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "default": {
+          "description": ""
+        }
+      },
+      "x-loop-error-codes": [3010, 3011, 3018],
+      "operationId": "post_WithBalance_Player_CreatePlayer"
+    },
+    "error_code_enum": [
+      0, 1001, 1002, 2001, 2002, 3005, 3006, 3008, 3010, 3011, 3012, 3014, 3015,
+      3016, 3018
+    ]
+  },
+  "provenance_excerpt": [
+    {
+      "target": "paths./WithBalance/Player/CreatePlayer.post",
+      "status": "supported",
+      "manifest_source": "rsg-game-transfer-wallet.zh-TW.normalized.md",
+      "query_id": "05-initial",
+      "answer_path": "answers/05-initial.txt",
+      "locator": "rsg-game-transfer-wallet.zh-TW.normalized.md lines 444-467"
+    },
+    {
+      "target": "paths./WithBalance/Player/CreatePlayer.post",
+      "status": "supported",
+      "manifest_source": "rsg-game-transfer-wallet.zh-TW.normalized.md",
+      "query_id": "06-ep0",
+      "answer_path": "answers/06-ep0.txt",
+      "locator": "rsg-game-transfer-wallet.zh-TW.normalized.md lines 444-467"
+    },
+    {
+      "target": "errors.3018",
+      "status": "supported",
+      "manifest_source": "rsg-game-transfer-wallet.zh-TW.normalized.md",
+      "query_id": "08-initial",
+      "answer_path": "answers/08-initial.txt",
+      "locator": "rsg-game-transfer-wallet.zh-TW.normalized.md lines 1369-1408"
+    }
+  ],
+  "validation_report": {
+    "issues": [
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Deposit.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/Deposit.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Withdraw.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/Withdraw.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetBalance.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/GetBalance.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetTransactionResult.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/GetTransactionResult.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetTransactionHistory.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/GetTransactionHistory.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetURLToken.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/GetURLToken.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/PlayerOnlineList.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/PlayerOnlineList.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Kickout.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/Kickout.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetUnwithdrawn.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Player/GetUnwithdrawn.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Game/GameList.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/Game/GameList.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/History/GetGameDetail.post",
+        "evidence": "endpoint 缺少 request/response 範例",
+        "suggested_fix": "由來源補上範例",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "examples",
+        "requery_scope": "paths./WithBalance/History/GetGameDetail.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/CreatePlayer.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/CreatePlayer.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Deposit.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/Deposit.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Withdraw.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/Withdraw.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetBalance.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/GetBalance.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetTransactionResult.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/GetTransactionResult.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetTransactionHistory.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/GetTransactionHistory.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetURLToken.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/GetURLToken.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/PlayerOnlineList.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/PlayerOnlineList.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/Kickout.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/Kickout.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Player/GetUnwithdrawn.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Player/GetUnwithdrawn.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/Game/GameList.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/Game/GameList.post"
+      },
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "location": "paths./WithBalance/History/GetGameDetail.post",
+        "evidence": "成功 response 沒有可用的 schema 契約",
+        "suggested_fix": "重讀這個端點的回應封包並記下它的 schema；若來源確實未載明，就讓這個交付缺口留在報告裡。",
+        "auto_fixable": false,
+        "target_file": "endpoints/",
+        "field_path": "responses",
+        "requery_scope": "paths./WithBalance/History/GetGameDetail.post"
+      },
+      {
+        "code": "SOURCE_FACTS_UNSCANNED",
+        "severity": "warning",
+        "location": "rsg-game-transfer-wallet.zh-TW.normalized.md",
+        "evidence": "這份來源掃出 0 筆端點事實,語意完整性閘門對它完全沒有作用;報告乾淨不代表它被逐條比對過",
+        "suggested_fix": "先打開來源看它屬於哪一種:(a) 內容被壓平成單行、沒有表格與標題結構(HTML 傾印、未轉換的 PDF/Word)——改走保留結構的前處理路徑(normalize-html-snapshot / preprocess)後重新擷取,重讀來源沒有用;(b) 結構完好,但 method 與 path 不在同一行(例如只給一個完整 URL、method 另起一行或寫在別處的散文裡,或本來就是 path 為 null 的 webhook)——同一行上的 method 掃描器會讀(`METHOD /path` 與帶標籤的 `URL … Method …`,ADR 0011),但不會跨行去湊,那是 ADR 0007 拒絕的推論,所以這筆警告會長期存在,擷取本身可能完全正確;(c) 本來就是純散文、沒有參數表的合法來源——這筆警告即為預期。",
+        "auto_fixable": false,
+        "target_file": null,
+        "field_path": null,
+        "requery_scope": null
+      }
+    ],
+    "root_causes": [
+      {
+        "code": "REQUIRED_INFO_MISSING",
+        "severity": "warning",
+        "target_file": "endpoints/",
+        "fix_once": "由來源補上範例",
+        "affected_locations": [
+          "paths./WithBalance/Player/Deposit.post",
+          "paths./WithBalance/Player/Withdraw.post",
+          "paths./WithBalance/Player/GetBalance.post",
+          "paths./WithBalance/Player/GetTransactionResult.post",
+          "paths./WithBalance/Player/GetTransactionHistory.post",
+          "paths./WithBalance/Player/GetURLToken.post",
+          "paths./WithBalance/Player/PlayerOnlineList.post",
+          "paths./WithBalance/Player/Kickout.post",
+          "paths./WithBalance/Player/GetUnwithdrawn.post",
+          "paths./WithBalance/Game/GameList.post",
+          "paths./WithBalance/History/GetGameDetail.post",
+          "paths./WithBalance/Player/CreatePlayer.post",
+          "paths./WithBalance/Player/Deposit.post",
+          "paths./WithBalance/Player/Withdraw.post",
+          "paths./WithBalance/Player/GetBalance.post",
+          "paths./WithBalance/Player/GetTransactionResult.post",
+          "paths./WithBalance/Player/GetTransactionHistory.post",
+          "paths./WithBalance/Player/GetURLToken.post",
+          "paths./WithBalance/Player/PlayerOnlineList.post",
+          "paths./WithBalance/Player/Kickout.post",
+          "paths./WithBalance/Player/GetUnwithdrawn.post",
+          "paths./WithBalance/Game/GameList.post",
+          "paths./WithBalance/History/GetGameDetail.post"
+        ]
+      }
+    ]
+  },
+  "validation_issue_counts": {
+    "REQUIRED_INFO_MISSING.warning": 23,
+    "SOURCE_FACTS_UNSCANNED.warning": 1
+  },
+  "core_comparison": {
+    "claim_counts": {
+      "conflicting": 0,
+      "missing": 0,
+      "superseded": 0,
+      "supported": 33,
+      "unverified": 0,
+      "waived": 0
+    },
+    "core_finding_codes": [],
+    "core_verdict": "accept",
+    "diagnostics": [],
+    "legacy_error_count": 0,
+    "legacy_issue_codes": ["REQUIRED_INFO_MISSING", "SOURCE_FACTS_UNSCANNED"],
+    "legacy_status": "passed",
+    "legacy_warning_count": 24,
+    "only_in_core": [],
+    "only_in_legacy": ["REQUIRED_INFO_MISSING", "SOURCE_FACTS_UNSCANNED"],
+    "verdict_match": true
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "environment": {
+    "sqlite": "3.53.4",
+    "workload": "local HTTP order writes; temporary SQLite files"
+  },
+  "targets_seconds": {
+    "rto": 10.0,
+    "rpo": 2.0
+  },
+  "backup": {
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "order_ids": ["A1", "A2", "A3"],
+    "total_cents": 300
+  },
+  "fault": {
+    "acknowledged_before_fault": ["A1", "A2", "A3", "A4", "A5"],
+    "quarantined_primary": true
+  },
+  "restore": {
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "order_ids": ["A1", "A2", "A3"],
+    "total_cents": 300
+  },
+  "service_recovery": {
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "order_ids": ["A1", "A2", "A3", "R1"],
+    "total_cents": 400
+  },
+  "observed": {
+    "rto_seconds": 0.112,
+    "recovery_point_age_seconds": 0.803,
+    "lost_acknowledged_order_ids": ["A4", "A5"],
+    "rto_target_met": true,
+    "rpo_target_met": true
+  },
+  "failback": {
+    "service_interruption_seconds": 0.095,
+    "elapsed_since_fault_seconds": 0.208,
+    "integrity_check": "ok",
+    "foreign_key_violations": 0,
+    "order_ids": ["A1", "A2", "A3", "F1", "R1"],
+    "total_cents": 500
+  }
+}
