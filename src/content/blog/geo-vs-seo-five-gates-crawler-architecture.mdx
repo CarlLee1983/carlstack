@@ -2,6 +2,7 @@
 title: "從 SEO 到 GEO：五道過濾關卡與 AI 爬蟲邊緣網關架構"
 description: "從傳統搜尋引擎挑選藍色連結，到 ChatGPT、Claude 與 Perplexity 引用段落，拆解內容在邊緣網關、機器人識別與純文字端點必須通過的五道檢驗防線。"
 publishDate: 2026-10-05T13:03:32+08:00
+updatedDate: 2026-10-05T14:29:21+08:00
 draft: false
 featured: false
 tags:
@@ -84,7 +85,7 @@ import GeoVsSeoPipelineDiagram from "../../components/GeoVsSeoPipelineDiagram.as
 
 ## 爬蟲機器人分級管理：搞懂搜尋、對話與訓練的三種職責
 
-許多團隊在 Cloudflare 或伺服器防火牆上一看到「AI Bots」就隨手按下一鍵封鎖（Block all AI bots），結果導致自己的網站在 ChatGPT 搜尋與 Claude 外鏈讀取中全數失蹤。
+若把搜尋、即時代理與訓練用途混在同一封鎖政策，可能阻擋原本希望接納的抓取。排查時要看實際受影響的 crawler 與規則，不能只憑「AI Bots」這個設定名稱判定搜尋與對話讀取都已被封鎖。
 
 要做好 GEO，首先要把來訪的機器人劃分為三大職責維度，並在邊緣設定與 `robots.txt` 中分別治理：
 
@@ -105,7 +106,7 @@ import GeoVsSeoPipelineDiagram from "../../components/GeoVsSeoPipelineDiagram.as
 - **`Claude-User`**：由使用者在 Claude 介面貼入網址時發動的抓取。
 
 > [!WARNING]
-> **排查診斷常見誤區**：若使用者在 ChatGPT 抱怨「無法讀取你的網頁」，問題 **99% 是邊緣防火牆阻擋了 `ChatGPT-User`**，而不是搜尋引擎的 `OAI-SearchBot`。這兩者的 User-Agent 完全分開，萬萬不可混淆。
+> **排查診斷常見誤區**：對話中「無法讀取網頁」不足以判定原因；邊緣阻擋是值得排查的原因之一。先核對該次請求的 HTTP 狀態、Cloudflare Security Events 與 origin logs，確認請求是否到達、由哪個產品處理，以及是否有來源端錯誤。[OpenAI 官方文件](https://developers.openai.com/api/docs/bots)區分使用者操作觸發的 `ChatGPT-User` 與搜尋用途的 `OAI-SearchBot`；前者不負責搜尋收錄，而且使用者觸發的操作可能不適用 `robots.txt` 規則。User-Agent 可被偽造，不能單憑名稱認定來源可信。
 
 ### 3. 模型預訓練爬蟲（Training Bots）—— 依商業政策決定（YOUR CALL）
 
@@ -125,10 +126,12 @@ import GeoVsSeoPipelineDiagram from "../../components/GeoVsSeoPipelineDiagram.as
 
 邊緣層的責任是「守門而不誤殺」：
 
-- **Block AI bots 開關**：維持 **關閉（Off）**。切勿在全站安全頁面開啟全局一刀切封鎖。
-- **Cloudflare Managed robots.txt**：維持 **關閉（Off）**。若開啟託管 robots.txt，Cloudflare 會自動在你的來源端規則最前方插入隱藏的 Disallow 宣告，破壞你的自訂放行政策。
-- **Bot Fight Mode（機器人戰鬥模式）**：若你的流量分析顯示它對 `ChatGPT-User` 或 `Claude-User` 觸發了 JavaScript Challenge，必須關閉或在 WAF 自訂規則中為這些 User-Agent 建立豁免通道（Bypass）。
-- **AI Crawl Control**：設定為 **觀察與監控（Watch/Allow）**，而非阻斷（Block）。利用此面板檢視 Allowed 請求數是否健康增長、Failed 是否歸零。
+- **AI bot policies**：先按內容政策區分 Search、Agent 與 Training，再核對需要接納的 crawler。Cloudflare [官方文件](https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/)已提供按用途設定的選項；不能把「允許搜尋」理解成必須同時允許訓練。
+- **Cloudflare Managed robots.txt**：它會在既有檔案前加入託管區段。[官方範例](https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/#existing-robotstxt-file)限制 `GPTBot`、`ClaudeBot` 等爬蟲，沒有列出對 `OAI-SearchBot` 或 `ChatGPT-User` 的禁止規則。是否符合自訂政策，要檢查正式 `/robots.txt` 的合併回應，不能斷言開啟後必然破壞放行。
+- **Bot Fight Mode 與 Super Bot Fight Mode**：先由 Security Events 的 Service 欄位定位誤擋產品。[普通 Bot Fight Mode](https://developers.cloudflare.com/bots/get-started/bot-fight-mode/#rules)不能用 WAF custom rules 的 Skip／Bypass 豁免；若確認它誤擋所需流量，需評估全域停用該產品的防護取捨，或改用支援例外的產品。[Super Bot Fight Mode](https://developers.cloudflare.com/bots/get-started/super-bot-fight-mode/#configure-exceptions-to-super-bot-fight-mode)則支持以 Skip 略過其階段，請求仍繼續經過其他安全檢查。本文建議只對必要公開路徑與已驗證 crawler 來源建立最小例外，例如核對業者公布的 IP 範圍；不要僅憑可偽造的 User-Agent 放行，並保留其他防護。
+- **AI Crawl Control**：依[逐 crawler 的 Allow／Block 能力](https://developers.cloudflare.com/ai-crawl-control/features/manage-ai-crawlers/)落實政策，觀察成功與失敗請求。Allow 不代表其他安全規則都會放行；Failed 也可能來自其他規則或回應錯誤，應回到事件與日誌定位。
+
+以上是讀者可採用的配置與驗證方法，不代表 CarlStack 已實施這些 Cloudflare 設定。
 
 ### 來源端檔案配置（Origin Files）
 
@@ -194,7 +197,7 @@ Sitemap: https://yourdomain.com/sitemap.xml
 
 #### 3. 每篇文章同步提供 `.md` 端點
 
-網頁渲染的 HTML 充斥著 DOM 樹、SVG 圖標、樣式類名與腳本雜訊，對大語言模型而言每抓取一次都需要消耗大量 context window 與 token 運算成本。如果每篇文章除了 `/blog/<slug>/` 之外，還支援 `/blog/<slug>.md`（或支援 `Accept: text/markdown` 標頭協商），AI Agent 便能以不到五分之一的成本取得最純淨的內文，引用意願將大幅提高。
+HTML 中的樣式、導覽與腳本可能增加模型輸入量；可考慮提供 `/blog/<slug>.md`，或透過 `Accept: text/markdown` 協商回傳 Markdown。[Cloudflare 於 2026 年 2 月 12 日公布的案例](https://blog.cloudflare.com/markdown-for-agents/)是該篇部落格 HTML 16,180 tokens、轉換後 Markdown 3,150 tokens，約減少 80%。這是單頁案例，實際比例取決於頁面結構與客戶端前處理，也不是整個 Agent 工作的成本比例。較少 tokens 不代表引用率提高；仍需確認正文、連結與程式碼轉換完整，再用固定問題測試檢索與引用成效。
 
 ---
 
@@ -219,7 +222,7 @@ Sitemap: https://yourdomain.com/sitemap.xml
 
 1. **驗證搜尋引擎能見度（Day 1–2）**：在 Google Search Console（GSC）與 Bing Webmaster Tools 提交 `/sitemap.xml`，確認狀態為成功（ChatGPT 搜尋深度參考 Bing）。
 2. **手動請求首批文章索引（Day 3）**：在 GSC 使用 URL Inspection 工具手動請求 3 篇核心文章索引（每日有配額限制，勿對同一 URL 反覆點擊）。
-3. **檢查邊緣防火牆四個開關（Day 1）**：關閉 Cloudflare 的 Block AI bots、關閉 Managed robots.txt、放行 Search 與 Agent 爬蟲、確認 AI Crawl Control 未設定為 Block。
+3. **定位邊緣誤擋並驗證政策（Day 1）**：按前節方法核對 Security Events、正式 `/robots.txt` 與逐 crawler 政策；區分 Bot Fight Mode 與 Super Bot Fight Mode 的例外能力，修正後重測必要公開路徑，保存請求狀態與規則證據。
 
 ### 階段二：內容排版與格式標準化（第 4–7 天）
 
@@ -232,12 +235,10 @@ Sitemap: https://yourdomain.com/sitemap.xml
 7. **多模型基準測試（Week 2–6）**：挑選 5 個與文章主題密切相關的典型問題，分別在 ChatGPT、Claude 與 Perplexity 進行測試，記錄是否有被檢索並列出來源出處。
 
 > [!TIP]
-> **給工程師的心理準備**：AI 的知識庫沉澱與引用權重需要數週時間發酵。在聊天室中測試偶爾失敗一次「無法打開連結」不代表 GEO 失敗，但若持續數週都沒有任何引用，就必須回頭檢查 Gate 2（邊緣阻擋）與 Gate 3（前 100 字答案權重）是否出現結構性問題。
+> **給工程師的心理準備**：單次「無法打開連結」或沒有引用，都不足以定位是哪一道關卡失敗。先保存測試問題、時間、模型與回應，再對照抓取日誌；只有確認請求被擋，才調整對應邊緣規則。
 
 ---
 
-## 總結：讓技術寫作成為 AI 與人類共同的清晰接口
+## 下一步：用一篇文章建立驗證紀錄
 
-從 SEO 到 GEO，本質上不是一場「討好演算法」的黑帽遊戲，而是一次回歸「高密度、高結構、低雜訊」的工程重構。
-
-當你清理掉冗贅的抒情前言、打開邊緣網關對 AI 代理的誤殺防線、在根目錄建立清晰的 `/llms.txt`，並把每一句實踐踩坑提煉為自洽獨立的段落時，你同時解決了兩件事：人類工程師能在三分鐘內看完你的解決方案，而 AI 模型能在第一時間將你的智慧引用為可靠的標準答案。
+先選一篇核心文章，保存 HTTP 與抓取日誌、正式 robots 回應、HTML／Markdown 正文比對，以及固定問題的來源引用結果。把「能取得內容」與「答案採用內容」分開記錄，再依失敗證據調整對應關卡，避免為沒有引用的結果直接放寬邊緣政策。
