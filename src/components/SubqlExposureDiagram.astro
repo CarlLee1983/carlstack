@@ -1,0 +1,127 @@
+<figure class="subql-diagram" aria-labelledby="subql-caption">
+  <svg
+    class="subql-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="subql-title subql-desc"
+  >
+    <title id="subql-title">由版本命中走到執行與權限的證據分流</title>
+    <desc id="subql-desc"
+      >三列證據卡分別處理解析版本、執行紀錄與可取得權限。未知執行狀態要停止敏感工作，不以卸載成功結案。</desc
+    >
+    <text x="36" y="42" class="subql-diagram__heading"
+      >版本命中後，逐層縮小需要處置的範圍</text
+    >
+    <g transform="translate(36 72)">
+      <rect width="888" height="120" rx="16"></rect>
+      <text x="24" y="35" class="subql-diagram__title">01　解析版本</text>
+      <text x="24" y="66">lockfile、workspace、映像與快取來源</text>
+      <text x="24" y="94" class="subql-diagram__detail"
+        >輸出：確切版本與所在環境；頂層 package pin 不足以代表依賴樹</text
+      >
+    </g>
+    <g transform="translate(36 208)">
+      <rect width="888" height="120" rx="16"></rect>
+      <text x="24" y="35" class="subql-diagram__title">02　執行紀錄</text>
+      <text x="24" y="66">安裝腳本、後續 import、run ID 與 host</text>
+      <text x="24" y="94" class="subql-diagram__detail"
+        >輸出：未執行／已執行／未知；未知時停止承接敏感工作</text
+      >
+    </g>
+    <g transform="translate(36 344)">
+      <rect width="888" height="120" rx="16"></rect>
+      <text x="24" y="35" class="subql-diagram__title">03　權限與復原</text>
+      <text x="24" y="66">憑證暴露評估、外部變更追查、可信映像重建</text>
+      <text x="24" y="94" class="subql-diagram__detail"
+        >輸出：撤銷／輪替紀錄與恢復服務的驗證證據</text
+      >
+    </g>
+    <text x="36" y="512" class="subql-diagram__title"
+      >結案依據：每一層都有證據，且有人負責剩餘未知項</text
+    >
+    <text x="36" y="539" class="subql-diagram__detail"
+      >這是本文提出的應變設計；沒有執行惡意套件或實測受害環境。</text
+    >
+  </svg>
+  <div class="subql-diagram__mobile">
+    <section>
+      <h3>01　解析版本</h3><p>
+        檢查 lockfile、workspace、映像與快取來源，記錄確切版本及環境。
+      </p>
+    </section>
+    <section>
+      <h3>02　執行紀錄</h3><p>
+        核對安裝腳本與後續載入，留下 run ID。分成未執行、已執行與未知。
+      </p>
+    </section>
+    <section>
+      <h3>03　權限與復原</h3><p>
+        評估憑證暴露、追查外部變更、從可信映像重建，保留恢復證據。
+      </p>
+    </section>
+    <p>未知執行狀態時，停止承接敏感工作。這是應變設計，並非受害環境實測。</p>
+  </div>
+  <figcaption id="subql-caption">
+    版本、執行與權限分開記錄，才能把復原範圍交接給下一位負責人。
+  </figcaption>
+</figure>
+<style>
+  .subql-diagram {
+    margin: 2rem 0;
+  }
+  .subql-diagram__desktop {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+    font-size: 16px;
+    fill: var(--dg-ink);
+  }
+  .subql-diagram rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+  .subql-diagram__heading {
+    font-size: 21px;
+    font-weight: 800;
+  }
+  .subql-diagram__title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .subql-diagram__detail {
+    font-size: 15px;
+    fill: var(--dg-ink-2);
+  }
+  .subql-diagram__mobile {
+    display: none;
+  }
+  .subql-diagram__mobile section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface-2);
+  }
+  .subql-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: var(--dg-ink);
+  }
+  .subql-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .subql-diagram figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .subql-diagram__desktop {
+      display: none !important;
+    }
+    .subql-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

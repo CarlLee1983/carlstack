@@ -1,0 +1,95 @@
+---
+title: "SubQuery 5.8.3 供應鏈事件：停用安裝腳本後，仍要查誰載入過套件"
+description: "@subql/common 5.8.3 被發現含憑證蒐集與遠端 shell payload。從 lockfile、執行紀錄到 runner 復原，本文把版本命中、程式執行與憑證暴露分開處置，並說明 provenance 的信任邊界。"
+publishDate: 2026-10-06T10:09:00+08:00
+draft: false
+featured: false
+tags:
+  - 資訊安全
+  - 事件應變
+  - API 整合
+series: 現代網路協定與 API 平台架構
+seriesOrder: 16
+cover: ../../assets/covers/subql-common-compromise-execution-boundary.png
+coverAlt: "瓷製輸送帶上的套件由紅線相連，一個破裂的紅色包裹被琥珀色罩隔離，連接其他套件的線已切斷"
+---
+
+import SubqlExposureDiagram from "../../components/SubqlExposureDiagram.astro";
+
+這起事件的排查單位應該是「套件版本 × 執行環境 × 可取得的權限」。只回答專案有沒有使用 SubQuery，無法決定哪一台 runner 要停止接工作，也無法知道哪些憑證需要撤銷。
+
+本文截至台北時間 2026 年 10 月 6 日整理公開研究與工程處置建議。沒有下載、載入或執行惡意套件，也沒有檢查讀者的主機。以下流程是事件應變設計，並非本次事件的實測復原結果。
+
+## 已確認版本有限，執行入口有兩個
+
+[StepSecurity 10 月 5 日研究](https://www.stepsecurity.io/blog/subql-ecosystem-compromised)指出，`@subql/common@5.8.3` 含憑證蒐集與遠端 shell 能力；安裝腳本與套件 import 都會啟動 payload。研究顯示背景 worker 可在父程序結束後繼續執行。因此，單靠 `--ignore-scripts` 或移除套件，不能作為主機已清乾淨的證明。
+
+該研究記錄發布時間為 UTC `2026-10-05T11:56:29.414Z`，即台北 10 月 5 日 19:56:29。確認範圍是 `5.8.3`；比較中的 `5.8.2` 未見這個 payload，canary `5.8.3-onf-rt1` 也未檢出相同 payload。這不等於替兩個版本完成全面安全稽核。本文沒有取得可確認的修正版或移除公告，不推薦一個未查證的「最新安全版」。
+
+研究所列的是靜態能力與嘗試路徑，不能推成每台機器均已外洩，或某位維護者蓄意作惡。若要追最新處置，應核對研究者在官方 repository 提交的 [issue #3047](https://github.com/subquery/subql/issues/3047)及維護者後續回應，區分研究者建議與已完成措施。
+
+## 頂層套件沒升版，解析結果仍可能改變
+
+[npm 上的 `@subql/cli@6.6.3` manifest](https://registry.npmjs.org/@subql/cli/6.6.3)將 `@subql/common` 宣告為 `~5.8.2`。這個範圍容許 `5.8.3`；把 CLI 鎖在 `6.6.3`，沒有同時固定整棵依賴樹。
+
+我的建議是先保存當時的 lockfile 與 CI 紀錄，再回答兩個問題：
+
+- **解析到哪個版本？** 查直接與間接依賴、不同 workspace、容器建置階段與快取來源。今天 main 的 lockfile 不能代表昨晚每次 job 的解析結果
+- **在哪裡執行過？** 追到具體 run ID、runner、開發機或映像 digest；保留安裝指令、腳本設定，以及後續 build、test、啟動服務的紀錄
+
+下面只讀取 lockfile 文字，不安裝、不 import 套件。它是初篩，命中後仍須檢視上下文；沒有命中也不能排除已刪除的 workspace 或歷史建置。
+
+```sh
+# 在可信任的環境，檢查已保存的 repository／lockfile 副本
+rg -n -C 4 '@subql/common|common-5\.8\.3' \
+  package-lock.json npm-shrinkwrap.json pnpm-lock.yaml yarn.lock
+```
+
+只列出實際存在的檔案；沒有安裝 ripgrep 時，用編輯器搜尋相同字串即可。不要為了確認版本，在疑似受影響主機重新執行 CLI 或寫一行 `require()`。
+
+[npm ci 文件](https://docs.npmjs.com/cli/v11/commands/npm-ci/)說明它依既有 lockfile 安裝，遇到 manifest 不一致會失敗，且不改寫 lockfile。這能固定解析結果；若 lockfile 已經含惡意版本，固定重建也會固定帶入它。重現性要配合內容審核才有防護效果。
+
+## 用執行證據分流，未知狀態不能直接結案
+
+<SubqlExposureDiagram />
+
+以下是本文提出的處置分流，不是研究團隊聲稱已在所有受害環境觀察到的結果。
+
+### 只有版本或下載紀錄
+
+把風險版本從後續解析與執行路徑排除，保存鎖定結果、來源與時間。僅有 registry 下載紀錄不足以宣稱主機已被入侵，但也不足以證明套件從未執行。需要補齊安裝腳本設定與後續載入紀錄，才可把它歸入「未執行」。
+
+### 有安裝腳本、載入或不明執行紀錄
+
+**停止規則：不能證明未執行時，先停止該環境承接新的敏感工作。** 由事件負責人隔離受影響 host／runner，保全日誌、程序與網路證據，安排從可信映像重建。避免一開始就刪除 workspace 或重跑安裝，把可用證據覆蓋掉。
+
+這個規則刻意保守，但範圍可以很精確：以 run ID 與映像識別受影響工作，無須把沒有相關依賴的所有專案一律停機。
+
+### 能接觸憑證的環境
+
+建立暴露清單時，記錄憑證的擁有系統、權限範圍、可用期間、使用紀錄與處理負責人，不把秘密值貼到工單。從可信任的管理環境評估撤銷與輪替；若仍在疑似遭控制的主機輸入新憑證，就可能把替代品再次暴露。
+
+對短效權杖也要查它在有效期內能改動的資源。權杖到期能結束原權杖的使用，卻不會自動撤回當時已建立的 workflow、分支或其他持續性變更。
+
+[GitHub 的安全使用指南](https://docs.github.com/en/actions/reference/security/secure-use)明確區分託管的一次性 runner 與可能持續受污染的 self-hosted runner。這讓復原範圍不同：前者仍需追查工作期間的權限及產物，後者還需處理主機後續承接工作的風險。
+
+## Provenance 的檢查要延伸到 build 與 publish 之間
+
+此次值得工程團隊檢視的是 [release commit `506863d`](https://github.com/subquery/subql/commit/506863d6fb82bd2714970cf8c6f1bf364374b009)：其中的 workflow 在發布前加入外部 artifact 替換步驟，將套件目錄換成下載內容。新增步驟沒有對該 archive 做 hash 或簽章驗證；同一 commit 的套件 manifest 僅改版本號。
+
+這個差異足以提出一個具體審查問題：最後送進 registry 的 bytes，是否仍然是剛才審核與建置的那一份？只看套件目錄的 source diff，會漏掉發布工作流替換產物的路徑。
+
+[npm provenance 文件](https://docs.npmjs.com/generating-provenance-statements/)也說明，來源證明不保證套件沒有惡意程式碼。我的工程推論是：發布 gate 應把來源 commit、建置產物 digest 與發布 tarball 綁在一起，限制中間可替換產物的步驟，並保留審核證據。這是對團隊管線的設計建議，不宣稱單加一個 hash 就能防住所有供應鏈事件。
+
+## 復原工單要能回答「為什麼可以恢復」
+
+我會把結案條件寫成四份可交接的證據：
+
+1. 依賴清單：所有受檢範圍的解析版本、lockfile commit 與映像 digest
+2. 執行清單：哪些 run／host 執行過，哪些已排除，哪些仍未知
+3. 權限處理：暴露評估、撤銷與輪替紀錄，以及外部資源變更的追查結果
+4. 恢復驗證：可信環境重建、依賴重新檢查、應用功能測試與後續監測責任人
+
+下一次處理供應鏈警報時，可以先為一個受影響 job 填完這四份證據，再擴大到整個 fleet。卸載成功、CI 轉綠、或沒有看到異常輸出，都不能替代這條證據鏈。
+
+同樣的「修正與調查分開驗收」思路，可對照 [NetScaler KEV 處置清單](/blog/netscaler-cve-2026-88779-saml-kev-remediation/)；npm 發布權限的背景則見 [Trusted Publishing 與 dist-tag 權限](/blog/npm-trusted-publishing-dist-tag-permissions/)。本篇補上的是發布產物與實際執行環境的信任邊界。
