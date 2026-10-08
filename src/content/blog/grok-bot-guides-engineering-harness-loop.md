@@ -9,7 +9,7 @@ tags:
   - AI Agent Workflow
   - 系統設計
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 66
+seriesOrder: 73
 cover: ../../assets/covers/grok-bot-guides-engineering-harness-loop.png
 coverAlt: "翠綠色矩陣面板展現中央調度總台向外連接多條獨立沙盒工作流與自動化測試驗收迴路。"
 ---

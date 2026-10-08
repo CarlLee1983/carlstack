@@ -9,7 +9,7 @@ tags:
   - AI Agent Workflow
   - 系統設計
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 65
+seriesOrder: 72
 cover: ../../assets/covers/grok-bot-guides-architecture-overview.png
 coverAlt: "深藍色架構面板展現 Outer Loop 協調節點與沙盒執行單元連線，並設有核心審批與信任閘門。"
 ---

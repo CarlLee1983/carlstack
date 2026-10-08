@@ -9,7 +9,7 @@ tags:
   - AI Agent Workflow
   - 系統設計
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 67
+seriesOrder: 74
 cover: ../../assets/covers/grok-bot-guides-gtm-and-team-orchestration.png
 coverAlt: "琥珀色組織拓撲架構，展現專案頻道、Notion 狀態看板與多專業 Bot 自律認領任務的協同網絡。"
 ---
