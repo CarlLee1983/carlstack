@@ -93,3 +93,5 @@ Artificial Analysis 在 2026 年 9 月 29 日公布自己的評測：在 `max` e
 若你的目標是長時間持續工作，也可接續閱讀[OpenAI dots 的持續任務控制](/blog/openai-dots-ongoing-work-control/)。模型選擇回答「由誰推理」，任務控制回答「何時繼續、停止與交還使用者」，兩者需要各自的驗收依據。
 
 下一步不用全面切換。從一組可重現的既有任務開始，固定驗收條件，讓 GPT-6.1 Sol 與現有模型跑同一批輸入。等成本、通過率與人工修正資料一起成立，再決定哪些任務改用它。
+
+延伸閱讀：[Haiku 5.5 的首次驗收與升級成本](/blog/haiku55-subagent-accepted-task-cost/)把窄任務 subagent 的拒收、升級與新增覆核工時拆開計算，補上 100k 計價門檻的比較。

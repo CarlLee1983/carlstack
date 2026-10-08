@@ -103,3 +103,5 @@ rollout:
 站內的 [OpenWA 請求目標邊界](/blog/openwa-request-target-boundaries/)談出站前的實際目標核對；[NetScaler 修補與事件調查](/blog/netscaler-cve-2026-88779-saml-kev-remediation/)把更新完成和歷史風險調查分開。這次 Django 更新延續相同紀律：為每個受影響入口保留一份可複查的結果。
 
 下一步可以從 formset 開始：列出所有能由表單設定主鍵的模型，挑一條限定 queryset 的寫入路徑，補上「集合外物件未變更」的斷言。這比一張只有版本號的升級截圖，更能防止邊界在下一次重構時消失。
+
+延伸閱讀：[LMCache 程序間傳輸的信任邊界](/blog/lmcache-multiprocess-pickle-trust-boundary/)把同樣的入口盤點用在推理快取，分開檢查 HTTP 與 ZeroMQ 的實際暴露面。
