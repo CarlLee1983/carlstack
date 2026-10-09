@@ -189,3 +189,7 @@ console.log(`${cases.length} admission cases passed`);
 - [Uber Engineering 原始 X 貼文](https://x.com/ubereng/status/2106071967619322330)
 - [Uber Engineering：Designing MCP Gateway，2026-10-01](https://www.uber.com/us/en/blog/designing-mcp-gateway/)
 - [MCP 2026-07-28：Tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools)
+
+## 延伸閱讀
+
+[Splunk MCP 自訂工具的目的地與憑證邊界](/blog/splunk-mcp-destination-credential-boundary/)以具體安全公告補充這份發布契約：工具可執行的權限之外，還要核准下游目的地與它能接收的身分。

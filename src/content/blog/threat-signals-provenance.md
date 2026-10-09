@@ -94,3 +94,7 @@ Cloudflare 的發布回顧提到兩項取捨：AI 標籤限定在帳號既有目
 分別記錄抽取 precision、recall、證據可回查比例、角色誤判數與重處理差異。不要只計算摘要是否好讀；摘要可能流暢，資料關聯卻已經斷了。
 
 下一步可以在 Dashboard 的 Application Security → Threat Intelligence → Threat Signals 選一個可信 RSS feed，逐筆核對結果；若做自建工具，就先以這五份文件驗收來源關聯與更正流程。等每一筆資料都能解釋清楚，再增加來源，最後才評估連接執行規則。
+
+## 延伸閱讀
+
+若資料含有模型補值，[Claude Science UV 星圖的來源與不確定性契約](/blog/claude-science-uvmap-provenance/)延伸討論如何將量測、估計與視覺檢查分開保存，避免展示圖抹去證據邊界。
