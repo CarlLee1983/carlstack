@@ -156,3 +156,5 @@ report:
 ## 延伸閱讀
 
 若輸入變成外部掃描器送來的漏洞報告，可接著閱讀 [OSS Scanner 的維護者分流契約](/blog/ossscanner-vulnerability-report-triage/)，把重現、重複報告與修補驗收分開記錄。
+
+若審查對象是整套工具的語言重寫，可接著看 [Prime Agent Rust 重寫的行為驗收契約](/blog/prime-agent-rust-rewrite-verification-contract/)，把程式碼審查接到模型請求、協定與副作用的差異測試。
