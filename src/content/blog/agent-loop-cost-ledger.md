@@ -63,6 +63,8 @@ Google Cloud 的[快取文件](https://docs.cloud.google.com/gemini-enterprise-a
 
 想釐清 Harness 的責任邊界，可接著讀[可靠 Agent 的七個 Harness 控制面](/blog/harness-engineering-for-reliable-agents/)；若要評估升級模型後哪些步驟可刪，則看[Harness 消融測試](/blog/harness-pruning-after-model-upgrade/)。今天先留下第一份逐輪成本與驗收紀錄，下一個優化才有可以對照的基線。
 
+若成本問題來自持續喚醒與跨工具委派，可接著讀 [Grok Bot 的週額度與成本護欄](/blog/grok-bot-budget-wake-delegation-guardrails/)，把單輪記帳延伸到整個任務的派工預算與結果驗收。
+
 ## 來源
 
 - [Google Cloud Tech：Loop Engineering for Sub-Dime Agents（原始 X 長文）](https://x.com/GoogleCloudTech/status/2102176810029183478)

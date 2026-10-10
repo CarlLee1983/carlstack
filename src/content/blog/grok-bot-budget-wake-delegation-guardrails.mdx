@@ -1,0 +1,161 @@
+---
+title: "Grok Bot 額度治理：把省 Token 技巧落實成喚醒、委派與成本護欄"
+description: "從鐵柱 AGI 的 Grok Bot 省額度指南，拆開週用量、外部執行池與任務總成本。用事件去重、委派契約與執行前預算檢查，驗證省下的額度沒有變成另一張帳單或更多返工。"
+publishDate: 2026-10-10T10:28:24+08:00
+draft: false
+featured: false
+tags:
+  - AI 工程化
+  - AI Agent Workflow
+  - 系統設計
+series: AI Agent 工程化與工作流實戰
+seriesOrder: 79
+cover: ../../assets/covers/grok-bot-budget-wake-delegation-guardrails.webp
+coverAlt: "深綠色木刻風格的兩座代幣儲槽各有獨立閘門，左側釋出少量代幣落入碗中，右側保持關閉，象徵分開計帳與執行前限制支出。"
+---
+
+import GrokBudgetAdmissionDiagram from "../../components/GrokBudgetAdmissionDiagram.astro";
+
+讓 Bot 每隔幾分鐘醒來看一次「有沒有新消息」，即使最後保持安靜，也已經執行了一輪檢查。讓另一個 CLI 接手工作，主 Bot 的用量可能下降，但外部工具仍有自己的費用、速率限制與資料接收方。這兩種差別，決定了省額度方案究竟能不能長期運作。
+
+鐵柱 AGI 在 2026 年 10 月 9 日的[〈Grok Bot 额度超长续航保姆级新手指南〉](https://x.com/cgnot996/status/2108504325609984233)整理了十二種做法，涵蓋多模態摘要、上下文管理、排程與 Webhook、減少群聊、復用 Bot、CLI 委派、搜尋輸出、小樣本驗證、重試限制、按量費用及交接。本文保留這些方向，但把驗收問題收斂成一句：**在相同交付標準下，減少主 Bot 用量後，整個任務是否仍然更划算？**
+
+以下產品行為以 2026 年 10 月 10 日可讀的官方文件為準；閘門、帳本與範例程式是本文的工程建議，不是 Grok Bot 已提供的設定格式。原文中的個人節省比例不作本站實測，也不當作可保證的效果。
+
+## 週額度下降，只能回答其中一本帳
+
+[官方方案說明](https://cursor.com/help/grok-bot/plans)指出，Grok Bot 用量按週重置；若啟用 on-demand，用盡後可以繼續使用，額外費用由 Cursor 計收。Cursor 與 SuperGrok／X Premium+ 的權益不疊加。文件提供相對用量級別，不能據此換算出固定 token 包數。
+
+因此，我會分開留下三種紀錄：
+
+- **主 Bot 用量**：同一重置週期內的用量變化、工作類型與完成件數。跨過重置時間的前後讀值不可直接相減。
+- 外部執行池：CLI、API、Cloud Agent 各自的訂閱、按量費用及配額；已購訂閱的邊際費用可能很低，仍不能視為沒有成本。
+- 任務結果：驗收通過率、人工返工時間、端到端延遲，以及整條流程實際新增的費用。尚未結算的費用標為待對帳，不填零。
+
+例如，同一批十個修補任務，委派後只完成六個，剩下四個需要人重做，不能只用 Bot 用量下降來宣布成功。這是合成情境，目的在固定比較分母；本文沒有跑過這組產品測試。
+
+[逐輪成本帳本](/blog/agent-loop-cost-ledger/)適合分析 context 與快取如何累積。本篇多加的是營運層：一次喚醒值不值得發生、該花哪個池的額度，以及花完之前誰負責停止。
+
+## 沒有值得處理的事件，就不要先叫醒模型
+
+[Routine 文件](https://cursor.com/help/grok-bot/routines)明確提醒，每次執行都會消耗用量，Test 也會真的跑；頻繁排程或繁忙的 Slack 觸發可能很快用完整週額度。因此，「沒變化就不要回覆」主要減少通知，無法取消已發生的讀取與判斷成本。
+
+若來源支援可靠的事件觸發，可在自己控制的接收器先做確定性篩選：驗證來源、核對事件種類、按穩定 ID 去重，再把有差異的事件送進工作佇列。對沒有 Webhook 的來源，則依可接受的新鮮度選擇輪詢間隔，不要讓每個角色各自巡同一份資料。
+
+<GrokBudgetAdmissionDiagram />
+
+這張圖描述的是可自行實作的接收層。它必須置於模型執行之前，才有機會減少喚醒；如果每個事件已經先啟動 Routine，再請 Bot 決定要不要做，這筆啟動成本仍然存在。
+
+- 事件鍵用來源給的穩定 ID；沒有 ID 時，才根據已定義欄位計算摘要。不要把每次不同的接收時間放進去，否則重送永遠像新事件。以來源與事件 ID 建立持久唯一鍵，去重紀錄與任務建立須原子提交；派送失敗保留待送狀態，再以同一任務識別碼重送。
+- 批次窗口依任務容忍延遲設定；告警升級與每日彙整不該共用同一個窗口。保留來源 cursor 與定期核對機制，避免漏接後永遠沉默。
+- 重複事件回報原任務狀態；失敗任務若允許重跑，走有上限的重試政策，不靠刪除去重紀錄重新開工。
+
+官方 Webhook 的 HTTP 200 代表接受並開始執行，**不能當成交付完成**。接收紀錄、執行紀錄、驗收結果要能對回同一個任務；通知管道失敗也不應讓已完成的工作再跑一次。
+
+## 摘要要保住交接證據，才能減少重讀
+
+原文建議先把圖片、影片或長文字壓成摘要，再交主 Bot 做判斷。這個方向可降低主對話承載的資料量，但壓縮本身也要花費，而且可能丟掉下一步需要的細節。
+
+[官方論壇支援回覆](https://forum.cursor.com/t/grok-bot-context-window-size-and-token-accumulation-logic-in-pro/171540)在 9 月說明，對話歷史會被重新讀取，其中可能有大量 cached tokens，接近上限時才自動摘要。這不足以支持「所有舊 token 每輪都按未快取原價重算」的說法；實際帳單和可觀測的用量才是比較依據。
+
+我會把交接摘要限制成以下幾項，完整附件與長日誌留在可回查的來源：
+
+```yaml
+# 本文建議的交接資料，不是 Grok Bot 設定檔
+objective: 修正重複事件造成的重複通知
+source_revision: fixture-v1
+status: waiting_for_verification
+completed: 接收器已回傳原任務識別碼
+open_questions:
+  - 程序重啟後是否仍會去重
+next_action: 重啟接收器並重送同一事件
+acceptance: 只建立一個任務，且能查到原驗收結果
+evidence: fixtures/duplicate-event.json
+```
+
+`waiting_for_verification` 不能為了省文字縮成 `completed`。同樣地，圖片摘要若將一個模糊警示判成已通過，就會把成本轉移到返工與錯誤決策。摘要要包含不確定處與原始資料位置；碰到圖像細節、法律文字或程式行為的判斷，仍需回看原件。
+
+更換或複製 Bot 也要先驗證交接。上述支援回覆提醒，複製不會帶走既有記憶；不要把新 Bot 建立成功當成背景知識已完整遷移。
+
+## 委派 CLI，會多出一個計費與資料邊界
+
+[模型文件](https://cursor.com/help/grok-bot/models)說明，Grok Bot 沒有模型選單，也不顯示每次請求的底層模型。因此，不能把「直接切成便宜模型」寫成 Grok Bot 的通用操作步驟。把工作交給外部 CLI 或 API，是建立另一條執行路徑。
+
+這條路徑適合有明確輸入、可以獨立執行、輸出能被驗收的工作。例如讓 worker 針對固定 commit 執行指定測試，再回傳 exit code、失敗項目與 artifact 路徑；主 Bot 不必反覆讀整段終端輸出。委派前仍需要約定：
+
+- 執行者與費用：用哪個服務、哪個已授權帳戶，使用哪個用量池；額度不足時停止或回報，不自動切換到未知供應商。
+- 輸入邊界：固定版本、允許的資料與路徑；不要因為外部工具便宜，就把整個 repository 或私人附件一起送出去。
+- 完成證據：退出碼之外，還要有預期 artifact、測試結果與對應版本；程序結束只證明程序已退出。
+- 失敗交接：限流、認證錯誤、測試失敗各自如何處理，何時停止，以及誰接手。
+
+原文連結的 [ModelScope CLI 專案](https://github.com/RongleCat/tiezhu-modelscope-api-inference)在 README 揭露，圖片、影片及音訊輸入會經由 Uguu 上傳成暫存 HTTPS URL。這代表接收資料的不只有模型服務。本文只查閱公開文件，沒有安裝或執行該 CLI，也沒有上傳測試媒體；導入前需要確認暫存服務、存留方式與資料授權，敏感內容不適合直接拿來試。
+
+[官方 Bot 團隊文件](https://cursor.com/docs/grok-bot/teams)也提醒，同一使用者的 Bots 共用電腦、檔案與登入。把 Key 檔設成 `chmod 600` 有其作業系統層級用途，卻不能把共用同一環境的 Bot 變成隔離帳戶。需要不同資料權限時，必須由服務 scope、獨立身分或受控執行環境強制。
+
+## 費用上限要擋在派工前，還要計入執行中的工作
+
+官方 plans 文件有一個容易漏掉的限制：月度 on-demand 上限不會中斷已經執行中的工作。設定上限有幫助，但不能推論帳單精確停在該金額，更不能把它當成每個工具呼叫的中途硬切斷。
+
+若工作由自己的 scheduler 管理，可以在新工作發出前預留預算，結算後再釋放；多個 worker 共用預算時，預留必須原子化，否則會各自看到同一筆餘額而同時開工。**已結算費用加上所有未結算預留與本次新工作的成本上界，超過上限就不再派工。**
+
+以下是可執行的合成測試，存成 `budget-admission.mjs` 後用 `node budget-admission.mjs` 執行。它只驗證單一程序內的派工算術，沒有呼叫任何模型，也不是 Grok Bot 外掛：
+
+```javascript
+import assert from "node:assert/strict";
+
+// 單位為合成 cents；reserve 是此示例自訂的成本上界。
+function admit({ limit, spent, reserved, reserve, active, maxActive }) {
+  const values = [limit, spent, reserved, reserve, active, maxActive];
+  if (!values.every((n) => Number.isSafeInteger(n) && n >= 0)) {
+    return false;
+  }
+  if (reserve === 0 || maxActive === 0) return false;
+  return active < maxActive && spent + reserved + reserve <= limit;
+}
+
+const base = {
+  limit: 100,
+  spent: 60,
+  reserved: 20,
+  reserve: 20,
+  active: 1,
+  maxActive: 2,
+};
+assert.equal(admit(base), true);
+assert.equal(admit({ ...base, reserve: 21 }), false);
+assert.equal(admit({ ...base, active: 2 }), false);
+assert.equal(admit({ ...base, reserve: NaN }), false);
+assert.equal(admit({ ...base, reserve: 0 }), false);
+console.log("5 synthetic admission checks passed");
+```
+
+它刻意只做一件事，因此也有清楚的缺口：沒有跨程序鎖、持久化、預留釋放或崩潰恢復；若 `reserve` 只是樂觀估算而非可強制上界，仍可能超支。正式系統要把「檢查並預留」放在同一個原子操作，使用整數金額與溢位防護，並對每次外部呼叫的 token、費用、時間或工作量施加供應商實際支援的限制。工作超時後還要確認遠端工作真的停止，不能只關掉本地等待。
+
+重試也需要分類。429 依服務回傳的等待指示退避，並計入整體時間預算；認證或權限錯誤停止並要求修正。對可能已產生副作用但回覆遺失的請求，先查原任務與 idempotency key，再決定重送。重試次數少一點，有時只是讓失敗更早被看見，並不自動提高完成率。
+
+## 免費池要把限流與不可用也算進來
+
+[OpenRouter 的限制說明](https://openrouter.ai/docs/api_reference/limits)及[免費模型文件](https://openrouter.ai/docs/guides/routing/model-variants/free)列出依帳戶條件而異的速率與每日限制。免費模型可拿來處理容許延遲的工作，但可用性與限流不能省略；不要把今天能用的配額寫成永久的執行保證。
+
+[ModelScope 的 API 限制文件](https://modelscope.cn/docs/model-service/API-Inference/limits)則說明動態限流，以單併發正常使用為目標，不適合要求高併發或 SLA 的線上任務。原文「較適合拿來生圖」是作者的使用建議，不能當成平台只支援圖片的規格。
+
+因此，分流測試要加入免費池回 429、供應商不可用，以及回傳結果不合格的案例。這些情況下，流程應留下未完成狀態與已花成本，依事先批准的路徑等待或升級；不能偷偷換另一個服務，把資料與費用風險轉移出去。
+
+## 用同一批任務驗收，留下可以否定優化的條件
+
+選一個常見、低風險且可重跑的工作，固定輸入版本與驗收標準。基線與修改版都記錄完成件數、主 Bot 週用量變化、外部新增費用、人工返工與延遲；無法歸因的背景工作要註明，不能全部算在這一次委派上。
+
+下一輪只調一個地方，例如把重複事件擋在 Routine 前，或把長日誌改成可回查的失敗摘要。刻意重送事件、讓 worker 超時、使外部配額耗盡，檢查是否仍只建立一份任務、是否保存進度，以及停止後是否還有遠端工作繼續計費。
+
+若完成率下降、返工增加，或只省到主 Bot 額度卻提高整體費用，就撤回這項修改。本站的 [Grok Bot 工程管理迴路](/blog/grok-bot-engineering-control-plane/)處理多條工作線的責任與驗收；這裡先把其中一條線的喚醒、預算和結果對起來。今天可以做的第一步，是挑出一個「經常醒來卻沒有新事情」的 Routine，記錄它目前的觸發與完成紀錄，再決定在哪一層攔住下一次無效執行。
+
+## 來源與查核範圍
+
+- [鐵柱 AGI：原始 X 長文，2026-10-09](https://x.com/cgnot996/status/2108504325609984233)
+- [Cursor：Grok Bot plans](https://cursor.com/help/grok-bot/plans)、[Routines](https://cursor.com/help/grok-bot/routines)、[Models](https://cursor.com/help/grok-bot/models)、[Teams](https://cursor.com/docs/grok-bot/teams)
+- [Cursor 官方論壇：context 與快取支援回覆](https://forum.cursor.com/t/grok-bot-context-window-size-and-token-accumulation-logic-in-pro/171540)
+- [OpenRouter：Limits](https://openrouter.ai/docs/api_reference/limits)、[Free variants](https://openrouter.ai/docs/guides/routing/model-variants/free)
+- [ModelScope：API Inference limits](https://modelscope.cn/docs/model-service/API-Inference/limits)
+- [RongleCat：ModelScope API Inference CLI README](https://github.com/RongleCat/tiezhu-modelscope-api-inference)
+
+本文沒有驗證原文的個人帳戶節省率、X 搜尋免額度說法或 Bot 休眠時的 cron 生命週期，不以它們推導節省幅度。上面的程式結果只代表合成派工規則通過測試。
