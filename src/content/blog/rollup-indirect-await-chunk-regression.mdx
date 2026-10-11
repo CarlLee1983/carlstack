@@ -1,0 +1,79 @@
+---
+title: "Rollup 4.64.5 修好間接 await 循環，build 成功仍要驗證初始化"
+description: "用 Rollup 官方回歸案例比較 4.64.4 與 4.64.5：間接等待 dynamic import 如何讓 shared chunk 回指尚未完成的入口，以及升級後應驗收哪些執行行為。"
+publishDate: 2026-10-11T10:05:00+08:00
+draft: false
+featured: false
+tags:
+  - 開源專案
+  - 技術選型
+  - 系統設計
+cover: ../../assets/covers/rollup-indirect-await-chunk-regression.webp
+coverAlt: "靛藍底上的木製環形軌道由珊瑚色高架橋連向獨立島嶼，象徵把共用依賴抽離等待循環。"
+---
+
+import RollupAwaitDiagram from "../../components/RollupAwaitDiagram.astro";
+
+同一份程式，Rollup 4.64.4 和 4.64.5 都能完成打包；但在這次隔離測試裡，前者沒有完成初始化，後者能正常結束。只把 `rollup` 的退出碼當作升級驗收，會漏掉這類模組執行問題。
+
+Rollup 於 2026 年 10 月 10 日發布 [4.64.5](https://github.com/rollup/rollup/releases/tag/v4.64.5)，修正間接 top-level await 等待 dynamic import 時可能產生的循環。這是正確性修正；發布說明沒有將它列為安全漏洞。
+
+本文讀了 [PR #6516](https://github.com/rollup/rollup/pull/6516) 的修改與新增測試，並於 10 月 11 日在 Linux、Node.js 24.19.0、ES module 輸出下重跑其中一個 fixture。沒有測試瀏覽器、SystemJS 或讀者的正式專案。
+
+## 入口還在等，動態模組卻回頭依賴入口
+
+PR 說明的觸發組合是 `preserveEntrySignatures: false`，加上透過靜態依賴間接等待動態載入。入口中的 `await` 不必直接寫成 `await import()`：它可以先呼叫另一個模組提供的函式，函式內才執行 import。
+
+官方新增案例的結構很小：
+
+- `main.js` 匯入共用常數與 loader，接著在頂層等待 loader 的 setup。
+- `loader.js` 的 setup 透過 `import('./dynamic.js')` 載入動態模組。
+- `dynamic.js` 也需要同一份常數。
+
+若打包器把共用常數併進仍在求值的入口，動態 chunk 就得從入口取得常數。入口等動態 chunk，動態 chunk 又依賴入口完成，初始化便卡在這個關係上。這裡的循環是打包結果造成的相依變化，不能只搜尋原始碼有沒有互相 import。
+
+<RollupAwaitDiagram />
+
+4.64.5 的修正會追蹤靜態依賴圖是否含有 top-level await，以及該圖可到達哪些動態入口。PR 明確說這是保守處理：即使某個可到達的 dynamic import 實際上沒有被等待，也可能因此多保留一個 shared chunk。對這項修正，我接受多一個 chunk 的代價；初始化完成是更前面的驗收條件。至於載入效能有沒有變差，本文沒有量測。
+
+## 兩個版本都打包成功，只有一個印出完成標記
+
+測試使用 PR 新增的 `false-with-indirect-awaited-dynamic-import` 四個來源檔，保留原始 fixture，不把範例改寫成另一種依賴圖。版本分別鎖定為 `rollup@4.64.4` 與 `rollup@4.64.5`，輸入為 `main.js`，設定 `preserveEntrySignatures: false`，輸出 `format: 'es'`；入口及 chunk 副檔名統一為 `.mjs`。
+
+每次 build 後以獨立 Node 程序執行下列 runner，外層程序另設五秒上限：
+
+```js
+await import("./main.mjs");
+console.log("INIT_OK");
+```
+
+### 4.64.4：打包完成，執行退出碼為 13
+
+輸出兩個 chunk。`main.mjs` 動態載入 `dynamic.mjs`，後者靜態匯入 `main.mjs`。Node 沒有印出 `INIT_OK`，而是回報 `Detected unsettled top-level await`，退出碼為 13。這次觀察是程序提早以非零狀態退出，沒有等到五秒逾時。
+
+### 4.64.5：共用常數獨立，執行退出碼為 0
+
+輸出三個 chunk：`main.mjs`、`dynamic.mjs` 與 `constants.mjs`。前兩者都從 `constants.mjs` 取值，動態 chunk 不再回指入口。runner 印出 `INIT_OK`，標準錯誤輸出為空，退出碼為 0。
+
+這個結果驗證了特定回歸案例的修復，沒有證明所有使用 top-level await 的程式都受到影響，也沒有證明所有打包設定都已被本次實驗涵蓋。完整來源路徑、重現腳本與結果留在[本文研究紀錄](https://github.com/CarlLee1983/carlstack/blob/main/docs/research/rollup-indirect-await-chunk-regression.md)。
+
+## 升級驗收應跟著實際載入路徑走
+
+我會先在 lockfile 確認專案實際解析到的 Rollup 版本，再追查由哪個上層工具引入。框架版本與 bundler 版本是兩個不同證據；只更新 `package.json` 的版本範圍，也不能保證 CI 使用了新套件。
+
+對有非同步初始化的專案，建議把下列檢查加入原有 release gate：
+
+1. 以正式的入口、外掛與 chunk 設定 build，保存解析後的版本和產物。
+2. 在真正支援的 runtime 執行產物，驗證初始化完成標記；HTTP 服務則驗證依賴初始化後才可用的健康檢查。
+3. 觸發延遲載入入口，檢查重複載入、初始化副作用及錯誤傳播。不能只測首頁載入。
+4. 同時檢查退出碼與完成證據。只有程序仍在跑，或 bundler 沒報錯，都不足以通過。
+
+**停止規則：任一必要入口未完成初始化，就不把這版產物升到正式環境。** 回退時保留上一版 lockfile 與建置產物；不要用隨意改 chunk 切分來掩蓋尚未釐清的依賴問題。
+
+這也呼應站內〈[Prime 改寫的驗證契約](/blog/prime-agent-rust-rewrite-verification-contract/)〉：驗收應追到使用者依賴的行為。今天可以補的測試很具體：找一個經 loader 間接等待的 dynamic import，讓 CI 真正執行打包結果，並要求它交出初始化完成證據。
+
+## 來源與範圍
+
+- [Rollup v4.64.5 發布說明](https://github.com/rollup/rollup/releases/tag/v4.64.5)：2026-10-10 的修正項目。
+- [PR #6516：prevent cycles for indirectly awaited dynamic imports](https://github.com/rollup/rollup/pull/6516)：作者 ryanchou1994、維護者 lukastaegert；修正邏輯、保守切分代價與測試來源。
+- [官方回歸 fixture](https://github.com/rollup/rollup/tree/v4.64.5/test/chunking-form/samples/preserve-entry-signatures/false-with-indirect-awaited-dynamic-import)：本文隔離重現所用來源。上游涵蓋 ES 與 SystemJS；本文僅獨立執行 ES。

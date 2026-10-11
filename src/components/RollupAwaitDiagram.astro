@@ -1,0 +1,203 @@
+<figure class="ra-diagram" aria-labelledby="ra-caption">
+  <svg
+    class="ra-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="ra-title ra-desc"
+  >
+    <title id="ra-title">把共用常數移出仍在等待的入口</title>
+    <desc id="ra-desc"
+      >上方示範入口等待動態模組，而動態模組回指入口的循環。下方修正後兩者改讀獨立的共用常數。</desc
+    >
+    <defs
+      ><marker
+        id="ra-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto-start-reverse"
+        ><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text x="40" y="42" class="ra-diagram__heading"
+      >驗收對象：打包後的初始化是否完成</text
+    >
+    <rect
+      x="40"
+      y="72"
+      width="880"
+      height="178"
+      rx="16"
+      class="ra-diagram__surface"></rect>
+    <text x="64" y="105" class="ra-diagram__title"
+      >4.64.4 · 本次 fixture 的等待循環</text
+    >
+    <rect x="70" y="132" width="260" height="82" rx="10" class="ra-diagram__box"
+    ></rect>
+    <text x="92" y="163" class="ra-diagram__title">main · 含共用常數</text><text
+      x="92"
+      y="191"
+      class="ra-diagram__detail">尚未完成 top-level await</text
+    >
+    <rect
+      x="630"
+      y="132"
+      width="250"
+      height="82"
+      rx="10"
+      class="ra-diagram__box"></rect>
+    <text x="652" y="163" class="ra-diagram__title">dynamic</text><text
+      x="652"
+      y="191"
+      class="ra-diagram__detail">靜態依賴 main</text
+    >
+    <path d="M 340 150 H 618" class="ra-diagram__arrow"></path><text
+      x="408"
+      y="139"
+      class="ra-diagram__detail">入口等待動態載入</text
+    >
+    <path d="M 620 198 H 342" class="ra-diagram__arrow"></path><text
+      x="408"
+      y="229"
+      class="ra-diagram__detail">動態模組回指入口</text
+    >
+    <rect
+      x="40"
+      y="280"
+      width="880"
+      height="240"
+      rx="16"
+      class="ra-diagram__surface"></rect>
+    <text x="64" y="315" class="ra-diagram__title"
+      >4.64.5 · 共用依賴保留為獨立 chunk</text
+    >
+    <rect x="70" y="350" width="250" height="65" rx="10" class="ra-diagram__box"
+    ></rect><text x="92" y="390" class="ra-diagram__title">main</text>
+    <rect
+      x="635"
+      y="350"
+      width="245"
+      height="65"
+      rx="10"
+      class="ra-diagram__box"></rect><text
+      x="658"
+      y="390"
+      class="ra-diagram__title">dynamic</text
+    >
+    <path d="M 332 372 H 622" class="ra-diagram__arrow"></path><text
+      x="406"
+      y="358"
+      class="ra-diagram__detail">等待動態載入</text
+    >
+    <rect
+      x="350"
+      y="442"
+      width="260"
+      height="55"
+      rx="10"
+      class="ra-diagram__box"></rect><text
+      x="400"
+      y="477"
+      class="ra-diagram__title">constants · 共用值</text
+    >
+    <path d="M 195 420 V 469 H 338" class="ra-diagram__arrow"></path>
+    <path d="M 758 420 V 469 H 622" class="ra-diagram__arrow"></path>
+  </svg>
+  <svg
+    class="ra-diagram__mobile"
+    viewBox="0 0 300 600"
+    role="img"
+    aria-labelledby="ra-m-title ra-m-desc"
+  >
+    <title id="ra-m-title">等待循環與獨立常數的窄版比較</title><desc
+      id="ra-m-desc"
+      >桌面圖的直向排列：舊版入口與動態模組互相等待，新版讓兩者依賴獨立常數。</desc
+    >
+    <text x="16" y="30" class="ra-diagram__title">4.64.4 · 初始化未完成</text>
+    <rect x="16" y="48" width="268" height="80" rx="12" class="ra-diagram__box"
+    ></rect><text x="32" y="78" class="ra-diagram__title"
+      >main · 含共用常數</text
+    ><text x="32" y="104" class="ra-diagram__detail">入口等待 dynamic</text>
+    <text x="137" y="160" class="ra-diagram__title">↓ ↑</text>
+    <rect x="16" y="178" width="268" height="80" rx="12" class="ra-diagram__box"
+    ></rect><text x="32" y="208" class="ra-diagram__title">dynamic</text><text
+      x="32"
+      y="234"
+      class="ra-diagram__detail">又回頭依賴 main</text
+    >
+    <text x="16" y="310" class="ra-diagram__title">4.64.5 · 初始化完成</text>
+    <rect x="16" y="328" width="268" height="86" rx="12" class="ra-diagram__box"
+    ></rect><text x="32" y="360" class="ra-diagram__title">main → dynamic</text
+    ><text x="32" y="388" class="ra-diagram__detail">動態模組不再回指入口</text>
+    <text x="70" y="450" class="ra-diagram__detail">↓ 兩者取用共用值 ↓</text>
+    <rect x="16" y="473" width="268" height="80" rx="12" class="ra-diagram__box"
+    ></rect><text x="32" y="505" class="ra-diagram__title">constants</text><text
+      x="32"
+      y="533"
+      class="ra-diagram__detail">保留為獨立 chunk</text
+    >
+  </svg>
+  <figcaption id="ra-caption">
+    這是本文 fixture 的打包結果；箭頭表示載入或依賴關係，不代表所有 Rollup
+    專案的 chunk 形狀。
+  </figcaption>
+</figure>
+<style>
+  .ra-diagram {
+    margin: 2rem 0;
+  }
+  .ra-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .ra-diagram__mobile {
+    display: none;
+  }
+  .ra-diagram__surface {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .ra-diagram__box {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .ra-diagram__title,
+  .ra-diagram__heading {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .ra-diagram__heading {
+    font-size: 22px;
+  }
+  .ra-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+  .ra-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#ra-arrow);
+  }
+  .ra-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .ra-diagram figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .ra-diagram__desktop {
+      display: none !important;
+    }
+    .ra-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
