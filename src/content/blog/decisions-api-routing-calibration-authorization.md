@@ -119,3 +119,5 @@ adapter 至少確認 `support_queue` 恰有一筆答案、型別符合預期、�
 今天可以先完成兩件可檢查的事：用 fixture 證明 adapter 不會把拒答當成正常分類；再用一次跨服務測試，證明任何分類結果都不能繞過退款授權。它們通過之後，再花 API 預算回答「這個分流器是否更快、更省」。
 
 延伸閱讀：[Cloudflare 證據快照契約](/blog/cloudflare-security-evidence-snapshot-contract/)把缺口與引用納入調查驗收；[GPT-6 可變介面的核准狀態](/blog/gpt6-intelligent-ui-warning-acceptance/)進一步檢查使用者按下確認時，操作目標是否仍與核准內容一致。
+
+若分類器嵌在完整 Agent 任務裡，[CIFAR-10 執行收據案例](/blog/harness-execution-receipt-human-cost/)補上另一個驗收點：分類呼叫是否真的計入任務費用，以及人工核准是否有獨立紀錄。
