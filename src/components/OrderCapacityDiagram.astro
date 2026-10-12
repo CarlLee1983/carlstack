@@ -1,0 +1,213 @@
+<figure class="order-capacity-diagram" aria-labelledby="order-capacity-caption">
+  <svg
+    class="order-capacity-diagram__desktop"
+    viewBox="0 0 960 440"
+    role="img"
+    aria-labelledby="order-capacity-title order-capacity-desc"
+  >
+    <title id="order-capacity-title">
+      同一組入口嘗試，分開估算 HTTP 與 DB 占用
+    </title>
+    <desc id="order-capacity-desc"
+      >假設穩定負載為每秒 20 次 HTTP 嘗試，包含重試。HTTP 邊界內平均停留 0.20
+      秒，因此平均有 4 個在途嘗試。每次嘗試累計的 DB 借用量平均為 0.08
+      連線秒，包含未借用者的 0，因此平均占用 1.6 條連線。兩種量測邊界不同，
+      所有數字均為規劃假設，平均占用不能直接當作 worker 或連線池上限。</desc
+    >
+
+    <rect
+      class="order-capacity-diagram__card"
+      x="20"
+      y="16"
+      width="920"
+      height="108"
+      rx="12"></rect>
+    <text class="order-capacity-diagram__title" x="44" y="55">入口嘗試</text>
+    <text class="order-capacity-diagram__detail" x="44" y="91"
+      >每次 HTTP 嘗試都計入，包含重試</text
+    >
+    <text class="order-capacity-diagram__result" x="652" y="79">20 次／秒</text>
+    <path
+      class="order-capacity-diagram__arrow"
+      d="M480 132 V148 m-6 -6 6 6 6 -6"></path>
+
+    <rect
+      class="order-capacity-diagram__scope"
+      x="20"
+      y="156"
+      width="920"
+      height="116"
+      rx="12"></rect>
+    <text class="order-capacity-diagram__title" x="44" y="195">HTTP 邊界</text>
+    <text class="order-capacity-diagram__detail" x="44" y="235"
+      >20 次／秒 × 平均 0.20 秒</text
+    >
+    <path class="order-capacity-diagram__equals" d="M584 208 h24 M584 220 h24"
+    ></path>
+    <text class="order-capacity-diagram__result" x="652" y="223"
+      >平均 4 個在途</text
+    >
+    <path
+      class="order-capacity-diagram__arrow"
+      d="M480 280 V296 m-6 -6 6 6 6 -6"></path>
+
+    <rect
+      class="order-capacity-diagram__scope"
+      x="20"
+      y="304"
+      width="920"
+      height="116"
+      rx="12"></rect>
+    <text class="order-capacity-diagram__title" x="44" y="343">DB 借用邊界</text
+    >
+    <text class="order-capacity-diagram__detail" x="44" y="383"
+      >20 次／秒 × 每次平均 0.08 連線秒</text
+    >
+    <path class="order-capacity-diagram__equals" d="M584 356 h24 M584 368 h24"
+    ></path>
+    <text class="order-capacity-diagram__result" x="652" y="371"
+      >平均 1.6 條占用</text
+    >
+  </svg>
+
+  <svg
+    class="order-capacity-diagram__mobile"
+    viewBox="0 0 280 548"
+    role="img"
+    aria-labelledby="order-capacity-mobile-title order-capacity-mobile-desc"
+  >
+    <title id="order-capacity-mobile-title">HTTP 與 DB 平均占用：手機版</title>
+    <desc id="order-capacity-mobile-desc"
+      >桌面圖的直向排列：入口每秒 20 次嘗試，包含重試。HTTP 平均停留 0.20
+      秒，算得平均 4 個在途；每次嘗試的 DB 借用量平均為 0.08 連線秒，算得平均
+      1.6 條連線占用。這是兩個不同邊界的規劃算例，不是量測結果或容量上限。</desc
+    >
+
+    <rect
+      class="order-capacity-diagram__card"
+      x="4"
+      y="8"
+      width="272"
+      height="130"
+      rx="10"></rect>
+    <text class="order-capacity-diagram__title" x="20" y="40">入口嘗試</text>
+    <text class="order-capacity-diagram__detail" x="20" y="72"
+      >每次 HTTP 嘗試，包含重試</text
+    >
+    <text class="order-capacity-diagram__result" x="20" y="112">20 次／秒</text>
+    <path
+      class="order-capacity-diagram__arrow"
+      d="M140 146 V166 m-6 -6 6 6 6 -6"></path>
+
+    <rect
+      class="order-capacity-diagram__scope"
+      x="4"
+      y="174"
+      width="272"
+      height="162"
+      rx="10"></rect>
+    <text class="order-capacity-diagram__title" x="20" y="206">HTTP 邊界</text>
+    <text class="order-capacity-diagram__detail" x="20" y="238"
+      >平均 0.20 秒</text
+    >
+    <text class="order-capacity-diagram__detail" x="20" y="270"
+      >20 × 0.20 = 4</text
+    >
+    <text class="order-capacity-diagram__result" x="20" y="310"
+      >平均 4 個在途</text
+    >
+    <path
+      class="order-capacity-diagram__arrow"
+      d="M140 344 V364 m-6 -6 6 6 6 -6"></path>
+
+    <rect
+      class="order-capacity-diagram__scope"
+      x="4"
+      y="372"
+      width="272"
+      height="162"
+      rx="10"></rect>
+    <text class="order-capacity-diagram__title" x="20" y="404">DB 借用邊界</text
+    >
+    <text class="order-capacity-diagram__detail" x="20" y="436"
+      >每次平均 0.08 連線秒</text
+    >
+    <text class="order-capacity-diagram__detail" x="20" y="468"
+      >20 × 0.08 = 1.6</text
+    >
+    <text class="order-capacity-diagram__result" x="20" y="508"
+      >平均 1.6 條占用</text
+    >
+  </svg>
+
+  <figcaption id="order-capacity-caption">
+    穩定負載的教學算例；平均數不能直接當作 worker 或連線池上限。
+    所有數字都是規劃假設，尚非量測結果。0.08 連線秒是每次 HTTP 嘗試的 DB
+    借用量：累計所有借用期間，未借用者計 0，再取平均。
+  </figcaption>
+</figure>
+
+<style>
+  .order-capacity-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .order-capacity-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .order-capacity-diagram__mobile {
+    display: none !important;
+  }
+  .order-capacity-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .order-capacity-diagram__scope {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+  .order-capacity-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .order-capacity-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .order-capacity-diagram__result {
+    fill: var(--dg-ink);
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .order-capacity-diagram__arrow,
+  .order-capacity-diagram__equals {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .order-capacity-diagram figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    margin-top: var(--space-sm);
+  }
+  @media (max-width: 48rem) {
+    .order-capacity-diagram__desktop {
+      display: none !important;
+    }
+    .order-capacity-diagram__mobile {
+      display: block !important;
+    }
+    .order-capacity-diagram__detail {
+      font-size: 15px;
+    }
+    .order-capacity-diagram__result {
+      font-size: 22px;
+    }
+  }
+</style>
