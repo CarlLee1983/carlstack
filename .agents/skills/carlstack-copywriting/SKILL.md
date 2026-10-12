@@ -16,6 +16,7 @@ description: 撰寫或修改 CarlStack 的繁體中文技術文章、專案介�
    - Ensure diagrams use the decoupled Row Card pattern with ample whitespace (viewBox height >= 540px ~ 600px, main title >= 18px, lead text >= 14px, body text >= 13px);
    - **Ban Quadrant Grid Cramming (嚴禁四象限擁擠硬塞)**: When mapping dual-axis matrices (e.g. Core/Supporting/Generic or Value/Complexity), never force a 2x2 cramped grid. Always deconstruct into **"Top Dimension Banner + Independent Multi-Column Cards (Three/Four-Column Layout) + Bottom Warning/Anti-Pattern Row"**;
    - Ban unstructured raw text dumps; use structured cards or crisp key-value blocks with dedicated allocation/meta boxes to break down parameters and complexity.
+   - When the concept is a mechanism a physical object would explain better than boxes and arrows (a cache hit as a pin-tumbler lock), use the `anatomy` skill at Figure size and adapt its output per the **等角機構圖（anatomy）** section of `docs/diagram-guide.md`.
 7. **Avoid Markdown Tables; Prefer Structured Prose & Cards (全面避免使用 Table)**:
    - Markdown 表格在響應式網頁（特別是窄螢幕手機與行動裝置）極易造成水平捲動、單元格文字過度擠壓或破碎折行，嚴重損害閱讀體驗與視覺節奏。
    - **能用結構化清單、模組卡片或段落呈現時，一律不使用 Table**。

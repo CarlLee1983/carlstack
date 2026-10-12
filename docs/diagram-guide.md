@@ -99,6 +99,33 @@ SVG 的 `font-size` 屬於 viewBox 座標系，用純數字 px（12／14／18 �
    - 正文在引用圖解時，**禁止以冗長凌亂的條列純文字重述圖解細節**；
    - 應使用**精確對齊的結構化卡片或粗體鍵值清單（路徑 / 節點 / 預存結果 / 複雜度對比）**或醒目的架構 Callout，形成「圖解直觀建立心智模型 ➔ 下方文字精準提供工程參數」的高質感閱讀體驗。
 
+## 等角機構圖（anatomy）
+
+文章要解釋的是一個「機制」——快取命中、背壓、限流、鎖、分片——而讀者用一台實體機器比用方塊與箭頭更快懂時，改用 `anatomy` skill 畫等角機構圖：把概念做成一台真實物件（例如快取鍵是一把彈子鎖，所有彈子對齊時鎖芯才轉得動），讀數與動作都由同一個模型驅動。流程、架構、資料流、狀態機仍用上面的平面圖解；一張圖只選一種畫法。
+
+規模一律從 skill 的 Figure（40–80 個零件、單一機制）開始；Hero 要先向使用者說明耗時並取得同意，Epic 不做。skill 的 workflow、零件清單、`--audit` 與 `lines.mjs` 驗收照原樣執行，產出的靜態 SVG 再依下列規則接進站台：
+
+- **元件形狀**：同樣封裝成 `src/components/<主題>Diagram.astro`，沿用 `figure`、`role="img"`、`<title>`／`<desc>`、id 前綴與 BEM 規則。SVG 標記直接寫進模板（不用 `set:html`），Astro 的 scoped style 才會套到它。元件開頭用註解記下概念與物件的對應、所用 anatomy 版本（skill 目錄的 commit），作為重新產生的依據；產生用的 build script 與 kit 不進 repository。
+- **單一版面**：等角物件等比縮放，不需要窄螢幕專用版，這是對「雙版面」規則的明確例外。條件是 320 px 寬仍能辨識主體零件；skill 卡片上的 `Fig n`、標題、操作提示與讀數改寫進 `figcaption`，圖內最多保留一個刻印標籤。
+- **色彩**：kit 的 `--anatomy-*` 變數在元件內重新定義，全部由 `--dg-*` 與 `tokens.css` 既有 token 推導；不帶入 `kit/iso.css` 開頭兩段寫死色值的 `.iso{…}`、`.iso[data-theme="light"]{…}`，其餘結構規則（`.iso-fill`、`.iso-shade` 等）照抄。對應如下，四階陰影是起始值，以 skill 的 4× 檢查微調後回寫本節：
+
+  | `--anatomy-*`                             | 來源                                                                                                     |
+  | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+  | `paper`、`face`、`top`、`lit-top`、`card` | `--dg-surface`                                                                                           |
+  | `page`                                    | `--dg-surface-2`                                                                                         |
+  | `shade-0`～`shade-3`、`lit-shade`         | `color-mix(in oklab, var(--dg-surface), var(--color-code) N%)`，N 淺色 14／10／7／4，深色 60／45／30／15 |
+  | `strong`、`lit`、`dot`                    | `--dg-ink`                                                                                               |
+  | `text`、`hi`                              | `--dg-ink-2`                                                                                             |
+  | `muted`、`mid`                            | `--dg-muted`                                                                                             |
+  | `lo`                                      | `--dg-rule-strong`                                                                                       |
+  | `faint`                                   | `--dg-rule`                                                                                              |
+  | `halo`                                    | `--color-code`，透明度淺色 `.32`、深色 `.9`                                                              |
+  | `red`、`green`、`blue`                    | 強調色，照前述規則每條附 `:global(:root[data-theme="dark"])` 版本                                        |
+
+  `--color-code` 在兩種主題都是深色，所以陰影一律往暗處混；只有百分比與 halo 透明度需要在 `:global(:root[data-theme="dark"])` 下覆寫。
+
+- **動作**：互動與動畫是選配，用元件內的 vanilla `<script>`，遵守 skill 的 reduced motion 與離開視窗即停；關掉 JavaScript 時靜態 SVG 必須完整可讀。WebGL 與 3D 模式不用於文章圖解。
+
 ## 驗收
 
 發布前在桌面與 320 px 視窗各看一次，淺色與深色各看一次。四種組合都要文字可讀、不產生整頁水平捲軸、顏色隨主題切換。
