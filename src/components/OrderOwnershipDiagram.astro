@@ -1,0 +1,223 @@
+<figure class="order-owner-diagram" aria-labelledby="order-owner-caption">
+  <svg
+    class="order-owner-diagram__desktop"
+    viewBox="0 0 960 570"
+    role="img"
+    aria-labelledby="order-owner-title order-owner-desc"
+  >
+    <title id="order-owner-title">資料各有擁有者，交易共用同一連線</title>
+    <desc id="order-owner-desc"
+      >下單用例透過交易執行器取得同一 MySQL
+      連線上的模組介面。商品模組讀價格，庫存模組寫庫存與預留，訂單模組寫訂單、快照與冪等結果。交易執行器統一提交或回滾，模組不得自行提交。</desc
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="20"
+      y="16"
+      width="920"
+      height="90"
+      rx="12"></rect>
+    <text class="order-owner-diagram__title" x="44" y="51"
+      >下單用例 ＋ 交易執行器</text
+    >
+    <text class="order-owner-diagram__detail" x="44" y="81"
+      >用例決定流程；執行器綁定一條 MySQL 連線並管理交易</text
+    >
+    <path class="order-owner-diagram__arrow" d="M480 115 V138 m-7 -7 7 7 7 -7"
+    ></path>
+    <rect
+      class="order-owner-diagram__scope"
+      x="20"
+      y="150"
+      width="920"
+      height="302"
+      rx="12"></rect>
+    <text class="order-owner-diagram__title" x="44" y="184"
+      >同一個 transaction scope</text
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="44"
+      y="207"
+      width="872"
+      height="63"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="62" y="244">商品模組</text>
+    <text class="order-owner-diagram__detail" x="246" y="244"
+      >讀取目前價格與版本 → 回傳不可變資料</text
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="44"
+      y="286"
+      width="872"
+      height="63"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="62" y="323">庫存模組</text>
+    <text class="order-owner-diagram__detail" x="246" y="323"
+      >reserve → 自己寫 stock、reservations</text
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="44"
+      y="365"
+      width="872"
+      height="63"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="62" y="402">訂單模組</text>
+    <text class="order-owner-diagram__detail" x="246" y="402"
+      >自己寫訂單、成交快照與冪等結果</text
+    >
+    <path class="order-owner-diagram__arrow" d="M480 461 V484 m-7 -7 7 7 7 -7"
+    ></path>
+    <rect
+      class="order-owner-diagram__card"
+      x="20"
+      y="496"
+      width="920"
+      height="57"
+      rx="10"></rect>
+    <text class="order-owner-diagram__label" x="44" y="532"
+      >交易執行器統一 commit／rollback；成功提交後才回覆</text
+    >
+  </svg>
+  <svg
+    class="order-owner-diagram__mobile"
+    viewBox="0 0 288 630"
+    role="img"
+    aria-labelledby="order-owner-mobile-title order-owner-mobile-desc"
+  >
+    <title id="order-owner-mobile-title">共同交易，分開資料寫入責任</title>
+    <desc id="order-owner-mobile-desc"
+      >桌面圖的直向排列。下單用例協調同一連線，商品提供價格，庫存寫預留，訂單保存快照，最後統一提交或回滾。</desc
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="4"
+      y="8"
+      width="280"
+      height="88"
+      rx="10"></rect>
+    <text class="order-owner-diagram__title" x="18" y="37"
+      >下單用例 ＋ 交易執行器</text
+    >
+    <text class="order-owner-diagram__detail" x="18" y="64"
+      >協調流程，綁定同一條連線</text
+    >
+    <path class="order-owner-diagram__arrow" d="M144 103 V124 m-6 -6 6 6 6 -6"
+    ></path>
+    <rect
+      class="order-owner-diagram__scope"
+      x="4"
+      y="136"
+      width="280"
+      height="360"
+      rx="10"></rect>
+    <text class="order-owner-diagram__label" x="18" y="165"
+      >同一個 transaction scope</text
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="16"
+      y="186"
+      width="256"
+      height="88"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="30" y="214">商品模組</text>
+    <text class="order-owner-diagram__detail" x="30" y="242"
+      >讀取價格與版本，回傳資料</text
+    >
+    <rect
+      class="order-owner-diagram__card"
+      x="16"
+      y="287"
+      width="256"
+      height="88"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="30" y="315">庫存模組</text>
+    <text class="order-owner-diagram__detail" x="30" y="343">寫庫存與預留</text>
+    <rect
+      class="order-owner-diagram__card"
+      x="16"
+      y="388"
+      width="256"
+      height="88"
+      rx="8"></rect>
+    <text class="order-owner-diagram__label" x="30" y="416">訂單模組</text>
+    <text class="order-owner-diagram__detail" x="30" y="444"
+      >寫訂單、快照與冪等結果</text
+    >
+    <path class="order-owner-diagram__arrow" d="M144 503 V526 m-6 -6 6 6 6 -6"
+    ></path>
+    <rect
+      class="order-owner-diagram__card"
+      x="4"
+      y="538"
+      width="280"
+      height="84"
+      rx="10"></rect>
+    <text class="order-owner-diagram__label" x="18" y="566"
+      >統一 commit／rollback</text
+    >
+    <text class="order-owner-diagram__detail" x="18" y="594"
+      >成功提交後才傳回終局結果</text
+    >
+  </svg>
+  <figcaption id="order-owner-caption">
+    同一個 pool 不代表同一筆交易；各模組須使用 scope 綁定的實際連線。
+  </figcaption>
+</figure>
+<style>
+  .order-owner-diagram {
+    margin: 2rem 0;
+  }
+  .order-owner-diagram svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .order-owner-diagram__mobile {
+    display: none;
+  }
+  .order-owner-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .order-owner-diagram__scope {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-dasharray: 5 4;
+  }
+  .order-owner-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .order-owner-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .order-owner-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13.5px;
+  }
+  .order-owner-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .order-owner-diagram__desktop {
+      display: none !important;
+    }
+    .order-owner-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
