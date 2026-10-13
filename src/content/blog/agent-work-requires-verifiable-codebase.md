@@ -2,7 +2,7 @@
 title: "Agent 要能並行，先把工作變成可驗收結果"
 description: "從 Lauren Tan 的 Cursor Compile 分享與 Matt Pocock 訪談摘要，拆解可重跑的驗證環境、糾正落點與 pstack 的交付邊界：技能要實跑，驗收要對準最後提交，合併需要獨立授權。"
 publishDate: 2026-09-24T10:04:30+08:00
-updatedDate: 2026-10-05T10:35:00+08:00
+updatedDate: 2026-10-13T16:15:00+08:00
 draft: false
 featured: false
 tags:
@@ -228,6 +228,8 @@ Michael 的摘要把人離線後的工作列為訪談主題。要判斷它能否
 若下一個問題是多個 Agent 的任務狀態與 review 排程，接著讀 [Grok Bot 的工程管理迴路](/blog/grok-bot-engineering-control-plane/)。若要從任務契約、狀態、權限與 trace 建立 Harness，參考 [Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/)。
 
 驗收能跑之後，下一個問題是怎麼決定要做什麼。她在 pstack 指南第二篇改用原型與型別草圖規劃，整理在[Agent 的計畫要能被程式推翻](/blog/plan-with-code-prototype-over-plan-mode/)。
+
+若團隊成員各自帶著不同 Agent 工作，接著讀 [多人共用 Agent 工作流，品質規則要做進 Repository](/blog/anti-slop-software-factory-repository-gates/)。Composio 的案例把共同標準放到功能共置、型別、lint 與 CI，也說明局部重複程式與 hooks 禁令的採用限制。
 
 若你已能把單條工作線做成可驗收結果，接下來可讀[如何把多 Agent 工作從 Session 搬到可交接任務](/blog/coding-agent-session-to-task-handoff/)，看執行者、狀態與審查入口如何一起改變。
 
