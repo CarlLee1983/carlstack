@@ -2,6 +2,7 @@
 title: "多人共用 Agent 工作流，品質規則要做進 Repository"
 description: "從 Composio 的 anti-slop software factory 經驗，拆解功能共置、端到端型別、可判定的 lint 與快速 CI，並釐清重複程式、React hooks 禁令和 Bugbot 各自適用的邊界。"
 publishDate: 2026-10-13T16:10:00+08:00
+updatedDate: 2026-10-13T16:38:53+08:00
 draft: false
 featured: false
 tags:
@@ -126,3 +127,5 @@ Bugbot 可以補上跨檔邏輯與難以固定判定的問題，但不能把每�
 本文會先選一條最近反覆出現的 review 留言：找出它的責任位置、合法寫法與失敗案例，把能判定的部分接進工具。再讓一位使用不同 Agent 的貢獻者完成同類修改，確認他不需要讀到原本的聊天，也能收到相同診斷並修正。
 
 記錄這次規則攔住什麼、誤報什麼，以及審查者還需要補哪項判斷。若規則只讓大家多寫一行關閉檢查的註解，就回頭修規則的範圍。當同一種錯誤已不必在每個 PR 重講，團隊才有證據知道這次投入改善了共同工作環境。
+
+若要追問共同規則如何從返工長出來，接著讀 [Magpie 的錯題本：讓 Agent 復盤改變下一次驗收](/blog/magpie-lessons-evidence-to-acceptance/)。它把教訓升級、回退測試與合併版本紀錄放在一起，也保留規則升級後仍漏做驗收的證據。
