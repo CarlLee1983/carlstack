@@ -133,3 +133,5 @@ Shopify 在 2019-02-21 的 [Deconstructing the Monolith](https://shopify.enginee
 ## 相關閱讀
 
 〈[寫過的爛 Code，要回頭看才會變成經驗](/blog/junior-engineer-growth-through-feedback/)〉用虛構新人的報表事故，描寫他如何從誤用目前價格，走到辨認成交快照與測試反例。若想先從人的學習過程理解這條資料界線，可以從那篇故事讀起。
+
+下一篇〈[下單逾時後，靠同一筆交易的收據決定能不能重試](/blog/order-system-idempotency-receipt/)〉補上本文 `findOrClaimOperation` 的競態處理：只有指定收據唯一鍵衝突才重放，提交結果不明時沿用原鍵查證。

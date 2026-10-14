@@ -1,0 +1,279 @@
+<figure class="receipt-diagram" aria-labelledby="receipt-caption">
+  <svg
+    class="receipt-diagram__desktop"
+    viewBox="0 0 960 550"
+    role="img"
+    aria-labelledby="receipt-title receipt-desc"
+  >
+    <title id="receipt-title">同一交易保存收據，回覆遺失仍能查回</title>
+    <desc id="receipt-desc"
+      >請求 A 在同一交易保存唯一收據、訂單與庫存預留，提交後回覆遺失。請求 B
+      使用原鍵，經唯一約束競爭後回滾，再由主庫新讀取重放原結果。</desc
+    >
+    <defs
+      ><marker
+        id="receipt-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker
+      ></defs
+    >
+    <rect
+      class="receipt-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="225"
+      rx="16"></rect>
+    <text class="receipt-diagram__heading" x="48" y="62"
+      >請求 A：同一 MySQL 交易</text
+    >
+    <rect
+      class="receipt-diagram__card"
+      x="48"
+      y="91"
+      width="250"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="68" y="126">唯一操作收據</text><text
+      class="receipt-diagram__detail"
+      x="68"
+      y="157">使用者＋原鍵＋請求摘要</text
+    >
+    <path class="receipt-diagram__arrow" d="M310 142 H342"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="356"
+      y="91"
+      width="250"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="376" y="126">訂單與庫存預留</text
+    ><text class="receipt-diagram__detail" x="376" y="157"
+      >保存成交快照與終局結果</text
+    >
+    <path class="receipt-diagram__arrow" d="M618 142 H650"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="664"
+      y="91"
+      width="246"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="684" y="126">共同 COMMIT</text><text
+      class="receipt-diagram__detail"
+      x="684"
+      y="157">成功確認後才能回終局結果</text
+    >
+    <text class="receipt-diagram__detail" x="48" y="226"
+      >中途失敗：整筆回滾，不能留下成功收據或單獨扣庫存。</text
+    >
+    <rect
+      class="receipt-diagram__panel"
+      x="24"
+      y="276"
+      width="912"
+      height="249"
+      rx="16"></rect>
+    <text class="receipt-diagram__heading" x="48" y="315"
+      >回覆遺失後，請求 B 沿用原鍵</text
+    >
+    <rect
+      class="receipt-diagram__card"
+      x="48"
+      y="343"
+      width="250"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="68" y="378">再次嘗試唯一鍵</text
+    ><text class="receipt-diagram__detail" x="68" y="409"
+      >可能等待、重複鍵或死結</text
+    >
+    <path class="receipt-diagram__arrow" d="M310 394 H342"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="356"
+      y="343"
+      width="250"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="376" y="378">確認是收據鍵衝突</text
+    ><text class="receipt-diagram__detail" x="376" y="409"
+      >先回滾，再做主庫新讀取</text
+    >
+    <path class="receipt-diagram__arrow" d="M618 394 H650"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="664"
+      y="343"
+      width="246"
+      height="105"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="684" y="378"
+      >核對摘要，重放結果</text
+    ><text class="receipt-diagram__detail" x="684" y="409"
+      >不重算價格，不重複預留</text
+    >
+    <text class="receipt-diagram__detail" x="48" y="487"
+      >COMMIT 結果未知或查不到收據時，保留原鍵確認；不宣稱第一次已失敗。</text
+    >
+  </svg>
+  <svg
+    class="receipt-diagram__mobile"
+    viewBox="0 0 288 668"
+    role="img"
+    aria-labelledby="receipt-mobile-title receipt-mobile-desc"
+  >
+    <title id="receipt-mobile-title">交易收據與原鍵重試</title>
+    <desc id="receipt-mobile-desc"
+      >桌面圖的直向排列：收據、訂單和預留共同提交；回覆遺失後沿用原鍵，重複鍵先回滾，再由主庫新讀取核對結果。提交不明時持續確認。</desc
+    >
+    <defs
+      ><marker
+        id="receipt-arrow-mobile"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker
+      ></defs
+    >
+    <text class="receipt-diagram__heading" x="16" y="28"
+      >請求 A：同一筆交易</text
+    >
+    <rect
+      class="receipt-diagram__card"
+      x="8"
+      y="44"
+      width="272"
+      height="82"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="24" y="74">插入唯一操作收據</text
+    ><text class="receipt-diagram__detail" x="24" y="103"
+      >使用者、原鍵、請求摘要</text
+    >
+    <path class="receipt-diagram__arrow-mobile" d="M144 134 V151"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="8"
+      y="164"
+      width="272"
+      height="82"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="24" y="194"
+      >保存訂單、預留與終局結果</text
+    ><text class="receipt-diagram__detail" x="24" y="223"
+      >共同 COMMIT；中途失敗全回滾</text
+    >
+    <text class="receipt-diagram__heading" x="16" y="290"
+      >回覆遺失，請求 B 用原鍵</text
+    >
+    <rect
+      class="receipt-diagram__card"
+      x="8"
+      y="309"
+      width="272"
+      height="82"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="24" y="339">唯一鍵仍是仲裁點</text
+    ><text class="receipt-diagram__detail" x="24" y="368"
+      >可能等待、重複鍵或死結</text
+    >
+    <path class="receipt-diagram__arrow-mobile" d="M144 399 V417"></path>
+    <rect
+      class="receipt-diagram__card"
+      x="8"
+      y="430"
+      width="272"
+      height="103"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="24" y="460"
+      >收據鍵衝突：先整筆回滾</text
+    ><text class="receipt-diagram__detail" x="24" y="489"
+      >主庫新讀取，核對摘要</text
+    ><text class="receipt-diagram__detail" x="24" y="511"
+      >相同則重放，不重複預留</text
+    >
+    <rect
+      class="receipt-diagram__panel"
+      x="8"
+      y="555"
+      width="272"
+      height="99"
+      rx="10"></rect>
+    <text class="receipt-diagram__label" x="24" y="585"
+      >提交未知，不等於失敗</text
+    ><text class="receipt-diagram__detail" x="24" y="615"
+      >查不到也保留原鍵確認</text
+    ><text class="receipt-diagram__detail" x="24" y="636">不另建新購買意圖</text
+    >
+  </svg>
+  <figcaption id="receipt-caption">
+    圖示重放路徑；若原交易回滾，競爭者也可能取得新操作資格。所有分支都受同一唯一約束保護。
+  </figcaption>
+</figure>
+<style>
+  .receipt-diagram {
+    margin: var(--space-8) 0;
+  }
+  .receipt-diagram svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .receipt-diagram__mobile {
+    display: none;
+  }
+  .receipt-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .receipt-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .receipt-diagram__heading {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .receipt-diagram__label {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .receipt-diagram__detail {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+  .receipt-diagram__arrow,
+  .receipt-diagram__arrow-mobile {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    fill: none;
+  }
+  .receipt-diagram__arrow {
+    marker-end: url(#receipt-arrow);
+  }
+  .receipt-diagram__arrow-mobile {
+    marker-end: url(#receipt-arrow-mobile);
+  }
+  .receipt-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .receipt-diagram figcaption {
+    margin-top: var(--space-3);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .receipt-diagram__desktop {
+      display: none !important;
+    }
+    .receipt-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
