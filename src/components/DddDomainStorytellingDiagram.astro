@@ -701,27 +701,27 @@
 
   /* 頂部導覽列 */
   .ddd-story-diagram__banner-bg {
-    fill: var(--card-bg, #f8fafc);
-    stroke: var(--border-color, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
   .ddd-story-diagram__banner-title {
     font-size: 15px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-story-diagram__legend-text {
     font-size: 12px;
     font-weight: 600;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   /* 卡片主體 */
   .ddd-story-diagram__main-card {
-    fill: var(--card-bg, #ffffff);
-    stroke: var(--border-color, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
@@ -766,7 +766,7 @@
   .ddd-story-diagram__col-title {
     font-size: 18px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-story-diagram__col-title--gold {
     fill: #b45309;
@@ -775,18 +775,18 @@
   .ddd-story-diagram__col-subtitle {
     font-size: 12px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-story-diagram__divider {
-    stroke: var(--border-color, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
 
   /* Meta 區塊 */
   .ddd-story-diagram__meta-box {
-    fill: var(--bg-surface, #f8fafc);
-    stroke: var(--border-color, #f1f5f9);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
   .ddd-story-diagram__meta-box--red {
@@ -801,13 +801,13 @@
   .ddd-story-diagram__meta-label {
     font-size: 11px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-story-diagram__meta-val {
     font-size: 13px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-story-diagram__meta-val--blue {
     fill: #1d4ed8;
@@ -825,25 +825,25 @@
   .ddd-story-diagram__meta-sub {
     font-size: 10px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   /* 清單文字 */
   .ddd-story-diagram__section-label {
     font-size: 12px;
     font-weight: 700;
-    fill: var(--text-heading, #1e293b);
+    fill: var(--dg-ink);
   }
 
   .ddd-story-diagram__bullet {
     font-size: 11.5px;
     font-weight: 500;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   /* 底盒 */
   .ddd-story-diagram__action-box {
-    fill: var(--bg-surface, #f1f5f9);
+    fill: var(--dg-surface-2);
   }
   .ddd-story-diagram__action-box--gold {
     fill: #fef3c7;
@@ -852,7 +852,7 @@
   .ddd-story-diagram__action-title {
     font-size: 11px;
     font-weight: 800;
-    fill: #475569;
+    fill: var(--dg-ink-2);
   }
   .ddd-story-diagram__action-title--gold {
     fill: #b45309;
@@ -861,12 +861,12 @@
   .ddd-story-diagram__action-desc {
     font-size: 12px;
     font-weight: 700;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   /* 底部警示區塊 */
   .ddd-story-diagram__warning-bg {
-    fill: var(--card-bg, #eff6ff);
+    fill: #eff6ff;
     stroke: #bfdbfe;
     stroke-width: 1.5;
   }
@@ -890,19 +890,19 @@
   .ddd-story-diagram__mobile-title {
     font-size: 15px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-story-diagram__mobile-subtitle {
     font-size: 12px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-story-diagram__mobile-domain {
     font-size: 13px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-story-diagram__mobile-domain--gold {
     fill: #b45309;
@@ -911,13 +911,13 @@
   .ddd-story-diagram__mobile-text {
     font-size: 12px;
     font-weight: 500;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-story-diagram__mobile-action {
     font-size: 11.5px;
     font-weight: 700;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-story-diagram__mobile-warning-title {
@@ -935,115 +935,58 @@
   .ddd-story-diagram__caption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
     line-height: 1.5;
   }
-
-  /* 深色模式支援 */
-  :global(.dark) .ddd-story-diagram__banner-bg {
-    fill: #1e293b;
-    stroke: #334155;
-  }
-  :global(.dark) .ddd-story-diagram__banner-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__legend-text {
-    fill: #cbd5e1;
-  }
-
-  :global(.dark) .ddd-story-diagram__main-card {
-    fill: #1e293b;
-    stroke: #334155;
-  }
-  :global(.dark) .ddd-story-diagram__main-card--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__main-card--gold {
     stroke: #f59e0b;
     fill: #1f2937;
   }
-
-  :global(.dark) .ddd-story-diagram__col-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__col-title--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__col-title--gold {
     fill: #fbbf24;
   }
-
-  :global(.dark) .ddd-story-diagram__meta-box {
-    fill: #0f172a;
-    stroke: #1e293b;
-  }
-  :global(.dark) .ddd-story-diagram__meta-box--red {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-box--red {
     fill: #450a0a;
     stroke: #7f1d1d;
   }
-  :global(.dark) .ddd-story-diagram__meta-box--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-box--gold {
     fill: #451a03;
     stroke: #78350f;
   }
-
-  :global(.dark) .ddd-story-diagram__meta-val {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__meta-val--blue {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-val--blue {
     fill: #60a5fa;
   }
-  :global(.dark) .ddd-story-diagram__meta-val--red {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-val--red {
     fill: #f87171;
   }
-  :global(.dark) .ddd-story-diagram__meta-val--emerald {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-val--emerald {
     fill: #34d399;
   }
-  :global(.dark) .ddd-story-diagram__meta-val--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__meta-val--gold {
     fill: #fde68a;
   }
-
-  :global(.dark) .ddd-story-diagram__section-label {
-    fill: #cbd5e1;
-  }
-  :global(.dark) .ddd-story-diagram__bullet {
-    fill: #94a3b8;
-  }
-
-  :global(.dark) .ddd-story-diagram__action-box {
-    fill: #0f172a;
-  }
-  :global(.dark) .ddd-story-diagram__action-box--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__action-box--gold {
     fill: #451a03;
   }
-  :global(.dark) .ddd-story-diagram__action-desc {
-    fill: #f8fafc;
-  }
 
-  :global(.dark) .ddd-story-diagram__warning-bg {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__warning-bg {
     fill: #172554;
     stroke: #1e40af;
   }
-  :global(.dark) .ddd-story-diagram__warning-title {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__warning-title {
     fill: #dbeafe;
   }
-  :global(.dark) .ddd-story-diagram__warning-bullet {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__warning-bullet {
     fill: #bfdbfe;
   }
-
-  :global(.dark) .ddd-story-diagram__mobile-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__mobile-domain {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__mobile-domain--gold {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__mobile-domain--gold {
     fill: #fbbf24;
   }
-  :global(.dark) .ddd-story-diagram__mobile-text {
-    fill: #94a3b8;
-  }
-  :global(.dark) .ddd-story-diagram__mobile-action {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-story-diagram__mobile-warning-title {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__mobile-warning-title {
     fill: #dbeafe;
   }
-  :global(.dark) .ddd-story-diagram__mobile-warning-desc {
+  :global(:root[data-theme="dark"]) .ddd-story-diagram__mobile-warning-desc {
     fill: #bfdbfe;
   }
 </style>

@@ -16,22 +16,15 @@
           height="20"
           patternUnits="userSpaceOnUse"
         >
-          <circle
-            cx="2"
-            cy="2"
-            r="1"
-            fill="var(--dg-border, #334155)"
-            opacity="0.4"></circle>
+          <circle cx="2" cy="2" r="1" fill="var(--dg-rule-strong)" opacity="0.4"
+          ></circle>
         </pattern>
         <linearGradient id="drift-grad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#ef4444" stop-opacity="0.15"></stop>
           <stop offset="100%" stop-color="#f97316" stop-opacity="0.05"></stop>
         </linearGradient>
         <linearGradient id="context-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop
-            offset="0%"
-            stop-color="var(--dg-accent, #38bdf8)"
-            stop-opacity="0.18"></stop>
+          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.18"></stop>
           <stop offset="100%" stop-color="#10b981" stop-opacity="0.08"></stop>
         </linearGradient>
         <marker
@@ -59,8 +52,7 @@
       </defs>
 
       <!-- Background Grid -->
-      <rect width="880" height="440" rx="12" fill="var(--dg-bg-card, #0f172a)"
-      ></rect>
+      <rect width="880" height="440" rx="12" fill="var(--dg-surface-2)"></rect>
       <rect width="880" height="440" rx="12" fill="url(#grid-pattern)"></rect>
 
       <!-- Left Column: Semantic Drift (Without CONTEXT.md) -->
@@ -85,7 +77,7 @@
         <text x="30" y="38" fill="#f87171" font-size="12" font-weight="bold"
           >無約束：語義漂移</text
         >
-        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+        <text x="20" y="70" fill="var(--dg-muted)" font-size="12"
           >跨對話與檔案名詞分裂、邊界腐蝕</text
         >
 
@@ -95,17 +87,13 @@
             width="320"
             height="55"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
+            fill="var(--dg-surface)"
             stroke="#f87171"
             stroke-width="1"></rect>
           <text x="16" y="24" fill="#fca5a5" font-size="13" font-weight="bold"
             >對話 A (Agent 1)</text
           >
-          <text
-            x="16"
-            y="44"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="12"
+          <text x="16" y="44" fill="var(--dg-muted)" font-size="12"
             >產出 User 模型：<code>user.cancelSubscription()</code></text
           >
         </g>
@@ -122,17 +110,13 @@
             width="320"
             height="55"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
+            fill="var(--dg-surface)"
             stroke="#f87171"
             stroke-width="1"></rect>
           <text x="16" y="24" fill="#fca5a5" font-size="13" font-weight="bold"
             >對話 B (Agent 2)</text
           >
-          <text
-            x="16"
-            y="44"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="12"
+          <text x="16" y="44" fill="var(--dg-muted)" font-size="12"
             >產出 Account 模型：<code>account.terminate()</code></text
           >
         </g>
@@ -185,7 +169,7 @@
         <text x="30" y="38" fill="#34d399" font-size="12" font-weight="bold"
           >CONTEXT.md 錨定模型</text
         >
-        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+        <text x="20" y="70" fill="var(--dg-muted)" font-size="12"
           >純業務名詞字典、全域不變量約束</text
         >
 
@@ -195,25 +179,17 @@
             width="320"
             height="98"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
+            fill="var(--dg-surface)"
             stroke="#10b981"
             stroke-width="1.2"></rect>
           <path d="M 0 0 L 8 0 L 8 98 L 0 98 Z" fill="#10b981"></path>
           <text x="20" y="24" fill="#6ee7b7" font-size="13" font-weight="bold"
             >CONTEXT.md (嚴禁框架選型)</text
           >
-          <text
-            x="20"
-            y="46"
-            fill="var(--dg-text-base, #e2e8f0)"
-            font-size="11.5"
+          <text x="20" y="46" fill="var(--dg-ink)" font-size="11.5"
             >• <strong>Account</strong>: 付費實體（非個人 User）</text
           >
-          <text
-            x="20"
-            y="66"
-            fill="var(--dg-text-base, #e2e8f0)"
-            font-size="11.5"
+          <text x="20" y="66" fill="var(--dg-ink)" font-size="11.5"
             >• <strong>Suspend</strong>: 暫停權限（保留資料）</text
           >
           <text x="20" y="86" fill="#34d399" font-size="11.5"
@@ -233,21 +209,14 @@
             width="320"
             height="50"
             rx="8"
-            fill="var(--dg-bg-card, #0f172a)"
-            stroke="var(--dg-accent, #38bdf8)"
+            fill="var(--dg-surface-2)"
+            stroke="#38bdf8"
             stroke-width="1"></rect>
-          <text
-            x="16"
-            y="22"
-            fill="var(--dg-accent, #38bdf8)"
-            font-size="12"
-            font-weight="bold">語義銳化守門人 (Grill / Sharpening)</text
+          <text x="16" y="22" fill="#38bdf8" font-size="12" font-weight="bold"
+            >語義銳化守門人 (Grill / Sharpening)</text
           >
-          <text
-            x="16"
-            y="40"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="11">阻擋模糊動詞（"處理"、"刪除"），對齊統一語言</text
+          <text x="16" y="40" fill="var(--dg-muted)" font-size="11"
+            >阻擋模糊動詞（"處理"、"刪除"），對齊統一語言</text
           >
         </g>
 

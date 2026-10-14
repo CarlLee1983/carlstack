@@ -434,11 +434,6 @@
     stroke-width: 1.5;
   }
 
-  :global(:root[data-theme="dark"]) .ab-diagram__card rect {
-    fill: #0f172a;
-    stroke: #1e293b;
-  }
-
   .ab-diagram__badge {
     font-size: 10px;
     font-weight: 700;
@@ -446,18 +441,10 @@
     letter-spacing: 0.05em;
   }
 
-  :global(:root[data-theme="dark"]) .ab-diagram__badge {
-    fill: #94a3b8;
-  }
-
   .ab-diagram__title {
     font-size: 15px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-
-  :global(:root[data-theme="dark"]) .ab-diagram__title {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .ab-diagram__subcard {
@@ -522,29 +509,17 @@
 
   .ab-diagram__desc {
     font-size: 11px;
-    fill: #475569;
-  }
-
-  :global(:root[data-theme="dark"]) .ab-diagram__desc {
-    fill: #94a3b8;
+    fill: var(--dg-ink-2);
   }
 
   .ab-diagram__line {
-    stroke: #94a3b8;
+    stroke: var(--dg-rule-strong);
     stroke-width: 2;
     fill: none;
   }
 
-  :global(:root[data-theme="dark"]) .ab-diagram__line {
-    stroke: #475569;
-  }
-
   .ab-diagram__arrow-head {
-    fill: #94a3b8;
-  }
-
-  :global(:root[data-theme="dark"]) .ab-diagram__arrow-head {
-    fill: #475569;
+    fill: var(--dg-rule-strong);
   }
 
   @media (max-width: 640px) {

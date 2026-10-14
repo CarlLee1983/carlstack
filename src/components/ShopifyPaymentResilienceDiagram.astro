@@ -229,11 +229,6 @@
     border-radius: 16px;
   }
 
-  :global(:root[data-theme="dark"]) .shopify-diag {
-    background: #0f141c;
-    border-color: #1e293b;
-  }
-
   .shopify-diag__desktop {
     display: block;
     width: 100%;
@@ -251,11 +246,6 @@
     stroke-width: 1.5;
   }
 
-  :global(:root[data-theme="dark"]) .shopify-diag__card rect {
-    fill: #111827;
-    stroke: #1f2937;
-  }
-
   .shopify-diag__card--gold rect {
     fill: #fffbeb;
     stroke: #d97706;
@@ -268,14 +258,9 @@
   }
 
   .shopify-diag__subcard {
-    fill: #f8fafc !important;
-    stroke: #e2e8f0 !important;
+    fill: var(--dg-surface-2) !important;
+    stroke: var(--dg-rule) !important;
     stroke-width: 1 !important;
-  }
-
-  :global(:root[data-theme="dark"]) .shopify-diag__subcard {
-    fill: #1f2937 !important;
-    stroke: #374151 !important;
   }
 
   .shopify-diag__subcard--focus {
@@ -311,7 +296,7 @@
   .shopify-diag__title {
     font-size: 15px;
     font-weight: 700;
-    fill: #0f172a;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .shopify-diag__title {
@@ -328,7 +313,7 @@
 
   .shopify-diag__desc {
     font-size: 12px;
-    fill: #475569;
+    fill: var(--dg-ink-2);
   }
 
   :global(:root[data-theme="dark"]) .shopify-diag__desc {
@@ -338,7 +323,7 @@
   .shopify-diag__subhead {
     font-size: 12px;
     font-weight: 700;
-    fill: #1e293b;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .shopify-diag__subhead {
@@ -457,11 +442,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-
-    :global(:root[data-theme="dark"]) .shopify-mobile-card {
-      background: #111827;
-      border-color: #1f2937;
     }
 
     .shopify-mobile-card--gold {

@@ -285,7 +285,6 @@
 
   :global(:root[data-theme="dark"]) .discord-diag {
     background: #0b0f19;
-    border-color: #1e293b;
   }
 
   .discord-diag__desktop {
@@ -331,14 +330,9 @@
   }
 
   .discord-diag__subcard {
-    fill: #f8fafc !important;
-    stroke: #e2e8f0 !important;
+    fill: var(--dg-surface-2) !important;
+    stroke: var(--dg-rule) !important;
     stroke-width: 1 !important;
-  }
-
-  :global(:root[data-theme="dark"]) .discord-diag__subcard {
-    fill: #1f2937 !important;
-    stroke: #374151 !important;
   }
 
   .discord-diag__subcard--focus {
@@ -382,7 +376,7 @@
   .discord-diag__title {
     font-size: 15px;
     font-weight: 700;
-    fill: #0f172a;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .discord-diag__title {
@@ -407,7 +401,7 @@
 
   .discord-diag__desc {
     font-size: 12px;
-    fill: #475569;
+    fill: var(--dg-ink-2);
   }
 
   :global(:root[data-theme="dark"]) .discord-diag__desc {
@@ -417,7 +411,7 @@
   .discord-diag__subhead {
     font-size: 12px;
     font-weight: 700;
-    fill: #1e293b;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .discord-diag__subhead {

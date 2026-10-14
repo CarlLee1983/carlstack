@@ -410,13 +410,12 @@
 
   /* Tokens & Theme */
   .cb-diagram {
-    --dg-bg: var(--color-card, #f8fafc);
-    --dg-card: var(--color-surface, #ffffff);
+    --dg-bg: var(--dg-surface-2);
+    --dg-card: var(--dg-surface);
     --dg-card-soft: rgba(0, 0, 0, 0.03);
-    --dg-border: var(--color-border, #e2e8f0);
-    --dg-title: #0f172a;
-    --dg-body: #334155;
-    --dg-muted: #64748b;
+    --dg-border: var(--dg-rule);
+    --dg-title: var(--dg-ink);
+    --dg-body: var(--dg-ink-2);
     --dg-blue: #2563eb;
     --dg-green: #16a34a;
     --dg-red: #dc2626;
@@ -424,13 +423,7 @@
   }
 
   :global(:root[data-theme="dark"]) .cb-diagram {
-    --dg-bg: #0d1117;
-    --dg-card: #161b22;
     --dg-card-soft: #21262d;
-    --dg-border: #30363d;
-    --dg-title: #f0f6fc;
-    --dg-body: #c9d1d9;
-    --dg-muted: #8b949e;
     --dg-blue: #58a6ff;
     --dg-green: #3fb950;
     --dg-red: #f85149;

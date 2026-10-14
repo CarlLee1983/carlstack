@@ -359,11 +359,6 @@
     stroke-width: 1.5;
   }
 
-  :global(:root[data-theme="dark"]) .stack-diagram__card rect {
-    fill: #0f172a;
-    stroke: #1e293b;
-  }
-
   .stack-diagram__badge {
     font-family:
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -372,27 +367,17 @@
     fill: var(--dg-muted);
     letter-spacing: 0.05em;
   }
-  :global(:root[data-theme="dark"]) .stack-diagram__badge {
-    fill: #94a3b8;
-  }
 
   .stack-diagram__title {
     font-size: 14px;
     font-weight: 700;
     fill: var(--dg-ink);
   }
-  :global(:root[data-theme="dark"]) .stack-diagram__title {
-    fill: #f8fafc;
-  }
 
   .stack-diagram__subcard {
-    fill: #ffffff;
+    fill: var(--dg-surface);
     stroke: var(--dg-rule);
     stroke-width: 1;
-  }
-  :global(:root[data-theme="dark"]) .stack-diagram__subcard {
-    fill: #1e293b;
-    stroke: #334155;
   }
 
   .stack-diagram__subcard--indigo {
@@ -470,10 +455,7 @@
   .stack-diagram__header {
     font-size: 12px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-  :global(:root[data-theme="dark"]) .stack-diagram__header {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .stack-diagram__header--indigo {
@@ -536,9 +518,6 @@
     font-size: 11px;
     fill: var(--dg-muted);
   }
-  :global(:root[data-theme="dark"]) .stack-diagram__desc {
-    fill: #94a3b8;
-  }
 
   @media (max-width: 768px) {
     .stack-diagram__desktop {
@@ -556,10 +535,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-    :global(:root[data-theme="dark"]) .stack-mobile-card {
-      background: #0f172a;
-      border-color: #1e293b;
     }
 
     .stack-mobile-card--indigo {
@@ -639,18 +614,12 @@
       font-weight: 700;
       color: var(--dg-ink);
     }
-    :global(:root[data-theme="dark"]) .stack-mobile-card h4 {
-      color: #f8fafc;
-    }
 
     .stack-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
       color: var(--dg-ink-2);
       line-height: 1.4;
-    }
-    :global(:root[data-theme="dark"]) .stack-mobile-card p {
-      color: #cbd5e1;
     }
   }
 </style>

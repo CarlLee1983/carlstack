@@ -319,11 +319,6 @@
     border-radius: 16px;
   }
 
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram {
-    background: #0b1120;
-    border-color: #1e293b;
-  }
-
   .twitter-pipe-diagram__desktop {
     display: block;
     width: 100%;
@@ -339,11 +334,6 @@
     fill: var(--dg-surface);
     stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__card rect {
-    fill: #1e293b;
-    stroke: #334155;
   }
 
   .twitter-pipe-diagram__card--mixer rect {
@@ -386,10 +376,6 @@
     fill: var(--dg-muted);
   }
 
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__badge {
-    fill: #94a3b8;
-  }
-
   .twitter-pipe-diagram__badge--accent {
     fill: #2563eb;
   }
@@ -409,11 +395,7 @@
   .twitter-pipe-diagram__title {
     font-size: 14px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__title {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .twitter-pipe-diagram__title--focus {
@@ -434,21 +416,13 @@
 
   .twitter-pipe-diagram__desc {
     font-size: 11px;
-    fill: #475569;
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__desc {
-    fill: #cbd5e1;
+    fill: var(--dg-ink-2);
   }
 
   .twitter-pipe-diagram__tag {
     font-size: 10.5px;
     font-weight: 600;
     fill: var(--dg-muted);
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__tag {
-    fill: #94a3b8;
   }
 
   .twitter-pipe-diagram__tag--accent {
@@ -469,12 +443,8 @@
 
   .twitter-pipe-diagram__arrow {
     fill: none;
-    stroke: #94a3b8;
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.8;
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__arrow {
-    stroke: #475569;
   }
 
   .twitter-pipe-diagram__arrow--accent {
@@ -487,11 +457,7 @@
   }
 
   .twitter-pipe-diagram__arrow-head {
-    fill: #94a3b8;
-  }
-
-  :global(:root[data-theme="dark"]) .twitter-pipe-diagram__arrow-head {
-    fill: #475569;
+    fill: var(--dg-rule-strong);
   }
 
   .twitter-pipe-diagram__arrow-head--accent {
@@ -526,11 +492,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-
-    :global(:root[data-theme="dark"]) .twitter-pipe-mobile-card {
-      background: #1e293b;
-      border-color: #334155;
     }
 
     .twitter-pipe-mobile-card--mixer {
@@ -588,19 +549,11 @@
       color: var(--dg-ink);
     }
 
-    :global(:root[data-theme="dark"]) .twitter-pipe-mobile-card h4 {
-      color: #f8fafc;
-    }
-
     .twitter-pipe-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
       color: var(--dg-ink-2);
       line-height: 1.4;
-    }
-
-    :global(:root[data-theme="dark"]) .twitter-pipe-mobile-card p {
-      color: #cbd5e1;
     }
 
     .twitter-pipe-mobile-arrow {

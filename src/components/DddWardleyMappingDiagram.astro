@@ -750,33 +750,33 @@
 
   /* 頂部導覽列 */
   .ddd-wardley-diagram__banner-bg {
-    fill: var(--card-bg, #f8fafc);
-    stroke: var(--border-color, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
   }
 
   .ddd-wardley-diagram__banner-title {
     font-size: 15px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-wardley-diagram__banner-dim {
     font-size: 13px;
     font-weight: 600;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-wardley-diagram__banner-divider {
     font-size: 14px;
     font-weight: 400;
-    fill: var(--border-color, #cbd5e1);
+    fill: var(--dg-rule-strong);
   }
 
   /* 四大欄位卡片主體 */
   .ddd-wardley-diagram__main-card {
-    fill: var(--card-bg, #ffffff);
-    stroke: var(--border-color, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
     transition: all 0.2s ease;
   }
@@ -788,7 +788,7 @@
   }
 
   .ddd-wardley-diagram__col-strip--genesis {
-    fill: #94a3b8;
+    fill: var(--dg-muted);
   }
   .ddd-wardley-diagram__col-strip--custom {
     fill: #f59e0b;
@@ -805,7 +805,7 @@
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.05em;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
   .ddd-wardley-diagram__phase-tag--gold {
     fill: #d97706;
@@ -814,7 +814,7 @@
   .ddd-wardley-diagram__col-title {
     font-size: 18px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-wardley-diagram__col-title--gold {
     fill: #b45309;
@@ -823,18 +823,18 @@
   .ddd-wardley-diagram__col-subtitle {
     font-size: 12px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-wardley-diagram__divider {
-    stroke: var(--border-color, #e2e8f0);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
 
   /* Meta 區塊 */
   .ddd-wardley-diagram__meta-box {
-    fill: var(--bg-surface, #f8fafc);
-    stroke: var(--border-color, #f1f5f9);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1;
   }
   .ddd-wardley-diagram__meta-box--gold {
@@ -845,13 +845,13 @@
   .ddd-wardley-diagram__meta-label {
     font-size: 11px;
     font-weight: 700;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-wardley-diagram__meta-val {
     font-size: 13px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-wardley-diagram__meta-val--gold {
     fill: #92400e;
@@ -860,25 +860,25 @@
   .ddd-wardley-diagram__meta-sub {
     font-size: 10px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   /* Bullet 清單 */
   .ddd-wardley-diagram__section-label {
     font-size: 12px;
     font-weight: 700;
-    fill: var(--text-heading, #1e293b);
+    fill: var(--dg-ink);
   }
 
   .ddd-wardley-diagram__bullet {
     font-size: 11.5px;
     font-weight: 500;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   /* 行動姿態底盒 */
   .ddd-wardley-diagram__action-box {
-    fill: var(--bg-surface, #f1f5f9);
+    fill: var(--dg-surface-2);
   }
   .ddd-wardley-diagram__action-box--custom {
     fill: #fef3c7;
@@ -887,7 +887,7 @@
   .ddd-wardley-diagram__action-title {
     font-size: 11px;
     font-weight: 800;
-    fill: #475569;
+    fill: var(--dg-ink-2);
   }
   .ddd-wardley-diagram__action-title--gold {
     fill: #b45309;
@@ -896,12 +896,12 @@
   .ddd-wardley-diagram__action-desc {
     font-size: 12px;
     font-weight: 700;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   /* 底部警示區塊 */
   .ddd-wardley-diagram__warning-bg {
-    fill: var(--card-bg, #fff1f2);
+    fill: #fff1f2;
     stroke: #fecdd3;
     stroke-width: 1.5;
   }
@@ -925,19 +925,19 @@
   .ddd-wardley-diagram__mobile-title {
     font-size: 15px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-wardley-diagram__mobile-subtitle {
     font-size: 12px;
     font-weight: 500;
-    fill: #64748b;
+    fill: var(--dg-muted);
   }
 
   .ddd-wardley-diagram__mobile-domain {
     font-size: 13px;
     font-weight: 800;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
   .ddd-wardley-diagram__mobile-domain--gold {
     fill: #b45309;
@@ -946,13 +946,13 @@
   .ddd-wardley-diagram__mobile-text {
     font-size: 12px;
     font-weight: 500;
-    fill: var(--text-body, #334155);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-wardley-diagram__mobile-action {
     font-size: 11.5px;
     font-weight: 700;
-    fill: var(--text-heading, #0f172a);
+    fill: var(--dg-ink);
   }
 
   .ddd-wardley-diagram__mobile-warning-title {
@@ -971,101 +971,45 @@
   .ddd-wardley-diagram__caption {
     margin-top: 1rem;
     font-size: 0.875rem;
-    color: var(--text-muted, #64748b);
+    color: var(--dg-muted);
     text-align: center;
     line-height: 1.5;
   }
-
-  /* 深色模式支援 */
-  :global(.dark) .ddd-wardley-diagram__banner-bg {
-    fill: #1e293b;
-    stroke: #334155;
-  }
-  :global(.dark) .ddd-wardley-diagram__banner-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__banner-dim {
-    fill: #cbd5e1;
-  }
-
-  :global(.dark) .ddd-wardley-diagram__main-card {
-    fill: #1e293b;
-    stroke: #334155;
-  }
-  :global(.dark) .ddd-wardley-diagram__main-card--custom {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__main-card--custom {
     stroke: #f59e0b;
     fill: #1f2937;
   }
-
-  :global(.dark) .ddd-wardley-diagram__col-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__col-title--gold {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__col-title--gold {
     fill: #fbbf24;
   }
-
-  :global(.dark) .ddd-wardley-diagram__meta-box {
-    fill: #0f172a;
-    stroke: #1e293b;
-  }
-  :global(.dark) .ddd-wardley-diagram__meta-box--gold {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__meta-box--gold {
     fill: #451a03;
     stroke: #78350f;
   }
-  :global(.dark) .ddd-wardley-diagram__meta-val {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__meta-val--gold {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__meta-val--gold {
     fill: #fef3c7;
   }
-
-  :global(.dark) .ddd-wardley-diagram__section-label {
-    fill: #cbd5e1;
-  }
-  :global(.dark) .ddd-wardley-diagram__bullet {
-    fill: #94a3b8;
-  }
-
-  :global(.dark) .ddd-wardley-diagram__action-box {
-    fill: #0f172a;
-  }
-  :global(.dark) .ddd-wardley-diagram__action-box--custom {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__action-box--custom {
     fill: #451a03;
   }
-  :global(.dark) .ddd-wardley-diagram__action-desc {
-    fill: #f8fafc;
-  }
 
-  :global(.dark) .ddd-wardley-diagram__warning-bg {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__warning-bg {
     fill: #450a0a;
     stroke: #991b1b;
   }
-  :global(.dark) .ddd-wardley-diagram__warning-title {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__warning-title {
     fill: #fecdd3;
   }
-  :global(.dark) .ddd-wardley-diagram__warning-bullet {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__warning-bullet {
     fill: #fda4af;
   }
-
-  :global(.dark) .ddd-wardley-diagram__mobile-title {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__mobile-domain {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__mobile-domain--gold {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__mobile-domain--gold {
     fill: #fbbf24;
   }
-  :global(.dark) .ddd-wardley-diagram__mobile-text {
-    fill: #94a3b8;
-  }
-  :global(.dark) .ddd-wardley-diagram__mobile-action {
-    fill: #f8fafc;
-  }
-  :global(.dark) .ddd-wardley-diagram__mobile-warning-title {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__mobile-warning-title {
     fill: #fecdd3;
   }
-  :global(.dark) .ddd-wardley-diagram__mobile-warning-desc {
+  :global(:root[data-theme="dark"]) .ddd-wardley-diagram__mobile-warning-desc {
     fill: #fda4af;
   }
 </style>

@@ -301,11 +301,6 @@
     stroke-width: 1.5;
   }
 
-  :global(:root[data-theme="dark"]) .tsdb-diagram__card rect {
-    fill: #0f172a;
-    stroke: #1e293b;
-  }
-
   .tsdb-diagram__badge {
     font-family:
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -315,29 +310,16 @@
     letter-spacing: 0.05em;
   }
 
-  :global(:root[data-theme="dark"]) .tsdb-diagram__badge {
-    fill: #94a3b8;
-  }
-
   .tsdb-diagram__title {
     font-size: 15px;
     font-weight: 700;
     fill: var(--dg-ink);
   }
 
-  :global(:root[data-theme="dark"]) .tsdb-diagram__title {
-    fill: #f8fafc;
-  }
-
   .tsdb-diagram__subcard {
-    fill: #ffffff;
+    fill: var(--dg-surface);
     stroke: var(--dg-rule);
     stroke-width: 1;
-  }
-
-  :global(:root[data-theme="dark"]) .tsdb-diagram__subcard {
-    fill: #1e293b;
-    stroke: #334155;
   }
 
   .tsdb-diagram__subcard--purple {
@@ -370,10 +352,7 @@
   .tsdb-diagram__header {
     font-size: 12.5px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-  :global(:root[data-theme="dark"]) .tsdb-diagram__header {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .tsdb-diagram__header--purple {
@@ -400,9 +379,6 @@
   .tsdb-diagram__subdesc {
     font-size: 11px;
     fill: var(--dg-muted);
-  }
-  :global(:root[data-theme="dark"]) .tsdb-diagram__subdesc {
-    fill: #94a3b8;
   }
 
   .tsdb-diagram__code {
@@ -442,11 +418,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-
-    :global(:root[data-theme="dark"]) .tsdb-mobile-card {
-      background: #0f172a;
-      border-color: #1e293b;
     }
 
     .tsdb-mobile-card--purple {
@@ -510,18 +481,12 @@
       font-weight: 700;
       color: var(--dg-ink);
     }
-    :global(:root[data-theme="dark"]) .tsdb-mobile-card h4 {
-      color: #f8fafc;
-    }
 
     .tsdb-mobile-card p {
       margin: 0.25rem 0;
       font-size: 0.8125rem;
       color: var(--dg-ink-2);
       line-height: 1.4;
-    }
-    :global(:root[data-theme="dark"]) .tsdb-mobile-card p {
-      color: #cbd5e1;
     }
 
     .tsdb-mobile-arrow {

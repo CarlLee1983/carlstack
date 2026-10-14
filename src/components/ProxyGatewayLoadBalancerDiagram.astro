@@ -256,11 +256,6 @@
     border-radius: 16px;
   }
 
-  :global(:root[data-theme="dark"]) .pglb-diagram {
-    background: #090e17;
-    border-color: #1e293b;
-  }
-
   .pglb-diagram__desktop {
     display: block;
     width: 100%;
@@ -276,11 +271,6 @@
     fill: var(--dg-surface);
     stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__card rect {
-    fill: #131b2e;
-    stroke: #25334d;
   }
 
   .pglb-diagram__card--orange rect {
@@ -306,14 +296,9 @@
   }
 
   .pglb-diagram__subcard {
-    fill: #ffffff !important;
-    stroke: #e2e8f0 !important;
+    fill: var(--dg-surface) !important;
+    stroke: var(--dg-rule) !important;
     stroke-width: 1 !important;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__subcard {
-    fill: #1e293b !important;
-    stroke: #334155 !important;
   }
 
   .pglb-diagram__subcard--orange {
@@ -343,10 +328,6 @@
     fill: var(--dg-muted);
   }
 
-  :global(:root[data-theme="dark"]) .pglb-diagram__badge {
-    fill: #94a3b8;
-  }
-
   .pglb-diagram__badge--orange {
     fill: #ea580c;
   }
@@ -366,11 +347,7 @@
   .pglb-diagram__title {
     font-size: 14px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__title {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .pglb-diagram__title--orange {
@@ -392,11 +369,7 @@
   .pglb-diagram__subtitle {
     font-size: 11px;
     font-weight: 700;
-    fill: #334155;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__subtitle {
-    fill: #cbd5e1;
+    fill: var(--dg-ink-2);
   }
 
   .pglb-diagram__subtitle--orange {
@@ -417,20 +390,12 @@
 
   .pglb-diagram__desc {
     font-size: 11px;
-    fill: #475569;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__desc {
-    fill: #cbd5e1;
+    fill: var(--dg-ink-2);
   }
 
   .pglb-diagram__subdesc {
     font-size: 10px;
     fill: var(--dg-muted);
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__subdesc {
-    fill: #94a3b8;
   }
 
   .pglb-diagram__subdesc--blue {
@@ -469,20 +434,12 @@
 
   .pglb-diagram__arrow {
     fill: none;
-    stroke: #94a3b8;
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.8;
   }
 
-  :global(:root[data-theme="dark"]) .pglb-diagram__arrow {
-    stroke: #475569;
-  }
-
   .pglb-diagram__arrow-head {
-    fill: #94a3b8;
-  }
-
-  :global(:root[data-theme="dark"]) .pglb-diagram__arrow-head {
-    fill: #475569;
+    fill: var(--dg-rule-strong);
   }
 
   figcaption {
@@ -509,11 +466,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-
-    :global(:root[data-theme="dark"]) .pglb-mobile-card {
-      background: #131b2e;
-      border-color: #25334d;
     }
 
     .pglb-mobile-card--orange {
@@ -567,19 +519,11 @@
       color: var(--dg-ink);
     }
 
-    :global(:root[data-theme="dark"]) .pglb-mobile-card h4 {
-      color: #f8fafc;
-    }
-
     .pglb-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
       color: var(--dg-ink-2);
       line-height: 1.4;
-    }
-
-    :global(:root[data-theme="dark"]) .pglb-mobile-card p {
-      color: #cbd5e1;
     }
 
     .pglb-mobile-arrow {

@@ -329,11 +329,6 @@
     border-radius: 16px;
   }
 
-  :global(:root[data-theme="dark"]) .apisec-diagram {
-    background: #090e17;
-    border-color: #1e293b;
-  }
-
   .apisec-diagram__desktop {
     display: block;
     width: 100%;
@@ -349,11 +344,6 @@
     fill: var(--dg-surface);
     stroke: var(--dg-rule-strong);
     stroke-width: 1.5;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__card rect {
-    fill: #131b2e;
-    stroke: #25334d;
   }
 
   .apisec-diagram__card--gold rect {
@@ -379,14 +369,9 @@
   }
 
   .apisec-diagram__subcard {
-    fill: #ffffff !important;
-    stroke: #e2e8f0 !important;
+    fill: var(--dg-surface) !important;
+    stroke: var(--dg-rule) !important;
     stroke-width: 1 !important;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__subcard {
-    fill: #1e293b !important;
-    stroke: #334155 !important;
   }
 
   .apisec-diagram__subcard--gold {
@@ -416,10 +401,6 @@
     fill: var(--dg-muted);
   }
 
-  :global(:root[data-theme="dark"]) .apisec-diagram__badge {
-    fill: #94a3b8;
-  }
-
   .apisec-diagram__badge--gold {
     fill: #ca8a04;
   }
@@ -439,11 +420,7 @@
   .apisec-diagram__title {
     font-size: 14px;
     font-weight: 700;
-    fill: #0f172a;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__title {
-    fill: #f8fafc;
+    fill: var(--dg-ink);
   }
 
   .apisec-diagram__title--gold {
@@ -465,11 +442,7 @@
   .apisec-diagram__subtitle {
     font-size: 11px;
     font-weight: 700;
-    fill: #334155;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__subtitle {
-    fill: #cbd5e1;
+    fill: var(--dg-ink-2);
   }
 
   .apisec-diagram__subtitle--gold {
@@ -490,20 +463,12 @@
 
   .apisec-diagram__desc {
     font-size: 11px;
-    fill: #475569;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__desc {
-    fill: #cbd5e1;
+    fill: var(--dg-ink-2);
   }
 
   .apisec-diagram__subdesc {
     font-size: 10px;
     fill: var(--dg-muted);
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__subdesc {
-    fill: #94a3b8;
   }
 
   .apisec-diagram__tag {
@@ -542,12 +507,8 @@
 
   .apisec-diagram__arrow {
     fill: none;
-    stroke: #94a3b8;
+    stroke: var(--dg-rule-strong);
     stroke-width: 1.8;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__arrow {
-    stroke: #475569;
   }
 
   .apisec-diagram__arrow--gold {
@@ -560,11 +521,7 @@
   }
 
   .apisec-diagram__arrow-head {
-    fill: #94a3b8;
-  }
-
-  :global(:root[data-theme="dark"]) .apisec-diagram__arrow-head {
-    fill: #475569;
+    fill: var(--dg-rule-strong);
   }
 
   .apisec-diagram__arrow-head--gold {
@@ -599,11 +556,6 @@
       background: var(--dg-surface);
       border: 1px solid var(--dg-rule);
       border-radius: 10px;
-    }
-
-    :global(:root[data-theme="dark"]) .apisec-mobile-card {
-      background: #131b2e;
-      border-color: #25334d;
     }
 
     .apisec-mobile-card--gold {
@@ -657,19 +609,11 @@
       color: var(--dg-ink);
     }
 
-    :global(:root[data-theme="dark"]) .apisec-mobile-card h4 {
-      color: #f8fafc;
-    }
-
     .apisec-mobile-card p {
       margin: 0;
       font-size: 0.8125rem;
       color: var(--dg-ink-2);
       line-height: 1.4;
-    }
-
-    :global(:root[data-theme="dark"]) .apisec-mobile-card p {
-      color: #cbd5e1;
     }
 
     .apisec-mobile-arrow {

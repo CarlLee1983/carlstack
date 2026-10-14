@@ -2,11 +2,11 @@
 // src/components/CodebaseEntropyLoopDiagram.astro
 ---
 
-<div class="entropy-loop-diagram-wrapper my-8">
-  <div class="desktop-diagram hidden md:block">
+<div class="ent-loop">
+  <div class="ent-loop__desktop">
     <svg
       viewBox="0 0 880 440"
-      class="w-full h-auto"
+      class="ent-loop__svg"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
@@ -16,12 +16,8 @@
           height="20"
           patternUnits="userSpaceOnUse"
         >
-          <circle
-            cx="2"
-            cy="2"
-            r="1"
-            fill="var(--dg-border, #334155)"
-            opacity="0.4"></circle>
+          <circle cx="2" cy="2" r="1" class="ent-grid-dot" opacity="0.4"
+          ></circle>
         </pattern>
         <linearGradient
           id="entropy-left-grad"
@@ -30,7 +26,7 @@
           x2="100%"
           y2="100%"
         >
-          <stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"></stop>
+          <stop offset="0%" class="ent-stop-red" stop-opacity="0.12"></stop>
           <stop offset="100%" stop-color="#f97316" stop-opacity="0.04"></stop>
         </linearGradient>
         <linearGradient
@@ -40,10 +36,7 @@
           x2="100%"
           y2="100%"
         >
-          <stop
-            offset="0%"
-            stop-color="var(--dg-accent, #38bdf8)"
-            stop-opacity="0.18"></stop>
+          <stop offset="0%" class="ent-stop-sky" stop-opacity="0.18"></stop>
           <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.08"></stop>
         </linearGradient>
         <marker
@@ -55,7 +48,7 @@
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e"></path>
+          <path d="M 0 1 L 8 5 L 0 9 z" class="ent-arrow-head--red"></path>
         </marker>
         <marker
           id="arrow-entropy-deep"
@@ -66,13 +59,12 @@
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"></path>
+          <path d="M 0 1 L 8 5 L 0 9 z" class="ent-arrow-head--sky"></path>
         </marker>
       </defs>
 
       <!-- Background Card -->
-      <rect width="880" height="440" rx="12" fill="var(--dg-bg-card, #0f172a)"
-      ></rect>
+      <rect width="880" height="440" rx="12" class="ent-panel"></rect>
       <rect width="880" height="440" rx="12" fill="url(#entropy-grid-pattern)"
       ></rect>
 
@@ -83,7 +75,7 @@
           height="392"
           rx="10"
           fill="url(#entropy-left-grad)"
-          stroke="#ef4444"
+          class="ent-stroke--red"
           stroke-width="1.2"
           stroke-dasharray="4 4"></rect>
 
@@ -93,86 +85,93 @@
           width="160"
           height="26"
           rx="6"
-          fill="#ef4444"
+          class="ent-fill--red"
           opacity="0.2"></rect>
-        <text x="30" y="38" fill="#f87171" font-size="12" font-weight="bold"
-          >AI 時代的大泥球陷阱</text
+        <text
+          x="30"
+          y="38"
+          class="ent-text--red"
+          font-size="12"
+          font-weight="bold">AI 時代的大泥球陷阱</text
         >
-        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+        <text x="20" y="70" class="ent-text--muted" font-size="12"
           >Vibe Coding 加速累積的淺層傳遞代碼</text
         >
 
         <!-- Shallow Pass-through Cluster -->
         <g transform="translate(20, 95)">
           <rect
+            class="ent-card ent-stroke--red-soft"
             width="340"
             height="70"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
-            stroke="#f87171"
             stroke-width="1"></rect>
-          <text x="16" y="24" fill="#fca5a5" font-size="12" font-weight="bold"
-            >淺層模組 (Shallow Pass-through)</text
-          >
           <text
             x="16"
-            y="44"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="11.5">只轉發參數的冗餘 Wrapper / Service</text
+            y="24"
+            class="ent-text--red-title"
+            font-size="12"
+            font-weight="bold">淺層模組 (Shallow Pass-through)</text
           >
-          <text x="16" y="60" fill="#f87171" font-size="11"
+          <text x="16" y="44" class="ent-text--muted" font-size="11.5"
+            >只轉發參數的冗餘 Wrapper / Service</text
+          >
+          <text x="16" y="60" class="ent-text--red" font-size="11"
             >表面積龐大，無封裝價值（Interface ≈ Body）</text
           >
         </g>
 
         <path
           d="M 190 165 L 190 185"
-          stroke="#ef4444"
+          class="ent-stroke--red"
           stroke-width="1.5"
           stroke-dasharray="2 2"
           marker-end="url(#arrow-entropy-del)"></path>
 
         <g transform="translate(20, 190)">
           <rect
+            class="ent-card ent-stroke--red"
             width="340"
             height="65"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
-            stroke="#ef4444"
             stroke-width="1"></rect>
-          <text x="16" y="24" fill="#fca5a5" font-size="12" font-weight="bold"
-            >刪除測試失敗 (Deletion Test Fails)</text
-          >
           <text
             x="16"
-            y="46"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="11.5">「刪除此模組，複雜度直接消失，呼叫端無痛」</text
+            y="24"
+            class="ent-text--red-title"
+            font-size="12"
+            font-weight="bold">刪除測試失敗 (Deletion Test Fails)</text
+          >
+          <text x="16" y="46" class="ent-text--muted" font-size="11.5"
+            >「刪除此模組，複雜度直接消失，呼叫端無痛」</text
           >
         </g>
 
         <path
           d="M 190 255 L 190 275"
-          stroke="#ef4444"
+          class="ent-stroke--red"
           stroke-width="1.5"
           stroke-dasharray="2 2"
           marker-end="url(#arrow-entropy-del)"></path>
 
         <g transform="translate(20, 280)">
           <rect
+            class="ent-card--red ent-stroke--red"
             width="340"
             height="85"
             rx="8"
-            fill="#450a0a"
-            stroke="#ef4444"
             stroke-width="1.2"></rect>
-          <text x="16" y="24" fill="#f87171" font-size="12.5" font-weight="bold"
-            >熵增終局：認知超載</text
+          <text
+            x="16"
+            y="24"
+            class="ent-text--red"
+            font-size="12.5"
+            font-weight="bold">熵增終局：認知超載</text
           >
-          <text x="16" y="48" fill="#fecaca" font-size="11.5"
+          <text x="16" y="48" class="ent-text--body" font-size="11.5"
             >✕ 程式碼行數暴增 10 倍，實質功能零提升</text
           >
-          <text x="16" y="68" fill="#fecaca" font-size="11.5"
+          <text x="16" y="68" class="ent-text--body" font-size="11.5"
             >✕ 下一個 Agent 迷失在空洞包裝中無從下手</text
           >
         </g>
@@ -185,7 +184,7 @@
           height="392"
           rx="10"
           fill="url(#entropy-right-grad)"
-          stroke="var(--dg-accent, #38bdf8)"
+          class="ent-stroke--sky"
           stroke-width="1.5"></rect>
 
         <rect
@@ -194,90 +193,90 @@
           width="180"
           height="26"
           rx="6"
-          fill="var(--dg-accent, #38bdf8)"
+          class="ent-fill--sky"
           opacity="0.2"></rect>
         <text
           x="30"
           y="38"
-          fill="var(--dg-accent, #38bdf8)"
+          class="ent-text--sky"
           font-size="12"
           font-weight="bold">架構除熵迴圈 (Entropy Loop)</text
         >
-        <text x="20" y="70" fill="var(--dg-text-muted, #94a3b8)" font-size="12"
+        <text x="20" y="70" class="ent-text--muted" font-size="12"
           >架構師作為邊界審查者與模組加深引導</text
         >
 
         <!-- Step 1: Automated Deletion Test -->
         <g transform="translate(20, 95)">
           <rect
+            class="ent-card ent-stroke--sky"
             width="340"
             height="65"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
-            stroke="var(--dg-accent, #38bdf8)"
             stroke-width="1"></rect>
-          <text x="16" y="24" fill="#7dd3fc" font-size="12" font-weight="bold"
-            >1. 刪除測試審查 (The Deletion Test)</text
-          >
           <text
             x="16"
-            y="46"
-            fill="var(--dg-text-muted, #94a3b8)"
-            font-size="11.5">主動辨識零槓桿模組，無情拔除或合併</text
+            y="24"
+            class="ent-text--sky"
+            font-size="12"
+            font-weight="bold">1. 刪除測試審查 (The Deletion Test)</text
+          >
+          <text x="16" y="46" class="ent-text--muted" font-size="11.5"
+            >主動辨識零槓桿模組，無情拔除或合併</text
           >
         </g>
 
         <path
           d="M 190 160 L 190 180"
-          stroke="var(--dg-accent, #38bdf8)"
+          class="ent-stroke--sky"
           stroke-width="1.8"
           marker-end="url(#arrow-entropy-deep)"></path>
 
         <!-- Step 2: Deepening Workflow -->
         <g transform="translate(20, 185)">
           <rect
+            class="ent-card ent-stroke--purple"
             width="340"
             height="85"
             rx="8"
-            fill="var(--dg-bg-muted, #1e293b)"
-            stroke="#8b5cf6"
             stroke-width="1"></rect>
-          <text x="16" y="24" fill="#c4b5fd" font-size="12" font-weight="bold"
-            >2. 模組加深工作流 (Deepening Loop)</text
-          >
           <text
             x="16"
-            y="46"
-            fill="var(--dg-text-base, #e2e8f0)"
-            font-size="11.5">• 簡化外層參數，隱藏內部私有狀態</text
+            y="24"
+            class="ent-text--purple"
+            font-size="12"
+            font-weight="bold">2. 模組加深工作流 (Deepening Loop)</text
           >
-          <text
-            x="16"
-            y="66"
-            fill="var(--dg-text-base, #e2e8f0)"
-            font-size="11.5">• 單一深模組向 N 個呼叫端提供極高槓桿</text
+          <text x="16" y="46" class="ent-text--body" font-size="11.5"
+            >• 簡化外層參數，隱藏內部私有狀態</text
+          >
+          <text x="16" y="66" class="ent-text--body" font-size="11.5"
+            >• 單一深模組向 N 個呼叫端提供極高槓桿</text
           >
         </g>
 
         <path
           d="M 190 270 L 190 290"
-          stroke="var(--dg-accent, #38bdf8)"
+          class="ent-stroke--sky"
           stroke-width="1.8"
           marker-end="url(#arrow-entropy-deep)"></path>
 
         <!-- Step 3: Evergreen Codebase Core -->
         <g transform="translate(20, 295)">
           <rect
+            class="ent-card ent-stroke--green"
             width="340"
             height="70"
             rx="8"
-            fill="#0f172a"
-            stroke="#10b981"
             stroke-width="1.4"></rect>
-          <text x="16" y="24" fill="#6ee7b7" font-size="12" font-weight="bold"
-            >3. 恆常精準的代碼基底 (Evergreen Core)</text
+          <text
+            x="16"
+            y="24"
+            class="ent-text--green"
+            font-size="12"
+            font-weight="bold">3. 恆常精準的代碼基底 (Evergreen Core)</text
           >
-          <text x="16" y="46" fill="#ecfdf5" font-size="11.5"
+          <text x="16" y="46" class="ent-text--body" font-size="11.5"
             >✓ 小表面積、高內聚、隨時歡迎下一個 Agent</text
           >
         </g>
@@ -286,43 +285,271 @@
   </div>
 
   <!-- Mobile View -->
-  <div class="mobile-diagram block md:hidden space-y-4">
-    <div class="p-4 rounded-lg border border-red-500/30 bg-red-950/20">
-      <div
-        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-red-400 bg-red-500/10 rounded"
-      >
-        大泥球陷阱
-      </div>
-      <p class="text-xs text-slate-400 mb-3">AI 產出大量空洞包裝與轉發層</p>
-      <div class="space-y-1.5 text-xs text-slate-300">
-        <div class="p-2 rounded bg-slate-900 border border-red-500/40">
-          <strong class="text-red-300">淺層模組：</strong>包裝多但沒有實質邏輯
+  <div class="ent-loop__mobile">
+    <div class="ent-m-group ent-m-group--red">
+      <div class="ent-m-badge ent-m-badge--red">大泥球陷阱</div>
+      <p class="ent-m-lead">AI 產出大量空洞包裝與轉發層</p>
+      <div class="ent-m-items">
+        <div class="ent-m-item ent-m-item--red">
+          <strong class="ent-m-key--red">淺層模組：</strong>包裝多但沒有實質邏輯
         </div>
-        <div class="p-2 rounded bg-red-900/40 text-red-200">
+        <div class="ent-m-item ent-m-item--red-solid">
           ✕ 刪除測試不過，專案因無效抽象而窒息
         </div>
       </div>
     </div>
 
-    <div class="p-4 rounded-lg border border-sky-500/30 bg-sky-950/20">
-      <div
-        class="inline-block px-2 py-0.5 mb-2 text-xs font-bold text-sky-400 bg-sky-500/10 rounded"
-      >
-        架構除熵迴圈
-      </div>
-      <p class="text-xs text-slate-400 mb-3">定期修剪與加深模組</p>
-      <div class="space-y-1.5 text-xs text-slate-300">
-        <div class="p-2 rounded bg-slate-900 border border-sky-500/40">
-          <strong class="text-sky-300">刪除測試：</strong>砍掉無意義 Wrapper
+    <div class="ent-m-group ent-m-group--sky">
+      <div class="ent-m-badge ent-m-badge--sky">架構除熵迴圈</div>
+      <p class="ent-m-lead">定期修剪與加深模組</p>
+      <div class="ent-m-items">
+        <div class="ent-m-item ent-m-item--sky">
+          <strong class="ent-m-key--sky">刪除測試：</strong>砍掉無意義 Wrapper
         </div>
-        <div class="p-2 rounded bg-slate-900 border border-purple-500/40">
-          <strong class="text-purple-300">模組加深：</strong
+        <div class="ent-m-item ent-m-item--purple">
+          <strong class="ent-m-key--purple">模組加深：</strong
           >收斂介面，隱藏複雜度
         </div>
-        <div class="p-2 rounded bg-emerald-900/40 text-emerald-200">
+        <div class="ent-m-item ent-m-item--green">
           ✓ 高槓桿、小表面積，對抗代碼庫熵增
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  .ent-loop {
+    --ent-red: #b91c1c;
+    --ent-red-title: #b91c1c;
+    --ent-red-card: #fef2f2;
+    --ent-red-solid: #fee2e2;
+    --ent-sky: #0369a1;
+    --ent-purple: #6d28d9;
+    --ent-green: #047857;
+    --ent-green-card: #ecfdf5;
+    margin: 2rem 0;
+  }
+
+  :global(:root[data-theme="dark"]) .ent-loop {
+    --ent-red: #f87171;
+    --ent-red-title: #fca5a5;
+    --ent-red-card: #450a0a;
+    --ent-red-solid: rgba(127, 29, 29, 0.4);
+    --ent-sky: #38bdf8;
+    --ent-purple: #c4b5fd;
+    --ent-green: #6ee7b7;
+    --ent-green-card: rgba(6, 78, 59, 0.4);
+  }
+
+  .ent-loop__desktop {
+    display: block;
+  }
+
+  .ent-loop__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .ent-loop__mobile {
+    display: none;
+  }
+
+  .ent-panel {
+    fill: var(--dg-surface-2);
+  }
+
+  .ent-grid-dot {
+    fill: var(--dg-rule-strong);
+  }
+
+  .ent-card {
+    fill: var(--dg-surface);
+  }
+
+  .ent-card--red {
+    fill: var(--ent-red-card);
+  }
+
+  .ent-stop-red {
+    stop-color: #ef4444;
+  }
+
+  .ent-stop-sky {
+    stop-color: var(--ent-sky);
+  }
+
+  .ent-stroke--red {
+    stroke: #ef4444;
+  }
+
+  .ent-stroke--red-soft {
+    stroke: var(--ent-red);
+  }
+
+  .ent-stroke--sky {
+    stroke: var(--ent-sky);
+  }
+
+  .ent-stroke--purple {
+    stroke: #8b5cf6;
+  }
+
+  .ent-stroke--green {
+    stroke: #10b981;
+  }
+
+  .ent-fill--red {
+    fill: #ef4444;
+  }
+
+  .ent-fill--sky {
+    fill: var(--ent-sky);
+  }
+
+  .ent-arrow-head--red {
+    fill: #f43f5e;
+  }
+
+  .ent-arrow-head--sky {
+    fill: var(--ent-sky);
+  }
+
+  .ent-text--red {
+    fill: var(--ent-red);
+  }
+
+  .ent-text--red-title {
+    fill: var(--ent-red-title);
+  }
+
+  .ent-text--sky {
+    fill: var(--ent-sky);
+  }
+
+  .ent-text--purple {
+    fill: var(--ent-purple);
+  }
+
+  .ent-text--green {
+    fill: var(--ent-green);
+  }
+
+  .ent-text--muted {
+    fill: var(--dg-muted);
+  }
+
+  .ent-text--body {
+    fill: var(--dg-ink-2);
+  }
+
+  /* 窄螢幕版 */
+  .ent-m-group {
+    padding: 1rem;
+    border: 1px solid;
+    border-radius: 0.5rem;
+    background: var(--dg-surface-2);
+  }
+
+  .ent-m-group + .ent-m-group {
+    margin-top: 1rem;
+  }
+
+  .ent-m-group--red {
+    border-color: color-mix(in srgb, #ef4444 40%, transparent);
+  }
+
+  .ent-m-group--sky {
+    border-color: color-mix(in srgb, var(--ent-sky) 40%, transparent);
+  }
+
+  .ent-m-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 0.25rem;
+  }
+
+  .ent-m-badge--red {
+    color: var(--ent-red);
+    background: color-mix(in srgb, #ef4444 12%, transparent);
+  }
+
+  .ent-m-badge--sky {
+    color: var(--ent-sky);
+    background: color-mix(in srgb, var(--ent-sky) 12%, transparent);
+  }
+
+  .ent-m-lead {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    color: var(--dg-muted);
+  }
+
+  .ent-m-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--dg-ink-2);
+  }
+
+  .ent-m-item {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+  }
+
+  .ent-m-item--red,
+  .ent-m-item--sky,
+  .ent-m-item--purple {
+    background: var(--dg-surface);
+    border: 1px solid;
+  }
+
+  .ent-m-item--red {
+    border-color: color-mix(in srgb, #ef4444 40%, transparent);
+  }
+
+  .ent-m-item--sky {
+    border-color: color-mix(in srgb, var(--ent-sky) 40%, transparent);
+  }
+
+  .ent-m-item--purple {
+    border-color: color-mix(in srgb, #8b5cf6 40%, transparent);
+  }
+
+  .ent-m-item--red-solid {
+    background: var(--ent-red-solid);
+    color: var(--ent-red);
+  }
+
+  .ent-m-item--green {
+    background: var(--ent-green-card);
+    color: var(--ent-green);
+  }
+
+  .ent-m-key--red {
+    color: var(--ent-red-title);
+  }
+
+  .ent-m-key--sky {
+    color: var(--ent-sky);
+  }
+
+  .ent-m-key--purple {
+    color: var(--ent-purple);
+  }
+
+  @media (max-width: 48rem) {
+    .ent-loop__desktop {
+      display: none !important;
+    }
+
+    .ent-loop__mobile {
+      display: block !important;
+    }
+  }
+</style>
