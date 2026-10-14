@@ -1,4 +1,6 @@
 ---
+import { Image } from "astro:assets";
+import avatar from "../../assets/profile/carl-creative-studio.png";
 import { siteConfig } from "../../config/site";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
@@ -19,12 +21,12 @@ const profileJsonLd = {
     <header class="profile-hero">
       <div class="profile-avatar-container">
         <div class="profile-avatar-slot" aria-label="作者頭像空間">
-          <img
+          <Image
             class="profile-avatar__img"
-            src="/avatar-victorian-mechanical-architect-v2.webp"
-            alt="戴圓框眼鏡的維多利亞機械架構師插畫頭像，背景是黃銅儀表與工程藍圖"
-            width="768"
-            height="768"
+            src={avatar}
+            alt="戴黑框眼鏡的李卡爾插畫頭像，在暖色燈光的夜間工作室裡托腮思考"
+            width={768}
+            format="webp"
             loading="eager"
             decoding="async"
             fetchpriority="high"
@@ -207,6 +209,7 @@ const profileJsonLd = {
     height: 100%;
     border-radius: calc(var(--radius-lg) - 3px);
     object-fit: cover;
+    object-position: center top;
     transition: transform var(--dur-long) var(--ease-out);
   }
 
