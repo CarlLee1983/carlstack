@@ -229,7 +229,6 @@
 
   :global(:root[data-theme="dark"]) .kafka-diag {
     background: #091410;
-    border-color: #1e293b;
   }
 
   .kafka-diag__desktop {
@@ -266,8 +265,8 @@
   }
 
   .kafka-diag__subcard {
-    fill: #f8fafc !important;
-    stroke: #e2e8f0 !important;
+    fill: var(--dg-surface-2) !important;
+    stroke: var(--dg-rule) !important;
     stroke-width: 1 !important;
   }
 
@@ -309,7 +308,7 @@
   .kafka-diag__title {
     font-size: 15px;
     font-weight: 700;
-    fill: #0f172a;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .kafka-diag__title {
@@ -326,7 +325,7 @@
 
   .kafka-diag__desc {
     font-size: 12px;
-    fill: #475569;
+    fill: var(--dg-ink-2);
   }
 
   :global(:root[data-theme="dark"]) .kafka-diag__desc {
@@ -336,7 +335,7 @@
   .kafka-diag__subhead {
     font-size: 12px;
     font-weight: 700;
-    fill: #1e293b;
+    fill: var(--dg-ink);
   }
 
   :global(:root[data-theme="dark"]) .kafka-diag__subhead {

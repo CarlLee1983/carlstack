@@ -538,50 +538,36 @@
 
   /* 視覺樣式與語義色彩 (支援深淺色模式) */
   .ddd-mm-diagram__banner-bg {
-    fill: var(--dg-card-bg, #ffffff);
-    stroke: var(--dg-border, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
-  }
-  :global(.dark) .ddd-mm-diagram__banner-bg {
-    fill: var(--dg-card-bg, #111827);
-    stroke: var(--dg-border, #1f2937);
   }
 
   .ddd-mm-diagram__banner-title {
     font-size: 15px;
     font-weight: 700;
-    fill: var(--dg-text, #0f172a);
+    fill: var(--dg-ink);
     font-family: inherit;
-  }
-  :global(.dark) .ddd-mm-diagram__banner-title {
-    fill: var(--dg-text, #f9fafb);
   }
 
   .ddd-mm-diagram__banner-dim {
     font-size: 13.5px;
     font-weight: 600;
-    fill: var(--dg-text-secondary, #334155);
+    fill: var(--dg-ink-2);
     font-family: inherit;
-  }
-  :global(.dark) .ddd-mm-diagram__banner-dim {
-    fill: var(--dg-text-secondary, #cbd5e1);
   }
 
   .ddd-mm-diagram__banner-divider {
     font-size: 14px;
     font-weight: 400;
-    fill: var(--dg-border, #94a3b8);
+    fill: var(--dg-rule-strong);
   }
 
   /* 主體卡片樣式 */
   .ddd-mm-diagram__main-card {
-    fill: var(--dg-card-bg, #ffffff);
-    stroke: var(--dg-border, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
-  }
-  :global(.dark) .ddd-mm-diagram__main-card {
-    fill: var(--dg-card-bg, #111827);
-    stroke: var(--dg-border, #1f2937);
   }
 
   /* 支柱 1 色系 (藍) */
@@ -593,7 +579,7 @@
     stroke: #bae6fd;
     stroke-width: 1;
   }
-  :global(.dark) .ddd-mm-diagram__badge--compile {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge--compile {
     fill: rgba(2, 132, 199, 0.2);
     stroke: #0369a1;
   }
@@ -602,7 +588,7 @@
     font-weight: 700;
     fill: #0369a1;
   }
-  :global(.dark) .ddd-mm-diagram__badge-text--compile {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge-text--compile {
     fill: #7dd3fc;
   }
 
@@ -615,7 +601,7 @@
     stroke: #ddd6fe;
     stroke-width: 1;
   }
-  :global(.dark) .ddd-mm-diagram__badge--prompt {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge--prompt {
     fill: rgba(124, 58, 237, 0.2);
     stroke: #6d28d9;
   }
@@ -624,7 +610,7 @@
     font-weight: 700;
     fill: #6d28d9;
   }
-  :global(.dark) .ddd-mm-diagram__badge-text--prompt {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge-text--prompt {
     fill: #c4b5fd;
   }
 
@@ -637,7 +623,7 @@
     stroke: #a7f3d0;
     stroke-width: 1;
   }
-  :global(.dark) .ddd-mm-diagram__badge--ci {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge--ci {
     fill: rgba(5, 150, 105, 0.2);
     stroke: #047857;
   }
@@ -646,7 +632,7 @@
     font-weight: 700;
     fill: #047857;
   }
-  :global(.dark) .ddd-mm-diagram__badge-text--ci {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__badge-text--ci {
     fill: #6ee7b7;
   }
 
@@ -654,78 +640,52 @@
   .ddd-mm-diagram__col-title {
     font-size: 16px;
     font-weight: 700;
-    fill: var(--dg-text, #0f172a);
+    fill: var(--dg-ink);
     font-family: inherit;
-  }
-  :global(.dark) .ddd-mm-diagram__col-title {
-    fill: var(--dg-text, #f9fafb);
   }
 
   .ddd-mm-diagram__col-subtitle {
     font-size: 13.5px;
     font-weight: 600;
-    fill: var(--dg-text-secondary, #475569);
+    fill: var(--dg-ink-2);
     font-family: inherit;
-  }
-  :global(.dark) .ddd-mm-diagram__col-subtitle {
-    fill: var(--dg-text-secondary, #94a3b8);
   }
 
   .ddd-mm-diagram__prop-box {
-    fill: rgba(148, 163, 184, 0.08);
-    stroke: var(--dg-border, #e2e8f0);
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
     stroke-width: 1;
-  }
-  :global(.dark) .ddd-mm-diagram__prop-box {
-    fill: rgba(15, 23, 42, 0.5);
-    stroke: var(--dg-border, #1f2937);
   }
 
   .ddd-mm-diagram__prop-header {
     font-size: 12.5px;
     font-weight: 700;
-    fill: var(--dg-text-secondary, #334155);
-  }
-  :global(.dark) .ddd-mm-diagram__prop-header {
-    fill: var(--dg-text-secondary, #cbd5e1);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-mm-diagram__prop-item {
     font-size: 12.5px;
     font-family: inherit;
-    fill: var(--dg-text, #1e293b);
-  }
-  :global(.dark) .ddd-mm-diagram__prop-item {
-    fill: var(--dg-text, #e2e8f0);
+    fill: var(--dg-ink);
   }
 
   .ddd-mm-diagram__tag-label {
     font-size: 12.5px;
     font-weight: 600;
-    fill: var(--dg-text-secondary, #64748b);
-  }
-  :global(.dark) .ddd-mm-diagram__tag-label {
-    fill: var(--dg-text-secondary, #94a3b8);
+    fill: var(--dg-muted);
   }
 
   .ddd-mm-diagram__tag-val {
     font-size: 12.5px;
     font-weight: 600;
-    fill: var(--dg-text, #0f172a);
-  }
-  :global(.dark) .ddd-mm-diagram__tag-val {
-    fill: var(--dg-text, #f1f5f9);
+    fill: var(--dg-ink);
   }
 
   /* 底部通欄卡片 */
   .ddd-mm-diagram__footer-card {
-    fill: var(--dg-card-bg, #ffffff);
-    stroke: var(--dg-border, #e2e8f0);
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
     stroke-width: 1.5;
-  }
-  :global(.dark) .ddd-mm-diagram__footer-card {
-    fill: var(--dg-card-bg, #111827);
-    stroke: var(--dg-border, #1f2937);
   }
 
   .ddd-mm-diagram__footer-strip {
@@ -737,23 +697,20 @@
     font-weight: 700;
     fill: #0284c7;
   }
-  :global(.dark) .ddd-mm-diagram__footer-title {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__footer-title {
     fill: #38bdf8;
   }
 
   .ddd-mm-diagram__footer-desc {
     font-size: 13.5px;
-    fill: var(--dg-text-secondary, #334155);
-  }
-  :global(.dark) .ddd-mm-diagram__footer-desc {
-    fill: var(--dg-text-secondary, #cbd5e1);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-mm-diagram__highlight-bad {
     font-weight: 700;
     fill: #dc2626;
   }
-  :global(.dark) .ddd-mm-diagram__highlight-bad {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__highlight-bad {
     fill: #f87171;
   }
 
@@ -761,7 +718,7 @@
     font-weight: 700;
     fill: #059669;
   }
-  :global(.dark) .ddd-mm-diagram__highlight-good {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__highlight-good {
     fill: #34d399;
   }
 
@@ -769,55 +726,37 @@
   .ddd-mm-diagram__m-title {
     font-size: 14px;
     font-weight: 700;
-    fill: var(--dg-text, #0f172a);
-  }
-  :global(.dark) .ddd-mm-diagram__m-title {
-    fill: var(--dg-text, #f9fafb);
+    fill: var(--dg-ink);
   }
 
   .ddd-mm-diagram__m-desc {
     font-size: 11.5px;
     font-weight: 500;
-    fill: var(--dg-text-secondary, #475569);
-  }
-  :global(.dark) .ddd-mm-diagram__m-desc {
-    fill: var(--dg-text-secondary, #94a3b8);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-mm-diagram__m-card-title {
     font-size: 15px;
     font-weight: 700;
-    fill: var(--dg-text, #0f172a);
-  }
-  :global(.dark) .ddd-mm-diagram__m-card-title {
-    fill: var(--dg-text, #f9fafb);
+    fill: var(--dg-ink);
   }
 
   .ddd-mm-diagram__m-card-sub {
     font-size: 12px;
     font-weight: 600;
-    fill: var(--dg-text-secondary, #64748b);
-  }
-  :global(.dark) .ddd-mm-diagram__m-card-sub {
-    fill: var(--dg-text-secondary, #94a3b8);
+    fill: var(--dg-muted);
   }
 
   .ddd-mm-diagram__m-prop {
     font-size: 11.5px;
     font-family: inherit;
-    fill: var(--dg-text, #1e293b);
-  }
-  :global(.dark) .ddd-mm-diagram__m-prop {
-    fill: var(--dg-text, #e2e8f0);
+    fill: var(--dg-ink);
   }
 
   .ddd-mm-diagram__m-feature {
     font-size: 11.5px;
     font-weight: 500;
-    fill: var(--dg-text-secondary, #475569);
-  }
-  :global(.dark) .ddd-mm-diagram__m-feature {
-    fill: var(--dg-text-secondary, #cbd5e1);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-mm-diagram__m-footer-title {
@@ -825,22 +764,19 @@
     font-weight: 700;
     fill: #0284c7;
   }
-  :global(.dark) .ddd-mm-diagram__m-footer-title {
+  :global(:root[data-theme="dark"]) .ddd-mm-diagram__m-footer-title {
     fill: #38bdf8;
   }
 
   .ddd-mm-diagram__m-footer-p {
     font-size: 11.5px;
-    fill: var(--dg-text-secondary, #334155);
-  }
-  :global(.dark) .ddd-mm-diagram__m-footer-p {
-    fill: var(--dg-text-secondary, #cbd5e1);
+    fill: var(--dg-ink-2);
   }
 
   .ddd-mm-diagram__caption {
     margin-top: 0.75rem;
     font-size: 0.875rem;
-    color: var(--dg-text-secondary, #64748b);
+    color: var(--dg-muted);
     text-align: center;
   }
 </style>

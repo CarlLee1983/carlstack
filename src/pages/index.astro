@@ -97,7 +97,6 @@ const latestLabel = latestDate
       <aside class="hero-spec-card" aria-label="站點速覽">
         <div class="hero-spec-card__header">
           <span>站點速覽</span>
-          <span class="spec-tag">GIT-NATIVE</span>
         </div>
         <dl class="hero-stats">
           {
@@ -369,10 +368,6 @@ const latestLabel = latestDate
     margin-bottom: var(--space-md);
   }
 
-  .eyebrow-dot {
-    animation: status-pulse 2.8s ease-in-out infinite;
-  }
-
   .home-hero h1 {
     font-size: var(--text-display);
     font-weight: 700;
@@ -476,12 +471,6 @@ const latestLabel = latestDate
     font-weight: 700;
     color: var(--color-ink);
     margin-bottom: var(--space-sm);
-  }
-
-  .spec-tag {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-muted);
   }
 
   .hero-spec-card__desc {
@@ -597,7 +586,6 @@ const latestLabel = latestDate
     gap: var(--space-sm);
     min-height: 3.5rem;
     padding-block: var(--space-md);
-    border-block-end: var(--rule-hair) solid var(--color-rule);
     color: var(--color-ink);
     text-decoration: none;
   }
@@ -738,13 +726,6 @@ const latestLabel = latestDate
     }
   }
 
-  @keyframes status-pulse {
-    50% {
-      opacity: 0.55;
-      transform: scale(0.72);
-    }
-  }
-
   @keyframes hero-card-in {
     from {
       opacity: 0;
@@ -818,7 +799,6 @@ const latestLabel = latestDate
 
   @media (prefers-reduced-motion: reduce) {
     .hero-eyebrow,
-    .eyebrow-dot,
     .home-hero h1,
     .home-hero__lede,
     .home-hero__actions,

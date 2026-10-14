@@ -44,15 +44,16 @@
   --dg-ink-2: #475569;
   --dg-muted: #64748b;
 
+  /* 拉丁字自架（BaseLayout 引入 @fontsource-variable），中文交給系統字型。 */
   --font-display:
-    "Plus Jakarta Sans", "Noto Sans TC", -apple-system, BlinkMacSystemFont,
-    "PingFang TC", sans-serif;
+    "Plus Jakarta Sans Variable", "PingFang TC", "Noto Sans TC",
+    "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body:
-    "Plus Jakarta Sans", "Noto Sans TC", -apple-system, BlinkMacSystemFont,
-    "PingFang TC", sans-serif;
+    "Plus Jakarta Sans Variable", "PingFang TC", "Noto Sans TC",
+    "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:
-    "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
-    monospace;
+    "Fira Code Variable", ui-monospace, "SFMono-Regular", Menlo, Monaco,
+    Consolas, monospace;
 
   --space-3xs: 0.125rem;
   --space-2xs: 0.25rem;

@@ -74,9 +74,10 @@
 
 ### 4.1 字體族系 (Font Stacks)
 
-- **標題與介面 (`--font-display`)**：`"Plus Jakarta Sans", "Noto Sans TC", "PingFang TC", -apple-system, sans-serif`
-- **文章內文 (`--font-body`)**：`"Plus Jakarta Sans", "Noto Sans TC", "PingFang TC", -apple-system, sans-serif`
-- **等寬代碼 (`--font-mono`)**：`"JetBrains Mono", "Fira Code", monospace`
+- **標題與介面 (`--font-display`)**：`"Plus Jakarta Sans Variable"`，中文依序落到 `"PingFang TC"`、`"Noto Sans TC"`、`"Microsoft JhengHei"`
+- **文章內文 (`--font-body`)**：同 `--font-display`
+- **等寬代碼 (`--font-mono`)**：`"Fira Code Variable"`，後備 `ui-monospace` 系列
+- **載入方式**：拉丁字型以 `@fontsource-variable/plus-jakarta-sans` 與 `@fontsource-variable/fira-code` 自架，在 `BaseLayout.astro` 引入；字型檔依 `unicode-range` 分片、`font-display: swap`，頁面只下載用到的拉丁分片。中文不自架（字檔過大），交給系統字型。
 
 ### 4.2 黃金閱讀比例 (`.prose`)
 
@@ -122,7 +123,7 @@
 - **導言與文末記號**：`.prose` 第一段放大到 1.08em、用主文字色；正文結尾以 `.prose::after` 畫一小段主色短線（60% 實線 + 斷點），告訴讀者正文到此為止。
 - **程式碼語言標籤**：`pre[data-language]::before` 在右上角顯示 Shiki 給的語言名（等寬、大寫、低對比）；`plaintext` / `text` 不顯示。
 - **引言記號**：`blockquote::before` 在左上以 display 字體放一個 35% 透明度的主色引號，與 callout 區隔。
-- **眉標 (`.eyebrow`)**：全站共用的等寬大寫主色膠囊，前置 `.eyebrow-dot` 圓點（首頁 hero 另加呼吸動畫）；頁面不再各自重寫一份。
+- **眉標 (`.eyebrow`)**：全站共用的等寬大寫主色膠囊，前置 `.eyebrow-dot` 靜態圓點；頁面不再各自重寫一份。
 - **頁面底部留白**：由 `.page` / `.home` 的 `padding-block-end` 單獨負責，頁尾本身不加上邊距。
 - **首頁區塊序號**：`.home .section-head h2::before` 用 CSS counter 印 `01`、`02`… 等寬主色序號，把首頁讀成一份年鑑索引。
 
@@ -134,7 +135,7 @@
 - **首頁側欄「站點速覽」**：文章數、標籤數、專案數與最近更新日期全部從 content collections 算出，不維護會過期的描述文案。
 - **首頁手機版**：縮小前導區與速覽卡內距，數字維持三欄可辨識；文章內容直接顯示，不以捲動淡入控制可見性。
 - **文章索引與搜尋**：索引提供原生 GET 搜尋入口及頁次，兩者同列——左側頁次說明、右側精簡搜尋膠囊（標籤以 `.visually-hidden` 保留給輔助科技）；這個入口不依賴 JavaScript，與 header 的 ⌘K 對話框並存。搜尋頁顯示讀者使用說明、由內容集合計算的熱門主題，以及完整結果數與顯示上限。
-- **主題排序**：首頁「主要技術主題」與標籤頁一律依文章數倒序（`sortByPostCount`），同數量依名稱。首頁以編號索引呈現：髮絲線分列，列底一條主色細線，長度為該主題文章數相對於第一名的比例，讓份量差距一眼可見；標籤頁再依數量分三階（`data-tier`：`major` ≥ 10、`minor` ≥ 3、`single`），讓站點重心一眼可見。
+- **主題排序**：首頁「主要技術主題」與標籤頁一律依文章數倒序（`sortByPostCount`），同數量依名稱。首頁以編號索引呈現：每列底部只有一條主色細線，長度為該主題文章數相對於第一名的比例，不另畫滿寬底軌，讓份量差距一眼可見；標籤頁再依數量分三階（`data-tier`：`major` ≥ 10、`minor` ≥ 3、`single`），讓站點重心一眼可見。
 - **專案卡片 (`ProjectCard.astro`)**：
   - 固定 4:5 比例、實體厚邊與雙層細框組成收藏卡語彙；預設以主視覺與專案名稱為主，hover 或鍵盤聚焦才揭露摘要與標籤。
   - 點擊卡片以原生 `dialog` 顯示 Markdown 正文、專案連結與完整 metadata；支援 Esc、背景點擊、焦點還原與 reduced-motion。有封面時必須提供具體 `coverAlt`。
