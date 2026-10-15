@@ -13,3 +13,4 @@ graft/
 
 # 本機工具產物
 .playwright-mcp/
+output/
