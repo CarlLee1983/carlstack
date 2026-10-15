@@ -151,7 +151,7 @@ const seriesOrderLabel =
     color: inherit;
     overflow: hidden;
     position: relative;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm), var(--card-highlight);
     transition:
       border-color var(--dur-short) var(--ease-out),
       transform var(--dur-short) var(--ease-out),
@@ -161,15 +161,11 @@ const seriesOrderLabel =
   .series-card:hover {
     border-color: var(--color-accent);
     transform: translateY(-3px);
-    box-shadow:
-      0 12px 32px -8px rgba(0, 0, 0, 0.15),
-      0 0 0 1px var(--color-accent-soft);
+    box-shadow: var(--shadow-md), var(--card-highlight);
   }
 
-  :global([data-theme="dark"]) .series-card:hover {
-    box-shadow:
-      0 16px 36px -12px rgba(0, 0, 0, 0.6),
-      0 0 20px -4px var(--color-accent-soft);
+  .series-card:active {
+    transform: translateY(-1px) scale(0.995);
   }
 
   .series-card__visual {
@@ -249,6 +245,7 @@ const seriesOrderLabel =
     align-items: center;
     gap: 0.5rem;
     font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
 
@@ -256,6 +253,7 @@ const seriesOrderLabel =
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .meta-dot {
@@ -268,6 +266,7 @@ const seriesOrderLabel =
     line-height: 1.35;
     letter-spacing: -0.01em;
     color: var(--color-text);
+    text-wrap: balance;
     margin: 0;
     transition: color var(--dur-micro) var(--ease-out);
   }
