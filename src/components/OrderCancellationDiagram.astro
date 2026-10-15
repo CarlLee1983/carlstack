@@ -1,0 +1,284 @@
+<figure class="cancel-diagram" aria-labelledby="cancel-caption">
+  <svg
+    class="cancel-diagram__desktop"
+    viewBox="0 0 960 580"
+    role="img"
+    aria-labelledby="cancel-title cancel-desc"
+  >
+    <title id="cancel-title">取消與預留釋放共同提交，重送只讀終局</title>
+    <desc id="cancel-desc"
+      >請求 A 鎖定訂單與預留，確認 created 與 held，將預留改為
+      released、歸還數量並取消訂單，最後共同提交。請求 B 等待後讀到 cancelled 與
+      released，不再歸還。A 若回滾，B 才可能重新執行取消。</desc
+    >
+    <defs
+      ><marker
+        id="cancel-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker
+      ></defs
+    >
+    <rect
+      class="cancel-diagram__panel"
+      x="20"
+      y="20"
+      width="920"
+      height="278"
+      rx="16"></rect>
+    <text class="cancel-diagram__heading" x="44" y="58"
+      >請求 A：同一連線、同一交易</text
+    >
+    <rect
+      class="cancel-diagram__card"
+      x="44"
+      y="86"
+      width="252"
+      height="140"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="62" y="118">鎖定並核對</text>
+    <text class="cancel-diagram__detail" x="62" y="149"
+      >訂單 created ＋ 預留 held</text
+    >
+    <text class="cancel-diagram__detail" x="62" y="177"
+      >確認所有權與不可變數量</text
+    >
+    <text class="cancel-diagram__detail" x="62" y="204"
+      >鎖順序：訂單 → 預留</text
+    >
+    <path class="cancel-diagram__arrow" d="M308 154 H332"></path>
+    <rect
+      class="cancel-diagram__card"
+      x="346"
+      y="86"
+      width="266"
+      height="140"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="364" y="118">合法轉移才可歸還</text>
+    <text class="cancel-diagram__detail" x="364" y="149"
+      >held → released，恰好一列</text
+    >
+    <text class="cancel-diagram__detail" x="364" y="177">可售 +q、預留 −q</text>
+    <text class="cancel-diagram__detail" x="364" y="204"
+      >created → cancelled</text
+    >
+    <path class="cancel-diagram__arrow" d="M624 154 H648"></path>
+    <rect
+      class="cancel-diagram__card"
+      x="662"
+      y="86"
+      width="254"
+      height="140"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="680" y="118">共同 COMMIT</text>
+    <text class="cancel-diagram__detail" x="680" y="149"
+      >成功確認後，才回已取消</text
+    >
+    <text class="cancel-diagram__detail" x="680" y="177"
+      >中途失敗：整筆回滾</text
+    >
+    <text class="cancel-diagram__detail" x="680" y="204"
+      >提交未知：重新確認狀態</text
+    >
+    <text class="cancel-diagram__detail" x="44" y="270"
+      >預期一列的寫入得到零列：回滾並診斷，不能單獨提交釋放標記。</text
+    >
+    <rect
+      class="cancel-diagram__panel"
+      x="20"
+      y="324"
+      width="920"
+      height="232"
+      rx="16"></rect>
+    <text class="cancel-diagram__heading" x="44" y="362"
+      >請求 B：等 A 提交後，讀到目前終局</text
+    >
+    <rect
+      class="cancel-diagram__card"
+      x="44"
+      y="389"
+      width="390"
+      height="96"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="64" y="423"
+      >cancelled ＋ released</text
+    >
+    <text class="cancel-diagram__detail" x="64" y="455"
+      >同一張訂單已完成取消與歸還</text
+    >
+    <path class="cancel-diagram__arrow" d="M448 437 H502"></path>
+    <rect
+      class="cancel-diagram__card"
+      x="518"
+      y="389"
+      width="398"
+      height="96"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="538" y="423"
+      >回已取消，不再補庫存</text
+    >
+    <text class="cancel-diagram__detail" x="538" y="455"
+      >其他訂單的預留不能當作本單的釋放資格</text
+    >
+    <text class="cancel-diagram__detail" x="44" y="529"
+      >若 A 整筆回滾，B 可能看到 created ＋ held，再完成一次合法取消。</text
+    >
+  </svg>
+  <svg
+    class="cancel-diagram__mobile"
+    viewBox="0 0 288 774"
+    role="img"
+    aria-labelledby="cancel-mobile-title cancel-mobile-desc"
+  >
+    <title id="cancel-mobile-title">取消只歸還一次的直向流程</title>
+    <desc id="cancel-mobile-desc"
+      >桌面圖的直向排列。請求 A
+      鎖定並核對訂單和預留，完成狀態轉移與數量歸還，一起提交。請求 B
+      等待後看到已取消與已釋放，不再增加庫存。</desc
+    >
+    <defs
+      ><marker
+        id="cancel-arrow-mobile"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker
+      ></defs
+    >
+    <text class="cancel-diagram__heading" x="12" y="30">A：同一筆交易</text>
+    <rect
+      class="cancel-diagram__card"
+      x="8"
+      y="48"
+      width="272"
+      height="118"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="24" y="79">鎖訂單，再鎖預留</text>
+    <text class="cancel-diagram__detail" x="24" y="108"
+      >created ＋ held，確認所有權</text
+    >
+    <text class="cancel-diagram__detail" x="24" y="137"
+      >取用已保存的 SKU 與數量</text
+    >
+    <path class="cancel-diagram__arrow-mobile" d="M144 175 V194"></path>
+    <rect
+      class="cancel-diagram__card"
+      x="8"
+      y="207"
+      width="272"
+      height="142"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="24" y="239">合法轉移才可歸還</text>
+    <text class="cancel-diagram__detail" x="24" y="268"
+      >held → released，恰好一列</text
+    >
+    <text class="cancel-diagram__detail" x="24" y="296">可售 +q、預留 −q</text>
+    <text class="cancel-diagram__detail" x="24" y="324">訂單改成 cancelled</text
+    >
+    <path class="cancel-diagram__arrow-mobile" d="M144 359 V378"></path>
+    <rect
+      class="cancel-diagram__card"
+      x="8"
+      y="391"
+      width="272"
+      height="117"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="24" y="423">共同 COMMIT</text>
+    <text class="cancel-diagram__detail" x="24" y="452">確認成功才回已取消</text
+    >
+    <text class="cancel-diagram__detail" x="24" y="480">中途失敗：整筆回滾</text
+    >
+    <text class="cancel-diagram__heading" x="12" y="553">B：等 A 提交後</text>
+    <rect
+      class="cancel-diagram__panel"
+      x="8"
+      y="574"
+      width="272"
+      height="119"
+      rx="12"></rect>
+    <text class="cancel-diagram__label" x="24" y="606"
+      >cancelled ＋ released</text
+    >
+    <text class="cancel-diagram__detail" x="24" y="635"
+      >回已取消，不再增加庫存</text
+    >
+    <text class="cancel-diagram__detail" x="24" y="664">別人的預留不能釋放</text
+    >
+    <text class="cancel-diagram__detail" x="16" y="730"
+      >A 回滾：B 才可能接手取消。</text
+    >
+    <text class="cancel-diagram__detail" x="16" y="755"
+      >提交未知：重新確認，不猜結果。</text
+    >
+  </svg>
+  <figcaption id="cancel-caption">
+    q
+    來自該訂單不可變的預留數量。鎖控制同時進入，持久終局狀態控制下一次重送；兩者都要保留。
+  </figcaption>
+</figure>
+<style>
+  .cancel-diagram {
+    margin: var(--space-8) 0;
+  }
+  .cancel-diagram svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .cancel-diagram__mobile {
+    display: none;
+  }
+  .cancel-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .cancel-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .cancel-diagram__heading {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .cancel-diagram__label {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .cancel-diagram__detail {
+    font-size: 13px;
+    fill: var(--dg-ink-2);
+  }
+  .cancel-diagram__arrow,
+  .cancel-diagram__arrow-mobile {
+    stroke: var(--dg-muted);
+    stroke-width: 2;
+    fill: none;
+  }
+  .cancel-diagram__arrow {
+    marker-end: url(#cancel-arrow);
+  }
+  .cancel-diagram__arrow-mobile {
+    marker-end: url(#cancel-arrow-mobile);
+  }
+  .cancel-diagram marker path {
+    fill: var(--dg-muted);
+  }
+  .cancel-diagram figcaption {
+    margin-top: var(--space-3);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .cancel-diagram__desktop {
+      display: none !important;
+    }
+    .cancel-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
