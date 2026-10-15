@@ -1,0 +1,318 @@
+<figure class="vpu-diagram" aria-labelledby="vpu-diagram-caption">
+  <svg
+    class="vpu-diagram__desktop"
+    viewBox="0 0 960 700"
+    role="img"
+    aria-labelledby="vpu-diagram-title vpu-diagram-desc"
+  >
+    <title id="vpu-diagram-title">可續傳上傳：先確認物件，再提交影片狀態</title>
+    <desc id="vpu-diagram-desc"
+      >客戶端取得上傳識別碼後，直接將帶有校驗值的分片送到物件儲存。斷線後透過
+      ListParts
+      或查詢確認已收到的分片，只補傳缺片。完成請求可冪等重試；伺服器完成組裝並確認物件的識別碼、大小與校驗值，才將影片狀態及
+      outbox 事件放進同一筆資料庫交易。ETag 不被視為通用的內容校驗值。</desc
+    >
+    <defs>
+      <marker
+        id="vpu-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"
+        ><path d="M0 0 L8 4 L0 8 Z" class="vpu-diagram__arrowhead"
+        ></path></marker
+      >
+    </defs>
+
+    <text x="24" y="30" class="vpu-diagram__lead"
+      >上傳成功的依據，是伺服器查證過的物件。</text
+    >
+    <rect
+      x="24"
+      y="58"
+      width="240"
+      height="78"
+      rx="14"
+      class="vpu-diagram__card"></rect>
+    <rect
+      x="360"
+      y="58"
+      width="240"
+      height="78"
+      rx="14"
+      class="vpu-diagram__card"></rect>
+    <rect
+      x="696"
+      y="58"
+      width="240"
+      height="78"
+      rx="14"
+      class="vpu-diagram__card"></rect>
+    <text x="144" y="90" text-anchor="middle" class="vpu-diagram__title"
+      >創作者客戶端</text
+    >
+    <text x="144" y="114" text-anchor="middle" class="vpu-diagram__detail"
+      >保留 upload_id 與分片進度</text
+    >
+    <text x="480" y="90" text-anchor="middle" class="vpu-diagram__title"
+      >上傳 API</text
+    >
+    <text x="480" y="114" text-anchor="middle" class="vpu-diagram__detail"
+      >掌握完成狀態與冪等鍵</text
+    >
+    <text x="816" y="90" text-anchor="middle" class="vpu-diagram__title"
+      >物件儲存</text
+    >
+    <text x="816" y="114" text-anchor="middle" class="vpu-diagram__detail"
+      >保存分片、組裝原始影片</text
+    >
+
+    <path
+      d="M144 136 V526 M480 136 V526 M816 136 V526"
+      class="vpu-diagram__lifeline"></path>
+    <text x="158" y="170" class="vpu-diagram__label"
+      >① 建立上傳工作與 video_id</text
+    >
+    <path d="M144 184 H480" class="vpu-diagram__arrow"></path>
+
+    <text x="158" y="222" class="vpu-diagram__label"
+      >② 分片直傳：part_number + 明確指定的 checksum</text
+    >
+    <path
+      d="M144 238 H816"
+      class="vpu-diagram__arrow vpu-diagram__arrow--accent"></path>
+
+    <text x="158" y="278" class="vpu-diagram__label"
+      >③ 斷線後 ListParts／查詢：哪些分片真的已收到？</text
+    >
+    <path d="M144 294 H816" class="vpu-diagram__arrow"></path>
+    <path
+      d="M816 306 Q856 336 816 338 H144"
+      class="vpu-diagram__arrow vpu-diagram__arrow--return"></path>
+    <text x="158" y="360" class="vpu-diagram__detail"
+      >以服務端回覆為準，只補缺片；本機進度不能證明上傳完成。</text
+    >
+
+    <text x="158" y="400" class="vpu-diagram__label">④ complete（冪等鍵）</text>
+    <path d="M144 416 H480" class="vpu-diagram__arrow"></path>
+    <text x="494" y="446" class="vpu-diagram__label"
+      >⑤ 完成組裝，再查證物件 metadata</text
+    >
+    <path d="M480 462 H816" class="vpu-diagram__arrow"></path>
+    <path
+      d="M816 480 H480"
+      class="vpu-diagram__arrow vpu-diagram__arrow--return"></path>
+    <text x="494" y="506" class="vpu-diagram__detail"
+      >確認 object key、bytes 與 checksum</text
+    >
+
+    <path d="M480 526 V552" class="vpu-diagram__arrow"></path>
+    <rect
+      x="180"
+      y="552"
+      width="600"
+      height="108"
+      rx="14"
+      class="vpu-diagram__commit"></rect>
+    <text x="480" y="584" text-anchor="middle" class="vpu-diagram__title"
+      >⑥ 同一筆 DB transaction</text
+    >
+    <text x="480" y="610" text-anchor="middle" class="vpu-diagram__label"
+      >持久化「原檔已確認」狀態 + 寫入 outbox</text
+    >
+    <text x="480" y="632" text-anchor="middle" class="vpu-diagram__detail"
+      >重送 complete 回傳既有結果，不重複建立處理工作。</text
+    >
+    <text x="24" y="682" class="vpu-diagram__detail"
+      >校驗值依儲存服務與演算法契約驗證；multipart ETag 不能直接當成檔案
+      checksum。</text
+    >
+  </svg>
+
+  <div class="vpu-diagram__mobile">
+    <p class="vpu-diagram__mobile-lead">先查證原檔，再提交影片狀態</p>
+    <ol class="vpu-diagram__steps">
+      <li>
+        <strong>建立上傳工作</strong><span
+          >API 配發 video_id 與 upload_id，客戶端保存續傳進度。</span
+        >
+      </li>
+      <li>
+        <strong>分片直接送物件儲存</strong><span
+          >每片有 part_number 與明確指定的 checksum；影片 bytes 不繞經 API。</span
+        >
+      </li>
+      <li>
+        <strong>斷線後，先問再補傳</strong><span
+          >用
+          ListParts／查詢確認已收到的分片，只補缺片。本機顯示成功不算服務端確認。</span
+        >
+      </li>
+      <li>
+        <strong>冪等完成請求</strong><span
+          >complete 帶冪等鍵。回覆遺失時可重送，取得既有結果。</span
+        >
+      </li>
+      <li>
+        <strong>伺服器確認實際物件</strong><span
+          >完成組裝後，查證 object key、bytes 與
+          checksum，不能只信任客戶端回報。</span
+        >
+      </li>
+      <li class="vpu-diagram__step--commit">
+        <strong>DB 狀態與 outbox 一起提交</strong><span
+          >同一交易持久化「原檔已確認」與處理事件，避免重複建立工作。</span
+        >
+      </li>
+    </ol>
+    <p class="vpu-diagram__note">
+      校驗演算法須明確約定。multipart ETag 不能直接當成檔案 checksum。
+    </p>
+  </div>
+  <figcaption id="vpu-diagram-caption">
+    續傳解決斷線，冪等解決重試；物件查證與 DB 交易共同決定何時能進入後續處理。
+  </figcaption>
+</figure>
+
+<style>
+  .vpu-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vpu-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vpu-diagram__mobile {
+    display: none;
+  }
+  .vpu-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vpu-diagram__commit {
+    fill: #edf8f5;
+    stroke: #0f766e;
+    stroke-width: 1.5;
+  }
+  .vpu-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vpu-diagram__lead {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vpu-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vpu-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13px;
+  }
+  .vpu-diagram__lifeline {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 6;
+  }
+  .vpu-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#vpu-arrow);
+  }
+  .vpu-diagram__arrowhead {
+    fill: var(--dg-rule-strong);
+  }
+  .vpu-diagram__arrow--accent {
+    stroke: #0f766e;
+    stroke-width: 3;
+  }
+  .vpu-diagram__arrow--return {
+    stroke-dasharray: 6 5;
+  }
+  .vpu-diagram__mobile-lead {
+    margin: 0 0 var(--space-md);
+    color: var(--dg-ink);
+    font-weight: 800;
+  }
+  .vpu-diagram__steps {
+    display: grid;
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: vpu-step;
+  }
+  .vpu-diagram__steps li {
+    counter-increment: vpu-step;
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    background: var(--dg-surface);
+    color: var(--dg-ink-2);
+  }
+  .vpu-diagram__steps strong {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .vpu-diagram__steps strong::before {
+    content: counter(vpu-step) "．";
+    color: var(--dg-muted);
+  }
+  .vpu-diagram__steps span {
+    display: block;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .vpu-diagram__steps .vpu-diagram__step--commit {
+    border-color: #0f766e;
+    background: #edf8f5;
+  }
+  .vpu-diagram__note {
+    padding: var(--space-md);
+    border-radius: 12px;
+    background: var(--dg-surface-2);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  .vpu-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .vpu-diagram__commit {
+    fill: #17342f;
+    stroke: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .vpu-diagram__arrow--accent {
+    stroke: #5eead4;
+  }
+  :global(:root[data-theme="dark"])
+    .vpu-diagram__steps
+    .vpu-diagram__step--commit {
+    border-color: #5eead4;
+    background: #17342f;
+  }
+  @media (max-width: 48rem) {
+    .vpu-diagram__desktop {
+      display: none !important;
+    }
+    .vpu-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

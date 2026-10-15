@@ -1,0 +1,312 @@
+<figure class="vp-origin-diagram" aria-labelledby="vp-origin-caption">
+  <svg
+    class="vp-origin-diagram__desktop"
+    viewBox="0 0 960 650"
+    role="img"
+    aria-labelledby="vp-origin-title vp-origin-desc"
+  >
+    <title id="vp-origin-title">分層快取如何降低回源流量</title>
+    <desc id="vp-origin-desc"
+      >這是假想影音平台的教學模型，不是 YouTube
+      內部架構或實測數據。假設觀眾端輸出為 10.4
+      Gbps，邊緣快取以位元組加權的命中率為百分之九十五，未命中的 0.52 Gbps
+      交給來源屏障。來源屏障集中回源並快取內容，只有再次未命中才讀取來源物件儲存；此圖不假設來源屏障的命中率。相同輸出若邊緣命中率降為百分之七十，交給來源屏障的流量將增加至
+      3.12 Gbps，是原本的六倍。這不是來源物件儲存的最終流量。</desc
+    >
+    <defs>
+      <marker
+        id="vp-origin-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="vp-origin-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+    <text x="30" y="32" class="vp-origin-diagram__title"
+      >回源不是承接全部觀看流量</text
+    >
+    <text x="30" y="58" class="vp-origin-diagram__detail"
+      >教學假設：觀眾端輸出 10.4 Gbps；命中率按位元組加權，非請求次數。</text
+    >
+
+    <rect
+      x="30"
+      y="82"
+      width="900"
+      height="116"
+      rx="14"
+      class="vp-origin-diagram__card"></rect>
+    <circle cx="82" cy="140" r="25" class="vp-origin-diagram__step"></circle>
+    <text x="82" y="145" text-anchor="middle" class="vp-origin-diagram__number"
+      >01</text
+    >
+    <text x="130" y="115" class="vp-origin-diagram__title">邊緣快取 · Edge</text
+    >
+    <text x="130" y="143" class="vp-origin-diagram__detail"
+      >假設命中 95%：就近提供快取內容</text
+    >
+    <text x="130" y="169" class="vp-origin-diagram__detail"
+      >未命中：向共用的 Origin Shield 取回</text
+    >
+    <text x="610" y="115" class="vp-origin-diagram__label"
+      >觀眾端總輸出（假設）</text
+    >
+    <text x="610" y="145" class="vp-origin-diagram__metric">10.4 Gbps</text>
+    <text x="610" y="169" class="vp-origin-diagram__detail"
+      >不等於來源端流量</text
+    >
+    <path
+      d="M 82 198 V 238"
+      class="vp-origin-diagram__arrow"
+      marker-end="url(#vp-origin-arrow)"></path>
+    <text x="130" y="224" class="vp-origin-diagram__label"
+      >剩下 5%：0.52 Gbps 交給 Shield</text
+    >
+
+    <rect
+      x="30"
+      y="240"
+      width="900"
+      height="116"
+      rx="14"
+      class="vp-origin-diagram__card"></rect>
+    <circle cx="82" cy="298" r="25" class="vp-origin-diagram__step"></circle>
+    <text x="82" y="303" text-anchor="middle" class="vp-origin-diagram__number"
+      >02</text
+    >
+    <text x="130" y="273" class="vp-origin-diagram__title"
+      >來源屏障 · Origin Shield</text
+    >
+    <text x="130" y="301" class="vp-origin-diagram__detail"
+      >集中承接多個邊緣節點的回源請求</text
+    >
+    <text x="130" y="327" class="vp-origin-diagram__detail"
+      >命中則回傳；未命中才讀取物件儲存</text
+    >
+    <text x="610" y="273" class="vp-origin-diagram__label"
+      >不另假設 Shield 命中率</text
+    >
+    <text x="610" y="303" class="vp-origin-diagram__metric">集中回源與快取</text
+    >
+    <text x="610" y="327" class="vp-origin-diagram__detail"
+      >減少對來源物件的重複讀取</text
+    >
+    <path
+      d="M 82 356 V 396"
+      class="vp-origin-diagram__arrow"
+      marker-end="url(#vp-origin-arrow)"></path>
+    <text x="130" y="382" class="vp-origin-diagram__label"
+      >Shield 未命中，才向來源物件儲存取回</text
+    >
+
+    <rect
+      x="30"
+      y="398"
+      width="900"
+      height="104"
+      rx="14"
+      class="vp-origin-diagram__card"></rect>
+    <circle cx="82" cy="450" r="25" class="vp-origin-diagram__step"></circle>
+    <text x="82" y="455" text-anchor="middle" class="vp-origin-diagram__number"
+      >03</text
+    >
+    <text x="130" y="433" class="vp-origin-diagram__title"
+      >來源物件儲存 · Origin</text
+    >
+    <text x="130" y="463" class="vp-origin-diagram__detail"
+      >保存可播放的轉碼產物，承接兩層皆未命中的讀取</text
+    >
+    <text x="610" y="433" class="vp-origin-diagram__label">來源流量取決於</text>
+    <text x="610" y="465" class="vp-origin-diagram__metric">Shield 命中率</text>
+    <rect
+      x="30"
+      y="520"
+      width="900"
+      height="84"
+      rx="14"
+      class="vp-origin-diagram__step"></rect>
+    <text x="52" y="552" class="vp-origin-diagram__label"
+      >假設 95% 命中 → 0.52 Gbps</text
+    >
+    <text x="360" y="552" class="vp-origin-diagram__label"
+      >假設 70% 命中 → 3.12 Gbps</text
+    >
+    <text x="716" y="552" class="vp-origin-diagram__label">回源增加 6 倍</text>
+    <text x="52" y="581" class="vp-origin-diagram__detail"
+      >比較進入 Shield 的邊緣未命中流量；不是物件儲存的最終流量。</text
+    >
+    <text x="30" y="632" class="vp-origin-diagram__detail"
+      >簡化估算忽略重試、預熱、協定開銷與流量放大；快取命中仍須符合有效的播放授權。</text
+    >
+  </svg>
+
+  <div class="vp-origin-diagram__mobile">
+    <p class="vp-origin-diagram__intro">
+      教學假設：觀眾端輸出 10.4 Gbps。以下命中率皆按位元組加權。
+    </p>
+    <ol class="vp-origin-diagram__list">
+      <li class="vp-origin-diagram__mobile-card">
+        <h3>01 邊緣快取 · Edge</h3>
+        <p>假設命中 95%，命中部分就近提供。</p>
+        <p class="vp-origin-diagram__handoff">
+          未命中的 5%：10.4 × 5% = 0.52 Gbps，向 Shield 取回 ↓
+        </p>
+      </li>
+      <li class="vp-origin-diagram__mobile-card">
+        <h3>02 來源屏障 · Shield</h3>
+        <p>
+          集中承接多個邊緣節點的回源並快取內容，減少對來源物件的重複讀取。此圖不另假設
+          Shield 命中率。
+        </p>
+        <p class="vp-origin-diagram__handoff">Shield 未命中，才讀取來源 ↓</p>
+      </li>
+      <li class="vp-origin-diagram__mobile-card">
+        <h3>03 來源物件儲存</h3>
+        <p>
+          保存可播放的轉碼產物，承接兩層皆未命中的讀取。最終流量取決於 Shield
+          命中率。
+        </p>
+      </li>
+    </ol>
+    <div class="vp-origin-diagram__mobile-card">
+      <h3>教學假設：命中率降低的代價</h3>
+      <p>相同 10.4 Gbps 輸出：</p>
+      <p>95% 命中 → <strong>0.52 Gbps</strong> 回源</p>
+      <p>70% 命中 → <strong>3.12 Gbps</strong> 回源</p>
+      <p>
+        <strong>增加 6 倍</strong>。比較的是進入 Shield
+        的邊緣未命中流量，不是物件儲存的最終流量。
+      </p>
+    </div>
+    <p class="vp-origin-diagram__note">
+      簡化估算忽略重試、預熱、協定開銷與流量放大。快取命中仍須符合有效的播放授權。
+    </p>
+  </div>
+  <figcaption id="vp-origin-caption">
+    假想影音平台的分層快取教學模型；所有流量與命中率皆為假設，不代表 YouTube
+    實測值。
+  </figcaption>
+</figure>
+
+<style>
+  .vp-origin-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vp-origin-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vp-origin-diagram__mobile {
+    display: none;
+  }
+  .vp-origin-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vp-origin-diagram__step {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+  }
+  .vp-origin-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vp-origin-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13.5px;
+  }
+  .vp-origin-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vp-origin-diagram__number {
+    fill: var(--dg-muted);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .vp-origin-diagram__metric {
+    fill: #0f766e;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .vp-origin-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .vp-origin-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .vp-origin-diagram__intro,
+  .vp-origin-diagram__note {
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+  }
+  .vp-origin-diagram__list {
+    display: grid;
+    gap: var(--space-md);
+    margin: var(--space-md) 0;
+    padding: 0;
+    list-style: none;
+  }
+  .vp-origin-diagram__mobile-card {
+    padding: var(--space-md);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 14px;
+  }
+  .vp-origin-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+  .vp-origin-diagram__mobile-card p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .vp-origin-diagram__mobile-card strong,
+  .vp-origin-diagram__mobile-card .vp-origin-diagram__handoff {
+    color: #0f766e;
+    font-weight: 700;
+  }
+  .vp-origin-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+  }
+  :global(:root[data-theme="dark"]) .vp-origin-diagram__metric {
+    fill: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .vp-origin-diagram__mobile-card strong,
+  :global(:root[data-theme="dark"])
+    .vp-origin-diagram__mobile-card
+    .vp-origin-diagram__handoff {
+    color: #5eead4;
+  }
+  @media (max-width: 48rem) {
+    .vp-origin-diagram__desktop {
+      display: none !important;
+    }
+    .vp-origin-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

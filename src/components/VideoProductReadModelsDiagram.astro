@@ -1,0 +1,309 @@
+<figure class="vp-models-diagram" aria-labelledby="vp-models-caption">
+  <svg
+    class="vp-models-diagram__desktop"
+    viewBox="0 0 960 620"
+    role="img"
+    aria-labelledby="vp-models-title vp-models-desc"
+  >
+    <title id="vp-models-title">權威資料與最終一致的讀模型</title>
+    <desc id="vp-models-desc"
+      >在假想影音平台中，影片中繼資料與 transactional outbox 在同一筆 MySQL
+      交易提交。Outbox relay 將事件送入可重播的事件流。Video.metadata_revision
+      在每次可見性或發布狀態變更時遞增，事件攜帶該修訂，讀模型拒絕較舊修訂覆蓋新狀態；source_generation
+      僅判斷來源與轉碼產物是否有效，不是權限更新的排序鍵。中繼資料事件以
+      event_id
+      去重；觀看事件由量測管線另外匯入並獨立去重，計數聚合允許延遲。讀模型過期或故障可以使探索體驗降級，但不能繞過權威播放權限。</desc
+    >
+    <defs>
+      <marker
+        id="vp-models-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="vp-models-diagram__arrow-head"
+        ></path>
+      </marker>
+    </defs>
+    <text x="30" y="32" class="vp-models-diagram__title"
+      >權威狀態先提交，查詢體驗再追上</text
+    >
+    <text x="30" y="58" class="vp-models-diagram__detail"
+      >source_generation 僅判斷來源／轉碼有效性；權限更新使用
+      metadata_revision。</text
+    >
+
+    <rect
+      x="30"
+      y="78"
+      width="900"
+      height="126"
+      rx="14"
+      class="vp-models-diagram__card"></rect>
+    <text x="56" y="111" class="vp-models-diagram__title"
+      >MySQL 權威中繼資料</text
+    >
+    <text x="56" y="141" class="vp-models-diagram__detail"
+      >Video.metadata_revision</text
+    >
+    <text x="56" y="168" class="vp-models-diagram__detail"
+      >可見性／發布狀態異動，每次遞增</text
+    >
+    <text x="473" y="115" text-anchor="middle" class="vp-models-diagram__label"
+      >同一筆交易</text
+    >
+    <path
+      d="M 398 143 H 548"
+      class="vp-models-diagram__arrow"
+      marker-end="url(#vp-models-arrow)"></path>
+    <text x="473" y="171" text-anchor="middle" class="vp-models-diagram__detail"
+      >原子提交，避免雙寫落差</text
+    >
+    <text x="576" y="111" class="vp-models-diagram__title"
+      >Transactional outbox</text
+    >
+    <text x="576" y="141" class="vp-models-diagram__detail"
+      >在同一資料庫記下待發布事件</text
+    >
+    <text x="576" y="168" class="vp-models-diagram__detail"
+      >提交後由 relay 投遞；失敗可重試</text
+    >
+    <path
+      d="M 754 204 V 225 H 145 V 248"
+      class="vp-models-diagram__arrow"
+      marker-end="url(#vp-models-arrow)"></path>
+
+    <rect
+      x="30"
+      y="250"
+      width="220"
+      height="304"
+      rx="14"
+      class="vp-models-diagram__stream"></rect>
+    <text x="52" y="283" class="vp-models-diagram__title">可重播事件流</text>
+    <text x="52" y="315" class="vp-models-diagram__label">至少一次投遞</text>
+    <text x="52" y="342" class="vp-models-diagram__detail"
+      >消費端須能重複執行</text
+    >
+    <text x="52" y="386" class="vp-models-diagram__label">event_id 去重</text>
+    <text x="52" y="413" class="vp-models-diagram__detail"
+      >冪等更新，安全重播</text
+    >
+    <text x="52" y="457" class="vp-models-diagram__label"
+      >metadata_revision</text
+    >
+    <text x="52" y="484" class="vp-models-diagram__detail"
+      >拒絕舊修訂覆蓋新值</text
+    >
+    <text x="52" y="529" class="vp-models-diagram__detail"
+      >來源代次不排序權限</text
+    >
+    <path d="M 250 402 H 284 M 284 294 V 510" class="vp-models-diagram__arrow"
+    ></path>
+    <path
+      d="M 284 294 H 312 M 284 402 H 312 M 284 510 H 312"
+      class="vp-models-diagram__arrow"
+      marker-end="url(#vp-models-arrow)"></path>
+
+    <rect
+      x="314"
+      y="250"
+      width="616"
+      height="88"
+      rx="14"
+      class="vp-models-diagram__card"></rect>
+    <text x="338" y="280" class="vp-models-diagram__title">搜尋索引</text>
+    <text x="338" y="308" class="vp-models-diagram__detail"
+      >新影片可能稍後才找得到；更新拒絕較舊的 metadata_revision。</text
+    >
+    <rect
+      x="314"
+      y="358"
+      width="616"
+      height="88"
+      rx="14"
+      class="vp-models-diagram__card"></rect>
+    <text x="338" y="388" class="vp-models-diagram__title">推薦讀模型</text>
+    <text x="338" y="416" class="vp-models-diagram__detail"
+      >排序與候選集合可以降級；真正播放仍須檢查授權。</text
+    >
+    <rect
+      x="314"
+      y="466"
+      width="616"
+      height="88"
+      rx="14"
+      class="vp-models-diagram__card"></rect>
+    <text x="338" y="496" class="vp-models-diagram__title">觀看計數</text>
+    <text x="338" y="524" class="vp-models-diagram__detail"
+      >觀看事件另行匯入並獨立去重；計數可延遲，不作授權依據。</text
+    >
+    <text x="30" y="586" class="vp-models-diagram__guard"
+      >讀模型過期或故障 →
+      降級探索體驗；播放仍依權威狀態與有效授權，不能繞過權限。</text
+    >
+  </svg>
+
+  <div class="vp-models-diagram__mobile">
+    <div class="vp-models-diagram__mobile-card">
+      <h3>1. 權威資料與 outbox 同時提交</h3>
+      <p>
+        MySQL 保存影片狀態與可見性。每次可見性或發布狀態變更，都遞增
+        Video.metadata_revision；transactional outbox
+        在同一筆交易記下事件，避免漏發。
+      </p>
+      <p class="vp-models-diagram__accent">提交後 relay 投遞；失敗可重試 ↓</p>
+    </div>
+    <div
+      class="vp-models-diagram__mobile-card vp-models-diagram__mobile-card--stream"
+    >
+      <h3>2. 可重播、至少一次的事件流</h3>
+      <p>
+        中繼資料事件以 event_id 去重，冪等更新；事件攜帶
+        metadata_revision，讀模型拒絕舊修訂覆蓋新狀態。source_generation
+        僅判斷來源／轉碼產物有效性，不用於排序權限變更。
+      </p>
+      <p class="vp-models-diagram__accent">三種讀模型各自追趕 ↓</p>
+    </div>
+    <ul class="vp-models-diagram__list">
+      <li class="vp-models-diagram__mobile-card">
+        <h3>搜尋索引</h3><p>
+          新發布影片可能稍後才找得到；metadata_revision 檢查防止資料倒退。
+        </p>
+      </li>
+      <li class="vp-models-diagram__mobile-card">
+        <h3>推薦讀模型</h3><p>候選與排序可以降級；真正播放仍須檢查授權。</p>
+      </li>
+      <li class="vp-models-diagram__mobile-card">
+        <h3>觀看計數</h3><p>
+          觀看事件另行匯入並獨立去重；計數可延遲，不作授權依據。
+        </p>
+      </li>
+    </ul>
+    <p class="vp-models-diagram__guard-note">
+      讀模型過期或故障，不能繞過權限。播放仍依權威狀態與有效授權。
+    </p>
+  </div>
+  <figcaption id="vp-models-caption">
+    假想影音平台的權威資料與衍生讀模型；這是設計示例，不是 YouTube
+    的內部系統配置。
+  </figcaption>
+</figure>
+
+<style>
+  .vp-models-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vp-models-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vp-models-diagram__mobile {
+    display: none;
+  }
+  .vp-models-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vp-models-diagram__stream {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .vp-models-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vp-models-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13.5px;
+  }
+  .vp-models-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vp-models-diagram__guard {
+    fill: #1d4ed8;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vp-models-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .vp-models-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .vp-models-diagram__list {
+    display: grid;
+    gap: var(--space-md);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .vp-models-diagram__mobile-card {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--dg-rule);
+    background: var(--dg-surface);
+    border-radius: 14px;
+  }
+  .vp-models-diagram__mobile-card--stream {
+    background: var(--dg-surface-2);
+  }
+  .vp-models-diagram__list .vp-models-diagram__mobile-card {
+    margin: 0;
+  }
+  .vp-models-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+  .vp-models-diagram__mobile-card p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .vp-models-diagram__mobile-card .vp-models-diagram__accent,
+  .vp-models-diagram__guard-note {
+    color: #1d4ed8;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    line-height: 1.7;
+  }
+  .vp-models-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+  }
+  :global(:root[data-theme="dark"]) .vp-models-diagram__guard {
+    fill: #93c5fd;
+  }
+  :global(:root[data-theme="dark"])
+    .vp-models-diagram__mobile-card
+    .vp-models-diagram__accent,
+  :global(:root[data-theme="dark"]) .vp-models-diagram__guard-note {
+    color: #93c5fd;
+  }
+  @media (max-width: 48rem) {
+    .vp-models-diagram__desktop {
+      display: none !important;
+    }
+    .vp-models-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

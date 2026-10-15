@@ -1,0 +1,326 @@
+<figure class="vpb-diagram" aria-labelledby="vpb-diagram-caption">
+  <svg
+    class="vpb-diagram__desktop"
+    viewBox="0 0 960 694"
+    role="img"
+    aria-labelledby="vpb-diagram-title vpb-diagram-desc"
+  >
+    <title id="vpb-diagram-title">權限先行，影片直接從 CDN 播放</title>
+    <desc id="vpb-diagram-desc"
+      >播放器先呼叫權限
+      API，檢查觀看者與影片狀態；只有通過後才取得短效、範圍受限的 manifest 及
+      segment 存取憑證。播放器帶憑證直接向 CDN 取影片。CDN
+      每次請求都先驗證授權，即使快取命中也不能略過。權限無法確認時不發憑證，無效憑證在
+      CDN 被拒絕；撤銷有短效憑證的存活窗口，已下載的資料無法收回。</desc
+    >
+    <defs>
+      <marker
+        id="vpb-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"
+        ><path d="M0 0 L8 4 L0 8 Z" class="vpb-diagram__arrowhead"
+        ></path></marker
+      >
+    </defs>
+
+    <rect
+      x="28"
+      y="24"
+      width="904"
+      height="154"
+      rx="14"
+      class="vpb-diagram__control"></rect>
+    <text x="52" y="60" class="vpb-diagram__title"
+      >權限 API：先判斷能不能看</text
+    >
+    <text x="52" y="94" class="vpb-diagram__label"
+      >身分／觀看資格／影片可見性／下架狀態</text
+    >
+    <text x="52" y="126" class="vpb-diagram__detail"
+      >不能確認權限 → 不發憑證（fail closed）</text
+    >
+    <path d="M438 82 V150" class="vpb-diagram__divider"></path>
+    <text x="466" y="94" class="vpb-diagram__label"
+      >通過才發放：短效、限定影片與路徑的憑證</text
+    >
+    <text x="466" y="126" class="vpb-diagram__detail"
+      >同時保護 manifest 與 segment；到期須重新授權。</text
+    >
+    <text x="466" y="150" class="vpb-diagram__detail"
+      >可用簽名 URL 或 cookie，不能只保護播放清單。</text
+    >
+
+    <path d="M100 296 V178" class="vpb-diagram__arrow"></path>
+    <text x="34" y="234" class="vpb-diagram__label">① 查權限</text>
+    <path d="M208 178 V296" class="vpb-diagram__arrow"></path>
+    <text x="222" y="252" class="vpb-diagram__label">② 短效憑證</text>
+
+    <rect
+      x="28"
+      y="296"
+      width="236"
+      height="254"
+      rx="14"
+      class="vpb-diagram__card"></rect>
+    <text x="52" y="332" class="vpb-diagram__title">播放器</text>
+    <rect
+      x="52"
+      y="360"
+      width="188"
+      height="94"
+      rx="10"
+      class="vpb-diagram__screen"></rect>
+    <path d="M132 384 L132 429 L168 406 Z" class="vpb-diagram__play"></path>
+    <text x="52" y="490" class="vpb-diagram__label">影片 bytes 不經 API</text>
+    <text x="52" y="521" class="vpb-diagram__detail"
+      >後續分片持續攜帶有效憑證</text
+    >
+
+    <path d="M264 370 H446" class="vpb-diagram__arrow"></path>
+    <text x="284" y="350" class="vpb-diagram__label">③ 請求 + 憑證</text>
+    <path d="M446 450 H264" class="vpb-diagram__arrow vpb-diagram__arrow--bytes"
+    ></path>
+    <text x="284" y="478" class="vpb-diagram__label">④ 影片 bytes</text>
+
+    <rect
+      x="446"
+      y="296"
+      width="486"
+      height="254"
+      rx="14"
+      class="vpb-diagram__card"></rect>
+    <text x="470" y="332" class="vpb-diagram__title"
+      >CDN：快取命中也要先驗授權</text
+    >
+    <rect
+      x="470"
+      y="362"
+      width="168"
+      height="130"
+      rx="10"
+      class="vpb-diagram__gate"></rect>
+    <text x="490" y="394" class="vpb-diagram__label">每次請求先驗證</text>
+    <text x="490" y="424" class="vpb-diagram__detail">簽名、範圍、期限</text>
+    <text x="490" y="463" class="vpb-diagram__label">無效 → 拒絕</text>
+    <path d="M638 422 H684" class="vpb-diagram__arrow"></path>
+    <rect
+      x="684"
+      y="362"
+      width="224"
+      height="130"
+      rx="10"
+      class="vpb-diagram__screen"></rect>
+    <text x="704" y="394" class="vpb-diagram__label">授權通過才取資料</text>
+    <text x="704" y="424" class="vpb-diagram__detail"
+      >命中 → 快取回傳 bytes</text
+    >
+    <text x="704" y="454" class="vpb-diagram__detail">未命中 → 私有 origin</text
+    >
+    <text x="470" y="523" class="vpb-diagram__detail"
+      >origin 僅接受受信任 CDN 存取，避免繞過邊緣授權。</text
+    >
+
+    <rect
+      x="28"
+      y="590"
+      width="904"
+      height="80"
+      rx="12"
+      class="vpb-diagram__note-card"></rect>
+    <text x="52" y="622" class="vpb-diagram__label"
+      >撤銷有邊界：停止新授權，並讓既有短效憑證失效或到期。</text
+    >
+    <text x="52" y="648" class="vpb-diagram__detail"
+      >短效憑證仍有存活窗口；已下載到裝置的 bytes 無法收回。</text
+    >
+  </svg>
+
+  <div class="vpb-diagram__mobile">
+    <div class="vpb-diagram__mobile-card vpb-diagram__mobile-card--control">
+      <strong>1．播放器先呼叫權限 API</strong><p>
+        檢查身分、觀看資格、影片可見性與下架狀態。不能確認權限，就不發憑證。
+      </p>
+    </div>
+    <p class="vpb-diagram__connector" aria-hidden="true">↓ 授權通過</p>
+    <div class="vpb-diagram__mobile-card">
+      <strong>2．取得短效、限範圍憑證</strong><p>
+        manifest 和每個 segment 都必須受保護；可使用簽名 URL 或
+        cookie。憑證到期須重新授權。
+      </p>
+    </div>
+    <p class="vpb-diagram__connector" aria-hidden="true">
+      ↓ 播放器帶憑證直連 CDN
+    </p>
+    <div class="vpb-diagram__mobile-card vpb-diagram__mobile-card--gate">
+      <strong>3．CDN 每次都先驗證授權</strong><p>
+        驗證簽名、範圍與到期時間。快取命中也不能略過；無效憑證直接拒絕。
+      </p>
+    </div>
+    <p class="vpb-diagram__connector" aria-hidden="true">↓ 授權有效</p>
+    <div class="vpb-diagram__mobile-card">
+      <strong>4．CDN 直接回傳影片 bytes</strong><p>
+        命中就從快取取資料，未命中才回源。origin 只接受受信任 CDN，影片 bytes
+        不繞經權限 API。
+      </p>
+    </div>
+    <p class="vpb-diagram__note">
+      <strong>撤銷的邊界</strong
+      >停止新授權後，既有短效憑證仍須失效或到期。已下載的 bytes 無法收回。
+    </p>
+  </div>
+  <figcaption id="vpb-diagram-caption">
+    權限 API 決定誰能取得播放資格，CDN
+    負責每次存取驗證與影音傳輸；快取不能成為授權旁路。
+  </figcaption>
+</figure>
+
+<style>
+  .vpb-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vpb-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vpb-diagram__mobile {
+    display: none;
+  }
+  .vpb-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vpb-diagram__screen,
+  .vpb-diagram__note-card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vpb-diagram__control {
+    fill: #eff6ff;
+    stroke: #1d4ed8;
+    stroke-width: 1.5;
+  }
+  .vpb-diagram__gate {
+    fill: #edf8f5;
+    stroke: #0f766e;
+    stroke-width: 1.5;
+  }
+  .vpb-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vpb-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vpb-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13px;
+  }
+  .vpb-diagram__play {
+    fill: var(--dg-muted);
+  }
+  .vpb-diagram__divider {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .vpb-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#vpb-arrow);
+  }
+  .vpb-diagram__arrowhead {
+    fill: var(--dg-rule-strong);
+  }
+  .vpb-diagram__arrow--bytes {
+    stroke: #0f766e;
+    stroke-width: 3;
+  }
+  .vpb-diagram__mobile-card {
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    background: var(--dg-surface);
+    color: var(--dg-ink-2);
+  }
+  .vpb-diagram__mobile-card strong,
+  .vpb-diagram__note strong {
+    display: block;
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .vpb-diagram__mobile-card p {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  .vpb-diagram__mobile-card--control {
+    border-color: #1d4ed8;
+    background: #eff6ff;
+  }
+  .vpb-diagram__mobile-card--gate {
+    border-color: #0f766e;
+    background: #edf8f5;
+  }
+  .vpb-diagram__connector {
+    margin: var(--space-sm) 0;
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-align: center;
+  }
+  .vpb-diagram__note {
+    margin: var(--space-md) 0 0;
+    padding: var(--space-md);
+    border-radius: 12px;
+    background: var(--dg-surface-2);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  .vpb-diagram__note strong {
+    margin-bottom: var(--space-xs);
+  }
+  .vpb-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .vpb-diagram__control {
+    fill: #172d49;
+    stroke: #93c5fd;
+  }
+  :global(:root[data-theme="dark"]) .vpb-diagram__gate {
+    fill: #17342f;
+    stroke: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .vpb-diagram__arrow--bytes {
+    stroke: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .vpb-diagram__mobile-card--control {
+    border-color: #93c5fd;
+    background: #172d49;
+  }
+  :global(:root[data-theme="dark"]) .vpb-diagram__mobile-card--gate {
+    border-color: #5eead4;
+    background: #17342f;
+  }
+  @media (max-width: 48rem) {
+    .vpb-diagram__desktop {
+      display: none !important;
+    }
+    .vpb-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
