@@ -1,0 +1,320 @@
+<figure class="vp-failure-diagram" aria-labelledby="vp-failure-caption">
+  <svg
+    class="vp-failure-diagram__desktop"
+    viewBox="0 0 960 590"
+    role="img"
+    aria-labelledby="vp-failure-title vp-failure-desc"
+  >
+    <title id="vp-failure-title">三種故障，三種不同的影響範圍</title>
+    <desc id="vp-failure-desc"
+      >這是假想影音平台的故障隔離示例。工作佇列停滯會延後新影片的處理與發布，既有影片的獨立播放路徑可以不受影響。中繼資料或授權服務失效時，不能確認權限就拒絕新授權，不可將影片當作公開；既有授權依期限、撤銷機制與既定政策處理。來源屏障或物件儲存故障時，快取命中可能在授權仍有效的條件下繼續，但未命中的內容無法取回，快取也不能讓舊權限無限有效。</desc
+    >
+    <text x="30" y="32" class="vp-failure-diagram__title"
+      >故障範圍，取決於哪條依賴斷了</text
+    >
+    <text x="30" y="58" class="vp-failure-diagram__detail"
+      >假想平台的三個情境：可用性降級，不等於放寬存取權限。</text
+    >
+
+    <rect
+      x="30"
+      y="84"
+      width="900"
+      height="134"
+      rx="14"
+      class="vp-failure-diagram__card"></rect>
+    <rect
+      x="30"
+      y="106"
+      width="5"
+      height="90"
+      rx="2"
+      class="vp-failure-diagram__bar--delay"></rect>
+    <text x="56" y="116" class="vp-failure-diagram__title">01 工作佇列停滯</text
+    >
+    <text x="56" y="146" class="vp-failure-diagram__detail"
+      >上傳完成，卻等不到處理結果</text
+    >
+    <text x="56" y="174" class="vp-failure-diagram__detail"
+      >卡在轉碼或發布前的工作</text
+    >
+    <path d="M 344 108 V 194" class="vp-failure-diagram__divider"></path>
+    <text x="370" y="124" class="vp-failure-diagram__label--delay">受影響</text>
+    <text x="468" y="124" class="vp-failure-diagram__body"
+      >新影片的處理／發布延後</text
+    >
+    <text x="370" y="166" class="vp-failure-diagram__label--continue"
+      >仍可繼續</text
+    >
+    <text x="468" y="166" class="vp-failure-diagram__body"
+      >既有已發布影片的獨立播放路徑</text
+    >
+    <text x="468" y="190" class="vp-failure-diagram__detail"
+      >前提：播放沒有同步依賴這條工作佇列</text
+    >
+
+    <rect
+      x="30"
+      y="240"
+      width="900"
+      height="134"
+      rx="14"
+      class="vp-failure-diagram__card"></rect>
+    <rect
+      x="30"
+      y="262"
+      width="5"
+      height="90"
+      rx="2"
+      class="vp-failure-diagram__bar--deny"></rect>
+    <text x="56" y="272" class="vp-failure-diagram__title"
+      >02 中繼資料／授權失效</text
+    >
+    <text x="56" y="302" class="vp-failure-diagram__detail"
+      >無法確認可見性或播放權限</text
+    >
+    <text x="56" y="330" class="vp-failure-diagram__detail"
+      >不能以「應該公開」作為預設</text
+    >
+    <path d="M 344 264 V 350" class="vp-failure-diagram__divider"></path>
+    <text x="370" y="280" class="vp-failure-diagram__label--deny">必要限制</text
+    >
+    <text x="468" y="280" class="vp-failure-diagram__body"
+      >拒絕新授權；不可預設影片公開</text
+    >
+    <text x="370" y="322" class="vp-failure-diagram__label">既有授權</text>
+    <text x="468" y="322" class="vp-failure-diagram__body"
+      >僅依期限、撤銷機制與既定政策使用</text
+    >
+    <text x="468" y="346" class="vp-failure-diagram__detail"
+      >無法滿足驗證條件時，也不能繼續放行</text
+    >
+
+    <rect
+      x="30"
+      y="396"
+      width="900"
+      height="134"
+      rx="14"
+      class="vp-failure-diagram__card"></rect>
+    <rect
+      x="30"
+      y="418"
+      width="5"
+      height="90"
+      rx="2"
+      class="vp-failure-diagram__bar--delay"></rect>
+    <text x="56" y="428" class="vp-failure-diagram__title"
+      >03 Shield／Origin 失效</text
+    >
+    <text x="56" y="458" class="vp-failure-diagram__detail"
+      >回源層不可用，冷內容取回失敗</text
+    >
+    <text x="56" y="486" class="vp-failure-diagram__detail"
+      >影響依快取所在層與命中情況而異</text
+    >
+    <path d="M 344 420 V 506" class="vp-failure-diagram__divider"></path>
+    <text x="370" y="436" class="vp-failure-diagram__label--continue"
+      >快取命中</text
+    >
+    <text x="468" y="436" class="vp-failure-diagram__body"
+      >仍須驗證有效授權，才可能繼續送出</text
+    >
+    <text x="370" y="478" class="vp-failure-diagram__label--delay">未命中</text>
+    <text x="468" y="478" class="vp-failure-diagram__body"
+      >若須讀取失效層，則無法取得內容</text
+    >
+    <text x="468" y="502" class="vp-failure-diagram__detail"
+      >快取命中不能讓舊權限無限延長</text
+    >
+    <text x="30" y="564" class="vp-failure-diagram__detail"
+      >服務畫成不同方塊，不代表已完成隔離；還要檢查同步依賴、授權期限與降級策略。</text
+    >
+  </svg>
+
+  <div class="vp-failure-diagram__mobile">
+    <section class="vp-failure-diagram__mobile-card">
+      <h3>01 工作佇列停滯</h3>
+      <p>上傳完成，卻等不到處理或發布結果。</p>
+      <dl>
+        <dt class="vp-failure-diagram__delay">受影響</dt><dd>
+          新影片的處理／發布延後。
+        </dd>
+        <dt class="vp-failure-diagram__continue">仍可繼續</dt><dd>
+          既有已發布影片的播放，前提是播放路徑沒有同步依賴這條佇列。
+        </dd>
+      </dl>
+    </section>
+    <section class="vp-failure-diagram__mobile-card">
+      <h3>02 中繼資料／授權失效</h3>
+      <p>無法確認可見性或播放權限。</p>
+      <dl>
+        <dt class="vp-failure-diagram__deny">必要限制</dt><dd>
+          拒絕新授權；不可預設影片公開。
+        </dd>
+        <dt>既有授權</dt><dd>
+          依期限、撤銷機制與既定政策使用。無法滿足驗證條件，也不能繼續放行。
+        </dd>
+      </dl>
+    </section>
+    <section class="vp-failure-diagram__mobile-card">
+      <h3>03 Shield／Origin 失效</h3>
+      <p>回源層不可用；影響依快取所在層與命中情況而異。</p>
+      <dl>
+        <dt class="vp-failure-diagram__continue">快取命中</dt><dd>
+          仍須驗證有效授權，才可能繼續送出。
+        </dd>
+        <dt class="vp-failure-diagram__delay">未命中</dt><dd>
+          若須讀取失效層，則無法取得內容。快取命中不能讓舊權限無限延長。
+        </dd>
+      </dl>
+    </section>
+    <p class="vp-failure-diagram__note">
+      畫成不同服務，不代表已完成隔離；仍須檢查同步依賴、授權期限與降級策略。
+    </p>
+  </div>
+  <figcaption id="vp-failure-caption">
+    假想影音平台的故障隔離示例；可繼續服務的範圍，必須同時滿足依賴隔離與存取控制。
+  </figcaption>
+</figure>
+
+<style>
+  .vp-failure-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vp-failure-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vp-failure-diagram__mobile {
+    display: none;
+  }
+  .vp-failure-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vp-failure-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vp-failure-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13.5px;
+  }
+  .vp-failure-diagram__body {
+    fill: var(--dg-ink);
+    font-size: 14px;
+  }
+  .vp-failure-diagram__label,
+  .vp-failure-diagram__label--delay,
+  .vp-failure-diagram__label--continue,
+  .vp-failure-diagram__label--deny {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vp-failure-diagram__bar--delay,
+  .vp-failure-diagram__label--delay {
+    fill: #92400e;
+  }
+  .vp-failure-diagram__bar--deny,
+  .vp-failure-diagram__label--deny {
+    fill: #b91c1c;
+  }
+  .vp-failure-diagram__label--continue {
+    fill: #047857;
+  }
+  .vp-failure-diagram__divider {
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vp-failure-diagram__mobile-card {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule);
+    border-radius: 14px;
+  }
+  .vp-failure-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+    line-height: 1.5;
+  }
+  .vp-failure-diagram__mobile-card p,
+  .vp-failure-diagram__mobile-card dd,
+  .vp-failure-diagram__note {
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .vp-failure-diagram__mobile-card p {
+    margin: 0;
+  }
+  .vp-failure-diagram__mobile-card dl {
+    margin: var(--space-sm) 0 0;
+  }
+  .vp-failure-diagram__mobile-card dt {
+    margin-top: var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+  .vp-failure-diagram__mobile-card dd {
+    margin: var(--space-2xs) 0 0;
+  }
+  .vp-failure-diagram__mobile-card .vp-failure-diagram__delay {
+    color: #92400e;
+  }
+  .vp-failure-diagram__mobile-card .vp-failure-diagram__deny {
+    color: #b91c1c;
+  }
+  .vp-failure-diagram__mobile-card .vp-failure-diagram__continue {
+    color: #047857;
+  }
+  .vp-failure-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+  }
+  :global(:root[data-theme="dark"]) .vp-failure-diagram__bar--delay,
+  :global(:root[data-theme="dark"]) .vp-failure-diagram__label--delay {
+    fill: #fcd34d;
+  }
+  :global(:root[data-theme="dark"]) .vp-failure-diagram__bar--deny,
+  :global(:root[data-theme="dark"]) .vp-failure-diagram__label--deny {
+    fill: #fca5a5;
+  }
+  :global(:root[data-theme="dark"]) .vp-failure-diagram__label--continue {
+    fill: #6ee7b7;
+  }
+  :global(:root[data-theme="dark"])
+    .vp-failure-diagram__mobile-card
+    .vp-failure-diagram__delay {
+    color: #fcd34d;
+  }
+  :global(:root[data-theme="dark"])
+    .vp-failure-diagram__mobile-card
+    .vp-failure-diagram__deny {
+    color: #fca5a5;
+  }
+  :global(:root[data-theme="dark"])
+    .vp-failure-diagram__mobile-card
+    .vp-failure-diagram__continue {
+    color: #6ee7b7;
+  }
+  @media (max-width: 48rem) {
+    .vp-failure-diagram__desktop {
+      display: none !important;
+    }
+    .vp-failure-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

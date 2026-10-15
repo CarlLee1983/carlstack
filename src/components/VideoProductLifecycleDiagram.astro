@@ -1,0 +1,419 @@
+---
+// Original diagram for the proposed YouTube-like product design, not YouTube internals.
+---
+
+<figure
+  class="video-product-lifecycle-diagram"
+  aria-labelledby="video-product-lifecycle-caption"
+>
+  <svg
+    class="video-product-lifecycle-diagram__desktop"
+    viewBox="0 0 960 678"
+    role="img"
+    aria-labelledby="video-product-lifecycle-title video-product-lifecycle-desc"
+  >
+    <title id="video-product-lifecycle-title">
+      傳輸、資產與影片可見性的三個獨立生命週期
+    </title>
+    <desc id="video-product-lifecycle-desc"
+      >UploadSession 管理原檔傳輸，MediaAsset 管理指定版本的產物處理，Video
+      管理公開、未公開或私密的可見性。只有目前 generation
+      的最低資產通過驗證、產品規則允許且影片未下架，才能在交易中啟用播放資產；私密影片亦適用。</desc
+    >
+    <defs
+      ><marker
+        id="video-product-lifecycle-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path
+          class="video-product-lifecycle-diagram__head"
+          d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text class="video-product-lifecycle-diagram__title" x="24" y="32"
+      >不要把三種生命週期塞進一個 status</text
+    ><rect
+      class="video-product-lifecycle-diagram__panel"
+      x="20"
+      y="68"
+      width="920"
+      height="130"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="40"
+      y="99">UploadSession</text
+    ><text class="video-product-lifecycle-diagram__body" x="40" y="126"
+      >傳輸進度</text
+    ><rect
+      class="video-product-lifecycle-diagram__card"
+      x="290"
+      y="88"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="378"
+      y="118"
+      text-anchor="middle">created</text
+    ><path
+      class="video-product-lifecycle-diagram__arrow"
+      d="M 466 112 H 508"
+      marker-end="url(#video-product-lifecycle-arrow)"></path><rect
+      class="video-product-lifecycle-diagram__card"
+      x="508"
+      y="88"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="596"
+      y="118"
+      text-anchor="middle">uploading</text
+    ><path
+      class="video-product-lifecycle-diagram__arrow"
+      d="M 684 112 H 726"
+      marker-end="url(#video-product-lifecycle-arrow)"></path><rect
+      class="video-product-lifecycle-diagram__card"
+      x="726"
+      y="88"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="814"
+      y="118"
+      text-anchor="middle">verified</text
+    ><text class="video-product-lifecycle-diagram__body" x="290" y="171"
+      >確認原檔完整；可另走 aborted / expired</text
+    ><rect
+      class="video-product-lifecycle-diagram__panel"
+      x="20"
+      y="218"
+      width="920"
+      height="130"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="40"
+      y="249">MediaAsset</text
+    ><text class="video-product-lifecycle-diagram__body" x="40" y="276"
+      >特定版本的產物</text
+    ><rect
+      class="video-product-lifecycle-diagram__card"
+      x="290"
+      y="238"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="378"
+      y="268"
+      text-anchor="middle">pending</text
+    ><path
+      class="video-product-lifecycle-diagram__arrow"
+      d="M 466 262 H 508"
+      marker-end="url(#video-product-lifecycle-arrow)"></path><rect
+      class="video-product-lifecycle-diagram__card"
+      x="508"
+      y="238"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="596"
+      y="268"
+      text-anchor="middle">processing</text
+    ><path
+      class="video-product-lifecycle-diagram__arrow"
+      d="M 684 262 H 726"
+      marker-end="url(#video-product-lifecycle-arrow)"></path><rect
+      class="video-product-lifecycle-diagram__card"
+      x="726"
+      y="238"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="814"
+      y="268"
+      text-anchor="middle">ready</text
+    ><text class="video-product-lifecycle-diagram__body" x="290" y="321"
+      >資產可失敗與重試；ready 必須代表驗證通過</text
+    ><rect
+      class="video-product-lifecycle-diagram__panel"
+      x="20"
+      y="368"
+      width="920"
+      height="130"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="40"
+      y="399">Video</text
+    ><text class="video-product-lifecycle-diagram__body" x="40" y="426"
+      >產品可見性</text
+    ><rect
+      class="video-product-lifecycle-diagram__focus"
+      x="290"
+      y="388"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="378"
+      y="418"
+      text-anchor="middle">private</text
+    ><rect
+      class="video-product-lifecycle-diagram__focus"
+      x="508"
+      y="388"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="596"
+      y="418"
+      text-anchor="middle">unlisted</text
+    ><rect
+      class="video-product-lifecycle-diagram__focus"
+      x="726"
+      y="388"
+      width="176"
+      height="48"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__label"
+      x="814"
+      y="418"
+      text-anchor="middle">public</text
+    ><text class="video-product-lifecycle-diagram__body" x="290" y="471"
+      >可見性不是進度；每次變更推進 metadata_revision</text
+    ><rect
+      class="video-product-lifecycle-diagram__warn"
+      x="20"
+      y="530"
+      width="920"
+      height="124"
+      rx="14"></rect><text
+      class="video-product-lifecycle-diagram__warning"
+      x="44"
+      y="564">啟用播放資產是一個條件交易，與公開可見性分開。</text
+    ><text class="video-product-lifecycle-diagram__label" x="44" y="594"
+      >目前 generation ＋ 最低可播資產 ready ＋ 產品審核允許 ＋ 尚未 blocked</text
+    ><text class="video-product-lifecycle-diagram__body" x="44" y="626"
+      >visibility 決定誰能看；播放資產指標
+      決定看哪個版本；下架旗標獨立覆蓋兩者。</text
+    >
+  </svg>
+  <div class="video-product-lifecycle-diagram__mobile">
+    <ol class="video-product-lifecycle-diagram__steps">
+      <li>
+        <span class="video-product-lifecycle-diagram__step-label"
+          >UploadSession · 傳輸</span
+        ><strong>created → uploading → verified</strong><p>
+          只有確認物件與完整性後，才能標為
+          verified。中止與過期走各自的終止路徑。
+        </p>
+      </li><li>
+        <span class="video-product-lifecycle-diagram__step-label"
+          >MediaAsset · 產物</span
+        ><strong>pending → processing → ready</strong><p>
+          每個 generation、格式與解析度各有資產。失敗能重試；ready 代表已驗證。
+        </p>
+      </li><li>
+        <span class="video-product-lifecycle-diagram__step-label"
+          >Video · 可見性</span
+        ><strong>private / unlisted / public</strong><p>
+          三者是可選規則。每次變更推進
+          metadata_revision；下架旗標覆蓋可見性與資產啟用狀態。
+        </p>
+      </li><li>
+        <span class="video-product-lifecycle-diagram__step-label"
+          >播放資產閘門 · 一個交易</span
+        ><strong>私密影片也能啟用可播產物</strong><p>
+          檢查目前 generation、最低資產 ready、審核允許與尚未 blocked，再更新
+          播放資產指標。
+        </p>
+      </li>
+    </ol><p class="video-product-lifecycle-diagram__mobile-note">
+      資產 ready 不會自動變 public；visibility 也不能證明資產可播放。
+    </p>
+  </div>
+  <figcaption id="video-product-lifecycle-caption">
+    圖 3｜分開追蹤傳輸、處理與可見性，再由條件交易啟用播放資產。
+  </figcaption>
+</figure>
+
+<style>
+  .video-product-lifecycle-diagram {
+    margin: var(--space-xl) 0;
+    color: var(--dg-ink);
+  }
+  .video-product-lifecycle-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .video-product-lifecycle-diagram__desktop {
+    overflow: visible;
+  }
+  .video-product-lifecycle-diagram__mobile {
+    display: none;
+  }
+  .video-product-lifecycle-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .video-product-lifecycle-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-lifecycle-diagram__focus {
+    fill: #edf5f0;
+    stroke: #35734c;
+    stroke-width: 1.5;
+  }
+  .video-product-lifecycle-diagram__warn {
+    fill: #fff2e9;
+    stroke: #ad4d17;
+    stroke-width: 1.5;
+  }
+  .video-product-lifecycle-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 14px;
+  }
+  .video-product-lifecycle-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .video-product-lifecycle-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .video-product-lifecycle-diagram__small {
+    fill: var(--dg-muted);
+    font-size: 13px;
+  }
+  .video-product-lifecycle-diagram__accent {
+    fill: #256442;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-lifecycle-diagram__warning {
+    fill: #9a4310;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-lifecycle-diagram__mono {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .video-product-lifecycle-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .video-product-lifecycle-diagram__dashed {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+  }
+  .video-product-lifecycle-diagram__head {
+    fill: var(--dg-rule-strong);
+  }
+  .video-product-lifecycle-diagram__rule {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-lifecycle-diagram__dot {
+    fill: #35734c;
+  }
+  .video-product-lifecycle-diagram__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .video-product-lifecycle-diagram__steps li {
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+  }
+  .video-product-lifecycle-diagram__steps strong {
+    display: block;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--dg-ink);
+  }
+  .video-product-lifecycle-diagram__steps p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .video-product-lifecycle-diagram__step-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: #256442;
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .video-product-lifecycle-diagram__mobile-note {
+    padding: var(--space-md);
+    border-left: 3px solid #ad4d17;
+    background: var(--dg-surface-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--dg-ink-2);
+  }
+  .video-product-lifecycle-diagram figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .video-product-lifecycle-diagram__focus {
+    fill: #183b2b;
+    stroke: #72ba8c;
+  }
+  :global(:root[data-theme="dark"]) .video-product-lifecycle-diagram__warn {
+    fill: #3f2b1c;
+    stroke: #edaa78;
+  }
+  :global(:root[data-theme="dark"]) .video-product-lifecycle-diagram__accent,
+  :global(:root[data-theme="dark"])
+    .video-product-lifecycle-diagram__step-label {
+    fill: #8ed1a8;
+    color: #8ed1a8;
+  }
+  :global(:root[data-theme="dark"]) .video-product-lifecycle-diagram__warning {
+    fill: #f4ba8d;
+  }
+  :global(:root[data-theme="dark"]) .video-product-lifecycle-diagram__dot {
+    fill: #72ba8c;
+  }
+  :global(:root[data-theme="dark"])
+    .video-product-lifecycle-diagram__mobile-note {
+    border-left-color: #edaa78;
+  }
+  @media (max-width: 48rem) {
+    .video-product-lifecycle-diagram__desktop {
+      display: none !important;
+    }
+    .video-product-lifecycle-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

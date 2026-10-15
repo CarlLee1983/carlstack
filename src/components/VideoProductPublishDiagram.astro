@@ -1,0 +1,392 @@
+<figure class="vpp-diagram" aria-labelledby="vpp-diagram-caption">
+  <svg
+    class="vpp-diagram__desktop"
+    viewBox="0 0 960 902"
+    role="img"
+    aria-labelledby="vpp-diagram-title vpp-diagram-desc"
+  >
+    <title id="vpp-diagram-title">工作可重跑，播放資產啟用須通過條件交易</title>
+    <desc id="vpp-diagram-desc"
+      >同一個轉檔 job 可以有多次 attempt，每次使用不覆寫的 source generation 與
+      attempt 路徑。該 job 的租約與 fencing token 防止過期 worker
+      提交，租約期限以 DB
+      時間判斷。啟用交易同時檢查目前原檔世代、啟用政策與最低可播資產， 並以
+      expected bundle revision 做
+      CAS，才原子切換播放資產指標、儲存完成紀錄與寫入 outbox。CAS
+      衝突時重讀目前指標並重組候選 bundle，不能讓跨 job 的舊候選覆蓋
+      已啟用的較完整版本。同一 job、attempt 與 candidate 的重複完成回傳既有
+      receipt， 終態 job 與唯一完成紀錄確保不新增 outbox
+      事件。資產啟用不改影片可見性，私人與不公開影片也可啟用。</desc
+    >
+    <defs>
+      <marker
+        id="vpp-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"
+        ><path d="M0 0 L8 4 L0 8 Z" class="vpp-diagram__arrowhead"
+        ></path></marker
+      >
+    </defs>
+
+    <rect
+      x="28"
+      y="24"
+      width="904"
+      height="98"
+      rx="14"
+      class="vpp-diagram__card"></rect>
+    <text x="52" y="58" class="vpp-diagram__title"
+      >一個 job，多次 attempt；完成通知不等於資產啟用許可</text
+    >
+    <text x="52" y="90" class="vpp-diagram__detail"
+      >video = v42　｜　job = j8　｜　來源 generation = g7　｜　重試沿用
+      job_id，遞增 attempt</text
+    >
+    <path
+      d="M480 122 V146 H238 V182 M480 146 H722 V182"
+      class="vpp-diagram__arrow"></path>
+
+    <rect
+      x="28"
+      y="182"
+      width="420"
+      height="198"
+      rx="14"
+      class="vpp-diagram__secondary"></rect>
+    <text x="52" y="218" class="vpp-diagram__title">attempt 1：租約已過期</text>
+    <text x="52" y="250" class="vpp-diagram__label">該 job 的舊 fence = 41</text
+    >
+    <text x="52" y="278" class="vpp-diagram__detail"
+      >即使恢復運作，也不再有提交權。</text
+    >
+    <rect
+      x="52"
+      y="302"
+      width="372"
+      height="50"
+      rx="8"
+      class="vpp-diagram__path-card"></rect>
+    <text x="70" y="333" class="vpp-diagram__path">/v42/g7/a1/…</text>
+
+    <rect
+      x="512"
+      y="182"
+      width="420"
+      height="198"
+      rx="14"
+      class="vpp-diagram__current"></rect>
+    <text x="536" y="218" class="vpp-diagram__title">attempt 2：當前持有者</text
+    >
+    <text x="536" y="250" class="vpp-diagram__label"
+      >該 job 的新租約 + fence = 42</text
+    >
+    <text x="536" y="278" class="vpp-diagram__detail"
+      >產物另存新路徑，不覆寫舊 attempt。</text
+    >
+    <rect
+      x="536"
+      y="302"
+      width="372"
+      height="50"
+      rx="8"
+      class="vpp-diagram__path-card"></rect>
+    <text x="554" y="333" class="vpp-diagram__path">/v42/g7/a2/…</text>
+
+    <path d="M238 380 V446" class="vpp-diagram__arrow vpp-diagram__arrow--stale"
+    ></path>
+    <path d="M722 380 V446" class="vpp-diagram__arrow"></path>
+    <text x="258" y="414" class="vpp-diagram__detail">遲到／重複完成</text>
+    <text x="742" y="414" class="vpp-diagram__detail">提交完成結果</text>
+
+    <rect
+      x="28"
+      y="446"
+      width="904"
+      height="204"
+      rx="14"
+      class="vpp-diagram__gate"></rect>
+    <text x="52" y="480" class="vpp-diagram__title"
+      >啟用交易：所有條件與去重檢查一起成立</text
+    >
+    <path
+      d="M258 502 V548 M480 502 V548 M702 502 V548"
+      class="vpp-diagram__divider"></path>
+    <text x="52" y="516" class="vpp-diagram__label">source generation = g7</text
+    >
+    <text x="52" y="542" class="vpp-diagram__detail">仍指向目前原檔世代</text>
+    <text x="278" y="516" class="vpp-diagram__label">blocked = false</text>
+    <text x="278" y="542" class="vpp-diagram__detail">目前政策允許啟用資產</text
+    >
+    <text x="500" y="516" class="vpp-diagram__label">最低可播資產已驗證</text>
+    <text x="500" y="542" class="vpp-diagram__detail"
+      >manifest + 必要畫質檔</text
+    >
+    <text x="722" y="516" class="vpp-diagram__label">該 job 的租約與 fence</text
+    >
+    <text x="722" y="542" class="vpp-diagram__detail"
+      >須有效；期限以 DB 時間判斷</text
+    >
+    <path d="M52 566 H908" class="vpp-diagram__divider"></path>
+    <text x="52" y="596" class="vpp-diagram__label"
+      >播放資產指標 CAS：bundle revision 必須等於讀取時的 expected revision</text
+    >
+    <text x="52" y="626" class="vpp-diagram__detail"
+      >source generation 保證原檔有效；bundle revision 防止跨 job
+      的舊候選蓋回較完整的新版本。</text
+    >
+
+    <path d="M238 650 V720 M722 650 V720" class="vpp-diagram__arrow"></path>
+    <text x="258" y="688" class="vpp-diagram__detail">條件失敗／已處理</text>
+    <text x="742" y="688" class="vpp-diagram__detail">全部通過</text>
+    <rect
+      x="28"
+      y="720"
+      width="420"
+      height="154"
+      rx="14"
+      class="vpp-diagram__secondary"></rect>
+    <text x="52" y="754" class="vpp-diagram__title"
+      >重複回既有 receipt；失效拒絕</text
+    >
+    <text x="52" y="785" class="vpp-diagram__detail"
+      >同 job／attempt／candidate 去重</text
+    >
+    <text x="52" y="811" class="vpp-diagram__detail"
+      >終態 job／唯一完成紀錄：不新增 outbox</text
+    >
+    <text x="52" y="837" class="vpp-diagram__detail"
+      >CAS 衝突 → 重讀指標、重組 bundle，再試</text
+    >
+    <rect
+      x="512"
+      y="720"
+      width="420"
+      height="154"
+      rx="14"
+      class="vpp-diagram__current"></rect>
+    <text x="536" y="754" class="vpp-diagram__title">原子切換播放資產指標</text>
+    <text x="536" y="785" class="vpp-diagram__detail"
+      >CAS 成功：bundle revision r12 → r13</text
+    >
+    <text x="536" y="811" class="vpp-diagram__detail"
+      >資產指標 + 完成紀錄 + outbox 同一交易</text
+    >
+    <text x="536" y="837" class="vpp-diagram__detail"
+      >不改影片可見性；觀看仍須通過權限 API。</text
+    >
+  </svg>
+
+  <div class="vpp-diagram__mobile">
+    <div class="vpp-diagram__mobile-card">
+      <strong>一個 job，多次 attempt</strong><p>
+        video v42／job j8／source generation g7。重試沿用
+        job_id，產物寫入不同的不可變路徑。
+      </p>
+    </div>
+    <div class="vpp-diagram__mobile-attempts">
+      <div class="vpp-diagram__mobile-card">
+        <strong>attempt 1：已失去租約</strong><p>
+          該 job 的 fence 41 已過期。即使舊 worker 恢復，也不能提交。
+        </p><span class="vpp-diagram__mobile-path">/v42/g7/a1/…</span>
+      </div>
+      <div class="vpp-diagram__mobile-card vpp-diagram__mobile-card--current">
+        <strong>attempt 2：當前持有者</strong><p>
+          該 job 的新租約與 fence 42。另存新路徑，不覆寫舊產物。
+        </p><span class="vpp-diagram__mobile-path">/v42/g7/a2/…</span>
+      </div>
+    </div>
+    <div class="vpp-diagram__mobile-gate">
+      <strong>↓ 完成事件進入啟用交易</strong><ul>
+        <li>仍是目前的 source generation</li><li>
+          未被封鎖，且目前政策允許啟用資產
+        </li><li>manifest 與最低可播資產已驗證</li><li>
+          該 job 的租約與 fencing token 仍有效，期限以 DB 時間判斷
+        </li><li>
+          播放資產指標的 bundle revision 仍等於讀取時的 expected revision，才能
+          CAS 更新
+        </li>
+      </ul>
+    </div>
+    <div class="vpp-diagram__mobile-card vpp-diagram__mobile-card--current">
+      <strong>全部通過 → 原子啟用資產</strong><p>
+        同一交易以 CAS 切換播放資產指標、儲存完成紀錄與寫入 outbox。bundle
+        revision 由 r12 更新為
+        r13，保留已啟用的較完整資產。這不會改變影片可見性。
+      </p>
+    </div>
+    <div class="vpp-diagram__mobile-card">
+      <strong>失效拒絕，重複回既有 receipt</strong><p>
+        同一 job／attempt／candidate 的重複完成回傳已儲存的結果。終態 job
+        與唯一完成紀錄確保不新增 outbox 事件。 過期 worker 或舊 source
+        generation 不能再次啟用資產。CAS 衝突時重讀目前指標、重組候選
+        bundle，再重試；不能以最後完成者直接覆蓋。
+      </p>
+    </div>
+    <div class="vpp-diagram__mobile-card">
+      <strong>兩種版本，各管一件事</strong><p>
+        source generation 保證原檔仍有效；bundle revision 防止跨 job
+        的較舊候選覆蓋較完整版本。單一 job 的 fence 無法處理跨 job 競爭。
+        私人／不公開影片也可啟用資產，實際觀看仍須通過權限 API。
+      </p>
+    </div>
+  </div>
+  <figcaption id="vpp-diagram-caption">
+    租約與 fencing 限制同一 job 的舊 worker；播放資產指標 CAS 處理跨 job
+    競爭。資產啟用不代表公開，私人／不公開影片仍可在授權後播放。
+  </figcaption>
+</figure>
+
+<style>
+  .vpp-diagram {
+    margin: var(--space-xl) 0;
+    font-family: var(--font-body);
+  }
+  .vpp-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .vpp-diagram__mobile {
+    display: none;
+  }
+  .vpp-diagram__card,
+  .vpp-diagram__path-card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vpp-diagram__secondary {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .vpp-diagram__current {
+    fill: #edf8f5;
+    stroke: #0f766e;
+    stroke-width: 1.5;
+  }
+  .vpp-diagram__gate {
+    fill: #eff6ff;
+    stroke: #1d4ed8;
+    stroke-width: 1.5;
+  }
+  .vpp-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .vpp-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .vpp-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 13px;
+  }
+  .vpp-diagram__path {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+  .vpp-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#vpp-arrow);
+  }
+  .vpp-diagram__arrow--stale {
+    stroke-dasharray: 6 5;
+  }
+  .vpp-diagram__arrowhead {
+    fill: var(--dg-rule-strong);
+  }
+  .vpp-diagram__divider {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1;
+  }
+  .vpp-diagram__mobile-card {
+    margin-bottom: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    background: var(--dg-surface);
+    color: var(--dg-ink-2);
+  }
+  .vpp-diagram__mobile-card strong,
+  .vpp-diagram__mobile-gate strong {
+    display: block;
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .vpp-diagram__mobile-card p {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  .vpp-diagram__mobile-attempts {
+    padding-left: var(--space-sm);
+    border-left: 2px solid var(--dg-rule-strong);
+  }
+  .vpp-diagram__mobile-path {
+    display: block;
+    margin-top: var(--space-sm);
+    padding: var(--space-xs);
+    border-radius: 6px;
+    background: var(--dg-surface-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+  .vpp-diagram__mobile-card--current {
+    border-color: #0f766e;
+    background: #edf8f5;
+  }
+  .vpp-diagram__mobile-gate {
+    margin: var(--space-md) 0;
+    padding: var(--space-md);
+    border: 1px solid #1d4ed8;
+    border-radius: 12px;
+    background: #eff6ff;
+  }
+  .vpp-diagram__mobile-gate ul {
+    margin: var(--space-sm) 0 0;
+    padding-left: var(--space-lg);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.8;
+  }
+  .vpp-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .vpp-diagram__current {
+    fill: #17342f;
+    stroke: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .vpp-diagram__gate {
+    fill: #172d49;
+    stroke: #93c5fd;
+  }
+  :global(:root[data-theme="dark"]) .vpp-diagram__mobile-card--current {
+    border-color: #5eead4;
+    background: #17342f;
+  }
+  :global(:root[data-theme="dark"]) .vpp-diagram__mobile-gate {
+    border-color: #93c5fd;
+    background: #172d49;
+  }
+  @media (max-width: 48rem) {
+    .vpp-diagram__desktop {
+      display: none !important;
+    }
+    .vpp-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

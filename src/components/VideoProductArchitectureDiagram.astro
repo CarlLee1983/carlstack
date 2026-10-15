@@ -1,0 +1,444 @@
+---
+// Original diagram for the proposed YouTube-like product design, not YouTube internals.
+---
+
+<figure
+  class="video-product-architecture-diagram"
+  aria-labelledby="video-product-architecture-caption"
+>
+  <svg
+    class="video-product-architecture-diagram__desktop"
+    viewBox="0 0 960 682"
+    role="img"
+    aria-labelledby="video-product-architecture-title video-product-architecture-desc"
+  >
+    <title id="video-product-architecture-title">
+      模組化單體、MySQL 與獨立影音傳輸的最小架構
+    </title>
+    <desc id="video-product-architecture-desc"
+      >控制路徑由模組化單體 API 與 MySQL 負責。已提交的 outbox 事件經 relay
+      和持久佇列交給 worker。創作者直接上傳物件儲存，轉碼產物經 CDN
+      到播放器，影音不穿過 API。</desc
+    >
+    <defs
+      ><marker
+        id="video-product-architecture-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path
+          class="video-product-architecture-diagram__head"
+          d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text class="video-product-architecture-diagram__title" x="24" y="32"
+      >第一版：模組化單體管理規則，影音走獨立資料路徑</text
+    ><rect
+      class="video-product-architecture-diagram__panel"
+      x="20"
+      y="66"
+      width="920"
+      height="202"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__accent"
+      x="40"
+      y="96">控制路徑 · 小資料、交易與權限</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="40"
+      y="120"
+      width="175"
+      height="120"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="58"
+      y="151">創作者／播放器</text
+    ><text class="video-product-architecture-diagram__body" x="58" y="180"
+      >建立上傳、改可見性</text
+    ><text class="video-product-architecture-diagram__body" x="58" y="205"
+      >請求播放授權</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="285"
+      y="120"
+      width="330"
+      height="120"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="303"
+      y="151">模組化單體 API</text
+    ><text class="video-product-architecture-diagram__body" x="303" y="180"
+      >Upload / Video / Playback 模組</text
+    ><text class="video-product-architecture-diagram__body" x="303" y="205"
+      >先共用部署，保留明確責任</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="685"
+      y="120"
+      width="230"
+      height="120"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="703"
+      y="151">MySQL</text
+    ><text class="video-product-architecture-diagram__body" x="703" y="180"
+      >影片、資產與工作狀態</text
+    ><text class="video-product-architecture-diagram__body" x="703" y="205"
+      >同一交易寫入 outbox</text
+    ><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 215 178 H 285"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 615 178 H 685"
+      marker-end="url(#video-product-architecture-arrow)"></path><rect
+      class="video-product-architecture-diagram__panel"
+      x="20"
+      y="298"
+      width="920"
+      height="160"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__accent"
+      x="40"
+      y="328">背景路徑 · 允許重試，不能重複發布</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="40"
+      y="352"
+      width="250"
+      height="80"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="56"
+      y="382">Outbox relay</text
+    ><text class="video-product-architecture-diagram__body" x="56" y="408"
+      >讀取已提交事件，再送出</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="355"
+      y="352"
+      width="230"
+      height="80"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="371"
+      y="382">持久工作佇列</text
+    ><text class="video-product-architecture-diagram__body" x="371" y="408"
+      >攜帶 job ID；允許重送</text
+    ><rect
+      class="video-product-architecture-diagram__card"
+      x="650"
+      y="352"
+      width="265"
+      height="80"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="666"
+      y="382">轉碼 worker</text
+    ><text class="video-product-architecture-diagram__body" x="666" y="408"
+      >版本化產物；完成後條件提交</text
+    ><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 290 392 H 355"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 585 392 H 650"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__dashed"
+      d="M 800 240 V 282 H 28 V 392 H 40"
+      marker-end="url(#video-product-architecture-arrow)"></path><rect
+      class="video-product-architecture-diagram__panel"
+      x="20"
+      y="488"
+      width="920"
+      height="170"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__accent"
+      x="40"
+      y="518">影音位元組路徑 · API 不代理大檔傳輸</text
+    ><rect
+      class="video-product-architecture-diagram__focus"
+      x="40"
+      y="546"
+      width="175"
+      height="82"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="127.5"
+      y="576"
+      text-anchor="middle">創作者</text
+    ><text
+      class="video-product-architecture-diagram__body"
+      x="127.5"
+      y="602"
+      text-anchor="middle">直接分塊上傳</text
+    ><rect
+      class="video-product-architecture-diagram__focus"
+      x="285"
+      y="546"
+      width="260"
+      height="82"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="415.0"
+      y="576"
+      text-anchor="middle">物件儲存</text
+    ><text
+      class="video-product-architecture-diagram__body"
+      x="415.0"
+      y="602"
+      text-anchor="middle">原檔 / 不可變版本產物</text
+    ><rect
+      class="video-product-architecture-diagram__focus"
+      x="615"
+      y="546"
+      width="135"
+      height="82"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="682.5"
+      y="576"
+      text-anchor="middle">CDN</text
+    ><text
+      class="video-product-architecture-diagram__body"
+      x="682.5"
+      y="602"
+      text-anchor="middle">授權＋快取</text
+    ><rect
+      class="video-product-architecture-diagram__focus"
+      x="820"
+      y="546"
+      width="95"
+      height="82"
+      rx="14"></rect><text
+      class="video-product-architecture-diagram__label"
+      x="867.5"
+      y="576"
+      text-anchor="middle">播放器</text
+    ><text
+      class="video-product-architecture-diagram__body"
+      x="867.5"
+      y="602"
+      text-anchor="middle">分段下載</text
+    ><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 215 587 H 285"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 545 587 H 615"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__arrow"
+      d="M 750 587 H 820"
+      marker-end="url(#video-product-architecture-arrow)"></path><path
+      class="video-product-architecture-diagram__dashed"
+      d="M 782 432 V 474 H 415 V 546"
+      marker-end="url(#video-product-architecture-arrow)"></path>
+  </svg>
+  <div class="video-product-architecture-diagram__mobile">
+    <ol class="video-product-architecture-diagram__steps">
+      <li>
+        <span class="video-product-architecture-diagram__step-label"
+          >控制路徑</span
+        ><strong>客戶端 → 模組化單體 API → MySQL</strong><p>
+          Upload、Video、Playback 模組先共用部署。影片狀態與 outbox
+          事件在同一交易提交。
+        </p>
+      </li><li>
+        <span class="video-product-architecture-diagram__step-label"
+          >背景路徑</span
+        ><strong>Outbox relay → 持久佇列 → worker</strong><p>
+          事件可重送，工作可重試；以 job ID、產物版本與條件提交守住發布邊界。
+        </p>
+      </li><li>
+        <span class="video-product-architecture-diagram__step-label"
+          >影音位元組路徑</span
+        ><strong>創作者 → 物件儲存 → CDN → 播放器</strong><p>
+          創作者直接分塊上傳；worker 讀原檔、寫版本化產物。API 不代理大檔。
+        </p>
+      </li>
+    </ol><p class="video-product-architecture-diagram__mobile-note">
+      線路分開是為了分開擴充與故障影響，不代表第一版就要拆成微服務。
+    </p>
+  </div>
+  <figcaption id="video-product-architecture-caption">
+    圖
+    2｜實線是主要請求或資料方向，虛線跨接非同步工作；控制、處理與位元組傳輸各有責任。
+  </figcaption>
+</figure>
+
+<style>
+  .video-product-architecture-diagram {
+    margin: var(--space-xl) 0;
+    color: var(--dg-ink);
+  }
+  .video-product-architecture-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .video-product-architecture-diagram__desktop {
+    overflow: visible;
+  }
+  .video-product-architecture-diagram__mobile {
+    display: none;
+  }
+  .video-product-architecture-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .video-product-architecture-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-architecture-diagram__focus {
+    fill: #edf5f0;
+    stroke: #35734c;
+    stroke-width: 1.5;
+  }
+  .video-product-architecture-diagram__warn {
+    fill: #fff2e9;
+    stroke: #ad4d17;
+    stroke-width: 1.5;
+  }
+  .video-product-architecture-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 14px;
+  }
+  .video-product-architecture-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .video-product-architecture-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .video-product-architecture-diagram__small {
+    fill: var(--dg-muted);
+    font-size: 13px;
+  }
+  .video-product-architecture-diagram__accent {
+    fill: #256442;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-architecture-diagram__warning {
+    fill: #9a4310;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-architecture-diagram__mono {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .video-product-architecture-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .video-product-architecture-diagram__dashed {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+  }
+  .video-product-architecture-diagram__head {
+    fill: var(--dg-rule-strong);
+  }
+  .video-product-architecture-diagram__rule {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-architecture-diagram__dot {
+    fill: #35734c;
+  }
+  .video-product-architecture-diagram__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .video-product-architecture-diagram__steps li {
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+  }
+  .video-product-architecture-diagram__steps strong {
+    display: block;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--dg-ink);
+  }
+  .video-product-architecture-diagram__steps p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .video-product-architecture-diagram__step-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: #256442;
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .video-product-architecture-diagram__mobile-note {
+    padding: var(--space-md);
+    border-left: 3px solid #ad4d17;
+    background: var(--dg-surface-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--dg-ink-2);
+  }
+  .video-product-architecture-diagram figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .video-product-architecture-diagram__focus {
+    fill: #183b2b;
+    stroke: #72ba8c;
+  }
+  :global(:root[data-theme="dark"]) .video-product-architecture-diagram__warn {
+    fill: #3f2b1c;
+    stroke: #edaa78;
+  }
+  :global(:root[data-theme="dark"]) .video-product-architecture-diagram__accent,
+  :global(:root[data-theme="dark"])
+    .video-product-architecture-diagram__step-label {
+    fill: #8ed1a8;
+    color: #8ed1a8;
+  }
+  :global(:root[data-theme="dark"])
+    .video-product-architecture-diagram__warning {
+    fill: #f4ba8d;
+  }
+  :global(:root[data-theme="dark"]) .video-product-architecture-diagram__dot {
+    fill: #72ba8c;
+  }
+  :global(:root[data-theme="dark"])
+    .video-product-architecture-diagram__mobile-note {
+    border-left-color: #edaa78;
+  }
+  @media (max-width: 48rem) {
+    .video-product-architecture-diagram__desktop {
+      display: none !important;
+    }
+    .video-product-architecture-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

@@ -1,0 +1,351 @@
+---
+// Original diagram for the proposed YouTube-like product design, not YouTube internals.
+---
+
+<figure
+  class="video-product-takedown-diagram"
+  aria-labelledby="video-product-takedown-caption"
+>
+  <svg
+    class="video-product-takedown-diagram__desktop"
+    viewBox="0 0 960 664"
+    role="img"
+    aria-labelledby="video-product-takedown-title video-product-takedown-desc"
+  >
+    <title id="video-product-takedown-title">
+      下架交易、舊工作防復活與各層收斂的時間線
+    </title>
+    <desc id="video-product-takedown-desc"
+      >下架先在權威資料庫標記 blocked 並增加 generation，立即拒絕新的授權。舊
+      worker 持有舊 generation，條件更新會失敗。搜尋推薦、CDN
+      與儲存依序收斂；已發出的憑證有到期窗口，已下載內容不可收回。</desc
+    >
+    <defs
+      ><marker
+        id="video-product-takedown-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path
+          class="video-product-takedown-diagram__head"
+          d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text class="video-product-takedown-diagram__title" x="24" y="32"
+      >下架的第一步：撤銷未來資格，而不是先等檔案刪光</text
+    ><rect
+      class="video-product-takedown-diagram__warn"
+      x="20"
+      y="70"
+      width="920"
+      height="118"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__warning"
+      x="44"
+      y="105">T0 · 權威資料庫交易</text
+    ><text class="video-product-takedown-diagram__label" x="44" y="137"
+      >blocked = true；generation 41 → 42；metadata_revision++</text
+    ><text class="video-product-takedown-diagram__body" x="44" y="164"
+      >同一交易寫入 outbox，新授權拒絕；授權快取需明列最長陳舊窗口。</text
+    ><rect
+      class="video-product-takedown-diagram__card"
+      x="20"
+      y="228"
+      width="442"
+      height="148"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__label"
+      x="44"
+      y="263">播放入口：停止新授權</text
+    ><text class="video-product-takedown-diagram__body" x="44" y="293"
+      >所有可見性一律拒絕，包括 direct URL。</text
+    ><text class="video-product-takedown-diagram__body" x="44" y="320"
+      >已發出的短效憑證仍有到期窗口；</text
+    ><text class="video-product-takedown-diagram__body" x="44" y="347"
+      >更快撤銷需要邊緣 denylist / epoch 檢查。</text
+    ><rect
+      class="video-product-takedown-diagram__card"
+      x="498"
+      y="228"
+      width="442"
+      height="148"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__label"
+      x="522"
+      y="263">舊 worker：拒絕過期提交</text
+    ><text class="video-product-takedown-diagram__body" x="522" y="293"
+      >worker 手上仍是 generation 41。</text
+    ><text class="video-product-takedown-diagram__body" x="522" y="320"
+      >條件更新要求 generation = 41 且未下架，</text
+    ><text class="video-product-takedown-diagram__body" x="522" y="347"
+      >資料庫已是 42 → CAS 失敗，不可復活。</text
+    ><path
+      class="video-product-takedown-diagram__arrow"
+      d="M 480 188 V 210 H 241 V 228"
+      marker-end="url(#video-product-takedown-arrow)"></path><path
+      class="video-product-takedown-diagram__arrow"
+      d="M 480 210 H 719 V 228"
+      marker-end="url(#video-product-takedown-arrow)"></path><text
+      class="video-product-takedown-diagram__accent"
+      x="24"
+      y="420">之後逐步收斂：每一層都要可重試、可觀測</text
+    ><rect
+      class="video-product-takedown-diagram__panel"
+      x="20"
+      y="442"
+      width="284"
+      height="100"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__label"
+      x="40"
+      y="477">搜尋與推薦移除</text
+    ><text class="video-product-takedown-diagram__body" x="40" y="508"
+      >版本化 tombstone 擋住舊事件</text
+    ><rect
+      class="video-product-takedown-diagram__panel"
+      x="338"
+      y="442"
+      width="284"
+      height="100"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__label"
+      x="358"
+      y="477">CDN 清除快取</text
+    ><text class="video-product-takedown-diagram__body" x="358" y="508"
+      >清除是加速手段，不是權限機制</text
+    ><rect
+      class="video-product-takedown-diagram__panel"
+      x="656"
+      y="442"
+      width="284"
+      height="100"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__label"
+      x="676"
+      y="477">儲存清理</text
+    ><text class="video-product-takedown-diagram__body" x="676" y="508"
+      >依保留政策移除物件與殘留產物</text
+    ><rect
+      class="video-product-takedown-diagram__warn"
+      x="20"
+      y="574"
+      width="920"
+      height="66"
+      rx="14"></rect><text
+      class="video-product-takedown-diagram__warning"
+      x="44"
+      y="613"
+      >不能承諾收回觀眾已下載的位元組，也不能把「purge 已送出」當成下架完成。</text
+    >
+  </svg>
+  <div class="video-product-takedown-diagram__mobile">
+    <ol class="video-product-takedown-diagram__steps">
+      <li>
+        <span class="video-product-takedown-diagram__step-label"
+          >T0 · 權威交易</span
+        ><strong>blocked = true；generation 41 → 42</strong><p>
+          同一交易推進 metadata_revision
+          並記錄下架事件。新的播放授權依權威狀態拒絕；授權快取必須有明確陳舊上限。
+        </p>
+      </li><li>
+        <span class="video-product-takedown-diagram__step-label"
+          >立即 · 防止復活</span
+        ><strong>舊 worker 的 CAS 提交失敗</strong><p>
+          工作仍拿 generation 41，但目前版本已變成 42。不得啟用舊資產。
+        </p>
+      </li><li>
+        <span class="video-product-takedown-diagram__step-label">憑證窗口</span
+        ><strong>已發出的授權等待到期或被撤銷</strong><p>
+          更快撤銷需要邊緣 denylist 或 epoch 檢查；只清快取不能取代授權。
+        </p>
+      </li><li>
+        <span class="video-product-takedown-diagram__step-label">逐步收斂</span
+        ><strong>移除曝光 → 清快取 → 儲存清理</strong><p>
+          搜尋與推薦用版本化 tombstone
+          擋住舊事件。各層以可重試任務與完成指標確認。
+        </p>
+      </li>
+    </ol><p class="video-product-takedown-diagram__mobile-note">
+      已下載內容無法收回；purge 已送出，也不等於所有邊緣已完成清除。
+    </p>
+  </div>
+  <figcaption id="video-product-takedown-caption">
+    圖 9｜同步交易守住資格，非同步任務清理殘影；下架不等於瞬間刪除所有副本。
+  </figcaption>
+</figure>
+
+<style>
+  .video-product-takedown-diagram {
+    margin: var(--space-xl) 0;
+    color: var(--dg-ink);
+  }
+  .video-product-takedown-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .video-product-takedown-diagram__desktop {
+    overflow: visible;
+  }
+  .video-product-takedown-diagram__mobile {
+    display: none;
+  }
+  .video-product-takedown-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .video-product-takedown-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-takedown-diagram__focus {
+    fill: #edf5f0;
+    stroke: #35734c;
+    stroke-width: 1.5;
+  }
+  .video-product-takedown-diagram__warn {
+    fill: #fff2e9;
+    stroke: #ad4d17;
+    stroke-width: 1.5;
+  }
+  .video-product-takedown-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 14px;
+  }
+  .video-product-takedown-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .video-product-takedown-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .video-product-takedown-diagram__small {
+    fill: var(--dg-muted);
+    font-size: 13px;
+  }
+  .video-product-takedown-diagram__accent {
+    fill: #256442;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-takedown-diagram__warning {
+    fill: #9a4310;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-takedown-diagram__mono {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .video-product-takedown-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .video-product-takedown-diagram__dashed {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+  }
+  .video-product-takedown-diagram__head {
+    fill: var(--dg-rule-strong);
+  }
+  .video-product-takedown-diagram__rule {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-takedown-diagram__dot {
+    fill: #35734c;
+  }
+  .video-product-takedown-diagram__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .video-product-takedown-diagram__steps li {
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+  }
+  .video-product-takedown-diagram__steps strong {
+    display: block;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--dg-ink);
+  }
+  .video-product-takedown-diagram__steps p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .video-product-takedown-diagram__step-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: #256442;
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .video-product-takedown-diagram__mobile-note {
+    padding: var(--space-md);
+    border-left: 3px solid #ad4d17;
+    background: var(--dg-surface-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--dg-ink-2);
+  }
+  .video-product-takedown-diagram figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .video-product-takedown-diagram__focus {
+    fill: #183b2b;
+    stroke: #72ba8c;
+  }
+  :global(:root[data-theme="dark"]) .video-product-takedown-diagram__warn {
+    fill: #3f2b1c;
+    stroke: #edaa78;
+  }
+  :global(:root[data-theme="dark"]) .video-product-takedown-diagram__accent,
+  :global(:root[data-theme="dark"])
+    .video-product-takedown-diagram__step-label {
+    fill: #8ed1a8;
+    color: #8ed1a8;
+  }
+  :global(:root[data-theme="dark"]) .video-product-takedown-diagram__warning {
+    fill: #f4ba8d;
+  }
+  :global(:root[data-theme="dark"]) .video-product-takedown-diagram__dot {
+    fill: #72ba8c;
+  }
+  :global(:root[data-theme="dark"])
+    .video-product-takedown-diagram__mobile-note {
+    border-left-color: #edaa78;
+  }
+  @media (max-width: 48rem) {
+    .video-product-takedown-diagram__desktop {
+      display: none !important;
+    }
+    .video-product-takedown-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

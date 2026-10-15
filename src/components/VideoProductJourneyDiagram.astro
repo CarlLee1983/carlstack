@@ -1,0 +1,394 @@
+---
+// Original diagram for the proposed YouTube-like product design, not YouTube internals.
+---
+
+<figure
+  class="video-product-journey-diagram"
+  aria-labelledby="video-product-journey-caption"
+>
+  <svg
+    class="video-product-journey-diagram__desktop"
+    viewBox="0 0 960 532"
+    role="img"
+    aria-labelledby="video-product-journey-title video-product-journey-desc"
+  >
+    <title id="video-product-journey-title">
+      從創作者上傳到觀眾播放與影片下架的雙角色旅程
+    </title>
+    <desc id="video-product-journey-desc"
+      >創作者與觀眾沿著收到原檔、允許發布、播放開始、下架生效四個里程碑，取得不同的承諾。上傳完成不代表可播放，停止授權也不能收回已下載內容。</desc
+    >
+    <defs
+      ><marker
+        id="video-product-journey-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+        ><path
+          class="video-product-journey-diagram__head"
+          d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text class="video-product-journey-diagram__title" x="24" y="32"
+      >同一支影片，兩種不同的承諾</text
+    ><text class="video-product-journey-diagram__body" x="24" y="62"
+      >創作者在等「處理完成」；觀眾只在意「現在能不能看」。</text
+    ><rect
+      class="video-product-journey-diagram__panel"
+      x="20"
+      y="92"
+      width="920"
+      height="116"
+      rx="14"></rect><rect
+      class="video-product-journey-diagram__panel"
+      x="20"
+      y="294"
+      width="920"
+      height="116"
+      rx="14"></rect><text
+      class="video-product-journey-diagram__label"
+      x="40"
+      y="122">創作者</text
+    ><text class="video-product-journey-diagram__label" x="40" y="324"
+      >觀眾</text
+    ><path class="video-product-journey-diagram__rule" d="M 208 188 V 314"
+    ></path><path
+      class="video-product-journey-diagram__rule"
+      d="M 424 188 V 314"></path><path
+      class="video-product-journey-diagram__rule"
+      d="M 640 188 V 314"></path><path
+      class="video-product-journey-diagram__rule"
+      d="M 856 188 V 314"></path><path
+      class="video-product-journey-diagram__arrow"
+      d="M 208 250 H 856"
+      marker-end="url(#video-product-journey-arrow)"></path><circle
+      class="video-product-journey-diagram__dot"
+      cx="208"
+      cy="250"
+      r="7"></circle><text
+      class="video-product-journey-diagram__accent"
+      x="208"
+      y="230"
+      text-anchor="middle">01 · 收到原檔</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="208"
+      y="156"
+      text-anchor="middle">上傳與續傳</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="208"
+      y="182"
+      text-anchor="middle">斷線只補缺失部分</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="208"
+      y="356"
+      text-anchor="middle">看不到成品</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="208"
+      y="382"
+      text-anchor="middle">原檔收完 ≠ 可播放</text
+    ><circle class="video-product-journey-diagram__dot" cx="424" cy="250" r="7"
+    ></circle><text
+      class="video-product-journey-diagram__accent"
+      x="424"
+      y="230"
+      text-anchor="middle">02 · 允許發布</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="424"
+      y="156"
+      text-anchor="middle">確認發布</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="424"
+      y="182"
+      text-anchor="middle">最低可播組合已驗證</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="424"
+      y="356"
+      text-anchor="middle">依可見性進入</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="424"
+      y="382"
+      text-anchor="middle">公開／未公開／私密</text
+    ><circle class="video-product-journey-diagram__dot" cx="640" cy="250" r="7"
+    ></circle><text
+      class="video-product-journey-diagram__accent"
+      x="640"
+      y="230"
+      text-anchor="middle">03 · 播放開始</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="640"
+      y="156"
+      text-anchor="middle">觀察處理結果</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="640"
+      y="182"
+      text-anchor="middle">高畫質可稍後補齊</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="640"
+      y="356"
+      text-anchor="middle">取清單與分段</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="640"
+      y="382"
+      text-anchor="middle">授權後由 CDN 傳輸</text
+    ><circle class="video-product-journey-diagram__dot" cx="856" cy="250" r="7"
+    ></circle><text
+      class="video-product-journey-diagram__accent"
+      x="856"
+      y="230"
+      text-anchor="middle">04 · 下架生效</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="856"
+      y="156"
+      text-anchor="middle">提出下架</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="856"
+      y="182"
+      text-anchor="middle">立即停止新的授權</text
+    ><text
+      class="video-product-journey-diagram__label"
+      x="856"
+      y="356"
+      text-anchor="middle">後續請求受限制</text
+    ><text
+      class="video-product-journey-diagram__body"
+      x="856"
+      y="382"
+      text-anchor="middle">已下載內容無法收回</text
+    ><rect
+      class="video-product-journey-diagram__warn"
+      x="20"
+      y="438"
+      width="920"
+      height="70"
+      rx="14"></rect><text
+      class="video-product-journey-diagram__warning"
+      x="44"
+      y="468">每一個「完成」，都要有可驗證的邊界。</text
+    ><text class="video-product-journey-diagram__body" x="44" y="491"
+      >收檔成功、資產就緒、可公開、可播放與已刪除，不能共用同一個模糊狀態。</text
+    >
+  </svg>
+  <div class="video-product-journey-diagram__mobile">
+    <ol class="video-product-journey-diagram__steps">
+      <li>
+        <span class="video-product-journey-diagram__step-label"
+          >01 · 收到原檔</span
+        ><strong>創作者：斷線後接著上傳</strong><p>
+          觀眾：仍看不到成品。檔案收完不等於可播放。
+        </p>
+      </li><li>
+        <span class="video-product-journey-diagram__step-label"
+          >02 · 允許發布</span
+        ><strong>創作者：最低可播組合已就緒</strong><p>
+          觀眾：依公開、未公開或私密的規則取得存取資格。
+        </p>
+      </li><li>
+        <span class="video-product-journey-diagram__step-label"
+          >03 · 播放開始</span
+        ><strong>觀眾：授權後取得清單與分段</strong><p>
+          影音位元組由 CDN 傳輸；創作者可以繼續等待高畫質版本。
+        </p>
+      </li><li>
+        <span class="video-product-journey-diagram__step-label"
+          >04 · 下架生效</span
+        ><strong>立即停止發放新的播放授權</strong><p>
+          搜尋、推薦與快取繼續收斂；已下載的內容無法收回。
+        </p>
+      </li>
+    </ol><p class="video-product-journey-diagram__mobile-note">
+      收檔成功、資產就緒、可公開與可播放，是不同的承諾。
+    </p>
+  </div>
+  <figcaption id="video-product-journey-caption">
+    圖 1｜用同一支影片串起產品契約；本圖是設計推演，不是 YouTube 內部流程。
+  </figcaption>
+</figure>
+
+<style>
+  .video-product-journey-diagram {
+    margin: var(--space-xl) 0;
+    color: var(--dg-ink);
+  }
+  .video-product-journey-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .video-product-journey-diagram__desktop {
+    overflow: visible;
+  }
+  .video-product-journey-diagram__mobile {
+    display: none;
+  }
+  .video-product-journey-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .video-product-journey-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-journey-diagram__focus {
+    fill: #edf5f0;
+    stroke: #35734c;
+    stroke-width: 1.5;
+  }
+  .video-product-journey-diagram__warn {
+    fill: #fff2e9;
+    stroke: #ad4d17;
+    stroke-width: 1.5;
+  }
+  .video-product-journey-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 14px;
+  }
+  .video-product-journey-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .video-product-journey-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .video-product-journey-diagram__small {
+    fill: var(--dg-muted);
+    font-size: 13px;
+  }
+  .video-product-journey-diagram__accent {
+    fill: #256442;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-journey-diagram__warning {
+    fill: #9a4310;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .video-product-journey-diagram__mono {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .video-product-journey-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .video-product-journey-diagram__dashed {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    stroke-dasharray: 6 5;
+  }
+  .video-product-journey-diagram__head {
+    fill: var(--dg-rule-strong);
+  }
+  .video-product-journey-diagram__rule {
+    fill: none;
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .video-product-journey-diagram__dot {
+    fill: #35734c;
+  }
+  .video-product-journey-diagram__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-sm);
+  }
+  .video-product-journey-diagram__steps li {
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+  }
+  .video-product-journey-diagram__steps strong {
+    display: block;
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--dg-ink);
+  }
+  .video-product-journey-diagram__steps p {
+    margin: var(--space-xs) 0 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .video-product-journey-diagram__step-label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: #256442;
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+  .video-product-journey-diagram__mobile-note {
+    padding: var(--space-md);
+    border-left: 3px solid #ad4d17;
+    background: var(--dg-surface-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--dg-ink-2);
+  }
+  .video-product-journey-diagram figcaption {
+    margin-top: var(--space-sm);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__focus {
+    fill: #183b2b;
+    stroke: #72ba8c;
+  }
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__warn {
+    fill: #3f2b1c;
+    stroke: #edaa78;
+  }
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__accent,
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__step-label {
+    fill: #8ed1a8;
+    color: #8ed1a8;
+  }
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__warning {
+    fill: #f4ba8d;
+  }
+  :global(:root[data-theme="dark"]) .video-product-journey-diagram__dot {
+    fill: #72ba8c;
+  }
+  :global(:root[data-theme="dark"])
+    .video-product-journey-diagram__mobile-note {
+    border-left-color: #edaa78;
+  }
+  @media (max-width: 48rem) {
+    .video-product-journey-diagram__desktop {
+      display: none !important;
+    }
+    .video-product-journey-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

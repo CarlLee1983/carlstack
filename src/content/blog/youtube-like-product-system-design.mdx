@@ -1,0 +1,323 @@
+---
+title: 設計 YouTube 類影音平台：先讓影片可靠上線，再承受熱門流量
+description: 沿著一支影片從斷線續傳、轉碼重試、公開播放到爆紅與下架，設計影音平台的資料模型、狀態責任、播放授權與故障驗收。用十張圖拆解完整產品，並比較何時值得增加系統複雜度。
+publishDate: 2026-10-15T09:30:52+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 影音架構
+  - 後端架構
+  - 分散式系統
+series: 產品系統設計實戰
+seriesOrder: 1
+cover: ../../assets/covers/youtube-like-product-system-design.webp
+coverAlt: 透明膠卷穿過一道玻璃閘門，向多個播放螢幕展開，象徵影片確認可發布後才分送觀眾。
+---
+
+import VideoProductJourneyDiagram from "../../components/VideoProductJourneyDiagram.astro";
+import VideoProductArchitectureDiagram from "../../components/VideoProductArchitectureDiagram.astro";
+import VideoProductLifecycleDiagram from "../../components/VideoProductLifecycleDiagram.astro";
+import VideoProductUploadDiagram from "../../components/VideoProductUploadDiagram.astro";
+import VideoProductPublishDiagram from "../../components/VideoProductPublishDiagram.astro";
+import VideoProductPlaybackDiagram from "../../components/VideoProductPlaybackDiagram.astro";
+import VideoProductOriginDiagram from "../../components/VideoProductOriginDiagram.astro";
+import VideoProductReadModelsDiagram from "../../components/VideoProductReadModelsDiagram.astro";
+import VideoProductTakedownDiagram from "../../components/VideoProductTakedownDiagram.astro";
+import VideoProductFailureDiagram from "../../components/VideoProductFailureDiagram.astro";
+
+阿晴把一支十分鐘的料理影片拖進瀏覽器。進度到 83% 時，家裡的網路斷了。重新連線後，她希望繼續上傳；上傳完成後，她把連結傳給朋友，對方卻看到「影片處理中」。隔天有人分享，觀看人數突然增加；再隔天，她發現畫面拍到了不該公開的資訊，按下刪除。
+
+這是本文虛構的產品情境。從創作者的角度，整件事只有上傳、分享、刪除三個動作。對工程師而言，卻有幾個需要分開回答的問題：檔案收到哪裡了？哪個版本可以播放？誰有權公開？已經散布到快取的內容，還能阻止多少存取？
+
+本文設計的是具有 YouTube 類似核心功能的隨選影音平台，不代表 YouTube 的實際內部架構。案例中的流量、容量、延遲與期限都是教學假設，沒有聲稱完成效能壓測。外部協定與雲端產品行為另附官方來源，查核日期為 2026 年 10 月 15 日。
+
+「產品系統設計實戰」會沿著完整產品的使用情境走一遍。這一篇先把影音生命週期做完整：建立影片、上傳、處理、發布、播放、曝光、下架。直播、廣告競價、版權辨識模型與個人化推薦模型不在本次實作範圍；但它們將來接入時，不能破壞本文的發布與授權規則。
+
+## 1. 上傳完成，只代表創作者交出了檔案
+
+阿晴看到進度條 100%，系統就顯示「發布成功」，是最容易做出的第一版。直到第一位觀眾打開影片，播放器才發現還沒有能用的清單，或者只有一個瀏覽器不支援的原始檔。
+
+我們需要三個不同的完成條件。
+
+上傳完成，表示平台確認收到預期的原始物件，大小與完整性驗證符合本次工作階段的約定。這時可以讓創作者關掉分頁，後續處理由平台負責。可播放，表示至少一組支援的影音產物與清單已準備好，且經過檢查。公開，則表示創作者選擇公開、內容政策允許，而且目前可播放的版本通過發布交易。
+
+**接收完成、可播放與公開，是三份不同的承諾。** UI 可以顯示「檔案已收到，正在準備播放」，不能為了消除等待感，把三份承諾壓成一個成功訊息。
+
+<VideoProductJourneyDiagram />
+
+這項區分會影響 API。建立影片回傳 video ID，不代表觀眾能播放；完成上傳回傳 receipt，不代表轉碼成功；創作者按發布，可以得到「已記錄公開意圖，等待基本畫質完成」，而不是要求瀏覽器一直等到所有畫質處理完。
+
+本文選擇「先完成基本播放組合，再允許公開；較高畫質後補」的產品政策。基本組合包含一個可用的影片 rendition、需要的音訊、海報與經驗證的播放清單。實際產品可以要求所有畫質完成才公開，代價是增加等待時間。也可以開放原檔下載，但那是另一種交付契約，不能把下載連結當成串流播放完成。
+
+影片如果被政策審查擋住，原檔依然可能已收到、轉碼也可能成功。創作者後台要能解釋「目前不能公開的原因」，而不是只顯示 failed。狀態設計的第一個工作，是讓不同角色看到同一件事的正確進度。
+
+## 2. 容量估算要拆成上傳、觀看與處理三本帳
+
+假設產品第一階段有每日 1,000 支上傳，每支平均 500 MB、長度十分鐘；觀眾每日觀看 100,000 次，每次平均觀看五分鐘，平均實際傳輸位元率為 3 Mbps。以下採十進位 MB、GB、TB，忽略協定與容器額外開銷。這些是假設值，作用是找出最敏感的參數。
+
+上傳原始資料是 `1,000 × 500 MB = 500 GB/日`。若原檔保留三十天，尚未加副本、備份與失敗殘留前，就是 15 TB。假設各種播放產物合計為原檔的 1.5 倍，三十天再增加 22.5 TB。這個倍率取決於內容、編碼設定與畫質組合，不能拿來當廠商保證；原檔保留策略改變，帳單也會跟著改變。
+
+觀看資料約為 `100,000 × 300 秒 × 3 Mb/s ÷ 8 = 11.25 TB/日`，平均下行約 1.04 Gbps。若尖峰是平均的十倍，規劃情境約為 10.4 Gbps。熱門影片可能讓十分鐘內的負載比這個倍數更高，所以平均值只能用來估成本，不能直接當准入上限。
+
+處理工作量又是另一回事。每天 10,000 分鐘的來源影片，如果「產出整組基本畫質」的實測成本是每分鐘來源需要四個 CPU 分鐘，便是每天 40,000 CPU 分鐘，約 27.8 個持續忙碌的 CPU 核心。四倍只是待驗證參數；codec、preset、解析度、硬體與內容運動量都會改變結果。真正的排程還要加上尖峰、失敗重跑、機器維護與等待時間預算。
+
+這裡已經能做第一個選擇：應用伺服器不代理整段影片位元組，讓客戶端直接向受限的物件儲存入口上傳，播放由 CDN 分發。API 負責許可、狀態與收據。若讓每個影片片段都穿過 PHP 或 Node 業務程序，原本用來處理帳號與 metadata 的資源會被大量傳輸占住。
+
+### 可驗收目標必須說明測量起點
+
+示例目標可以寫成：受支援、十分鐘內且 1080p 以下的合格來源，從平台確認上傳完成到基本畫質可播放，95% 在十分鐘內；超過規格的來源不混進同一個分母。播放啟動則從使用者按下播放，到第一幀實際呈現，按裝置與網路類型分組觀測。把伺服器回傳 manifest 的 200 當成第一幀，就量錯了使用者感受。
+
+卡頓比例也要說清楚：本文建議記錄播放期間因緩衝停住的秒數與有效觀看秒數，另外記錄啟動失敗率。暫停、切換背景與使用者主動拖曳不能全算成系統卡頓。完整的 [SLO 定義方式](/blog/order-system-requirements-slo/) 與 [容量預算](/blog/order-system-capacity-budget/) 可以另讀；在這個產品裡，我們要用量測結果決定加轉碼機，還是先修播放器與快取。
+
+## 3. 最小架構可以是模組化單體，加上獨立的轉碼工作者
+
+第一版的 API 應用可以用 Laravel 或 Node，將帳號、影片目錄、上傳工作階段、發布與播放許可分成模組，共用一個 MySQL 寫入來源。轉碼工作者因為資源需求與處理時間不同，獨立執行。物件儲存收原始檔與版本化產物，佇列傳遞工作，CDN 服務觀看流量。
+
+<VideoProductArchitectureDiagram />
+
+這不是要求每個模組立即變成一個服務。影片目錄與發布規則若仍由同一團隊維護，拆開後反而要多解一個跨服務一致性問題。先讓「誰能修改哪個狀態」清楚，再用部署隔離處理 CPU 密集、長時間與不可信輸入的工作。
+
+MySQL 交易無法直接包住物件儲存、佇列與 CDN。本文採 outbox：接受上傳完成的交易，同時記錄原檔資訊與待處理事件；背景 dispatcher 把事件送進佇列，成功後標記傳遞進度。AWS 的 [transactional outbox 指引](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/transactional-outbox.html) 說明了資料庫寫入與消息傳送之間的雙寫風險，也提醒消費者仍須面對重複訊息。
+
+若 dispatcher 已送出事件，但還沒標記就當機，事件會再送一次。因此消費端以 event ID 去重、以工作識別限制可接受的結果。用 outbox 能保留「應該做什麼」的證據，並沒有把所有外部副作用變成一次完成。
+
+### 用四個 API 把責任接起來
+
+以下是本文的契約草案，欄位名稱是教學設計，沒有宣稱是 YouTube API，也尚未做成可呼叫服務。
+
+```text
+POST /videos
+  輸入：title、intended_visibility、idempotency_key
+  回傳：video_id、generation、visibility=draft
+
+POST /videos/{id}/uploads
+  輸入：generation、expected_bytes、checksum_policy
+  回傳：upload_session_id、expires_at、受限的 part 上傳資訊
+
+POST /uploads/{session}/complete
+  輸入：有序 part_number + etag 清單、原檔驗證資訊
+  回傳：同一 session 的 receipt、received 或 reconciling
+
+POST /videos/{id}/playback-sessions
+  輸入：觀眾身分與播放能力；不接受客戶端自選任意 object key
+  回傳：asset_version、manifest_url、短期存取資格、expires_at
+```
+
+第一個 API 的冪等鍵綁定帳號與請求內容；同鍵但不同標題／可見性意圖應回報衝突，避免兩次意外點擊變成兩支影片。完成上傳的冪等範圍是 UploadSession，播放 session 則可以每次重新核發。把所有 POST 都用同一種去重方式，會錯過不同操作的目的。
+
+錯誤回應也要能支援 UI：版本已過期代表需要重新讀取影片狀態；來源格式不支援代表需要換檔；暫時處理失敗可以稍後查詢 receipt。回應只暴露安全的原因碼，不把內部 bucket 路徑、雲端憑證或完整例外堆疊送到創作者頁面。
+
+### 哪些東西可以先不放進來
+
+Redis 可以快取目錄或短期流量計數，但不需要承擔影片是否公開的唯一真相。搜尋初期可從有限範圍的資料庫查詢開始；只有文字搜尋品質或查詢負載需要時，再接搜尋引擎。推薦先用最新公開影片與有限的熱門清單，讓第一版能完成發現內容的旅程。
+
+另一個方案是使用託管影音服務，讓服務商處理上傳、編碼與分發。它降低媒體基礎設施維護量，但仍要確認回呼重送、素材識別、可見性、授權與刪除的契約，並估算遷移原檔與產物的成本。本文選擇分開的元件，是為了看清這些責任；小團隊若沒有影音運維能力，託管方案可能更合理。
+
+## 4. 把影片身分、檔案版本與公開權限分開保存
+
+一個 status 欄位很快會長成 uploading、transcoding、public、private、blocked、deleted。這些值不在同一個維度：private 的影片仍然可以完成轉碼，public 的影片也可能正在準備替換版本。硬塞在一起，會讓每次增加需求都要修改一大串不完整的轉移規則。
+
+本文使用四種主要記錄。
+
+Video 保存穩定的影片身分、owner、標題、visibility、policy 狀態、目前的 source generation、單調遞增的 metadata revision，以及 active playback asset ID。UploadSession 保存一次傳輸的 provider upload ID、預期大小、到期時間、原始物件 key 與狀態。MediaAsset 保存某一 generation 的原檔與播放產物、驗證結果、manifest 位置。TranscodeJob 保存工作鍵、attempt、租約與處理結果。
+
+<VideoProductLifecycleDiagram />
+
+其中 generation 是應用層的遞增版本識別，不等同於某個雲端供應商的 object generation。創作者換原檔，或下架後要使舊處理結果失去資格時，系統推進這個版本。另有 metadata revision，任何影響對外狀態的修改都遞增，包含同一原檔的公開／私密切換；不能拿 source generation 當作所有事件的排序鍵。每個工作都帶上它處理的 generation；完成後必須再比對。
+
+資料表的最小約束可以是：UploadSession 的 provider upload ID 唯一；TranscodeJob 的 `(video_id, generation, profile_version)` 唯一；每個產物指向一個明確的 Video 與 generation；播放資產指標只能指到經驗證、且仍被允許發布的資產。工作可能有多個 attempt，不能因為工作鍵唯一，就假設只有一個程序還在執行。
+
+以下是概念性的發布條件，不是已在 MySQL 上執行過的完整 schema：
+
+```text
+可以公開 = 原檔已確認
+        且基本播放組合已驗證
+        且產物 generation = Video 目前 generation
+        且創作者公開意圖有效
+        且 policy 允許
+        且 Video 未被刪除
+```
+
+資產啟用與公開的交易可以鎖定 Video 記錄，讀取相關資產驗證狀態，再以目前版本更新播放資產指標；或採帶版本條件的更新，並檢查影響筆數。不能先查一次狀態、離開交易做一段工作，最後不帶條件地寫 public。這會讓「剛被刪除」與「剛轉碼完成」互相覆蓋。
+
+讀者若想連到熟悉的訂單領域，可以把它看成另一種 [寫入責任邊界](/blog/order-system-write-ownership/)：worker 有權提出產物完成的證據，發布模組有權決定那份證據現在是否仍可生效。
+
+## 5. 續傳的答案在儲存端，不在瀏覽器的進度條
+
+阿晴重新連線時，瀏覽器記得自己曾送出第八個 part，但不確定伺服器收到了沒有。如果直接從第九個開始，可能少一塊；如果重新建立整個上傳，也可能白白留下半份物件。
+
+以 S3 multipart 為例，API 建立 UploadSession，綁定 owner、video、generation 與受控的 object key，回傳每一 part 的短期上傳許可。客戶端直接上傳，將 part number 與服務回傳的 ETag 回報平台保存成自己的 part ledger；重連時，以儲存端查詢結果核對 ledger，再補缺失的部分。ListParts 要處理分頁，只用來核對，不直接拿它的結果組成完成請求；完成請求使用自己維護且確認過的有序 part／ETag 清單。瀏覽器的進度只是提示，續傳也不能悄悄換成另一份來源檔。
+
+<VideoProductUploadDiagram />
+
+S3 的 [multipart 概觀](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) 說明建立、上傳 parts、完成三個階段；完成時需要提供各 part 的識別資訊。ETag 不能一律當成整份原檔的 MD5，完整性驗證要依實際 checksum 機制設計。這裡也不應把 S3 的 part 協議與另一家服務的 byte-offset 協議混用，續傳客戶端要知道自己遵守哪一份契約。
+
+平台的完成 API 使用同一個 UploadSession ID 重試。若已完成，回傳同一份 receipt；若儲存端完成、資料庫尚未確認，就進入 reconciliation，查證原物件後補上狀態與 outbox。可以保留一個短期 completing 狀態，但一定要有到期掃描，不能讓中斷的請求永久卡住。
+
+還有一個會藏在正常回應裡的錯誤：[CompleteMultipartUpload](https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html) 可能先送出 HTTP 200，最後在內容中回報錯誤。用官方 SDK 時仍需處理 SDK 解析後的失敗；自寫 HTTP 客戶端不能只檢查 status code，就宣告原檔可用。
+
+### 上傳許可的範圍要比登入許可更小
+
+客戶端不能自行決定要覆寫哪個正式 object key。上傳工作階段必須綁定帳號與影片，限制預期大小、期限、可用操作與物件位置；完成 API 重新檢查擁有權。後端驗證實際檔案大小與格式，不相信副檔名或 Content-Type。解碼工作者處理的是外部輸入，應隔離執行、限制 CPU／記憶體／磁碟時間，不給它任意讀取其他使用者物件或發布公開狀態的權限。
+
+過期 UploadSession 要清除未完成的 parts。S3 multipart 不會因為使用者關掉分頁就自動完成清理，可用明確 abort 與生命週期規則處理；但正在傳送的 part 與 abort 有競爭，清理程序要依 [AbortMultipartUpload 文件](https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html) 確認殘留。這筆費用不該等帳單出現才發現。
+
+## 6. 轉碼工作可以重跑，發布只能接受仍有效的產物
+
+假設 worker A 已開始處理 generation 7，心跳中斷後，排程器把工作交給 worker B。A 其實沒死，只是網路暫時不通；幾分鐘後兩個 worker 都回報成功。
+
+把佇列 visibility timeout 拉長，只能改變重送時機。以 [SQS standard queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues-at-least-once-delivery.html) 為例，官方直接要求應用面對至少一次投遞。本文因此把「可以重複執行」和「可以採用哪個結果」分開。
+
+每次 attempt 寫到獨立、不可變的產物前綴，例如影片 v42、generation 7、profile p3、attempt b。worker 不覆寫正在服務觀眾的 manifest，也不直接修改播放資產指標。它只提出候選資產，附上工作鍵、attempt token、檔案清單與驗證結果。
+
+<VideoProductPublishDiagram />
+
+相同工作、attempt 與候選資產的完成通知若已被接受，先回傳儲存的完成收據；它只證明當時接受過，不代表影片此刻仍可播放，現在的狀態須另查。唯一完成約束與終止狀態避免重送再次產生啟用事件。首次完成交易除了核對 Video generation，還核對目前有效的 job attempt token，以及以資料庫時間判斷的租約期限；claim 新 token 與續約也要透過帶條件的原子更新。這是應用的 fencing 規則：租約過期後取得新 token 的工作可以提出結果，舊 token 不能再贏得完成狀態。若只檢查 generation，兩個同代 worker 仍可能搶著覆寫。未被採用的物件由延後清理處理；清理前要確認沒有任何目前播放或回復用的引用。已被替換的 manifest／segments 也不能立即刪除：仍有效的播放 session 可能正在使用舊版本，須保留到允許的 session／許可期限與清理緩衝結束，或依明確的強制撤銷政策處理。
+
+基本畫質完成後，啟用交易一次切換 active playback asset ID。私密與未公開連結影片也可以有這個可播放資產；是否對大眾公開由 visibility 與 policy 另外決定。只有要把 visibility 改成 public 的操作，才要求創作者的公開意圖有效。後補高畫質時由同一個 bundle assembler 組裝新的完整清單版本；切換時核對預期的 active playback asset ID／bundle revision，若指標已被其他工作更新就重新組裝，而不是以舊集合覆蓋新集合。每個 rendition job 的 token 只管理自己的工作，不能替不同工作之間的組合版本排序。接受後再原子切換指標；觀眾取得的每份 manifest 都應引用一組完整存在的 segments。不要先把主清單寫出去，再慢慢補它所列出的檔案。
+
+一個精簡的交易程序可以這樣表達。這是未執行的概念片段，正式實作仍需補 schema、索引、隔離級別與客戶端影響筆數語義：
+
+```text
+BEGIN
+  鎖定 Video，再依固定順序鎖定 Job
+  若此 (job_id, attempt_token, candidate_asset_id) 已接受，結束交易後回傳原收據
+  比對 current_generation、active_attempt_token、lease_expires_at
+  確認 Job 尚未完成、未下架、政策允許啟用此資產
+  確認候選 Asset 已通過最低播放組合驗證
+  比對預期的 active playback asset ID／bundle revision
+  將候選 Asset 設為接受，將 Job 設為完成，保存唯一完成收據
+  更新 Video 的播放資產指標與 metadata revision
+  若需轉成 public，再核對公開意圖，於同一交易更新 visibility
+  INSERT outbox：video.asset_activated，包含交易最後的 revision、visibility 與 asset_id
+COMMIT
+```
+
+鎖定順序一致，可以減少不同流程互相等待的機會；需要做遠端物件檢查時，先在交易外完成驗證並保存不可變的結果，交易只檢查其身分與有效性，不在持鎖期間下載影片。若資產可能被清理程序刪除，清理程序也必須遵守引用與候選狀態規則。MySQL 的 [UPDATE 行為](https://dev.mysql.com/doc/refman/8.4/en/update.html) 與 [InnoDB 鎖定說明](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html) 支持這些資料庫原語；跨資料庫與物件儲存的整體協定仍是本文的設計選擇。
+
+產物驗證至少包含存在性、播放清單能解析、引用的檔案存在、音訊與影片組合符合支援範圍，以及必要的實際解碼抽查。只確認 ffmpeg process exit 0 不足以證明整條播放路徑。更深入的 GOP 與 ABR 背景可參考站內 [影音上傳與轉碼文章](/blog/youtube-video-upload-transcoding-pipeline/)；本文的資料狀態、版本與發布條件是獨立的設計推演，不採用舊文未逐條查證的企業規模數字。
+
+### 什麼值得重試，什麼應該停止
+
+暫時無法讀取原檔、工作者被回收，可以用有上限的指數退避與抖動重試。來源損壞、格式不支援、超過產品規格，反覆重跑只會占滿佇列。系統應保存失敗原因分類、嘗試次數與最後進度，讓創作者看到可採取的動作。死信佇列是待處理清單，必須有負責人與回復程序，不能當成「問題已處理」的終點。
+
+## 7. 按下播放之後，授權與影片位元組走不同的路
+
+阿晴的朋友打開連結，頁面先取得影片 metadata。按播放後，應用檢查這個觀眾是否能看目前版本，回傳播放 session、manifest 位置與短期存取資格。播放器隨後向 CDN 取得清單和 segments，依網路與緩衝狀態選擇可用畫質。
+
+[HLS RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html) 定義清單與媒體分段的協定形式，包括 Master Playlist 指向不同 Variant Streams。協定提供描述與選取媒體的工具；本文的「哪些畫質先公開」是產品政策，不能從 HLS 規格直接推出。
+
+<VideoProductPlaybackDiagram />
+
+對私密影片，只保護 manifest 不夠。如果 segments 的 URL 可以被任何人持續讀取，知道路徑的人就可能繞過播放 API。因此我們要求 CDN 在媒體請求到達時驗證資格，包含快取命中的情況；origin 同時限制只能由預期的 CDN 路徑存取。
+
+以 CloudFront 為例，[signed cookies](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-cookies.html) 適合授權一組受限檔案，[signed URL／cookie 選擇指引](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html) 舉的情境就包含 HLS。signed cookies 文件說明，CloudFront 驗證簽章與政策後，才決定從 edge cache 或 origin 回應。這可以避免每個 segment 都回到應用查資料庫，但需要設計 cookie domain、路徑、跨來源請求與播放器相容性。
+
+另一個方案是 signed URL，適合明確的單一資源許可；如果播放清單包含大量獨立網址，生成、傳遞與更新許可會更複雜。也可使用邊緣驗證的 bearer token，但 token 的驗證與快取鍵要分開設計。每位觀眾一個隨機 cache key，可能把共享媒體快取打散；完全忽略 token 驗證，又會洩漏內容。
+
+### 短期資格到期，不等於立即收回每個位元組
+
+假設播放資格有效五分鐘，播放器在到期前向應用更新；這是示例政策，並非固定推薦值。太短會增加授權依賴與播放中斷風險，太長會拉長撤銷後舊資格仍有效的時間。CloudFront 在每次 HTTP 請求時檢查期限；已開始的傳輸與之後發出的請求要分開理解，不能宣稱時鐘一到就撤回已傳出的片段。
+
+如果產品要求下架後十秒內阻止所有新片段請求，五分鐘的離線可驗證資格就不符合要求。你需要更短的期限、邊緣可查的撤銷狀態，或其他能達到要求的方案，並量測傳播延遲與故障行為。這個決策應由撤銷目標驅動，而不是因為 signed URL 很容易產生。
+
+## 8. 爆紅影片的成本，先看快取未命中的位元組
+
+第二天，阿晴的影片出現在熱門社群。應用 API 的 QPS 增加，但每個觀眾持續讀取的影片片段才是大量頻寬來源。只看 API CPU 很平穩，可能忽略 origin 已經接近傳輸或請求上限。
+
+沿用前面的尖峰 10.4 Gbps 假設，如果媒體位元組快取命中率為 95%，簡化後的回源約是 0.52 Gbps；命中率降到 70%，回源約為 3.12 Gbps，相差六倍。這裡算的是位元組比例，不是 request hit ratio，尚未包含不同 edge 重複抓取、Range 行為與清單請求等因素。
+
+<VideoProductOriginDiagram />
+
+版本化、不變的 segment 路徑有利於長期共享快取。相對地，帶狀態意義的 metadata、播放許可、或會變動的清單，應有不同的 TTL 與快取策略。把所有東西設成一年快取，會讓後來的權限修改與內容替換難以說清楚；把所有東西設成不快取，則把成本推回 origin。
+
+多個 edge 同時遇到冷門轉熱門的影片，可以再加一層共享回源快取。[CloudFront Origin Shield](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html) 的官方定位，是提供額外的快取層來減少 origin 負載。它不是替代授權的安全層，也不保證每個部署與工作負載都值得增加費用；應比較回源請求、位元組、額外延遲與單位成本。
+
+預熱也要有邊界。只對已確認即將大量觀看的首段與基本畫質做有限預取，可能有幫助；把所有影片、所有畫質預熱到所有區域，常常先製造了成本。快取填充期間可以合併相同物件的並發回源，並限制 origin 的最大同時請求。若超出負載，優先保住已存在的基本畫質，暫緩昂貴的後補格式與非必要背景掃描。
+
+### 預算要按行為歸因
+
+帳單至少分開觀察原檔保留、播放產物、轉碼 CPU 或服務分鐘、CDN 下行、回源與請求數。播放時間提高可能同時增加產品價值與成本；轉碼重試飆高則可能純粹是故障。用每一有效觀看分鐘與每一成功發布影片的成本，比單看總費用更容易判斷下一個改造是否有意義。
+
+換用更省位元率的編碼不一定立刻省錢。需要比較裝置支援、額外編碼成本、預期被觀看次數與保留期。對幾乎沒人觀看的長尾影片，一開始就產生所有高成本格式，可能無法回收那筆處理費用。
+
+## 9. 搜尋與觀看數可以晚到，播放許可不能靠它們決定
+
+影片已經公開，搜尋卻還找不到；觀看了一百次，頁面只顯示八十次。這些現象不必然是同一類故障。產品需要明確區分「使用者能不能看」與「讀取模型更新得多快」。
+
+Video 與發布記錄是可見性的權威來源；搜尋、推薦清單與觀看數是衍生資料。影片發布事件帶上 event ID、video ID、metadata revision 與事件類型，分別送到索引、推薦與統計 consumer。consumer 保存處理進度，以每支影片的 metadata revision 拒絕較舊事件覆蓋較新狀態，並支援重建。這個版本在公開、私密、下架等修改都遞增，與只描述來源檔的 generation 分開。
+
+<VideoProductReadModelsDiagram />
+
+影片即使仍殘留在搜尋結果，點擊播放也要通過目前的授權。這項設計可以縮小索引延遲的影響，但還不夠：私密影片的標題與縮圖也可能是敏感資訊。搜尋與推薦端需要刪除／隱藏事件、延遲告警與查詢側的可見性保護，不能只說「反正影片播不了」就接受資訊曝光。
+
+初期可以先將只允許公開的 metadata 放進搜尋索引，私密內容走個人資料庫查詢。未公開連結是一種產品可見性選項，不等於登入授權；若任何取得網址的人都能看，就應明白告知創作者。它不能被包裝成機密資料的保護措施。
+
+觀看數需要先定義什麼算一次有效觀看。頁面打開、開始播放、觀看超過某段時間，是不同事件；重試、重複上報與機器流量也會影響統計。本文的最小方案保存去識別化的播放事件與去重鍵，採批次聚合顯示近似進度；用來結算廣告或支付分潤的數字，則需要另一份更嚴格的對帳契約，不能直接沿用頁面上的快取數字。
+
+推薦服務暫時不可用時，可退回最新公開影片；觀看數服務暫停，不應讓現有影片全部無法播放。這是把產品依賴縮小到必要範圍。事件管線恢復後，要能從 durable log 或權威資料重建，並檢查刪除狀態沒有被舊事件重新放回去。
+
+## 10. 下架要阻止舊工作復活，也要說明快取收斂的期限
+
+阿晴按刪除的同時，一個先前失聯的 worker 回來了。它帶著完整的高畫質產物，如果完成 API 只檢查檔案存在，就可能把影片重新設為公開。這個競爭情境比「成功刪掉一列」更值得測試。
+
+下架交易先修改 Video 的可見狀態、清除可發布資格並遞增 generation，再寫出下架事件。之後的播放許可一律拒絕，舊 worker 的完成交易也因版本或狀態條件不符而失敗。這一刻是控制面接受下架的時間，必須有可稽核的 receipt。
+
+<VideoProductTakedownDiagram />
+
+接下來還有不同速度的收斂工作：搜尋與推薦移除曝光；CDN 撤銷或失效既有存取路徑；物件儲存依保留政策刪除來源與產物；備份與稽核資料依另外的期限處理。UI 可以先顯示「已停止公開，正在清理檔案」，但不能把資料庫變更稱為全球資料已刪除。
+
+[CloudFront 失效文件](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html) 說明如何讓分發中的檔案在到期前失效。失效請求是需要追蹤的工作，不是同步廣播的魔法；它也不能移除已下載到觀眾裝置的資料。若 origin 還會回傳舊物件，單純清 cache 甚至可能讓下一次請求重新抓回內容。因此要一起處理目前授權、origin 存取、舊資格期限與快取清除。
+
+### 刪除流程應該是可重試的工作清單
+
+每個清理步驟保存目標與結果，重試刪除已不存在的物件應視為達成目標。清理完成前，影片 tombstone 不宜立即消失；否則重送的「發布成功」事件或舊索引快照可能失去比較版本的依據。tombstone 保留多久，要覆蓋可重播事件、離線工作與回復程序的範圍，不能隨便填一個 TTL 就假設安全。
+
+如果法規、申訴或營運需要保留資料，必須將「停止公開」與「實體刪除」分開描述，並由產品與相關專業人員確認政策。本文不替任何地區定義法律保存期限。工程端需要的是可查詢的狀態、可稽核的操作與不會偷偷復活的重試行為。
+
+## 11. 用三個故障演練，驗證架構真的保住承諾
+
+到這裡，架構圖上的元件都能找到合理的位置。但每個箭頭背後仍有逾時、重送、權限失效與延遲。驗收時，測試要直接改變這些條件，而不是只證明正常上傳可以成功一次。
+
+<VideoProductFailureDiagram />
+
+### 演練 A：基本畫質工作者失聯
+
+觸發方式是在讀取原檔後終止 worker，或讓它完成產物但無法提交結果。觀察 queue age、lease 到期、重試次數與從接收完成到可播放的延遲。預期結果是新的 attempt 能接手，舊 attempt 回來不能覆蓋；原本已公開的其他影片繼續播放。
+
+停止規則可設為示例：基本畫質 queue age 超過產品承諾的一半，暫停高成本的後補格式；若持續上升，限制新上傳的處理准入並告知等待。實際閾值需要測試決定。恢復時檢查孤兒物件與完成事件，不要一口氣重放所有死信，把系統再次壓垮。
+
+### 演練 B：熱門影片回源增加
+
+在可控測試環境清除測試物件快取、改變熱門集中度，觀察位元組命中率、origin 並發、回源延遲與第一幀。不能為了測試直接清正式站所有快取。預期降級是限制背景工作、保住基本畫質與必要的播放清單，並確認授權檢查沒有因為追求命中率被跳過。
+
+如果提升 Origin Shield 或合併回源後，第一幀沒有改善，可能瓶頸在播放器、權限服務或網路最後一哩。改造要以同一組負載與觀測分母比較，不能只拿一張 CDN 命中率圖宣稱整個觀看體驗變好。
+
+### 演練 C：播放授權依賴暫時不可用
+
+讓 metadata／授權查詢回傳逾時，觀察新的播放 session 與既有 session。本文選擇對不能確認權限的新請求拒絕發出許可；現有短期許可能持續到什麼時點，依前述政策執行。這會犧牲一部分可用性，但可以避免服務故障時把私密內容全部開放。
+
+測試至少包含公開、私密、已下架與剛改權限的影片。對公開內容是否允許使用有明確期限的舊 metadata，是另外一個可接受性決策；它不能直接套用到私密或撤銷路徑。把這些情境寫成測試案例，才知道系統在降級時究竟保住了什麼。
+
+## 12. 下一次升級架構，要對著量測到的限制動手
+
+當 metadata 的寫入爭用開始影響發布與授權，才評估拆分寫入責任或讀取副本；採用副本前，要確認剛改權限的讀取不能因複寫延遲被放行。當跨區觀眾的第一幀主要卡在授權往返，才評估區域化的許可服務與撤銷資料分發。當轉碼等待超標，先量測輸入特性、profile 成本與工作排程，再決定擴機器或換編碼。
+
+這些改變都會增加需要恢復與驗證的狀態。多區寫入尤其不能只把資料庫換成全球產品就算完成；同一支影片的下架、替換與發布，仍需要清楚的排序與衝突規則。對初期產品，單一寫入區域加跨區媒體分發，通常更容易建立可驗收的基線。是否值得改變，要看已量測的延遲、可用性與營運能力。
+
+回看阿晴的故事，最小可行方案已經有一條完整的路：續傳讓檔案抵達；收據讓平台承接後續責任；版本化工作產出可驗證媒體；資產啟用與發布交易決定可播放版本及可見性；短期許可與 CDN 分開處理權限及傳輸；下架讓所有舊工作失去重新公開的資格。
+
+### 練習：把這個競爭情境畫成四筆交易
+
+影片 v42 的 generation 是 7。worker A 正在處理基本畫質，租約過期後 worker B 接手。創作者這時刪除影片，接著 A、B 依序回報成功。請寫出：刪除交易修改哪些欄位？兩次完成請求各自要查哪些條件？哪些物件留下待清理？播放 API 與搜尋結果各應呈現什麼？
+
+再加一個限制：觀眾在刪除前一秒已取得五分鐘的播放許可。產品經理要求十秒內不能再取得任何新片段。原方案哪一份承諾不成立？你會縮短許可、加入邊緣撤銷，還是與產品重新協商期限？寫出代價與故障時的行為。
+
+### 參考思路
+
+刪除交易推進 generation、記錄 tombstone／撤銷狀態、取消公開資格並寫出 outbox。A 的 attempt token 已過期；B 雖持有目前工作 token，generation 也已不符，所以兩者都不能推進公開狀態。產物可以存在，但不再有有效發布引用，交由可重試清理。新播放許可拒絕，搜尋移除事件追蹤到完成；索引尚未收斂時也不能成為授權來源。
+
+五分鐘許可若僅離線驗證簽章與期限，不能單靠下架資料庫狀態保證十秒撤銷。加入撤銷查詢會增加邊緣狀態同步與故障成本，縮短期限會增加許可更新量。參考答案的重點是把矛盾說出來，再選擇可量測的方案。
+
+下一步可以先做一個很小的實驗：用兩個 worker stub 和一個資料庫，固定重現「租約過期、刪除、舊結果回來」的順序。驗收播放資產指標始終沒有重新出現，再接入真正的轉碼工具。本文提供設計與驗收方式，沒有把未執行的資料庫併發、影音轉碼或壓測描述為已通過。
