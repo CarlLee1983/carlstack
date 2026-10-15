@@ -1,0 +1,160 @@
+---
+title: "取消訂單只能補回一次庫存，讓狀態轉移決定誰能釋放"
+description: "沿用單倉訂單案例，以 MySQL 同一交易中的預留狀態轉移，處理重複取消、補庫存失敗與提交結果不明；並界定付款、出貨加入後必須重訂的規則。"
+publishDate: 2026-10-15T08:54:13+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - MySQL
+  - API 整合
+series: 系統設計每日實戰
+seriesOrder: 5
+cover: ../../assets/covers/order-system-cancellation-release.webp
+coverAlt: "赭黃色籌碼、靛藍單向閘門與收納槽的版畫，借單向通道比喻預留釋放受狀態限制。"
+---
+
+import OrderCancellationDiagram from "../../components/OrderCancellationDiagram.astro";
+
+一張訂單買了兩件商品。顧客在手機按取消，等不到回覆，又在電腦按一次。後端若每收到一次取消就執行「可售庫存加二」，兩次請求都成功，倉庫卻憑空多出兩件可以賣的商品。
+
+今天要做的決策是：把「這份預留仍可釋放」存成可受資料庫保護的狀態。只有完成合法狀態轉移的交易，才能把那份數量補回庫存。重複請求讀到已取消，可以回覆同一結果，不能再次增加數量。
+
+這是「系統設計每日實戰」第 5 篇，不預設你已完成前面的練習。沿用[需求篇](/blog/order-system-requirements-slo/)的虛構商店：單倉、單幣別、每張訂單一種商品，尚未收款與出貨。本篇新增「取消已成立訂單」的操作；[上一篇](/blog/order-system-idempotency-receipt/)處理的是下單重試，這裡處理不同取消請求競爭同一份預留。
+
+所有欄位、流量與預算都是教學假設。下方 SQL 是設計片段，沒有在真實 MySQL 執行併發測試或壓測。
+
+## 取消的承諾，要落到同一份預留
+
+首版定義 `created → cancelled` 為唯一允許的取消轉移，取消後不可重新啟用原訂單。認證與訂單所有權每次都要檢查，包括重試；不能因為知道訂單 ID，就取得取消權限。
+
+這個操作可以是 `POST /orders/{id}/cancel`。以下回應是本案例的 API 選擇：
+
+- 首次取消成功，回 `200`，帶原訂單 ID 與 `cancelled` 狀態；必須等資料庫確認共同提交後才回覆。
+- 已取消且資料一致，同樣回已取消，不再寫入庫存。重複請求不以「再做一次補庫存」取得相同外觀。
+- 不存在或無權存取，採不洩漏他人訂單資訊的回應策略；合法擁有者遇到不可取消狀態則回明確衝突。
+- 交易逾時或提交結果未知，先回可重試／待確認的結果，不把未知保存成取消成功。
+
+若把取消理由、退款金額等可變參數加入 API，還需要定義同一次取消改參數的行為。本篇的取消只有訂單 ID，且終局不可逆，先讓訂單與預留本身承擔去重。下單的收據仍保存「曾經成立」的歷史結果；查詢目前訂單狀態則會看到 `cancelled`，兩者不能混成同一種查詢。
+
+## 可售數增加，必須對得上預留減少
+
+最小資料模型保留三個角色：
+
+### 訂單記錄可取消的業務狀態
+
+`orders` 包含 `id`、`customer_id`、`status`。付款、出貨尚未加入；所有修改既有訂單狀態的入口，必須遵守同一套轉移規則。
+
+### 預留保存這張訂單占用的數量
+
+`reservations` 包含唯一的 `order_id`、`sku_id`、正整數 `quantity`，以及 `held` 或 `released` 狀態。數量欄位應為整數且 NOT NULL，配合 `CHECK (quantity > 0)` 防守資料入口；預留數量在成立後不修改。釋放時使用這裡的數量，不能信任客戶端送來「請幫我加回五件」。[MySQL CHECK 約束](https://dev.mysql.com/doc/refman/8.4/en/create-table-check-constraints.html)允許判斷結果為 UNKNOWN，因此正數檢查不能取代 NOT NULL。
+
+### 庫存保存可售與仍占用的計數
+
+`stock` 以 `sku_id` 為主鍵，保存非負的 `available` 與 `reserved`。此處 `reserved` 只計本系統尚未釋放的預留，因此應等於該 SKU 所有 `held` 預留數量總和。實際專案若還有其他占用來源，必須納入同一套對帳定義。
+
+假設取消前 `available = 8`、`reserved = 2`，本訂單預留兩件。成功後應為 `10` 與 `0`，預留成為 `released`，訂單成為 `cancelled`；再取消一百次也維持這組值。沒有補貨或出貨時，`available + reserved` 保持不變。
+
+這些是設計不變量。單純要求 `available ≥ 0` 抓不到重複補庫存；庫存變多同樣可能是錯誤。
+
+## 同一個交易完成狀態轉移與數量歸還
+
+沿用[寫入責任篇](/blog/order-system-write-ownership/)的模組化單體與單一 InnoDB 主庫。取消用例協調同一條連線；訂單模組管理狀態，庫存模組管理預留與計數，模組不能各自提交。
+
+首版選擇明確鎖定後判斷，順序固定為既有訂單、其預留，再到 SKU 庫存。下面是流程規格，省略 SQL adapter、錯誤碼映射與授權細節：
+
+```text
+BEGIN
+  用主鍵讀訂單 FOR UPDATE，核對所有權與目前狀態
+  讀此訂單唯一預留 FOR UPDATE
+  若訂單 cancelled 且預留 released：不補庫存，結束交易後回已取消
+  若不是 created + held：拒絕非法轉移；資料不一致則回滾並告警
+  取得預留內不可變的 sku_id 與 quantity
+  條件更新預留 held → released，必須改變一列
+  庫存 available + quantity、reserved - quantity，必須改變一列
+  條件更新訂單 created → cancelled，必須改變一列
+COMMIT 確認後回已取消
+```
+
+`FOR UPDATE` 需放在明確交易內，鎖在提交或回滾後釋放。[MySQL 8.4 鎖定讀](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)說明它會讀取目前可用資料並設定排他鎖；本篇用它讓另一個取消請求等待後，依已提交狀態重新判斷。不要在交易外先做一般 SELECT，拿舊結果決定釋放。
+
+<OrderCancellationDiagram />
+
+預留轉移的條件可以寫成以下片段；`:order_id` 等符號代表需由 adapter 綁定的參數，不能把整段當可直接貼到 MySQL client 的完整實作：
+
+```sql
+UPDATE reservations
+SET status = 'released'
+WHERE order_id = :order_id AND status = 'held';
+
+-- 只有上述轉移成功一列，才可執行這個數量歸還。
+UPDATE stock
+SET available = available + :quantity,
+    reserved = reserved - :quantity
+WHERE sku_id = :sku_id AND reserved >= :quantity;
+
+UPDATE orders
+SET status = 'cancelled'
+WHERE id = :order_id AND status = 'created';
+```
+
+成功釋放時，三個 UPDATE 都應改變一列。`quantity` 必須是已驗證的正整數；零值可能把「更新成功」變成沒有實際變更，負值則會把歸還方向反轉。[MySQL UPDATE 文件](https://dev.mysql.com/doc/refman/8.4/en/update.html)區分符合條件與實際變更的列；應確認使用中的 driver 回傳語意，別只憑屬性名稱推測。
+
+**任何預期一列的寫入得到零列，整筆回滾，不單獨提交釋放標記。** 零列可能是庫存列缺失、預留計數不足或狀態已改變，不能一概當成「對方已經處理過」。本方案已持有訂單與預留的鎖，遇到不符預期應視為不變量或其他寫入入口違規，留下診斷資訊。
+
+主鍵與唯一索引也屬於這份設計。InnoDB 會依查詢掃描與索引設定鎖，沒有適當索引可能擴大鎖定範圍；不能只看到 WHERE 裡有訂單 ID，就認定只影響一列。[InnoDB 各種敘述設定的鎖](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html)
+
+## 鎖只擋住同時操作，終局狀態擋住下一次
+
+兩個取消請求 A、B 同時到達時，A 先取得訂單鎖。B 等待。A 共同提交後，B 讀到 `cancelled + released`，回傳已取消，完全不執行數量歸還。
+
+若 A 在庫存更新前失敗並整筆回滾，B 之後看到的仍是 `created + held`，可以完成取消。若 A 已提交但 HTTP 回覆遺失，重送同一訂單取消時會走已取消分支。這些推論依賴所有寫入入口遵守相同交易與狀態約束，仍須用整合測試驗證。
+
+只有互斥鎖、沒有持久狀態不夠。A 放鎖後，B 仍會進來；若程式無條件 `available + quantity`，每次只是依序犯同一個錯。
+
+lock timeout 尤其容易留下半成品。MySQL 預設對鎖等待逾時只回滾當前敘述，deadlock 則回滾整筆交易。若預留已改成 `released`，接著補庫存逾時，應用不能捕捉例外後繼續 COMMIT。[官方錯誤處理](https://dev.mysql.com/doc/refman/8.4/en/innodb-error-handling.html)是這個差異的依據；本案例在失敗邊界明確整筆 ROLLBACK，再做有界重試。
+
+COMMIT 回覆遺失仍屬未知。用健康連線再次進入同一訂單的鎖定與狀態判斷，確認已取消就回已取消，未取消則受相同約束重新嘗試。超過等待預算時保留待確認，不宣稱已還原。不要從延遲副本或 REPEATABLE READ 舊快照的普通 SELECT 判斷「還沒取消」。[一致性讀文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)說明一般快照讀的可見性。
+
+## 可以少一次讀取，但不能少掉合法轉移
+
+另一個方案是先以條件 UPDATE 將訂單從 `created` 改為 `cancelled`，成功一列才接續鎖定預留並歸還數量，最後一起提交。它省去前面的鎖定讀，代價是零列後仍須辨識不存在、已取消或其他狀態，且必須確保不把失敗交易的局部變更提交。判讀目前狀態時要使用合適的鎖定讀或新交易，不能依賴舊快照。
+
+本案例採先鎖定讀，是因為需要核對所有權、訂單狀態與預留是否一致，流程比較容易審閱。兩種方案都靠 InnoDB 鎖定，條件 UPDATE 並不是無鎖。站內[庫存扣減文章](/blog/high-concurrency-inventory-locking-strategies/)談的是購買競爭與其他扣減方案；這裡的差別在於取消必須消耗一份尚未釋放的資格。
+
+加入 Redis 鎖目前沒有必要。即使 Redis 鎖過期或遺失，資料庫仍必須阻止重複歸還，增加一層鎖無法取代上述終局狀態。
+
+## 等待成本要量測，付款則先改契約
+
+用教學數字估算：每秒 20 次取消、平均持有資料庫連線 40 ms，穩定負載下平均約 `20 次/秒 × 0.04 秒 = 0.8` 條連線被占用。若同一熱門 SKU 造成平均持有連線時間（含等待）升至 500 ms，便約為 10 條。這是平均占用粗估，沒有包含尾端延遲與突發，也沒有證明應配置多少 pool。
+
+量測應分開記錄訂單鎖、預留鎖、SKU 鎖等待與整筆交易時間。不同訂單取消可能最後競爭同一 SKU；先縮短持鎖區段，確保沒有遠端 API 卡在交易內，再評估排隊或分區。鎖順序要檢查所有入口與索引路徑；固定本篇順序可以降低風險，不能保證系統從此沒有死結。[MySQL 死結處理建議](https://dev.mysql.com/doc/refman/8.4/en/innodb-deadlocks-handling.html)
+
+一旦加入付款或出貨，這篇的兩狀態模型就到邊界了。付款成功回呼與取消同時到達時，必須定義誰能從哪個狀態轉移；已扣款訂單的取消可能需要退款，已出貨商品更不能直接補成可售。資料庫回滾也撤不回遠端付款。
+
+**在付款與出貨政策尚未定義前，不把任何非 created 狀態放進這條直接釋放路徑。** 新流程需要協調付款確認、退款與庫存責任，應另作設計回顧，而非在 UPDATE 裡多加一個允許值。
+
+## 驗收要看四份資料一起對上
+
+實作後，以真實 MySQL、至少兩條獨立連線與同步屏障控制交錯，檢查訂單、預留、可售數和預留總量，不能只看 HTTP 200：
+
+- 兩個取消同時到達：兩邊最終可取得已取消，但數量只歸還一次；再串行重送一百次，數值不動。
+- 在預留改為 released 後、庫存歸還前注入例外：整筆回滾後仍是 created、held，兩個計數未變。
+- 刻意讓另一條連線占住 SKU，製造補庫存 timeout：確認沒有提交 released，也沒有將半開交易放回 pool。
+- 在 COMMIT 後丟棄 HTTP 回覆：再次取消同一訂單後，預留與庫存不重複變動。
+- 人工建立缺失庫存列或不足的 reserved 計數：取消必須回滾並回報異常，不能只把訂單標成已取消。
+- 不同訂單取消同一 SKU，並與新預留交錯：最終 reserved 等於仍為 held 的預留總和；未授權請求不得改動任何一份資料。
+
+這是待執行的資料庫驗收清單，不是本文已通過的測試結果。
+
+## 練習：第二個請求得到成功，為什麼不能再補兩件？
+
+起始可售 8 件、已預留 2 件，預留都屬於訂單 A。第一個取消請求共同提交成功，回覆卻遺失。第二個取消請求稍後進入；此時又有一張新訂單 B 成功預留 3 件。
+
+請寫出第二個取消完成後的可售數與預留數。它應讀到 A 的哪些狀態？用一個斷言抓出「HTTP 回覆相同，卻又補一次庫存」的錯誤。
+
+### 參考思路
+
+A 取消後為可售 10、預留 0；B 預留三件後為可售 7、預留 3。第二次取消 A 讀到 `cancelled + released`，維持 7 與 3。不能拿全 SKU 的 reserved 仍大於零，當成 A 還有可釋放數量；那三件屬於 B。
+
+測試應斷言 A 的預留狀態與數量、B 的 held 數量，以及 stock 的兩個計數都正確。下一步，把「取消重送和另一張訂單的新預留交錯」放進整合測試，讓錯誤歸還別人的預留無法只靠成功回應混過去。
