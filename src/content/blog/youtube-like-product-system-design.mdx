@@ -36,6 +36,9 @@ import VideoProductFailureDiagram from "../../components/VideoProductFailureDiag
 > [!NOTE]
 > 阿晴與平台是虛構案例，不代表 YouTube 的內部架構。流量、容量、延遲與期限皆為教學假設；API、交易片段與故障演練是設計草案，尚未完成資料庫併發、影音轉碼或效能壓測驗證。外部協定與雲端產品行為附官方來源，查核日期為 2026 年 10 月 16 日。
 
+> [!NOTE]
+> 本文的關鍵機制另有可以動手操作的版本：[機制實驗室](/blog/youtube-like-product-system-design/lab/)。讀到發布閘門時，可以直接選故障情境，看舊 token 的產物怎麼被擋下。
+
 ## 1. 上傳完成，只代表創作者交出了檔案
 
 阿晴看到進度條 100%，系統就顯示「發布成功」，是最容易做出的第一版。直到第一位觀眾打開影片，播放器才發現還沒有能用的清單，或者只有一個瀏覽器不支援的原始檔。
@@ -186,6 +189,8 @@ S3 的 [multipart 概觀](https://docs.aws.amazon.com/AmazonS3/latest/userguide/
 
 <VideoProductPublishDiagram />
 
+想看舊 token 的產物怎麼被擋下？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#publish-gate)操作驗印閘門。
+
 ### 先決定哪個 attempt 還有資格完成
 
 相同工作、attempt 與候選資產的完成通知若已被接受，回傳儲存的完成收據即可。收據證明當時接受過這份結果；影片此刻是否仍可播放，須另查目前狀態。唯一完成約束與終止狀態，則避免重送再次產生啟用事件。
@@ -239,6 +244,8 @@ COMMIT
 
 <VideoProductPlaybackDiagram />
 
+想看資格檢查和影片位元組怎麼分開走？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#playback-auth)操作售票亭與輸送管。
+
 對私密影片，只保護 manifest 不夠。如果 segments 的 URL 可以被任何人持續讀取，知道路徑的人就可能繞過播放 API。因此我們要求 CDN 在媒體請求到達時驗證資格，包含快取命中的情況；origin 同時限制只能由預期的 CDN 路徑存取。
 
 以 CloudFront 為例，[signed cookies](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-cookies.html) 適合授權一組受限檔案，[signed URL／cookie 選擇指引](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html) 舉的情境就包含 HLS。signed cookies 文件說明，CloudFront 驗證簽章與政策後，才決定從 edge cache 或 origin 回應。這可以避免每個 segment 都回到應用查資料庫，但需要設計 cookie domain、路徑、跨來源請求與播放器相容性。
@@ -258,6 +265,8 @@ COMMIT
 沿用前面的尖峰 10.4 Gbps 假設，如果媒體位元組快取命中率為 95%，簡化後的回源約是 0.52 Gbps；命中率降到 70%，回源約為 3.12 Gbps，相差六倍。這裡算的是位元組比例，不是 request hit ratio，尚未包含不同 edge 重複抓取、Range 行為與清單請求等因素。
 
 <VideoProductOriginDiagram />
+
+想看快取命中率掉一點，origin 要多扛多少？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#origin-cost)操作水塔與抽水站。
 
 版本化、不變的 segment 路徑有利於長期共享快取。相對地，帶狀態意義的 metadata、播放許可、或會變動的清單，應有不同的 TTL 與快取策略。把所有東西設成一年快取，會讓後來的權限修改與內容替換難以說清楚；把所有東西設成不快取，則把成本推回 origin。
 

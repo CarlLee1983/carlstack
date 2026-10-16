@@ -126,6 +126,18 @@ SVG 的 `font-size` 屬於 viewBox 座標系，用純數字 px（12／14／18 �
 
 - **動作**：互動與動畫是選配，用元件內的 vanilla `<script>`，遵守 skill 的 reduced motion 與離開視窗即停；關掉 JavaScript 時靜態 SVG 必須完整可讀。WebGL 與 3D 模式不用於文章圖解。
 
+### 機制實驗室
+
+互動式 anatomy 圖集中在 `/blog/<slug>/lab/`，決策見 [ADR 0008](adr/0008-mechanism-lab-companion-page.md)。每張圖遵守三條互動規則：
+
+1. 情境與重設按鈕是 SVG 外的原生 `<button>`，鍵盤可操作並套用 `:focus-visible`。
+2. 情境說明（含「播放中…第 i／n 步」的進度）放在 `aria-live="polite"` 區域；讀數照常顯示但不設為 live，避免每一步宣告多個區塊。
+3. 每張圖都有重設按鈕。
+
+情境邏輯放在 `src/utils/lab/` 的純函式，由 `pnpm test` 驗證；元件的 `<script>` 只負責呈現。播放中切換情境時先取消前一個，不讓兩段動畫交錯。`prefers-reduced-motion` 下直接跳到每一步的目標狀態，但按鈕與讀數仍照常回應操作。
+
+按鈕、figcaption、讀數區與共用樣式由外殼 `src/components/LabFigure.astro` 提供；播放、計時、reduced motion、離開畫面暫停與重設由 `src/utils/lab-player.ts` 處理，它是唯一碰 DOM 的模組，`src/utils/lab/` 維持純函式。共用幾何（純函式）在 `src/utils/lab-geometry.ts`。新增一張圖只需要提供幾何、state 到目標值的對應與繪製。連回長文的連結一律顯示，不論 JavaScript 是否啟用；情境播完只是多出說明文字。
+
 ## 驗收
 
 發布前在桌面與 320 px 視窗各看一次，淺色與深色各看一次。四種組合都要文字可讀、不產生整頁水平捲軸、顏色隨主題切換。

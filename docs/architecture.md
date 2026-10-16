@@ -29,7 +29,7 @@ src/content/{blog,projects}/*.{md,mdx}
 | 內容 schema      | `src/content.config.ts`                                                                        | 130 篇文章的 frontmatter 形狀。新增必填欄位會讓全部既有文章 build 失敗；只能新增選填欄位，或連同內容一起遷移                                                                                                                                       |
 | 發布與排序規則   | `src/utils/content.ts`                                                                         | draft 過濾、更新日倒序（未更新時退回發布日）、taxonomy 正規化、系列排序、slug 推導、閱讀時間估算、首頁精選選取（[ADR 0006](adr/0006-featured-posts-expire.md)）。純函式，不碰 Astro API，由 `tests/content.test.ts`、`tests/featured.test.ts` 守住 |
 | Collection 存取  | `src/utils/collections.ts`                                                                     | 頁面唯一的內容入口。頁面不得自行呼叫 `getCollection` 或重建分類常數                                                                                                                                                                                |
-| URL 形狀         | `getEntrySlug` + `postHref`（`src/utils/content.ts`、`collections.ts`）、`src/pages/**` 的檔名 | `/blog/<slug>/` 發布後不可更名。`trailingSlash: "always"`                                                                                                                                                                                          |
+| URL 形狀         | `getEntrySlug` + `postHref`（`src/utils/content.ts`、`collections.ts`）、`src/pages/**` 的檔名 | `/blog/<slug>/` 發布後不可更名；`/blog/<slug>/lab/`（機制實驗室，靜態路由，見 [ADR 0008](adr/0008-mechanism-lab-companion-page.md)）同樣發布後不可更名。`trailingSlash: "always"`                                                                  |
 | Taxonomy URL     | `normalizeTaxonomy`（`src/utils/content.ts`）                                                  | NFKC → lowercase → 非文字數字轉連字號。改動會讓所有既有標籤與系列 URL 失效                                                                                                                                                                         |
 | 站址真理來源     | `astro.config.mjs` 的 `site`、`scripts/validate-site-url.mjs`                                  | 唯一站址設定。頁面元件不得硬編網域                                                                                                                                                                                                                 |
 | 內容 policy gate | `src/utils/content-policy.mjs`、`scripts/validate-content-policy.mjs`                          | 只檢查本次 diff 新增或修改的文章，舊文維持原樣。放寬等於解除 Mermaid 禁令，見 ADR 0004                                                                                                                                                             |
@@ -40,11 +40,11 @@ src/content/{blog,projects}/*.{md,mdx}
 
 ## 不屬於邊界的部分
 
-`src/components/*Diagram.astro` 是每篇文章專屬的一次性視覺元件，可以自由新增、修改或刪除，不影響其他文章——但它們必須遵守 `tokens.css` 的色彩契約與 [`docs/diagram-guide.md`](diagram-guide.md) 的結構規範。
+`src/components/*Diagram.astro` 是每篇文章專屬的一次性視覺元件，可以自由新增、修改或刪除，不影響其他文章——但它們必須遵守 `tokens.css` 的色彩契約與 [`docs/diagram-guide.md`](diagram-guide.md) 的結構規範。機制實驗室（[ADR 0008](adr/0008-mechanism-lab-companion-page.md)）的圖另外共用 `src/components/LabFigure.astro`、`src/utils/lab-player.ts`、`src/utils/lab-geometry.ts`：改動它們會同時影響所有實驗室的圖，需重驗每一張；`src/utils/lab/` 的情境模組維持純函式。
 
 ## 執行期組成
 
-站台的瀏覽器 JavaScript 依頁面載入：共用版型處理主題與字級偏好（寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`），搜尋頁載入 Pagefind，文章頁可載入 Giscus 留言，站台可載入 Cloudflare Web Analytics。主題詞雲頁另外載入 ECharts 5 與 `echarts-wordcloud` 2；詞雲是額外的視覺入口，頁面仍以靜態 HTML 提供完整標籤清單。沒有 framework hydration。
+站台的瀏覽器 JavaScript 依頁面載入：共用版型處理主題與字級偏好（寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`），搜尋頁載入 Pagefind，文章頁可載入 Giscus 留言，站台可載入 Cloudflare Web Analytics。主題詞雲頁另外載入 ECharts 5 與 `echarts-wordcloud` 2；詞雲是額外的視覺入口，頁面仍以靜態 HTML 提供完整標籤清單。機制實驗室頁載入 `src/utils/lab-player.ts` 驅動動態圖，停用 JavaScript 時靜態 SVG 與讀數仍完整可讀。沒有 framework hydration。
 
 Mermaid 只在含文章內容的頁面載入，security level 固定 `strict`。新文章已禁用 Mermaid（ADR 0004），此相依只為舊文保留。
 
