@@ -5,3 +5,6 @@ node_modules
 public/pagefind
 pnpm-lock.yaml
 graft
+.trail/cache
+.trail/statusline.cjs
+.claude/settings.local.json
