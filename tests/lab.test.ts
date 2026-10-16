@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { initialStep, play, scenarios } from "../src/utils/lab/index.ts";
+import {
+  initialStep,
+  mechanisms,
+  play,
+  scenarios,
+} from "../src/utils/lab/index.ts";
 
 const last = <T>(steps: T[]): T => {
   const step = steps.at(-1);
@@ -73,7 +78,7 @@ test("正常完成：A 被接受，指標切換到 A 的資產一次", () => {
 });
 
 test("每個機制的每個情境只有最後一步有 caption，且不為空", () => {
-  for (const mechanism of ["publish-gate", "playback-auth"]) {
+  for (const mechanism of mechanisms()) {
     for (const { id } of scenarios(mechanism)) {
       const steps = play(mechanism, id);
       const name = `${mechanism}/${id}`;
@@ -288,5 +293,90 @@ test("playback-auth 每一步的讀數都由 state 推導，兩者不會矛盾",
         pass.held && pass.share === 0,
       );
     }
+  }
+});
+
+test("edge.fresh：只有本步有新的 CDN 請求抵達 edge 時才為 true", () => {
+  const direct = play("playback-auth", "direct-url").map((s) => s.state.edge);
+  // 沒有請求 → 第一次被拒絕（新請求）→ 同一次判定停留（非新請求）
+  assert.deepEqual(
+    direct.map((e) => e.fresh),
+    [false, true, false],
+  );
+
+  const normal = play("playback-auth", "normal");
+  for (const s of normal) {
+    assert.equal(s.state.edge.fresh, s.state.edge.requester !== null);
+  }
+
+  for (const s of play("playback-auth", "refresh")) {
+    if (s.state.edge.requester === null)
+      assert.equal(s.state.edge.fresh, false);
+  }
+  assert.equal(initialStep("playback-auth").state.edge.fresh, false);
+});
+
+test("授權服務不可用：持資格者在到期前嘗試更新失敗（算一次應用請求），仍靠有效資格續播", () => {
+  const steps = play("playback-auth", "auth-down");
+  const attempt = steps.findIndex(
+    (s) =>
+      s.state.kiosk === "unavailable" && s.state.kioskRequester === "viewer",
+  );
+  assert.ok(attempt > 0, "應有 viewer 向售票亭更新失敗的步驟");
+  const before = steps[attempt - 1];
+  const at = steps[attempt];
+  assert.ok(before && at);
+  assert.equal(
+    at.state.counters.appRequests,
+    before.state.counters.appRequests + 1,
+  );
+  assert.ok(at.state.viewers.viewer.pass.share > 0);
+  assert.ok(
+    at.state.viewers.viewer.pass.share <=
+      before.state.viewers.viewer.pass.share,
+  );
+  assert.equal(at.state.viewers.viewer.player, "playing");
+});
+
+test("授權服務不可用：新觀眾向售票亭要資格被拒，保持無資格並被擋下", () => {
+  const steps = play("playback-auth", "auth-down");
+  const attempt = steps.find(
+    (s) =>
+      s.state.kiosk === "unavailable" && s.state.kioskRequester === "newcomer",
+  );
+  assert.ok(attempt, "應有 newcomer 向售票亭要資格的步驟");
+  assert.deepEqual(attempt.state.viewers.newcomer.pass, {
+    held: false,
+    share: 0,
+  });
+  assert.equal(attempt.state.viewers.newcomer.player, "blocked");
+  assert.ok(steps.every((s) => !s.state.viewers.newcomer.pass.held));
+});
+
+test("授權服務不可用：資格到期後 edge 拒絕 viewer 的新請求，已緩衝的片段先播完才卡住", () => {
+  const steps = play("playback-auth", "auth-down");
+  const expired = steps.findIndex(
+    (s) =>
+      s.state.edge.requester === "viewer" &&
+      s.state.edge.decision === "denied" &&
+      s.state.edge.fresh,
+  );
+  assert.ok(expired >= 0, "應有到期後新請求被拒絕的步驟");
+  const at = steps[expired];
+  assert.ok(at);
+  assert.deepEqual(at.state.viewers.viewer.pass, { held: true, share: 0 });
+  assert.equal(at.state.viewers.viewer.player, "playing");
+  assert.ok(at.state.viewers.viewer.buffer > 0);
+
+  const final = last(steps);
+  assert.ok(expired < steps.length - 1, "卡住發生在拒絕之後");
+  assert.equal(final.state.viewers.viewer.player, "stalled");
+  assert.equal(final.state.viewers.viewer.buffer, 0);
+});
+
+test("mechanisms 依註冊順序列出所有機制，且每個都有情境", () => {
+  assert.deepEqual(mechanisms(), ["publish-gate", "playback-auth"]);
+  for (const mechanism of mechanisms()) {
+    assert.ok(scenarios(mechanism).length > 0);
   }
 });

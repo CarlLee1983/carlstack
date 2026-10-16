@@ -1,0 +1,373 @@
+---
+// LabFigure.astro — 機制實驗室動態圖的共用外殼。
+// 提供 figure、情境與重設按鈕、figcaption（Fig 編號、標題、提示、aria-live 讀數區、
+// 說明、連回長文的連結、圖例），以及所有 anatomy 圖共用的樣式。各圖元件只把 SVG
+// 放進預設 slot、在自己的 <script> 以 src/utils/lab-player.ts 掛載，並保留零件專屬樣式。
+// data-lab-* 標記是與 lab-player 的約定，見該檔開頭說明。
+import { initialStep, scenarios, type Mechanism } from "../utils/lab/index.ts";
+
+interface Props {
+  mechanism: Mechanism;
+  /** 圖編號，例如「Fig 1」。 */
+  fig: string;
+  title: string;
+  /** 操作提示；只在 JavaScript 掛載後顯示。 */
+  hint: string;
+  /** 初始狀態與重設後的說明，也是停用 JavaScript 時看到的文字。 */
+  staticNote: string;
+  /** 讀數欄位：key 對應情境模組 readout 的欄位。 */
+  readings: { key: string; label: string }[];
+  legend: string;
+  sectionHref: string;
+  sectionLabel: string;
+}
+
+const {
+  mechanism,
+  fig,
+  title,
+  hint,
+  staticNote,
+  readings,
+  legend,
+  sectionHref,
+  sectionLabel,
+} = Astro.props;
+const scenarioList = scenarios(mechanism);
+const start = initialStep(mechanism).readout as unknown as Record<
+  string,
+  string
+>;
+const captionId = `${mechanism}-caption`;
+---
+
+<figure
+  class="lab-figure"
+  aria-labelledby={captionId}
+  data-lab-root
+  data-lab-figure={mechanism}
+  data-static-note={staticNote}
+>
+  <div class="lab-figure__stage" data-lab-stage>
+    <slot />
+  </div>
+
+  <div class="lab-figure__controls" data-lab-controls hidden>
+    <div class="lab-figure__buttons" role="group" aria-label={`${title}情境`}>
+      {
+        scenarioList.map((scenario) => (
+          <button
+            type="button"
+            class="lab-figure__button"
+            data-scenario={scenario.id}
+            aria-pressed="false"
+          >
+            {scenario.label}
+          </button>
+        ))
+      }
+      <button
+        type="button"
+        class="lab-figure__button lab-figure__button--reset"
+        data-lab-reset
+      >
+        重設
+      </button>
+    </div>
+  </div>
+
+  <figcaption id={captionId} class="lab-figure__caption">
+    <p class="lab-figure__head">
+      <span>{fig}</span>
+      <span class="lab-figure__title">{title}</span>
+    </p>
+    <p class="lab-figure__hint" data-lab-hint hidden>{hint}</p>
+    <div aria-live="polite">
+      <dl class="lab-figure__readout">
+        {
+          readings.map((reading) => (
+            <div class="lab-figure__reading">
+              <dt>{reading.label}</dt>
+              <dd data-readout={reading.key}>{start[reading.key]}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="lab-figure__note" data-lab-note>{staticNote}</p>
+      <p class="lab-figure__back" data-lab-back>
+        <a href={sectionHref}>{sectionLabel}</a>
+      </p>
+    </div>
+    <p class="lab-figure__legend">{legend}</p>
+  </figcaption>
+</figure>
+
+<style>
+  .lab-figure {
+    margin: var(--space-xl) 0;
+    width: 100%;
+    min-width: 0;
+
+    /* --anatomy-* 全部由 --dg-* 與 tokens.css 推導，見 docs/diagram-guide.md。 */
+    --anatomy-paper: var(--dg-surface);
+    --anatomy-face: var(--dg-surface);
+    --anatomy-top: var(--dg-surface);
+    --anatomy-lit-top: var(--dg-surface);
+    --anatomy-card: var(--dg-surface);
+    --anatomy-page: var(--dg-surface-2);
+    --anatomy-shade-0: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 14%
+    );
+    --anatomy-shade-1: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 10%
+    );
+    --anatomy-shade-2: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 7%
+    );
+    --anatomy-shade-3: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 4%
+    );
+    --anatomy-lit-shade: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 14%
+    );
+    --anatomy-strong: var(--dg-ink);
+    --anatomy-lit: var(--dg-ink);
+    --anatomy-dot: var(--dg-ink);
+    --anatomy-text: var(--dg-ink-2);
+    --anatomy-hi: var(--dg-ink-2);
+    --anatomy-muted: var(--dg-muted);
+    --anatomy-mid: var(--dg-muted);
+    --anatomy-lo: var(--dg-rule-strong);
+    --anatomy-faint: var(--dg-rule);
+    --anatomy-halo: var(--color-code);
+    --anatomy-halo-opacity: 0.32;
+    --anatomy-red: var(--color-error);
+    --anatomy-green: var(--color-success);
+    --anatomy-on: var(--color-accent);
+    --anatomy-weight: 0.6px;
+  }
+
+  :global(:root[data-theme="dark"]) .lab-figure {
+    --anatomy-shade-0: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 60%
+    );
+    --anatomy-shade-1: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 45%
+    );
+    --anatomy-shade-2: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 30%
+    );
+    --anatomy-shade-3: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 15%
+    );
+    --anatomy-lit-shade: color-mix(
+      in oklab,
+      var(--dg-surface),
+      var(--color-code) 60%
+    );
+    --anatomy-halo-opacity: 0.9;
+  }
+
+  .lab-figure__stage {
+    overflow: hidden;
+    border: 1px solid var(--dg-rule);
+    border-radius: var(--radius-sm);
+    background: var(--anatomy-card);
+  }
+
+  /*
+   * kit/iso.css 的結構規則（不含寫死色值的主題區塊）。SVG 由各圖元件放進 slot，
+   * 不帶本元件的 scope，所以用 :global；外層包 :where(.lab-figure__stage) 只限定範圍、
+   * 不增加權重，各圖元件自己的零件樣式（單一 class 加 scope 屬性）因此一定蓋得過這裡。
+   */
+  :where(.lab-figure__stage) :global(.iso-svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  :where(.lab-figure__stage) :global(:is(.iso-svg path, .iso-svg circle)) {
+    vector-effect: non-scaling-stroke;
+  }
+  :where(.lab-figure__stage) :global(.iso-fill) {
+    fill: var(--anatomy-paper);
+    stroke: none;
+  }
+  :where(.lab-figure__stage) :global(:is(.iso-shade, .iso-top)) {
+    stroke: none;
+  }
+  :where(.lab-figure__stage) :global(.iso-shade[data-shade="0"]) {
+    fill: var(--anatomy-shade-0);
+  }
+  :where(.lab-figure__stage) :global(.iso-shade[data-shade="1"]) {
+    fill: var(--anatomy-shade-1);
+  }
+  :where(.lab-figure__stage) :global(.iso-shade[data-shade="2"]) {
+    fill: var(--anatomy-shade-2);
+  }
+  :where(.lab-figure__stage) :global(.iso-shade[data-shade="3"]) {
+    fill: var(--anatomy-shade-3);
+  }
+  :where(.lab-figure__stage) :global(.iso-top) {
+    fill: var(--anatomy-top);
+  }
+  :where(.lab-figure__stage) :global(.iso-halo) {
+    fill: var(--anatomy-halo);
+    stroke: none;
+    filter: blur(9px);
+    opacity: var(--anatomy-halo-opacity);
+    transform: translateY(3px);
+  }
+  :where(.lab-figure__stage) :global(.iso-line) {
+    fill: none;
+    stroke: var(--anatomy-lo);
+    stroke-width: var(--anatomy-weight);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="hi"]) {
+    stroke: var(--anatomy-hi);
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="mid"]) {
+    stroke: var(--anatomy-mid);
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="lo"]) {
+    stroke: var(--anatomy-lo);
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="faint"]) {
+    stroke: var(--anatomy-faint);
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="lit"]) {
+    stroke: var(--anatomy-lit);
+  }
+  :where(.lab-figure__stage) :global(.iso-line[data-tone="red"]) {
+    stroke: var(--anatomy-red);
+  }
+  :where(.lab-figure__stage) :global(.iso-dots circle) {
+    fill: var(--anatomy-dot);
+    stroke: none;
+    opacity: 0.32;
+  }
+  :where(.lab-figure__stage) :global(.iso-dots[data-tone="hi"] circle) {
+    opacity: 0.85;
+  }
+  :where(.lab-figure__stage) :global(.iso-dots[data-tone="mid"] circle) {
+    opacity: 0.45;
+  }
+  :where(.lab-figure__stage) :global(.iso-dots[data-tone="lo"] circle) {
+    opacity: 0.22;
+  }
+
+  /* 操作與說明 */
+  .lab-figure__controls {
+    margin-top: var(--space-sm);
+  }
+  .lab-figure__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .lab-figure__button {
+    min-height: 2.5rem;
+    padding: var(--space-2xs) var(--space-sm);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: var(--radius-sm);
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+  .lab-figure__button:hover {
+    border-color: var(--color-accent);
+  }
+  .lab-figure__button[aria-pressed="true"] {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    font-weight: 700;
+  }
+  .lab-figure__button:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  .lab-figure__button--reset {
+    color: var(--dg-muted);
+  }
+
+  .lab-figure__caption {
+    margin-top: var(--space-sm);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--dg-ink-2);
+  }
+  .lab-figure__caption p {
+    margin: 0 0 var(--space-xs);
+  }
+  .lab-figure__head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    color: var(--dg-muted);
+  }
+  .lab-figure__title {
+    color: var(--dg-ink);
+  }
+  .lab-figure__hint {
+    color: var(--dg-muted);
+  }
+  .lab-figure__readout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-lg);
+    margin: 0 0 var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--dg-rule);
+    border-radius: var(--radius-sm);
+    background: var(--dg-surface-2);
+  }
+  .lab-figure__reading {
+    min-width: 0;
+  }
+  .lab-figure__reading dt {
+    font-size: var(--text-xs);
+    color: var(--dg-muted);
+  }
+  .lab-figure__reading dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--dg-ink);
+    white-space: nowrap;
+  }
+  .lab-figure__note {
+    color: var(--dg-ink);
+  }
+  .lab-figure__back a {
+    color: var(--color-accent);
+    text-underline-offset: 0.2em;
+  }
+  .lab-figure__legend {
+    color: var(--dg-muted);
+  }
+</style>

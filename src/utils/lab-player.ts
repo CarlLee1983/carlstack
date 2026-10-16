@@ -24,7 +24,7 @@ export interface LabSource<T extends AnyStep> {
 
 export interface RenderContext {
   /** 使用者偏好減少動態效果：不補間，直接到位。 */
-  readonly still: boolean;
+  readonly reducedMotion: boolean;
   /** 安排本次情境內的延遲動作；開新情境或重設時一併取消。 */
   later(fn: () => void, ms: number): void;
   /** 改變部分目標值（例如中途點）。 */
@@ -38,8 +38,15 @@ export interface LabFigure<T extends AnyStep> {
   targets(step: T): Motion;
   /** 把連續量寫進 SVG（transform、d、座標屬性），每一幀呼叫。 */
   draw(current: Readonly<Motion>): void;
-  /** 寫入離散狀態（data-*）；可以調整這一步的 targets 或用 ctx 安排中途點。 */
-  render(step: T, targets: Motion, ctx: RenderContext): void;
+  /**
+   * 寫入離散狀態（data-*）。回傳的 Partial<Motion> 會蓋過這一步的目標值
+   * （例如先送到中途點，再用 ctx.later 安排終點）；不需要時不回傳。
+   */
+  render(
+    step: T,
+    targets: Readonly<Motion>,
+    ctx: RenderContext,
+  ): Partial<Motion> | void;
 }
 
 const STEP_MS = 1100;
@@ -146,7 +153,7 @@ export function mountLabFigure<T extends AnyStep>(
     still,
   );
   const ctx: RenderContext = {
-    get still() {
+    get reducedMotion() {
       return still.matches;
     },
     later: schedule.later,
@@ -159,8 +166,11 @@ export function mountLabFigure<T extends AnyStep>(
   };
 
   function renderStep(step: T, text: string) {
-    const targets = figure.targets(step);
-    figure.render(step, targets, ctx);
+    const base = figure.targets(step);
+    const targets = {
+      ...base,
+      ...(figure.render(step, base, ctx) ?? {}),
+    } as Motion;
     const readout = step.readout as Record<string, unknown>;
     readouts.forEach((element) => {
       const key = element.dataset.readout ?? "";
@@ -170,7 +180,7 @@ export function mountLabFigure<T extends AnyStep>(
     animator.aim(targets);
   }
 
-  function pressed(id: string | null) {
+  function setPressed(id: string | null) {
     buttons.forEach((button) =>
       button.setAttribute(
         "aria-pressed",
@@ -184,7 +194,7 @@ export function mountLabFigure<T extends AnyStep>(
     const label = button.textContent?.trim() ?? id;
     const steps = source.play(id);
     schedule.cancel();
-    pressed(id);
+    setPressed(id);
     showBack(false);
     // 先回到起點，再逐步播放。
     renderStep(source.initial(), `播放中：${label}`);
@@ -207,7 +217,7 @@ export function mountLabFigure<T extends AnyStep>(
 
   function reset() {
     schedule.cancel();
-    pressed(null);
+    setPressed(null);
     showBack(false);
     renderStep(source.initial(), staticNote);
   }

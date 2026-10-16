@@ -73,6 +73,11 @@ export function play(mechanism: string, scenarioId: string) {
   return lookup(mechanism).play(scenarioId);
 }
 
+/** 已註冊的機制，依註冊順序。 */
+export function mechanisms(): Mechanism[] {
+  return Object.keys(registry) as Mechanism[];
+}
+
 export function scenarios(mechanism: string): ScenarioInfo[] {
   return lookup(mechanism).scenarios.map((scenario) => ({ ...scenario }));
 }

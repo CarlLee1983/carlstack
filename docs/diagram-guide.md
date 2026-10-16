@@ -136,6 +136,8 @@ SVG 的 `font-size` 屬於 viewBox 座標系，用純數字 px（12／14／18 �
 
 情境邏輯放在 `src/utils/lab/` 的純函式，由 `pnpm test` 驗證；元件的 `<script>` 只負責呈現。播放中切換情境時先取消前一個，不讓兩段動畫交錯。`prefers-reduced-motion` 下直接跳到每一步的目標狀態，但按鈕與讀數仍照常回應操作。
 
+按鈕、figcaption、讀數區與共用樣式由外殼 `src/components/LabFigure.astro` 提供；播放、計時、reduced motion、離開畫面暫停與重設由 `src/utils/lab-player.ts` 處理，它是唯一碰 DOM 的模組，`src/utils/lab/` 維持純函式。新增一張圖只需要提供幾何、state 到目標值的對應與繪製。
+
 ## 驗收
 
 發布前在桌面與 320 px 視窗各看一次，淺色與深色各看一次。四種組合都要文字可讀、不產生整頁水平捲軸、顏色隨主題切換。
