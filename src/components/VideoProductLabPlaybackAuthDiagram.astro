@@ -44,12 +44,12 @@ const { sectionHref } = Astro.props;
     class="iso-svg"
     viewBox="0 0 640 360"
     role="img"
-    aria-labelledby="playback-auth-title playback-auth-desc"
+    aria-labelledby="playback-auth-svg-title playback-auth-svg-desc"
   >
-    <title id="playback-auth-title">
+    <title id="playback-auth-svg-title">
       售票亭＋輸送管：資格和位元組走不同的路
     </title>
-    <desc id="playback-auth-desc">
+    <desc id="playback-auth-svg-desc">
       一張底板上的播放授權模型。左後方是售票亭，代表發出短期播放資格的播放
       API；每台播放器旁有一支沙漏，沙量表示資格剩餘的效期；螢幕右下三格是已緩衝的
       segment。中央的水槽是 CDN edge 快取，右後方的抽水站是
@@ -2768,9 +2768,20 @@ const { sectionHref } = Astro.props;
     PlaybackAuthState,
     ViewerId,
   } from "../utils/lab/index.ts";
-  import { mountLabFigure } from "../utils/lab-player.ts";
-
-  type Vec = [number, number];
+  import {
+    along,
+    roundTrip,
+    segmentPath,
+    staggered,
+    translate,
+    type Vec,
+  } from "../utils/lab-geometry.ts";
+  import {
+    mountLabFigure,
+    placeBead,
+    setFlag,
+    setLevel,
+  } from "../utils/lab-player.ts";
 
   // 由 build script 依等角投影算好的常數：世界座標每單位在 viewBox 中的位移、錨點與脈衝路線。
   const GEO: {
@@ -2874,55 +2885,6 @@ const { sectionHref } = Astro.props;
   };
   type AuthMotion = Record<(typeof KEYS)[number], number>;
 
-  const fmt = (value: number) => Math.round(value * 10) / 10;
-  const translate = (v: Vec, amount: number) =>
-    `translate(${fmt(v[0] * amount)} ${fmt(v[1] * amount)})`;
-  const setFlag = (element: Element, name: string, on: boolean) => {
-    if (on) element.setAttribute(name, "");
-    else element.removeAttribute(name);
-  };
-
-  /** 折線上依弧長比例 share（0～1）取點。 */
-  function pointAlong(line: Vec[], share: number): Vec {
-    const lengths = line.slice(1).map((p, i) => {
-      const q = line[i] as Vec;
-      return Math.hypot(p[0] - q[0], p[1] - q[1]);
-    });
-    let left = share * lengths.reduce((sum, length) => sum + length, 0);
-    for (let i = 0; i < lengths.length; i++) {
-      const length = lengths[i] ?? 0;
-      const [a, b] = [line[i] as Vec, line[i + 1] as Vec];
-      if (left <= length || i === lengths.length - 1) {
-        const t = length ? Math.min(1, left / length) : 0;
-        return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-      }
-      left -= length;
-    }
-    return line[0] as Vec;
-  }
-
-  function placeBead(bead: SVGCircleElement, line: Vec[], share: number) {
-    const shown = share > 0.001 && share < 0.999;
-    bead.setAttribute("visibility", shown ? "visible" : "hidden");
-    if (!shown) return;
-    const [x, y] = pointAlong(line, share);
-    bead.setAttribute("cx", String(fmt(x)));
-    bead.setAttribute("cy", String(fmt(y)));
-  }
-
-  /** 去程 0→1、回程 1→0；到底（1）時隱藏。 */
-  const roundTrip = (t: number) =>
-    t >= 0.999 ? 1 : t < 0.5 ? t * 2 : 2 - t * 2;
-
-  /** 沙柱整根往下沉，剪裁區是玻璃管；沙用完時連頂面也藏起來。 */
-  function setSand(sand: SVGGElement, share: number) {
-    sand.setAttribute(
-      "transform",
-      translate(GEO.VZ, -(1 - share) * GEO.SAND_H),
-    );
-    sand.setAttribute("visibility", share > 0.005 ? "visible" : "hidden");
-  }
-
   /** 由一步的 state 算出各連續量的目標值；脈衝的目標固定為 1，出發點由 render 決定。 */
   function targetsOf(state: PlaybackAuthState): AuthMotion {
     return {
@@ -3011,25 +2973,21 @@ const { sectionHref } = Astro.props;
         "transform",
         translate(GEO.VY, at.ticket * GEO.TICKET_OUT),
       );
-      const tip: Vec = [
-        GEO.ARM_C[0] +
-          (-GEO.VX[0] * Math.cos(at.arm) + GEO.VZ[0] * Math.sin(at.arm)) *
-            GEO.ARM_L,
-        GEO.ARM_C[1] +
-          (-GEO.VX[1] * Math.cos(at.arm) + GEO.VZ[1] * Math.sin(at.arm)) *
-            GEO.ARM_L,
-      ];
-      const arm = `M${fmt(GEO.ARM_C[0])} ${fmt(GEO.ARM_C[1])}L${fmt(tip[0])} ${fmt(tip[1])}`;
+      // 閘臂在 xz 平面轉動：0 = 水平橫過輸送管，π/2 = 抬起。
+      const tip = along(
+        GEO.ARM_C,
+        GEO.VX,
+        GEO.VZ,
+        -Math.cos(at.arm) * GEO.ARM_L,
+        Math.sin(at.arm) * GEO.ARM_L,
+      );
+      const arm = segmentPath(GEO.ARM_C, tip);
       parts.arms.forEach((element) => element.setAttribute("d", arm));
-      setSand(parts.sand.viewer, at.sandViewer);
-      setSand(parts.sand.newcomer, at.sandNewcomer);
+      setLevel(parts.sand.viewer, at.sandViewer, GEO.VZ, GEO.SAND_H);
+      setLevel(parts.sand.newcomer, at.sandNewcomer, GEO.VZ, GEO.SAND_H);
       // 三顆 segment 依序出發，看得出是一串請求。
       parts.segmentBeads.forEach((bead, index) =>
-        placeBead(
-          bead,
-          segmentRoute,
-          Math.min(1, Math.max(0, at.segment * 1.5 - index * 0.25)),
-        ),
+        placeBead(bead, segmentRoute, staggered(at.segment, index)),
       );
       // 被拒絕的請求走到閘門再折返；向售票亭要資格也是去了再回來。
       parts.probeBeads.forEach((bead) =>

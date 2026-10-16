@@ -401,7 +401,6 @@ test("origin-cost 初始狀態：三座 edge 皆滿水位、無 Shield、無合�
   assert.ok(step.state.edges.every((e) => e.level === 1 && !e.missing));
   assert.equal(step.state.shield.enabled, false);
   assert.equal(step.state.collapse, false);
-  assert.equal(step.state.egressGbps, 10.4);
   assert.equal(step.state.deferred, "running");
   assert.ok(step.state.originLoad < 1);
 });
@@ -409,7 +408,6 @@ test("origin-cost 初始狀態：三座 edge 皆滿水位、無 Shield、無合�
 test("命中率 95%：總下行 10.4 Gbps 下，回源約 0.52 Gbps", () => {
   const final = last(play("origin-cost", "hit-95"));
   assert.equal(final.state.byteHit, 0.95);
-  assert.equal(final.state.egressGbps, 10.4);
   assert.ok(Math.abs(final.state.originGbps - 0.52) < 1e-9);
   assert.ok(final.state.originLoad < 1);
 });
@@ -433,8 +431,12 @@ test("冷門轉熱門：多個 edge 同時未命中使回源暴衝，啟用 Shie
   );
   assert.equal(spike.state.shield.enabled, false);
   assert.equal(spike.state.collapse, false);
+  // 沒有合併時，每個未命中的 edge 各自回源：重複抓取讓暴衝超過 70% 命中率的 3.12 Gbps
+  assert.equal(spike.state.originFetches, 3);
+  assert.ok(spike.state.originGbps > 3.12);
 
   const final = last(steps);
+  assert.equal(final.state.originFetches, 1);
   assert.equal(final.state.shield.enabled, true);
   assert.equal(final.state.collapse, true);
   assert.ok(final.state.originGbps < spike.state.originGbps);
@@ -455,11 +457,13 @@ test("origin 超載：先超過容量，暫緩後補格式後負載回到容量�
   assert.ok((steps[0]?.state.backfillGbps ?? 0) > 0);
 });
 
-test("origin 超載：觀眾持續被服務（下行不變），後補才暫緩，說明明講基本畫質繼續播放", () => {
+test("origin 超載：全程三座 edge 持續供應觀眾，後補暫緩、負載回到容量以內", () => {
   const steps = play("origin-cost", "overload");
-  assert.ok(steps.every((s) => s.state.egressGbps === 10.4));
-  assert.equal(last(steps).state.deferred, "paused");
-  const caption = last(steps).caption ?? "";
-  assert.ok(caption.includes("基本畫質"));
-  assert.ok(caption.includes("繼續播放"));
+  for (const s of steps) {
+    assert.equal(s.state.edges.length, 3);
+    assert.ok(s.state.edges.every((e) => e.level > 0 && !e.missing));
+  }
+  const final = last(steps);
+  assert.equal(final.state.deferred, "paused");
+  assert.ok(final.state.originLoad < 1);
 });

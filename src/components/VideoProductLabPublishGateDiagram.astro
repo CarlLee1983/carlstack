@@ -46,12 +46,12 @@ const { sectionHref } = Astro.props;
     class="iso-svg"
     viewBox="0 0 640 350"
     role="img"
-    aria-labelledby="publish-gate-title publish-gate-desc"
+    aria-labelledby="publish-gate-svg-title publish-gate-svg-desc"
   >
-    <title id="publish-gate-title">
+    <title id="publish-gate-svg-title">
       驗印閘門：舊 token 的產物進不了播放清單
     </title>
-    <desc id="publish-gate-desc">
+    <desc id="publish-gate-svg-desc">
       一台裝在底板上的驗印閘門。後方與前方各有一條輸送臂，代表 worker A 與
       worker B；托架載著產物匣，匣蓋上的方框戳記代表 generation 7，一個圓點代表
       attempt a、兩個圓點代表 attempt
@@ -2788,11 +2788,18 @@ const { sectionHref } = Astro.props;
 
 <script>
   import { initialStep, play } from "../utils/lab/index.ts";
-  import { mountLabFigure, type Motion } from "../utils/lab-player.ts";
+  import {
+    along,
+    fmt,
+    point,
+    segmentPath,
+    translate,
+    type Vec,
+  } from "../utils/lab-geometry.ts";
+  import { mountLabFigure, setFlag, type Motion } from "../utils/lab-player.ts";
   import type { PublishGateState, WorkerStatus } from "../utils/lab/index.ts";
 
   type Lane = "a" | "b";
-  type Vec = [number, number];
 
   // 由 build script 依等角投影算好的常數：世界座標每單位在 viewBox 中的位移與錨點。
   const GEO: {
@@ -2875,14 +2882,6 @@ const { sectionHref } = Astro.props;
   type MotionKey = (typeof MOTION_KEYS)[number];
   type GateMotion = Record<MotionKey, number>;
 
-  const fmt = (value: number) => Math.round(value * 10) / 10;
-  const point = ([x, y]: Vec) => `${fmt(x)} ${fmt(y)}`;
-  const translate = (v: Vec, amount: number) =>
-    `translate(${fmt(v[0] * amount)} ${fmt(v[1] * amount)})`;
-  const along = (origin: Vec, a: Vec, b: Vec, sa: number, sb: number): Vec => [
-    origin[0] + a[0] * sa + b[0] * sb,
-    origin[1] + a[1] * sa + b[1] * sb,
-  ];
   const onDial = (theta: number, radius: number) =>
     along(
       GEO.DIAL_C,
@@ -2891,10 +2890,6 @@ const { sectionHref } = Astro.props;
       Math.sin(theta) * radius,
       -Math.cos(theta) * radius,
     );
-  const setFlag = (element: Element, name: string, on: boolean) => {
-    if (on) element.setAttribute(name, "");
-    else element.removeAttribute(name);
-  };
 
   /** 由一步的 state 算出各連續量的目標值。 */
   function targetsOf(state: PublishGateState): GateMotion {
@@ -2967,7 +2962,7 @@ const { sectionHref } = Astro.props;
 
     const tail = onDial(at.needle, -2.6);
     const tip = onDial(at.needle, GEO.DIAL_R - 3.4);
-    parts.needle.setAttribute("d", `M${point(tail)}L${point(tip)}`);
+    parts.needle.setAttribute("d", segmentPath(tail, tip));
 
     let arc = "";
     if (at.lease >= 0.004) {
@@ -2986,7 +2981,7 @@ const { sectionHref } = Astro.props;
       Math.sin(at.lever) * GEO.LEVER_L,
       Math.cos(at.lever) * GEO.LEVER_L,
     );
-    const rod = `M${point(GEO.PIVOT_C)}L${point(knob)}`;
+    const rod = segmentPath(GEO.PIVOT_C, knob);
     parts.rods.forEach((element) => element.setAttribute("d", rod));
     parts.knob.setAttribute("cx", String(fmt(knob[0])));
     parts.knob.setAttribute("cy", String(fmt(knob[1])));

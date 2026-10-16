@@ -18,17 +18,20 @@ export interface OriginCostState {
   shield: { enabled: boolean; level: number };
   /** 是否合併相同物件的並發回源。 */
   collapse: boolean;
-  /** 總下行（Gbps），沿用文章的尖峰假設。 */
-  egressGbps: number;
   /** 位元組命中率 0～1。 */
   byteHit: number;
-  /** 回源 Gbps = egressGbps × (1 − byteHit)。 */
+  /**
+   * 同一個物件這一步同時向 origin 抓取的次數：沒有合併時，每個未命中的 edge 各抓一次；
+   * 合併並發回源（Shield 後）或沒有 edge 未命中時為 1。文章的 0.52／3.12 是未計入重複抓取的簡化值。
+   */
+  originFetches: number;
+  /** 回源 Gbps = EGRESS_GBPS × (1 − byteHit) × originFetches，只含快取未命中的位元組。 */
   originGbps: number;
   /** 後補格式與背景掃描的回源量（Gbps）；暫緩時為 0。教學假設，不是文章數字。 */
   backfillGbps: number;
   /** (originGbps + backfillGbps) 占 origin 容量的比例；超過 1 代表超載，圖自行截斷顯示。 */
   originLoad: number;
-  /** 後補格式是否執行中。基本畫質在所有情境都持續服務，不另設欄位。 */
+  /** 後補格式是否執行中。 */
   deferred: DeferredRendition;
 }
 
@@ -45,7 +48,8 @@ export const EGRESS_GBPS = 10.4;
 /**
  * origin 容量（Gbps）。這是教學用假設，不是文章數字：取 4 Gbps。
  * 負載一律含後補流量（執行中時），所有情境一致：95% 命中約 23%、70% 命中約 88%，
- * 命中率 65% 時執行後補為 101%（超載），暫緩後補後為 91%。
+ * 冷門轉熱門的暴衝（三個 edge 各自回源）約 166%，會超過容量，這正是要展示的代價；
+ * overload 情境命中率 65% 時執行後補為 101%，暫緩後補後為 91%。
  */
 export const ORIGIN_CAPACITY_GBPS = 4;
 /**
@@ -78,16 +82,21 @@ interface StepInput {
 // 每一步都從頭組出新物件，呼叫端改動結果不會污染下一次播放。
 const step = (input: StepInput = {}): Step => {
   const byteHit = input.byteHit ?? 0.95;
-  const originGbps = EGRESS_GBPS * (1 - byteHit);
+  const edges =
+    input.edges?.map((e) => ({ ...e })) ??
+    Array.from({ length: EDGE_COUNT }, () => ({ level: 1, missing: false }));
+  const collapse = input.collapse ?? false;
+  const originFetches = collapse
+    ? 1
+    : Math.max(1, edges.filter((e) => e.missing).length);
+  const originGbps = EGRESS_GBPS * (1 - byteHit) * originFetches;
   const deferred = input.deferred ?? "running";
   const backfillGbps = deferred === "running" ? BACKFILL_GBPS : 0;
   const state: OriginCostState = {
-    edges:
-      input.edges?.map((e) => ({ ...e })) ??
-      Array.from({ length: EDGE_COUNT }, () => ({ level: 1, missing: false })),
+    edges,
     shield: { ...(input.shield ?? { enabled: false, level: 0 }) },
-    collapse: input.collapse ?? false,
-    egressGbps: EGRESS_GBPS,
+    collapse,
+    originFetches,
     byteHit,
     originGbps,
     backfillGbps,
@@ -104,8 +113,8 @@ const warming = (level: number, missing: boolean): EdgeTower[] =>
 
 // 文章示例：命中率 95%，回源約 0.52 Gbps。
 const hit95 = (): Step[] => [
-  step({ edges: warming(0.6, true), byteHit: 0.85 }),
-  step({ edges: warming(0.85, true), byteHit: 0.92 }),
+  step({ edges: warming(0.6, false), byteHit: 0.85 }),
+  step({ edges: warming(0.85, false), byteHit: 0.92 }),
   step({
     edges: warming(1, false),
     byteHit: 0.95,
@@ -117,9 +126,9 @@ const hit95 = (): Step[] => [
 // 同樣的總下行，命中率掉到 70%，回源約 3.12 Gbps，是 95% 的六倍。
 const hit70 = (): Step[] => [
   step({ byteHit: 0.95 }),
-  step({ edges: warming(0.8, true), byteHit: 0.85 }),
+  step({ edges: warming(0.8, false), byteHit: 0.85 }),
   step({
-    edges: warming(0.6, true),
+    edges: warming(0.6, false),
     byteHit: 0.7,
     caption:
       "同樣是 10.4 Gbps，命中率從 95% 掉到 70%，回源就從約 0.52 變成約 3.12 Gbps，相差六倍。這是位元組比例的簡化推算，尚未計入 Range 與清單請求。",
@@ -129,12 +138,12 @@ const hit70 = (): Step[] => [
 // 冷門影片突然轉熱門：所有 edge 同時未命中，回源暴衝；啟用 Shield 與合併並發回源後回落。
 const coldToHot = (): Step[] => [
   step({ byteHit: 0.95 }),
-  step({ edges: warming(0.1, true), byteHit: 0.7 }),
+  step({ edges: warming(0.1, true), byteHit: 0.8 }),
   step({
     edges: warming(0.5, true),
     shield: { enabled: true, level: 0.4 },
     collapse: true,
-    byteHit: 0.8,
+    byteHit: 0.85,
   }),
   step({
     edges: warming(1, false),
@@ -142,17 +151,17 @@ const coldToHot = (): Step[] => [
     collapse: true,
     byteHit: 0.9,
     caption:
-      "三個 edge 同時沒有這支影片，各自回源，origin 一下子被拉高。加上 Origin Shield 與合併相同物件的並發回源後，重複的填充被吸收，回源量回落。預熱也要有邊界，不是把所有畫質推到所有區域。",
+      "三個 edge 同時沒有這支影片，各自回源同一個物件，origin 一下子被重複抓取拉到超過容量。加上 Origin Shield 與合併相同物件的並發回源後，重複的填充被吸收，回源量回落。預熱也要有邊界，不是把所有畫質推到所有區域。",
   }),
 ];
 
 // origin 超載：優先保住基本畫質，暫緩昂貴的後補格式與背景工作。
 const overload = (): Step[] => [
   step({ byteHit: 0.95 }),
-  step({ edges: warming(0.7, true), byteHit: 0.7 }),
-  step({ edges: warming(0.5, true), byteHit: 0.65 }),
+  step({ edges: warming(0.7, false), byteHit: 0.7 }),
+  step({ edges: warming(0.5, false), byteHit: 0.65 }),
   step({
-    edges: warming(0.5, true),
+    edges: warming(0.5, false),
     byteHit: 0.65,
     deferred: "paused",
     caption:

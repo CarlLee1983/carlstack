@@ -11,6 +11,7 @@
 // - [data-lab-back]：連回長文的段落；掛載時隱藏，情境播完才顯示
 
 import type { LabStep } from "./lab/index.ts";
+import { fmt, pointAlong, translate, type Vec } from "./lab-geometry.ts";
 
 /** 會連續移動的量（位移、角度、比例），以指數趨近目標。 */
 export type Motion = Record<string, number>;
@@ -233,4 +234,40 @@ export function mountLabFigure<T extends AnyStep>(
   showBack(false);
   root.querySelector("[data-lab-controls]")?.removeAttribute("hidden");
   root.querySelector("[data-lab-hint]")?.removeAttribute("hidden");
+}
+
+// ---------- 各圖共用的 DOM 寫入小工具 ----------
+
+/** 有值時寫入空字串屬性、否則移除，交給 CSS 的 [name] 選擇器。 */
+export function setFlag(element: Element, name: string, on: boolean) {
+  if (on) element.setAttribute(name, "");
+  else element.removeAttribute(name);
+}
+
+/**
+ * 液面（沙柱、水柱）：整根沿 VZ 往下沉，剪裁區是外面的玻璃管；
+ * 空的時候連頂面也藏起來。share 0～1，height 為滿刻度的世界單位高度。
+ */
+export function setLevel(
+  column: SVGElement,
+  share: number,
+  vz: Vec,
+  height: number,
+) {
+  column.setAttribute("transform", translate(vz, -(1 - share) * height));
+  column.setAttribute("visibility", share > 0.005 ? "visible" : "hidden");
+}
+
+/** 把一顆脈衝珠放到折線上 share 的位置；0 或 1（未出發／已抵達）時隱藏。 */
+export function placeBead(
+  bead: SVGCircleElement,
+  points: readonly Vec[],
+  share: number,
+) {
+  const shown = share > 0.001 && share < 0.999;
+  bead.setAttribute("visibility", shown ? "visible" : "hidden");
+  if (!shown) return;
+  const [x, y] = pointAlong(points, share);
+  bead.setAttribute("cx", String(fmt(x)));
+  bead.setAttribute("cy", String(fmt(y)));
 }
