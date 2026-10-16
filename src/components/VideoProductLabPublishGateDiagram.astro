@@ -3,14 +3,14 @@
 //
 // 概念 → 實物對應：
 // - worker A／B                → 後方／前方兩條輸送臂，各有一台托架與尾端的工作燈
-// - 候選產物（attempt 的輸出）  → 托架上的產物匣；蓋上的方框戳記 = generation 7，圓點數 = attempt（一點 a、兩點 b）
+// - 候選產物（attempt 的輸出）  → 托架上的產物匣；蓋上的方框戳記 = generation 7，圓點數 = attempt（一點 a、兩點 b、三點 c）
 // - worker 狀態                 → 托架位置（起點／加工中／退回／送件口／閘門內座位）、工作燈、匣的明暗與紅框
 // - 發布閘門的驗證              → 門架中央的壓印頭下壓；橫樑前段三燈依序為驗證中／接受／拒絕
 // - 目前有效的 attempt token    → 橫樑刻度盤的指針（指向持有效 token 的那條輸送臂，無 token 時指向撥桿）
 // - 租約剩餘                    → 刻度盤內圈的弧長（滿圈 = 02:00）
 // - 完成收據                    → 門架旁出紙口的收據條（首次接受時送出，重複通知時再頂高並描邊）
 // - active playback asset 指標  → 右側撥桿倒向哪條輸送臂，那條臂的產物就是播放資產；底座小燈 = 切換次數
-// - 重試次數                    → 橫樑後段三顆計數燈
+// - 重試次數                    → 橫樑後段三顆計數燈（亮燈數 = attempts）
 // - 死信清單與負責人            → 左前方的死信托盤與吊牌
 //
 // 靜態 SVG 以 anatomy skill（~/.agents/skills/anatomy @ commit cd1f081）在 repo 外產生，
@@ -18,6 +18,12 @@
 // transform、d 與 data-* 屬性，情境步驟來自 src/utils/lab/ 的情境模組。
 import { initialStep, scenarios } from "../utils/lab/index.ts";
 
+interface Props {
+  /** 長文 §6 的連結，情境播完時與 caption 一起顯示。 */
+  sectionHref: string;
+}
+
+const { sectionHref } = Astro.props;
 const scenarioList = scenarios("publish-gate");
 const start = initialStep("publish-gate");
 const staticNote =
@@ -759,6 +765,7 @@ const staticNote =
           class="vpg-lane"
           data-lane="a"
           data-status="idle"
+          data-attempt="a"
           transform="translate(-195.852 -61.218)"
           ><path
             class="iso-halo vpg-soft"
@@ -887,13 +894,36 @@ const staticNote =
               class="iso-line"
               data-tone="mid"
               d="M391.4 117.2L392.1 117.6L392.3 118.1L392 118.6L383.4 125.5L382.6 125.9L381.6 126L380.6 125.8L372 123.1L371.3 122.7L371.1 122.2L371.4 121.7L380 114.9L380.7 114.5L381.8 114.4L382.8 114.5Z"
-            ></path><g class="vpg-stamp"
+            ></path><g class="vpg-stamp" data-attempt="a"
               ><path
                 class="iso-line"
                 data-tone="hi"
                 d="M396.1 124.7L395.3 125.1L394.2 125.3L393 125.2L392 124.9L391.4 124.4L391.3 123.8L391.7 123.3L392.5 122.9L393.6 122.7L394.8 122.7L395.7 123.1L396.4 123.6L396.5 124.1Z"
               ></path><g class="iso-dots" data-tone="hi"
                 ><circle cx="393.9" cy="124" r="0.55"></circle></g
+              ></g
+            ><g class="vpg-stamp" data-attempt="b"
+              ><path
+                class="iso-line"
+                data-tone="hi"
+                d="M398.9 122.5L398.1 122.9L397 123.1L395.8 123L394.8 122.7L394.2 122.2L394.1 121.6L394.4 121.1L395.3 120.6L396.4 120.4L397.5 120.5L398.5 120.8L399.2 121.3L399.3 121.9ZM393.3 126.9L392.5 127.3L391.4 127.5L390.2 127.5L389.2 127.2L388.6 126.7L388.5 126.1L388.9 125.5L389.7 125.1L390.8 124.9L392 125L393 125.3L393.6 125.8L393.7 126.4Z"
+              ></path><g class="iso-dots" data-tone="hi"
+                ><circle cx="396.7" cy="121.8" r="0.55"></circle><circle
+                  cx="391.1"
+                  cy="126.2"
+                  r="0.55"></circle></g
+              ></g
+            ><g class="vpg-stamp" data-attempt="c"
+              ><path
+                class="iso-line"
+                data-tone="hi"
+                d="M399.8 121.8L398.9 122.2L397.8 122.4L396.7 122.3L395.7 122L395.1 121.5L394.9 120.9L395.3 120.4L396.1 120L397.2 119.8L398.4 119.8L399.4 120.1L400 120.6L400.2 121.2ZM396.1 124.7L395.3 125.1L394.2 125.3L393 125.2L392 124.9L391.4 124.4L391.3 123.8L391.7 123.3L392.5 122.9L393.6 122.7L394.8 122.7L395.7 123.1L396.4 123.6L396.5 124.1ZM392.5 127.6L391.6 128L390.5 128.2L389.4 128.2L388.4 127.8L387.8 127.4L387.6 126.8L388 126.2L388.8 125.8L389.9 125.6L391.1 125.7L392.1 126L392.7 126.5L392.9 127.1Z"
+              ></path><g class="iso-dots" data-tone="hi"
+                ><circle cx="397.5" cy="121.1" r="0.55"></circle><circle
+                  cx="393.9"
+                  cy="124"
+                  r="0.55"></circle><circle cx="390.2" cy="126.9" r="0.55"
+                ></circle></g
               ></g
             ><g class="vpg-reject-mark"
               ><path
@@ -1366,6 +1396,7 @@ const staticNote =
           class="vpg-lane"
           data-lane="b"
           data-status="idle"
+          data-attempt="b"
           transform="translate(-195.852 -61.218)"
           ><path
             class="iso-halo vpg-soft"
@@ -1495,7 +1526,15 @@ const staticNote =
               class="iso-line"
               data-tone="mid"
               d="M339.8 158.5L340.5 158.9L340.8 159.4L340.5 159.9L331.9 166.7L331.1 167.1L330.1 167.2L329.1 167.1L320.5 164.4L319.8 164L319.5 163.5L319.8 163L328.4 156.1L329.2 155.7L330.2 155.6L331.2 155.8Z"
-            ></path><g class="vpg-stamp"
+            ></path><g class="vpg-stamp" data-attempt="a"
+              ><path
+                class="iso-line"
+                data-tone="hi"
+                d="M344.6 165.9L343.8 166.3L342.6 166.5L341.5 166.5L340.5 166.2L339.9 165.7L339.7 165.1L340.1 164.5L340.9 164.1L342 163.9L343.2 164L344.2 164.3L344.8 164.8L345 165.4Z"
+              ></path><g class="iso-dots" data-tone="hi"
+                ><circle cx="342.3" cy="165.2" r="0.55"></circle></g
+              ></g
+            ><g class="vpg-stamp" data-attempt="b"
               ><path
                 class="iso-line"
                 data-tone="hi"
@@ -1505,6 +1544,18 @@ const staticNote =
                   cx="339.6"
                   cy="167.5"
                   r="0.55"></circle></g
+              ></g
+            ><g class="vpg-stamp" data-attempt="c"
+              ><path
+                class="iso-line"
+                data-tone="hi"
+                d="M348.2 163L347.4 163.4L346.3 163.6L345.1 163.6L344.1 163.2L343.5 162.8L343.4 162.2L343.8 161.6L344.6 161.2L345.7 161L346.9 161.1L347.9 161.4L348.5 161.9L348.6 162.5ZM344.6 165.9L343.8 166.3L342.6 166.5L341.5 166.5L340.5 166.2L339.9 165.7L339.7 165.1L340.1 164.5L340.9 164.1L342 163.9L343.2 164L344.2 164.3L344.8 164.8L345 165.4ZM340.9 168.9L340.1 169.3L339 169.5L337.8 169.4L336.8 169.1L336.2 168.6L336.1 168L336.5 167.5L337.3 167L338.4 166.8L339.6 166.9L340.6 167.2L341.2 167.7L341.3 168.3Z"
+              ></path><g class="iso-dots" data-tone="hi"
+                ><circle cx="346" cy="162.3" r="0.55"></circle><circle
+                  cx="342.3"
+                  cy="165.2"
+                  r="0.55"></circle><circle cx="338.7" cy="168.2" r="0.55"
+                ></circle></g
               ></g
             ><g class="vpg-reject-mark"
               ><path
@@ -2556,13 +2607,17 @@ const staticNote =
             class="iso-line"
             data-tone="mid"
             d="M309.7 195.7L310.5 196.1L310.7 196.6L310.4 197.1L301.8 204L301 204.3L300 204.4L299 204.3L290.4 201.6L289.7 201.2L289.5 200.7L289.8 200.2L298.4 193.3L299.1 193L300.1 192.9L301.2 193Z"
-          ></path><g class="vpg-stamp"
+          ></path><g class="vpg-stamp" data-attempt="c"
             ><path
               class="iso-line"
               data-tone="hi"
-              d="M314.5 203.2L313.7 203.6L312.6 203.8L311.4 203.7L310.4 203.4L309.8 202.9L309.7 202.3L310 201.8L310.9 201.3L312 201.1L313.1 201.2L314.1 201.5L314.8 202L314.9 202.6Z"
+              d="M318.2 200.2L317.3 200.6L316.2 200.8L315.1 200.8L314.1 200.5L313.4 200L313.3 199.4L313.7 198.8L314.5 198.4L315.6 198.2L316.8 198.3L317.8 198.6L318.4 199.1L318.5 199.7ZM314.5 203.2L313.7 203.6L312.6 203.8L311.4 203.7L310.4 203.4L309.8 202.9L309.7 202.3L310 201.8L310.9 201.3L312 201.1L313.1 201.2L314.1 201.5L314.8 202L314.9 202.6ZM310.9 206.1L310 206.5L308.9 206.7L307.8 206.6L306.8 206.3L306.1 205.8L306 205.2L306.4 204.7L307.2 204.3L308.3 204.1L309.5 204.1L310.5 204.4L311.1 204.9L311.2 205.5Z"
             ></path><g class="iso-dots" data-tone="hi"
-              ><circle cx="312.3" cy="202.5" r="0.55"></circle></g
+              ><circle cx="315.9" cy="199.5" r="0.55"></circle><circle
+                cx="312.3"
+                cy="202.5"
+                r="0.55"></circle><circle cx="308.6" cy="205.4" r="0.55"
+              ></circle></g
             ></g
           ><g class="vpg-reject-mark vpg-reject-mark--fixed"
             ><path
@@ -2779,6 +2834,9 @@ const staticNote =
         </div>
       </dl>
       <p class="vpg-diagram__note" data-vpg-note>{staticNote}</p>
+      <p class="vpg-diagram__back" data-vpg-back>
+        <a href={sectionHref}>回到長文 §6 讀完整論證</a>
+      </p>
     </div>
     <p class="vpg-diagram__legend">
       後方輸送臂是 worker A、前方是 worker B；匣蓋的方框是 generation
@@ -2799,6 +2857,7 @@ const staticNote =
   } from "../utils/lab/index.ts";
 
   type Step = LabStep<PublishGateState, PublishGateReadout>;
+  type Lane = "a" | "b";
   type Vec = [number, number];
 
   // 由 build script 依等角投影算好的常數：世界座標每單位在 viewBox 中的位移與錨點。
@@ -2816,7 +2875,6 @@ const staticNote =
     PRESS_TRAVEL: number;
     SLIP_UP: { saved: number; returned: number };
     TAG_UP: number;
-    LEASE_FULL_S: number;
   } = {
     VX: [1.718, 0.537],
     VY: [-1.074, 0.859],
@@ -2831,14 +2889,14 @@ const staticNote =
     PRESS_TRAVEL: 10,
     SLIP_UP: { saved: 9, returned: 12 },
     TAG_UP: 4,
-    LEASE_FULL_S: 120,
   };
 
+  const MECHANISM = "publish-gate";
   const STEP_MS = 1100;
   const LEAD_MS = 500;
   const BOUNCE_MS = 450;
   const TAU = 0.28;
-  const MECHANISM = "publish-gate";
+  const LANES: Lane[] = ["a", "b"];
 
   const LANE_POS: Record<WorkerStatus, number> = {
     idle: GEO.POS.home,
@@ -2860,278 +2918,309 @@ const staticNote =
     failed: "red",
   };
 
+  // 刻度盤：角度 0 指向 -y（後方 A 臂），順時針增加；無 token 時指向 +x（撥桿）。
+  const NEEDLE_ANGLE: Record<Lane | "none", number> = {
+    a: 0,
+    b: Math.PI,
+    none: Math.PI / 2,
+  };
+  const LEVER_ANGLE: Record<Lane | "none", number> = {
+    a: -GEO.LEVER_TILT,
+    b: GEO.LEVER_TILT,
+    none: 0,
+  };
+
+  // 會連續移動的量：current 以指數趨近 target。
+  const MOTION_KEYS = [
+    "a",
+    "b",
+    "press",
+    "slip",
+    "tag",
+    "needle",
+    "lease",
+    "lever",
+  ] as const;
+  type MotionKey = (typeof MOTION_KEYS)[number];
+  type Motion = Record<MotionKey, number>;
+
   const fmt = (value: number) => Math.round(value * 10) / 10;
-  const mix = (a: Vec, b: Vec, sa: number, sb: number): Vec => [
-    a[0] * sa + b[0] * sb,
-    a[1] * sa + b[1] * sb,
-  ];
+  const point = ([x, y]: Vec) => `${fmt(x)} ${fmt(y)}`;
   const translate = (v: Vec, amount: number) =>
     `translate(${fmt(v[0] * amount)} ${fmt(v[1] * amount)})`;
-
-  // 刻度盤平面上的點：角度 0 指向 -y（後方輸送臂），順時針增加。
-  const onDial = (theta: number, radius: number): Vec => {
-    const offset = mix(GEO.VX, GEO.VY, Math.sin(theta), -Math.cos(theta));
-    return [
-      GEO.DIAL_C[0] + offset[0] * radius,
-      GEO.DIAL_C[1] + offset[1] * radius,
-    ];
+  const along = (origin: Vec, a: Vec, b: Vec, sa: number, sb: number): Vec => [
+    origin[0] + a[0] * sa + b[0] * sb,
+    origin[1] + a[1] * sa + b[1] * sb,
+  ];
+  const onDial = (theta: number, radius: number) =>
+    along(
+      GEO.DIAL_C,
+      GEO.VX,
+      GEO.VY,
+      Math.sin(theta) * radius,
+      -Math.cos(theta) * radius,
+    );
+  const setFlag = (element: Element, name: string, on: boolean) => {
+    if (on) element.setAttribute(name, "");
+    else element.removeAttribute(name);
   };
 
-  const tokenAngle = (token: string) => {
-    const match = /attempt\s*([ab])\s*$/.exec(token);
-    if (!match) return Math.PI / 2;
-    return match[1] === "a" ? 0 : Math.PI;
-  };
+  /** 由一步的 state 算出各連續量的目標值。 */
+  function targetsOf(state: PublishGateState): Motion {
+    let slip = 0;
+    if (state.pointer.switchCount > 0) {
+      slip =
+        state.gate === "receipt-returned"
+          ? GEO.SLIP_UP.returned
+          : GEO.SLIP_UP.saved;
+    }
+    return {
+      a: LANE_POS[state.workers.a.status],
+      b: LANE_POS[state.workers.b.status],
+      press: state.gate === "verifying" ? 1 : 0,
+      slip,
+      tag: state.deadLetter.owner !== null ? GEO.TAG_UP : 0,
+      needle: NEEDLE_ANGLE[state.token?.lane ?? "none"],
+      lease: state.leaseShare,
+      lever: LEVER_ANGLE[state.pointer.lane ?? "none"],
+    };
+  }
 
-  const leaseShare = (lease: string) => {
-    const match = /^(\d+):(\d+)$/.exec(lease.trim());
-    if (!match) return 0;
-    const seconds = Number(match[1]) * 60 + Number(match[2]);
-    return Math.min(1, seconds / GEO.LEASE_FULL_S);
-  };
-
-  const leverAngle = (assetId: string | null) => {
-    const match = assetId ? /-([ab])$/.exec(assetId) : null;
-    if (!match) return 0;
-    return match[1] === "a" ? -GEO.LEVER_TILT : GEO.LEVER_TILT;
-  };
-
-  function mount(root: HTMLElement) {
-    const stage = root.querySelector<HTMLElement>("[data-vpg-stage]");
+  function query(root: HTMLElement) {
     const svg = root.querySelector<SVGSVGElement>("svg");
-    if (!stage || !svg) return;
+    const stage = root.querySelector<HTMLElement>("[data-vpg-stage]");
+    if (!svg || !stage) throw new Error("驗印閘門缺少 SVG 或舞台");
     const one = <T extends Element>(selector: string) => {
       const found = svg.querySelector<T>(selector);
       if (!found) throw new Error(`驗印閘門缺少零件：${selector}`);
       return found;
     };
-    const lanes = {
-      a: one<SVGGElement>('.vpg-lane[data-lane="a"]'),
-      b: one<SVGGElement>('.vpg-lane[data-lane="b"]'),
-    };
     const lamp = (name: string) => one<SVGGElement>(`[data-lamp="${name}"]`);
-    const lamps = {
-      workerA: lamp("worker-a"),
-      workerB: lamp("worker-b"),
-      seatA: lamp("seat-a"),
-      seatB: lamp("seat-b"),
-      verify: lamp("gate-verify"),
-      accept: lamp("gate-accept"),
-      reject: lamp("gate-reject"),
+    return {
+      stage,
+      lanes: {
+        a: one<SVGGElement>('.vpg-lane[data-lane="a"]'),
+        b: one<SVGGElement>('.vpg-lane[data-lane="b"]'),
+      },
+      workerLamps: { a: lamp("worker-a"), b: lamp("worker-b") },
+      seatLamps: { a: lamp("seat-a"), b: lamp("seat-b") },
+      gateLamps: {
+        verify: lamp("gate-verify"),
+        accept: lamp("gate-accept"),
+        reject: lamp("gate-reject"),
+      },
+      press: one<SVGGElement>(".vpg-press"),
+      slip: one<SVGGElement>(".vpg-slip"),
+      tag: one<SVGGElement>(".vpg-tag"),
+      deadJob: one<SVGGElement>(".vpg-dead-job"),
+      needle: one<SVGPathElement>(".vpg-needle"),
+      lease: one<SVGPathElement>(".vpg-lease"),
+      rods: svg.querySelectorAll<SVGPathElement>(
+        ".vpg-lever__rod, .vpg-lever__rod-edge",
+      ),
+      knob: one<SVGCircleElement>(".vpg-lever__knob"),
+      attemptPips: svg.querySelectorAll<SVGGElement>('[data-pip="attempt"]'),
+      switchPips: svg.querySelectorAll<SVGGElement>('[data-pip="switch"]'),
+      readouts: root.querySelectorAll<HTMLElement>("[data-readout]"),
+      note: root.querySelector<HTMLElement>("[data-vpg-note]"),
+      back: root.querySelector<HTMLElement>("[data-vpg-back]"),
+      buttons: root.querySelectorAll<HTMLButtonElement>("[data-scenario]"),
+      reset: root.querySelector<HTMLButtonElement>("[data-vpg-reset]"),
+      controls: root.querySelector<HTMLElement>("[data-vpg-controls]"),
+      hint: root.querySelector<HTMLElement>("[data-vpg-hint]"),
     };
-    const press = one<SVGGElement>(".vpg-press");
-    const slip = one<SVGGElement>(".vpg-slip");
-    const tag = one<SVGGElement>(".vpg-tag");
-    const deadJob = one<SVGGElement>(".vpg-dead-job");
-    const needle = one<SVGPathElement>(".vpg-needle");
-    const lease = one<SVGPathElement>(".vpg-lease");
-    const rods = svg.querySelectorAll<SVGPathElement>(
-      ".vpg-lever__rod, .vpg-lever__rod-edge",
-    );
-    const knob = one<SVGCircleElement>(".vpg-lever__knob");
-    const attemptPips = svg.querySelectorAll<SVGGElement>(
-      '[data-pip="attempt"]',
-    );
-    const switchPips = svg.querySelectorAll<SVGGElement>('[data-pip="switch"]');
-    const readouts = root.querySelectorAll<HTMLElement>("[data-readout]");
-    const note = root.querySelector<HTMLElement>("[data-vpg-note]");
-    const buttons = root.querySelectorAll<HTMLButtonElement>("[data-scenario]");
-    const reset = root.querySelector<HTMLButtonElement>("[data-vpg-reset]");
-    const staticNote = root.dataset.staticNote ?? "";
-    const still = matchMedia("(prefers-reduced-motion: reduce)");
+  }
+  type Parts = ReturnType<typeof query>;
 
-    // 會連續移動的量：current 以指數趨近 target。
-    const keys = [
-      "a",
-      "b",
-      "press",
-      "slip",
-      "tag",
-      "needle",
-      "lease",
-      "lever",
-    ] as const;
-    type Key = (typeof keys)[number];
-    const target: Record<Key, number> = {
-      a: GEO.POS.home,
-      b: GEO.POS.home,
-      press: 0,
-      slip: 0,
-      tag: 0,
-      needle: Math.PI / 2,
-      lease: 0,
-      lever: 0,
-    };
-    const current: Record<Key, number> = { ...target };
-    const laneStatus: Record<"a" | "b", WorkerStatus> = {
-      a: "idle",
-      b: "idle",
-    };
+  /** 把連續量寫進 SVG：只改 transform、d 與座標屬性。 */
+  function draw(parts: Parts, at: Motion) {
+    parts.lanes.a.setAttribute("transform", translate(GEO.VX, at.a));
+    parts.lanes.b.setAttribute("transform", translate(GEO.VX, at.b));
+    parts.press.setAttribute(
+      "transform",
+      translate(GEO.VZ, -GEO.PRESS_TRAVEL * at.press),
+    );
+    parts.slip.setAttribute("transform", translate(GEO.VZ, at.slip));
+    parts.tag.setAttribute("transform", translate(GEO.VZ, at.tag));
 
-    let timers: number[] = [];
+    const tail = onDial(at.needle, -2.6);
+    const tip = onDial(at.needle, GEO.DIAL_R - 3.4);
+    parts.needle.setAttribute("d", `M${point(tail)}L${point(tip)}`);
+
+    let arc = "";
+    if (at.lease >= 0.004) {
+      const count = Math.max(2, Math.ceil(at.lease * 64));
+      const points = Array.from({ length: count + 1 }, (_, index) =>
+        point(onDial((index / count) * at.lease * Math.PI * 2, GEO.LEASE_R)),
+      );
+      arc = `M${points.join("L")}`;
+    }
+    parts.lease.setAttribute("d", arc);
+
+    const knob = along(
+      GEO.PIVOT_C,
+      GEO.VY,
+      GEO.VZ,
+      Math.sin(at.lever) * GEO.LEVER_L,
+      Math.cos(at.lever) * GEO.LEVER_L,
+    );
+    const rod = `M${point(GEO.PIVOT_C)}L${point(knob)}`;
+    parts.rods.forEach((element) => element.setAttribute("d", rod));
+    parts.knob.setAttribute("cx", String(fmt(knob[0])));
+    parts.knob.setAttribute("cy", String(fmt(knob[1])));
+  }
+
+  /** 離散狀態：燈、計數燈、匣的顯示，全部寫成 data-* 交給 CSS。 */
+  function renderFlags(parts: Parts, state: PublishGateState) {
+    for (const lane of LANES) {
+      const status = state.workers[lane].status;
+      parts.lanes[lane].dataset.status = status;
+      // 匣上的 attempt 戳記：這條臂最近一次領到的 token；重設時回到臂的預設值。
+      if (state.token?.lane === lane) {
+        parts.lanes[lane].dataset.attempt = state.token.attempt;
+      } else if (!state.token) {
+        parts.lanes[lane].dataset.attempt = lane;
+      }
+      parts.workerLamps[lane].dataset.state = WORKER_LAMP[status];
+      parts.seatLamps[lane].dataset.state =
+        status === "accepted" ? "green" : "off";
+    }
+    const { gate } = state;
+    parts.gateLamps.verify.dataset.state = gate === "verifying" ? "on" : "off";
+    parts.gateLamps.accept.dataset.state =
+      gate === "accepted" || gate === "receipt-returned" ? "green" : "off";
+    parts.gateLamps.reject.dataset.state =
+      gate === "rejected" || gate === "stopped" ? "red" : "off";
+
+    parts.attemptPips.forEach((pip, index) =>
+      setFlag(pip, "data-on", index < state.attempts),
+    );
+    parts.switchPips.forEach((pip, index) =>
+      setFlag(pip, "data-on", index < state.pointer.switchCount),
+    );
+    setFlag(parts.deadJob, "data-on", state.deadLetter.hasJob);
+    setFlag(parts.tag, "data-on", state.deadLetter.owner !== null);
+    setFlag(parts.slip, "data-lit", gate === "receipt-returned");
+    setFlag(parts.knob, "data-on", state.pointer.lane !== null);
+  }
+
+  function renderText(parts: Parts, readout: PublishGateReadout, note: string) {
+    parts.readouts.forEach((element) => {
+      const key = element.dataset.readout as keyof PublishGateReadout;
+      element.textContent = readout[key];
+    });
+    if (parts.note) parts.note.textContent = note;
+  }
+
+  /** 一個圖一個動畫迴圈：離開畫面或全部到位就停。 */
+  function createAnimator(parts: Parts, still: MediaQueryList) {
+    const target: Motion = targetsOf(initialStep(MECHANISM).state);
+    const current: Motion = { ...target };
     let frame = 0;
     let last = 0;
     let visible = false;
-
-    const later = (fn: () => void, ms: number) => {
-      timers.push(window.setTimeout(fn, ms));
-    };
-    const cancel = () => {
-      timers.forEach((id) => window.clearTimeout(id));
-      timers = [];
-    };
-
-    function draw() {
-      lanes.a.setAttribute("transform", translate(GEO.VX, current.a));
-      lanes.b.setAttribute("transform", translate(GEO.VX, current.b));
-      press.setAttribute(
-        "transform",
-        translate(GEO.VZ, -GEO.PRESS_TRAVEL * current.press),
-      );
-      slip.setAttribute("transform", translate(GEO.VZ, current.slip));
-      tag.setAttribute("transform", translate(GEO.VZ, current.tag));
-
-      const tail = onDial(current.needle, -2.6);
-      const tip = onDial(current.needle, GEO.DIAL_R - 3.4);
-      needle.setAttribute(
-        "d",
-        `M${fmt(tail[0])} ${fmt(tail[1])}L${fmt(tip[0])} ${fmt(tip[1])}`,
-      );
-
-      const share = current.lease;
-      if (share < 0.004) {
-        lease.setAttribute("d", "");
-      } else {
-        const count = Math.max(2, Math.ceil(share * 64));
-        const points: string[] = [];
-        for (let index = 0; index <= count; index++) {
-          const [x, y] = onDial(
-            (index / count) * share * Math.PI * 2,
-            GEO.LEASE_R,
-          );
-          points.push(`${index ? "L" : "M"}${fmt(x)} ${fmt(y)}`);
-        }
-        lease.setAttribute("d", points.join(""));
-      }
-
-      const reach = mix(
-        GEO.VY,
-        GEO.VZ,
-        Math.sin(current.lever),
-        Math.cos(current.lever),
-      );
-      const knobAt: Vec = [
-        GEO.PIVOT_C[0] + reach[0] * GEO.LEVER_L,
-        GEO.PIVOT_C[1] + reach[1] * GEO.LEVER_L,
-      ];
-      const rodPath = `M${fmt(GEO.PIVOT_C[0])} ${fmt(GEO.PIVOT_C[1])}L${fmt(knobAt[0])} ${fmt(knobAt[1])}`;
-      rods.forEach((rod) => rod.setAttribute("d", rodPath));
-      knob.setAttribute("cx", String(fmt(knobAt[0])));
-      knob.setAttribute("cy", String(fmt(knobAt[1])));
-    }
 
     function tick(now: number) {
       const dt = last ? Math.min((now - last) / 1000, 1 / 30) : 1 / 60;
       last = now;
       const ease = 1 - Math.exp(-dt / TAU);
       let moving = false;
-      for (const key of keys) {
+      for (const key of MOTION_KEYS) {
         const gap = target[key] - current[key];
-        if (Math.abs(gap) < 0.002) {
-          current[key] = target[key];
-        } else {
+        if (Math.abs(gap) < 0.002) current[key] = target[key];
+        else {
           current[key] += gap * ease;
           moving = true;
         }
       }
-      draw();
+      draw(parts, current);
       frame = visible && moving ? requestAnimationFrame(tick) : 0;
     }
 
     function run() {
       if (still.matches) {
         Object.assign(current, target);
-        draw();
-        return;
-      }
-      if (!frame && visible) {
+        draw(parts, current);
+      } else if (!frame && visible) {
         last = 0;
         frame = requestAnimationFrame(tick);
       }
     }
 
-    const setFlag = (element: Element, name: string, on: boolean) => {
-      if (on) element.setAttribute(name, "");
-      else element.removeAttribute(name);
+    return {
+      aim(next: Partial<Motion>) {
+        Object.assign(target, next);
+        run();
+      },
+      setVisible(next: boolean) {
+        visible = next;
+        if (visible) run();
+      },
+    };
+  }
+
+  /** 情境播放的計時器；開新情境或重設時整批取消。 */
+  function createSchedule() {
+    let timers: number[] = [];
+    return {
+      later(fn: () => void, ms: number) {
+        timers.push(window.setTimeout(fn, ms));
+      },
+      cancel() {
+        timers.forEach((id) => window.clearTimeout(id));
+        timers = [];
+      },
+    };
+  }
+
+  function observe(stage: HTMLElement, onChange: (visible: boolean) => void) {
+    new IntersectionObserver(
+      (entries) => {
+        // 同一次回呼可能帶進出兩筆，讀最新的一筆。
+        const newest = entries[entries.length - 1];
+        if (newest) onChange(newest.isIntersecting);
+      },
+      { rootMargin: "120px 0px" },
+    ).observe(stage);
+  }
+
+  function mount(root: HTMLElement) {
+    const parts = query(root);
+    const still = matchMedia("(prefers-reduced-motion: reduce)");
+    const animator = createAnimator(parts, still);
+    const schedule = createSchedule();
+    const staticNote = root.dataset.staticNote ?? "";
+    const status: Record<Lane, WorkerStatus> = { a: "idle", b: "idle" };
+
+    const showBack = (on: boolean) => {
+      if (parts.back) parts.back.hidden = !on;
     };
 
-    function setLane(id: "a" | "b", status: WorkerStatus) {
-      const previous = laneStatus[id];
-      laneStatus[id] = status;
-      lanes[id].dataset.status = status;
-      // 被拒絕時先送到閘門口再彈回，看得出是「交件後被退」。
-      if (status === "rejected" && previous !== "rejected" && !still.matches) {
-        target[id] = GEO.POS.submit;
-        later(() => {
-          target[id] = LANE_POS.rejected;
-          run();
-        }, BOUNCE_MS);
-      } else {
-        target[id] = LANE_POS[status];
+    function renderStep(step: Step, note: string) {
+      const targets = targetsOf(step.state);
+      for (const lane of LANES) {
+        const next = step.state.workers[lane].status;
+        // 被拒絕時先送到閘門口再彈回，看得出是「交件後被退」。
+        if (
+          next === "rejected" &&
+          status[lane] !== "rejected" &&
+          !still.matches
+        ) {
+          targets[lane] = GEO.POS.submit;
+          schedule.later(
+            () => animator.aim({ [lane]: LANE_POS.rejected }),
+            BOUNCE_MS,
+          );
+        }
+        status[lane] = next;
       }
-    }
-
-    function apply(step: Step, note_: string) {
-      const { state, readout } = step;
-      setLane("a", state.workers.a.status);
-      setLane("b", state.workers.b.status);
-      lamps.workerA.dataset.state = WORKER_LAMP[state.workers.a.status];
-      lamps.workerB.dataset.state = WORKER_LAMP[state.workers.b.status];
-      lamps.seatA.dataset.state =
-        state.workers.a.status === "accepted" ? "green" : "off";
-      lamps.seatB.dataset.state =
-        state.workers.b.status === "accepted" ? "green" : "off";
-      lamps.verify.dataset.state = state.gate === "verifying" ? "on" : "off";
-      lamps.accept.dataset.state =
-        state.gate === "accepted" || state.gate === "receipt-returned"
-          ? "green"
-          : "off";
-      lamps.reject.dataset.state =
-        state.gate === "rejected" || state.gate === "stopped" ? "red" : "off";
-
-      attemptPips.forEach((pip, index) =>
-        setFlag(pip, "data-on", index < state.attempts),
-      );
-      switchPips.forEach((pip, index) =>
-        setFlag(pip, "data-on", index < state.pointer.switchCount),
-      );
-      setFlag(deadJob, "data-on", state.deadLetter.hasJob);
-      setFlag(tag, "data-on", state.deadLetter.owner !== null);
-      setFlag(slip, "data-lit", state.gate === "receipt-returned");
-      setFlag(knob, "data-on", state.pointer.assetId !== null);
-
-      target.press = state.gate === "verifying" ? 1 : 0;
-      target.slip =
-        state.pointer.switchCount === 0
-          ? 0
-          : state.gate === "receipt-returned"
-            ? GEO.SLIP_UP.returned
-            : GEO.SLIP_UP.saved;
-      target.tag = state.deadLetter.owner !== null ? GEO.TAG_UP : 0;
-      target.needle = tokenAngle(readout.activeToken);
-      target.lease = leaseShare(readout.leaseRemaining);
-      target.lever = leverAngle(state.pointer.assetId);
-
-      readouts.forEach((element) => {
-        const key = element.dataset.readout as keyof PublishGateReadout;
-        element.textContent = readout[key];
-      });
-      if (note) note.textContent = note_;
-      run();
+      renderFlags(parts, step.state);
+      renderText(parts, step.readout, note);
+      animator.aim(targets);
     }
 
     function pressed(id: string | null) {
-      buttons.forEach((button) =>
+      parts.buttons.forEach((button) =>
         button.setAttribute(
           "aria-pressed",
           String(button.dataset.scenario === id),
@@ -3143,50 +3232,44 @@ const staticNote =
       const id = button.dataset.scenario ?? "";
       const label = button.textContent?.trim() ?? id;
       const steps = play(MECHANISM, id);
-      cancel();
+      schedule.cancel();
       pressed(id);
-      // 先回到起點，再逐步播放；前一個情境的計時器已全部取消。
-      apply(initialStep(MECHANISM), `播放中：${label}`);
+      showBack(false);
+      // 先回到起點，再逐步播放。
+      renderStep(initialStep(MECHANISM), `播放中：${label}`);
       steps.forEach((step, index) => {
-        const last_ = index === steps.length - 1;
-        later(
-          () =>
-            apply(
+        const final = index === steps.length - 1;
+        schedule.later(
+          () => {
+            renderStep(
               step,
-              last_ && step.caption
+              final && step.caption
                 ? step.caption
                 : `播放中：${label}（第 ${index + 1}／${steps.length} 步）`,
-            ),
+            );
+            if (final) showBack(true);
+          },
           LEAD_MS + index * STEP_MS,
         );
       });
     }
 
-    buttons.forEach((button) =>
+    function reset() {
+      schedule.cancel();
+      pressed(null);
+      showBack(false);
+      renderStep(initialStep(MECHANISM), staticNote);
+    }
+
+    parts.buttons.forEach((button) =>
       button.addEventListener("click", () => startScenario(button)),
     );
-    reset?.addEventListener("click", () => {
-      cancel();
-      pressed(null);
-      apply(initialStep(MECHANISM), staticNote);
-    });
+    parts.reset?.addEventListener("click", reset);
+    observe(parts.stage, animator.setVisible);
 
-    new IntersectionObserver(
-      (entries) => {
-        const newest = entries[entries.length - 1];
-        if (!newest) return;
-        visible = newest.isIntersecting;
-        if (visible) run();
-      },
-      { rootMargin: "120px 0px" },
-    ).observe(stage);
-
-    root
-      .querySelector<HTMLElement>("[data-vpg-controls]")
-      ?.removeAttribute("hidden");
-    root
-      .querySelector<HTMLElement>("[data-vpg-hint]")
-      ?.removeAttribute("hidden");
+    showBack(false);
+    parts.controls?.removeAttribute("hidden");
+    parts.hint?.removeAttribute("hidden");
   }
 
   document.querySelectorAll<HTMLElement>("[data-vpg-root]").forEach(mount);
@@ -3461,6 +3544,11 @@ const staticNote =
   .vpg-lane[data-status="accepted"] .vpg-cartridge .iso-shade {
     fill: var(--anatomy-lit-shade);
   }
+  .vpg-lane[data-attempt="a"] .vpg-stamp:not([data-attempt="a"]),
+  .vpg-lane[data-attempt="b"] .vpg-stamp:not([data-attempt="b"]),
+  .vpg-lane[data-attempt="c"] .vpg-stamp:not([data-attempt="c"]) {
+    display: none;
+  }
   .vpg-tag[data-on] .iso-top {
     fill: var(--anatomy-on);
   }
@@ -3551,6 +3639,10 @@ const staticNote =
   }
   .vpg-diagram__note {
     color: var(--dg-ink);
+  }
+  .vpg-diagram__back a {
+    color: var(--color-accent);
+    text-underline-offset: 0.2em;
   }
   .vpg-diagram__legend {
     color: var(--dg-muted);

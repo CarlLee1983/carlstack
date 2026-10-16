@@ -35,48 +35,41 @@ test("心跳中斷改派：A 被拒絕、B 被接受、指標指向 B 且 A 的�
   assert.equal(final.state.workers.a.status, "rejected");
   assert.equal(final.state.workers.b.status, "accepted");
   assert.equal(final.state.gate, "accepted");
-  assert.equal(final.state.pointer.assetId, "v42-g7-b");
+  assert.equal(final.state.pointer.lane, "b");
   assert.equal(final.state.pointer.switchCount, 1);
-  assert.equal(final.readout.activeToken, "gen 7 · attempt b");
+  assert.deepEqual(final.state.token, { attempt: "b", lane: "b" });
   assert.equal(final.readout.activeAssetId, "v42-g7-b");
-  assert.equal(final.readout.receipt, "已保存");
 
   const everActive = play("publish-gate", "lease-reassign").map(
-    (step) => step.state.pointer.assetId,
+    (step) => step.state.pointer.lane,
   );
-  assert.ok(!everActive.includes("v42-g7-a"));
+  assert.ok(!everActive.includes("a"));
 });
 
 test("重複完成通知：回傳原收據，指標只切換一次", () => {
   const final = last(play("publish-gate", "duplicate"));
   assert.equal(final.state.gate, "receipt-returned");
   assert.equal(final.readout.receipt, "回傳原收據");
-  assert.equal(final.state.pointer.assetId, "v42-g7-a");
+  assert.equal(final.state.pointer.lane, "a");
   assert.equal(final.state.pointer.switchCount, 1);
-  assert.equal(final.readout.activeAssetId, "v42-g7-a");
 });
 
 test("來源損壞：重試到上限後停止，進入有負責人的死信，指標不變", () => {
   const final = last(play("publish-gate", "corrupt-source"));
   const initial = initialStep("publish-gate");
-  assert.equal(final.state.attempts, 3);
   assert.equal(final.state.gate, "stopped");
   assert.equal(final.state.deadLetter.hasJob, true);
   assert.ok(final.state.deadLetter.owner);
-  assert.equal(final.state.pointer.assetId, null);
+  assert.deepEqual(final.state.pointer, initial.state.pointer);
   assert.equal(final.state.pointer.switchCount, 0);
-  assert.equal(final.readout.activeAssetId, initial.readout.activeAssetId);
-  assert.equal(final.readout.receipt, "未接受");
 });
 
 test("正常完成：A 被接受，指標切換到 A 的資產一次", () => {
   const final = last(play("publish-gate", "normal"));
   assert.equal(final.state.workers.a.status, "accepted");
   assert.equal(final.state.gate, "accepted");
-  assert.equal(final.state.pointer.assetId, "v42-g7-a");
+  assert.equal(final.state.pointer.lane, "a");
   assert.equal(final.state.pointer.switchCount, 1);
-  assert.equal(final.readout.activeAssetId, "v42-g7-a");
-  assert.equal(final.readout.receipt, "已保存");
 });
 
 test("每個情境只有最後一步有 caption，且不為空", () => {
@@ -101,7 +94,9 @@ test("初始狀態：沒有任何東西被啟用、沒有 caption", () => {
   assert.equal(step.state.pointer.assetId, null);
   assert.equal(step.state.pointer.switchCount, 0);
   assert.equal(step.state.deadLetter.hasJob, false);
-  assert.equal(step.readout.receipt, "未接受");
+  assert.equal(step.state.token, null);
+  assert.equal(step.state.leaseShare, 0);
+  assert.equal(step.state.pointer.lane, null);
 });
 
 test("每次呼叫回傳新物件，修改結果不影響下次呼叫", () => {
@@ -115,4 +110,67 @@ test("每次呼叫回傳新物件，修改結果不影響下次呼叫", () => {
     last(play("publish-gate", "normal")).state.workers.a.status,
     "accepted",
   );
+});
+
+test("來源損壞：每次重試領新的 attempt token，第三次被判定來源損壞後立刻停止", () => {
+  const steps = play("publish-gate", "corrupt-source");
+  const attempts = steps
+    .map((s) => s.state.token?.attempt)
+    .filter(
+      (attempt, i, all) => attempt !== undefined && attempt !== all[i - 1],
+    );
+  assert.deepEqual(attempts, ["a", "b", "c"]);
+
+  const stoppedAt = steps.findIndex((s) => s.state.gate === "stopped");
+  assert.equal(stoppedAt, steps.length - 1, "停止後不應再有步驟");
+  assert.equal(last(steps).state.token?.attempt, "c");
+  assert.equal(last(steps).state.deadLetter.hasJob, true);
+});
+
+test("心跳中斷改派：租約到期時 leaseShare 為 0，B 領新 token 後恢復為滿租約", () => {
+  const steps = play("publish-gate", "lease-reassign");
+  const expiredAt = steps.findIndex(
+    (s) => s.state.workers.a.status === "offline" && s.state.leaseShare === 0,
+  );
+  assert.ok(expiredAt >= 0, "應有 A 離線且租約已到期的步驟");
+  assert.equal(steps[expiredAt]?.state.token?.attempt, "a");
+
+  const claimed = steps[expiredAt + 1];
+  assert.deepEqual(claimed?.state.token, { attempt: "b", lane: "b" });
+  assert.equal(claimed?.state.leaseShare, 1);
+});
+
+test("心跳中斷改派：指標終點的 lane 是 b；正常完成與重複通知則是 a", () => {
+  assert.equal(
+    last(play("publish-gate", "lease-reassign")).state.pointer.lane,
+    "b",
+  );
+  assert.equal(last(play("publish-gate", "normal")).state.pointer.lane, "a");
+  assert.equal(last(play("publish-gate", "duplicate")).state.pointer.lane, "a");
+  assert.equal(
+    last(play("publish-gate", "corrupt-source")).state.pointer.lane,
+    null,
+  );
+  assert.equal(initialStep("publish-gate").state.pointer.lane, null);
+});
+
+test("每一步的讀數都由 state 推導，兩者不會矛盾", () => {
+  for (const { id } of scenarios("publish-gate")) {
+    for (const { state, readout } of play("publish-gate", id)) {
+      assert.equal(
+        readout.activeToken.endsWith(
+          state.token ? ` ${state.token.attempt}` : "—",
+        ),
+        true,
+      );
+      assert.equal(
+        readout.activeAssetId === "無",
+        state.pointer.assetId === null,
+      );
+      assert.equal(
+        readout.receipt === "未接受",
+        state.pointer.switchCount === 0,
+      );
+    }
+  }
 });
