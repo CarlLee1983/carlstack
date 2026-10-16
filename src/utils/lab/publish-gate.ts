@@ -3,7 +3,7 @@
 // 閘門刻度盤 = 目前有效的 attempt token 與租約倒數；撥桿 = active playback asset 指標；
 // 死信托盤 = 有負責人的待處理清單。
 
-import type { LabStep, MechanismModule } from "./types.ts";
+import type { LabStep, MechanismModule, ScenarioDef } from "./types.ts";
 
 export type WorkerStatus =
   | "idle"
@@ -237,11 +237,10 @@ const corruptSource = (): Step[] => [
 ];
 
 // 情境的 id、標籤與步驟只在這裡定義一次，清單與播放都由它推導。
-const scenarioTable: readonly {
-  id: string;
-  label: string;
-  build: () => Step[];
-}[] = [
+const scenarioTable: readonly ScenarioDef<
+  PublishGateState,
+  PublishGateReadout
+>[] = [
   { id: "normal", label: "正常完成", build: normal },
   { id: "lease-reassign", label: "心跳中斷改派", build: leaseReassign },
   { id: "duplicate", label: "重複完成通知", build: duplicate },
@@ -252,11 +251,6 @@ export const publishGate: MechanismModule<
   PublishGateState,
   PublishGateReadout
 > = {
-  scenarios: scenarioTable.map(({ id, label }) => ({ id, label })),
+  scenarios: scenarioTable,
   initialStep: () => step(),
-  play: (scenarioId) => {
-    const scenario = scenarioTable.find(({ id }) => id === scenarioId);
-    if (!scenario) throw new Error(`未知的 scenarioId：${scenarioId}`);
-    return scenario.build();
-  },
 };

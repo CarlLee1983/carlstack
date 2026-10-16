@@ -40,11 +40,11 @@ src/content/{blog,projects}/*.{md,mdx}
 
 ## 不屬於邊界的部分
 
-`src/components/*Diagram.astro` 是每篇文章專屬的一次性視覺元件，可以自由新增、修改或刪除，不影響其他文章——但它們必須遵守 `tokens.css` 的色彩契約與 [`docs/diagram-guide.md`](diagram-guide.md) 的結構規範。
+`src/components/*Diagram.astro` 是每篇文章專屬的一次性視覺元件，可以自由新增、修改或刪除，不影響其他文章——但它們必須遵守 `tokens.css` 的色彩契約與 [`docs/diagram-guide.md`](diagram-guide.md) 的結構規範。機制實驗室（[ADR 0008](adr/0008-mechanism-lab-companion-page.md)）的圖另外共用 `src/components/LabFigure.astro`、`src/utils/lab-player.ts`、`src/utils/lab-geometry.ts`：改動它們會同時影響所有實驗室的圖，需重驗每一張；`src/utils/lab/` 的情境模組維持純函式。
 
 ## 執行期組成
 
-站台的瀏覽器 JavaScript 依頁面載入：共用版型處理主題與字級偏好（寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`），搜尋頁載入 Pagefind，文章頁可載入 Giscus 留言，站台可載入 Cloudflare Web Analytics。主題詞雲頁另外載入 ECharts 5 與 `echarts-wordcloud` 2；詞雲是額外的視覺入口，頁面仍以靜態 HTML 提供完整標籤清單。沒有 framework hydration。
+站台的瀏覽器 JavaScript 依頁面載入：共用版型處理主題與字級偏好（寫入 `localStorage` 的 `carlstack-theme` 與 `carlstack-font-scale`），搜尋頁載入 Pagefind，文章頁可載入 Giscus 留言，站台可載入 Cloudflare Web Analytics。主題詞雲頁另外載入 ECharts 5 與 `echarts-wordcloud` 2；詞雲是額外的視覺入口，頁面仍以靜態 HTML 提供完整標籤清單。機制實驗室頁載入 `src/utils/lab-player.ts` 驅動動態圖，停用 JavaScript 時靜態 SVG 與讀數仍完整可讀。沒有 framework hydration。
 
 Mermaid 只在含文章內容的頁面載入，security level 固定 `strict`。新文章已禁用 Mermaid（ADR 0004），此相依只為舊文保留。
 

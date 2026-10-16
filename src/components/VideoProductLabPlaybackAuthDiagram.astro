@@ -652,7 +652,7 @@ const { sectionHref } = Astro.props;
           data-tone="mid"
           d="M171.1 40.9L171.3 39.8L172 38.8L173.3 38L175.1 37.5L177.1 37.2L179.2 37.3L181.1 37.6L182.7 38.3L183.9 39.2L184.4 40.2M184.4 42.4L184.3 43.4L183.5 44.4L182.2 45.2L180.5 45.8L178.5 46.1L176.4 46L174.4 45.6L172.8 45L171.7 44.1L171.1 43.1M171.1 40.9L171.1 43.1M184.4 40.2L184.4 42.4"
         ></path></g
-      ><g class="vpa-lamp" data-lamp="kiosk" data-state="off"
+      ><g class="lab-lamp" data-lamp="kiosk" data-state="off"
         ><g class="iso-solid"
           ><path
             class="iso-fill"
@@ -976,7 +976,7 @@ const { sectionHref } = Astro.props;
           data-tone="mid"
           d="M390.8 115.5L391.2 114L392.3 112.7L394.1 111.6L396.4 110.7L399.1 110.1L401.9 109.9L404.8 110.1L407.5 110.7L409.8 111.6L411.5 112.7L412.7 114L413 115.5M413 120.3L412.7 121.7L411.5 123.1L409.8 124.2L407.5 125.1L404.8 125.6L401.9 125.8L399.1 125.6L396.4 125.1L394.1 124.2L392.3 123.1L391.2 121.7L390.8 120.3M390.8 115.5L390.8 120.3M413 115.5L413 120.3"
         ></path></g
-      ><g class="vpa-lamp" data-lamp="cache" data-state="off"
+      ><g class="lab-lamp" data-lamp="cache" data-state="off"
         ><g class="iso-solid"
           ><path
             class="iso-fill"
@@ -1155,7 +1155,7 @@ const { sectionHref } = Astro.props;
           data-tone="mid"
           d="M485.7 146.7L485.9 145.4L486.8 144.2L488.4 143.3L490.5 142.6L493 142.2L495.5 142.3L497.9 142.8L499.9 143.6L501.3 144.6L501.9 145.9M501.9 149.7L501.8 151L500.9 152.2L499.3 153.2L497.1 153.8L494.7 154.2L492.1 154.1L489.8 153.7L487.8 152.9L486.4 151.8L485.7 150.6M485.7 146.7L485.7 150.6M501.9 145.9L501.9 149.7"
         ></path></g
-      ><g class="vpa-lamp" data-lamp="origin" data-state="off"
+      ><g class="lab-lamp" data-lamp="origin" data-state="off"
         ><g class="iso-solid"
           ><path
             class="iso-fill"
@@ -1937,7 +1937,7 @@ const { sectionHref } = Astro.props;
           cx="383"
           cy="183.2"
           r="0.45"></circle></g
-      ><g class="vpa-lamp" data-lamp="gate" data-state="off"
+      ><g class="lab-lamp" data-lamp="gate" data-state="off"
         ><g class="iso-solid"
           ><path
             class="iso-fill"
@@ -2778,6 +2778,7 @@ const { sectionHref } = Astro.props;
   } from "../utils/lab-geometry.ts";
   import {
     mountLabFigure,
+    partsOf,
     placeBead,
     setFlag,
     setLevel,
@@ -2901,14 +2902,7 @@ const { sectionHref } = Astro.props;
   }
 
   function query(root: HTMLElement) {
-    const svg = root.querySelector<SVGSVGElement>("svg");
-    if (!svg) throw new Error("售票亭圖缺少 SVG");
-    const one = <T extends Element>(selector: string) => {
-      const found = svg.querySelector<T>(selector);
-      if (!found) throw new Error(`售票亭圖缺少零件：${selector}`);
-      return found;
-    };
-    const lamp = (name: string) => one<SVGGElement>(`[data-lamp="${name}"]`);
+    const { svg, one, lamp } = partsOf(root, "售票亭圖");
     const route = (name: string) =>
       Array.from(
         one<SVGGElement>(
@@ -3111,27 +3105,6 @@ const { sectionHref } = Astro.props;
     fill: var(--anatomy-lit);
   }
 
-  .vpa-lamp {
-    --vpa-glow: var(--anatomy-on);
-  }
-  .vpa-lamp[data-state="red"] {
-    --vpa-glow: var(--anatomy-red);
-  }
-  .vpa-lamp[data-state="green"] {
-    --vpa-glow: var(--anatomy-green);
-  }
-  .vpa-lamp .iso-top,
-  .vpa-lamp .iso-shade,
-  .vpa-screen__face {
-    transition: fill 0.35s ease;
-  }
-  .vpa-lamp:not([data-state="off"]) .iso-top {
-    fill: var(--vpa-glow);
-  }
-  .vpa-lamp:not([data-state="off"]) .iso-shade {
-    fill: color-mix(in oklab, var(--vpa-glow), var(--color-code) 25%);
-  }
-
   .vpa-ticket,
   .vpa-disc,
   .vpa-glyph {
@@ -3154,6 +3127,7 @@ const { sectionHref } = Astro.props;
   }
   .vpa-screen__face {
     fill: var(--anatomy-shade-1);
+    transition: fill 0.35s ease;
   }
   .vpa-screen[data-player="playing"] .vpa-screen__face {
     fill: color-mix(in oklab, var(--dg-surface), var(--anatomy-on) 22%);
@@ -3168,8 +3142,6 @@ const { sectionHref } = Astro.props;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .vpa-lamp .iso-top,
-    .vpa-lamp .iso-shade,
     .vpa-screen__face,
     .vpa-ticket,
     .vpa-disc,

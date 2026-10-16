@@ -2,7 +2,7 @@
 // 概念對應：售票亭 = 播放 API，發出帶沙漏的短期資格；CDN edge 水槽 = 快取的 segments；
 // 檢票閘 = edge 驗證資格（快取命中也要驗）；播放器 = 觀眾端；origin 只能經由 CDN 到達。
 
-import type { LabStep, MechanismModule } from "./types.ts";
+import type { LabStep, MechanismModule, ScenarioDef } from "./types.ts";
 
 export type KioskStatus = "idle" | "issuing" | "unavailable";
 export type PlayerStatus = "idle" | "playing" | "stalled" | "blocked";
@@ -273,11 +273,10 @@ const markFresh = (steps: Step[]): Step[] =>
     };
   });
 
-const scenarioTable: readonly {
-  id: string;
-  label: string;
-  build: () => Step[];
-}[] = [
+const scenarioTable: readonly ScenarioDef<
+  PlaybackAuthState,
+  PlaybackAuthReadout
+>[] = [
   { id: "normal", label: "正常播放", build: normal },
   { id: "refresh", label: "到期前更新", build: refresh },
   { id: "direct-url", label: "直接抓 segment URL", build: directUrl },
@@ -288,11 +287,9 @@ export const playbackAuth: MechanismModule<
   PlaybackAuthState,
   PlaybackAuthReadout
 > = {
-  scenarios: scenarioTable.map(({ id, label }) => ({ id, label })),
+  scenarios: scenarioTable.map((scenario) => ({
+    ...scenario,
+    build: () => markFresh(scenario.build()),
+  })),
   initialStep: () => step(),
-  play: (scenarioId) => {
-    const scenario = scenarioTable.find(({ id }) => id === scenarioId);
-    if (!scenario) throw new Error(`未知的 scenarioId：${scenarioId}`);
-    return markFresh(scenario.build());
-  },
 };

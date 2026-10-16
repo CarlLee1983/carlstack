@@ -35,7 +35,7 @@ const originSectionHref = sectionHref(8);
 
 <BaseLayout
   title="機制實驗室：設計 YouTube 類影音平台"
-  description="動手操作〈設計 YouTube 類影音平台〉的關鍵機制：選一個故障情境，看舊 token 的產物如何在驗印閘門被擋下，讀數即時更新。"
+  description="〈設計 YouTube 類影音平台〉的配套實驗室：動手操作發布閘門、播放授權與回源成本三個機制，選一個情境就能看零件依步驟動作，讀數即時更新。"
   image={article.data.cover?.src}
   imageAlt={article.data.coverAlt}
 >
@@ -100,6 +100,8 @@ const originSectionHref = sectionHref(8);
 
   .lab-section {
     min-width: 0;
+    /* 與 .prose h2 相同，深連結落點不被固定的網站標頭蓋住 */
+    scroll-margin-top: 5rem;
   }
 
   .lab-footer {

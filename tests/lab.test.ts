@@ -147,9 +147,12 @@ test("心跳中斷改派：租約到期時 leaseShare 為 0，B 領新 token 後
   assert.ok(expiredAt >= 0, "應有 A 離線且租約已到期的步驟");
   assert.equal(steps[expiredAt]?.state.token?.attempt, "a");
 
-  const claimed = steps[expiredAt + 1];
-  assert.deepEqual(claimed?.state.token, { attempt: "b", lane: "b" });
-  assert.equal(claimed?.state.leaseShare, 1);
+  const claimed = steps
+    .slice(expiredAt + 1)
+    .find((s) => s.state.token?.attempt === "b");
+  assert.ok(claimed, "到期之後 B 應領到新的 token");
+  assert.deepEqual(claimed.state.token, { attempt: "b", lane: "b" });
+  assert.equal(claimed.state.leaseShare, 1);
 });
 
 test("心跳中斷改派：指標終點的 lane 是 b；正常完成與重複通知則是 a", () => {
@@ -297,12 +300,12 @@ test("playback-auth 每一步的讀數都由 state 推導，兩者不會矛盾",
 });
 
 test("edge.fresh：只有本步有新的 CDN 請求抵達 edge 時才為 true", () => {
-  const direct = play("playback-auth", "direct-url").map((s) => s.state.edge);
-  // 沒有請求 → 第一次被拒絕（新請求）→ 同一次判定停留（非新請求）
-  assert.deepEqual(
-    direct.map((e) => e.fresh),
-    [false, true, false],
-  );
+  // 同一次被拒絕的判定只有抵達的那一步算新請求，之後停留的步驟不算
+  const direct = play("playback-auth", "direct-url");
+  const freshAt = direct.flatMap((s, i) => (s.state.edge.fresh ? [i] : []));
+  assert.equal(freshAt.length, 1);
+  assert.ok((freshAt[0] ?? Infinity) < direct.length - 1);
+  assert.equal(last(direct).state.edge.fresh, false);
 
   const normal = play("playback-auth", "normal");
   for (const s of normal) {

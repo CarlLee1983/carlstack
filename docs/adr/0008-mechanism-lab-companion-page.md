@@ -11,7 +11,7 @@
 
 1. 一篇概念長文可以有一個附屬的**機制實驗室**（用語見 `CONTEXT.md`），網址固定為 `/blog/<slug>/lab/`，發布後與文章網址同樣不可更名。第一個實例是 `src/pages/blog/youtube-like-product-system-design/lab.astro`，以靜態路由檔實作。
 2. 實驗室是附屬頁，不是文章：不進 content collection、RSS、文章列表與系列導覽；使用 `BaseLayout`，維持 Pagefind 與 sitemap 收錄。長文以手寫深連結指向實驗室的固定英文錨點。
-3. 動態圖遵守 `docs/diagram-guide.md` 的 anatomy 規範：在 repo 外以 anatomy skill 產出靜態 SVG 寫入元件，互動由元件內的 vanilla `<script>` 改變既有元素的屬性完成；不 commit anatomy kit，不使用 WebGL。情境邏輯放在 `src/utils/lab/` 的純函式並由 `pnpm test` 驗證。
+3. 動態圖遵守 `docs/diagram-guide.md` 的 anatomy 規範：在 repo 外以 anatomy skill 產出靜態 SVG 寫入元件，互動改變既有元素的屬性完成，不在執行期重建幾何；不 commit anatomy kit，不使用 WebGL。情境邏輯放在 `src/utils/lab/` 的純函式並由 `pnpm test` 驗證。各圖共用三個檔：`src/components/LabFigure.astro`（外殼標記與共用樣式，約定為 `data-lab-*` 屬性）、`src/utils/lab-player.ts`（唯一碰 DOM 的播放器）、`src/utils/lab-geometry.ts`（純幾何函式）；每張圖只提供自己的幾何、state 到目標值的對應與繪製。
 
 ## 理由
 
@@ -21,4 +21,4 @@
 
 代價：每個實驗室都是手寫頁面與元件，第二個實例出現時需要重新評估是否抽成動態路由與 frontmatter 欄位。
 
-**Falsified if:** 實驗室需要獨立出現在 RSS 或系列導覽，或互動需要在執行期重新產生幾何而必須把 kit 放進 repo（`docs/diagram-guide.md` 的 kit 規定因此改變），或 `src/pages/blog/[...slug].astro` 生成的文章 id 出現 `<slug>/lab` 而與實驗室路由衝突。
+**Falsified if:** 實驗室需要獨立出現在 RSS 或系列導覽，或互動需要在執行期重新產生幾何而必須把 kit 放進 repo（`docs/diagram-guide.md` 的 kit 規定因此改變），或 `src/pages/blog/[...slug].astro` 生成的文章 id 出現 `<slug>/lab` 而與實驗室路由衝突，或某張圖需要繞過 `src/utils/lab-player.ts` 與 `src/components/LabFigure.astro` 的共用約定才能表達它的機制。

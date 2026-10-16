@@ -8,7 +8,7 @@
 // - button[data-scenario="<id>"]、button[data-lab-reset]
 // - [data-readout="<key>"]：寫入 step.readout[key]
 // - [data-lab-note]：播放進度與最後一步的 caption；root 的 data-static-note 是重設後的文字
-// - [data-lab-back]：連回長文的段落；掛載時隱藏，情境播完才顯示
+// - [data-lab-back]：連回長文的段落；一律顯示，不受播放狀態影響
 
 import type { LabStep } from "./lab/index.ts";
 import { fmt, pointAlong, translate, type Vec } from "./lab-geometry.ts";
@@ -144,7 +144,6 @@ export function mountLabFigure<T extends AnyStep>(
   const buttons = root.querySelectorAll<HTMLButtonElement>("[data-scenario]");
   const readouts = root.querySelectorAll<HTMLElement>("[data-readout]");
   const note = root.querySelector<HTMLElement>("[data-lab-note]");
-  const back = root.querySelector<HTMLElement>("[data-lab-back]");
   const staticNote = root.dataset.staticNote ?? "";
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   const schedule = createSchedule();
@@ -160,10 +159,6 @@ export function mountLabFigure<T extends AnyStep>(
     later: schedule.later,
     aim: animator.aim,
     jump: animator.jump,
-  };
-
-  const showBack = (on: boolean) => {
-    if (back) back.hidden = !on;
   };
 
   function renderStep(step: T, text: string) {
@@ -196,7 +191,6 @@ export function mountLabFigure<T extends AnyStep>(
     const steps = source.play(id);
     schedule.cancel();
     setPressed(id);
-    showBack(false);
     // 先回到起點，再逐步播放。
     renderStep(source.initial(), `播放中：${label}`);
     steps.forEach((step, index) => {
@@ -209,7 +203,6 @@ export function mountLabFigure<T extends AnyStep>(
               ? step.caption
               : `播放中：${label}（第 ${index + 1}／${steps.length} 步）`,
           );
-          if (final) showBack(true);
         },
         LEAD_MS + index * STEP_MS,
       );
@@ -219,7 +212,6 @@ export function mountLabFigure<T extends AnyStep>(
   function reset() {
     schedule.cancel();
     setPressed(null);
-    showBack(false);
     renderStep(source.initial(), staticNote);
   }
 
@@ -231,7 +223,6 @@ export function mountLabFigure<T extends AnyStep>(
     ?.addEventListener("click", reset);
   observe(stage, animator.setVisible);
 
-  showBack(false);
   root.querySelector("[data-lab-controls]")?.removeAttribute("hidden");
   root.querySelector("[data-lab-hint]")?.removeAttribute("hidden");
 }
@@ -270,4 +261,20 @@ export function placeBead(
   const [x, y] = pointAlong(points, share);
   bead.setAttribute("cx", String(fmt(x)));
   bead.setAttribute("cy", String(fmt(y)));
+}
+
+/**
+ * 圖內零件的查詢工具：找不到就丟錯，零件名稱寫錯時在掛載當下就會發現。
+ * figure 是錯誤訊息裡的圖名。
+ */
+export function partsOf(root: HTMLElement, figure: string) {
+  const svg = root.querySelector<SVGSVGElement>("svg");
+  if (!svg) throw new Error(`${figure}缺少 SVG`);
+  const one = <T extends Element>(selector: string) => {
+    const found = svg.querySelector<T>(selector);
+    if (!found) throw new Error(`${figure}缺少零件：${selector}`);
+    return found;
+  };
+  const lamp = (name: string) => one<SVGGElement>(`[data-lamp="${name}"]`);
+  return { svg, one, lamp };
 }

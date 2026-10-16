@@ -1,13 +1,30 @@
 ---
 // LabFigure.astro — 機制實驗室動態圖的共用外殼。
-// 提供 figure、情境與重設按鈕、figcaption（Fig 編號、標題、提示、aria-live 讀數區、
-// 說明、連回長文的連結、圖例），以及所有 anatomy 圖共用的樣式。各圖元件只把 SVG
+// 提供 figure、情境與重設按鈕、figcaption（Fig 編號、標題、提示、讀數、aria-live 的
+// 進度與說明、一律顯示的連回長文連結、圖例），以及所有 anatomy 圖共用的樣式（含指示燈）。各圖元件只把 SVG
 // 放進預設 slot、在自己的 <script> 以 src/utils/lab-player.ts 掛載，並保留零件專屬樣式。
 // data-lab-* 標記是與 lab-player 的約定，見該檔開頭說明。
-import { initialStep, scenarios, type Mechanism } from "../utils/lab/index.ts";
+import {
+  initialStep,
+  scenarios,
+  type Mechanism,
+  type OriginCostReadout,
+  type PlaybackAuthReadout,
+  type PublishGateReadout,
+} from "../utils/lab/index.ts";
 
-interface Props {
-  mechanism: Mechanism;
+type ReadoutByMechanism = {
+  "publish-gate": PublishGateReadout;
+  "playback-auth": PlaybackAuthReadout;
+  "origin-cost": OriginCostReadout;
+};
+/** 依機制限定讀數欄位：key 必須是該機制 readout 的欄位。 */
+type ReadingsFor<M extends Mechanism> = {
+  mechanism: M;
+  readings: { key: keyof ReadoutByMechanism[M] & string; label: string }[];
+};
+
+type Props = { [M in Mechanism]: ReadingsFor<M> }[Mechanism] & {
   /** 圖編號，例如「Fig 1」。 */
   fig: string;
   title: string;
@@ -15,12 +32,10 @@ interface Props {
   hint: string;
   /** 初始狀態與重設後的說明，也是停用 JavaScript 時看到的文字。 */
   staticNote: string;
-  /** 讀數欄位：key 對應情境模組 readout 的欄位。 */
-  readings: { key: string; label: string }[];
   legend: string;
   sectionHref: string;
   sectionLabel: string;
-}
+};
 
 const {
   mechanism,
@@ -34,10 +49,10 @@ const {
   sectionLabel,
 } = Astro.props;
 const scenarioList = scenarios(mechanism);
-const start = initialStep(mechanism).readout as unknown as Record<
-  string,
-  string
->;
+// 各機制的讀數型別不同；鍵在 Props 層已依機制檢查，這裡只按鍵取初始值。
+const start = new Map<string, string>(
+  Object.entries(initialStep(mechanism).readout),
+);
 const captionId = `${mechanism}-caption`;
 ---
 
@@ -82,18 +97,20 @@ const captionId = `${mechanism}-caption`;
       <span class="lab-figure__title">{title}</span>
     </p>
     <p class="lab-figure__hint" data-lab-hint hidden>{hint}</p>
-    <div aria-live="polite">
+    <div>
       <dl class="lab-figure__readout">
         {
           readings.map((reading) => (
             <div class="lab-figure__reading">
               <dt>{reading.label}</dt>
-              <dd data-readout={reading.key}>{start[reading.key]}</dd>
+              <dd data-readout={reading.key}>{start.get(reading.key)}</dd>
             </div>
           ))
         }
       </dl>
-      <p class="lab-figure__note" data-lab-note>{staticNote}</p>
+      <p class="lab-figure__note" data-lab-note aria-live="polite">
+        {staticNote}
+      </p>
       <p class="lab-figure__back" data-lab-back>
         <a href={sectionHref}>{sectionLabel}</a>
       </p>
@@ -274,6 +291,39 @@ const captionId = `${mechanism}-caption`;
   }
   :where(.lab-figure__stage) :global(.iso-dots[data-tone="lo"] circle) {
     opacity: 0.22;
+  }
+
+  /*
+   * 指示燈：零件群組帶 .lab-lamp 與 data-state（off／on／red／green／lit），
+   * 亮燈時頂面與側面換成對應顏色。
+   */
+  :where(.lab-figure__stage) :global(.lab-lamp) {
+    --lab-glow: var(--anatomy-on);
+  }
+  :where(.lab-figure__stage) :global(.lab-lamp[data-state="red"]) {
+    --lab-glow: var(--anatomy-red);
+  }
+  :where(.lab-figure__stage) :global(.lab-lamp[data-state="green"]) {
+    --lab-glow: var(--anatomy-green);
+  }
+  :where(.lab-figure__stage) :global(.lab-lamp[data-state="lit"]) {
+    --lab-glow: var(--anatomy-lit);
+  }
+  :where(.lab-figure__stage) :global(.lab-lamp :is(.iso-top, .iso-shade)) {
+    transition: fill 0.35s ease;
+  }
+  :where(.lab-figure__stage)
+    :global(.lab-lamp:not([data-state="off"]) .iso-top) {
+    fill: var(--lab-glow);
+  }
+  :where(.lab-figure__stage)
+    :global(.lab-lamp:not([data-state="off"]) .iso-shade) {
+    fill: color-mix(in oklab, var(--lab-glow), var(--color-code) 25%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :where(.lab-figure__stage) :global(.lab-lamp :is(.iso-top, .iso-shade)) {
+      transition: none;
+    }
   }
 
   /* 操作與說明 */

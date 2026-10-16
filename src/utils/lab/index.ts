@@ -70,6 +70,15 @@ function lookup(mechanism: string) {
   return registry[mechanism];
 }
 
+// 未知的 scenarioId 只在這裡丟錯，各機制模組不重複處理。
+function findScenario(mechanism: string, scenarioId: string) {
+  const scenario = lookup(mechanism).scenarios.find(
+    ({ id }) => id === scenarioId,
+  );
+  if (!scenario) throw new Error(`未知的 scenarioId：${scenarioId}`);
+  return scenario;
+}
+
 export function play<M extends Mechanism>(
   mechanism: M,
   scenarioId: string,
@@ -79,7 +88,7 @@ export function play(
   scenarioId: string,
 ): StepOf<Mechanism>[];
 export function play(mechanism: string, scenarioId: string) {
-  return lookup(mechanism).play(scenarioId);
+  return findScenario(mechanism, scenarioId).build();
 }
 
 /** 已註冊的機制，依註冊順序。 */
@@ -88,7 +97,7 @@ export function mechanisms(): Mechanism[] {
 }
 
 export function scenarios(mechanism: string): ScenarioInfo[] {
-  return lookup(mechanism).scenarios.map((scenario) => ({ ...scenario }));
+  return lookup(mechanism).scenarios.map(({ id, label }) => ({ id, label }));
 }
 
 export function initialStep<M extends Mechanism>(mechanism: M): StepOf<M>;

@@ -13,11 +13,16 @@ export interface ScenarioInfo {
   label: string;
 }
 
+/** 一個情境的定義：id、標籤與步驟只在這裡寫一次。 */
+export interface ScenarioDef<State, Readout> extends ScenarioInfo {
+  /** 每次呼叫都回傳新物件。 */
+  build: () => LabStep<State, Readout>[];
+}
+
 /** 單一機制向註冊表登記的內容；新增機制只要多寫一個符合此形狀的模組。 */
 export interface MechanismModule<State, Readout> {
-  scenarios: readonly ScenarioInfo[];
+  /** 依顯示順序；播放時由 index.ts 的入口依 id 找出情境，未知 scenarioId 在那裡統一丟錯。 */
+  scenarios: readonly ScenarioDef<State, Readout>[];
   /** 每次呼叫都回傳新物件。 */
   initialStep: () => LabStep<State, Readout>;
-  /** 每次呼叫都回傳新物件；未知 scenarioId 由註冊表先擋下。 */
-  play: (scenarioId: string) => LabStep<State, Readout>[];
 }

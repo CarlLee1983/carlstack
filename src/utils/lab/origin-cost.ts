@@ -2,7 +2,7 @@
 // 概念對應：edge 水塔 = 各地 CDN edge 的快取；抽水站 = origin；中間可選的蓄水池 = Origin Shield；
 // 儀表 = 位元組命中率、回源 Gbps、origin 負載。命中率是位元組比例，不是 request hit ratio。
 
-import type { LabStep, MechanismModule } from "./types.ts";
+import type { LabStep, MechanismModule, ScenarioDef } from "./types.ts";
 
 export type DeferredRendition = "running" | "paused";
 
@@ -169,11 +169,10 @@ const overload = (): Step[] => [
   }),
 ];
 
-const scenarioTable: readonly {
-  id: string;
-  label: string;
-  build: () => Step[];
-}[] = [
+const scenarioTable: readonly ScenarioDef<
+  OriginCostState,
+  OriginCostReadout
+>[] = [
   { id: "hit-95", label: "命中率 95%", build: hit95 },
   { id: "hit-70", label: "命中率 70%", build: hit70 },
   { id: "cold-to-hot", label: "冷門轉熱門", build: coldToHot },
@@ -181,11 +180,6 @@ const scenarioTable: readonly {
 ];
 
 export const originCost: MechanismModule<OriginCostState, OriginCostReadout> = {
-  scenarios: scenarioTable.map(({ id, label }) => ({ id, label })),
+  scenarios: scenarioTable,
   initialStep: () => step(),
-  play: (scenarioId) => {
-    const scenario = scenarioTable.find(({ id }) => id === scenarioId);
-    if (!scenario) throw new Error(`未知的 scenarioId：${scenarioId}`);
-    return scenario.build();
-  },
 };
