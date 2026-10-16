@@ -1,5 +1,6 @@
 ---
 import { render } from "astro:content";
+import VideoProductLabPlaybackAuthDiagram from "../../../components/VideoProductLabPlaybackAuthDiagram.astro";
 import VideoProductLabPublishGateDiagram from "../../../components/VideoProductLabPublishGateDiagram.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { getVisiblePosts, postHref } from "../../../utils/collections";
@@ -14,13 +15,20 @@ if (!article) {
 
 const articleHref = postHref(article);
 const { headings } = await render(article);
-const publishHeading = headings.find(
-  (heading) => heading.depth === 2 && heading.text.startsWith("6."),
-);
-if (!publishHeading) {
-  throw new Error(`概念長文 ${articleSlug} 找不到 §6 標題，無法產生回連結`);
-}
-const publishSectionHref = `${articleHref}#${publishHeading.slug}`;
+// 依章節編號找長文標題，組出回連結；找不到就讓建置失敗，避免上線死連結
+const sectionHref = (number: number) => {
+  const heading = headings.find(
+    (item) => item.depth === 2 && item.text.startsWith(`${number}.`),
+  );
+  if (!heading) {
+    throw new Error(
+      `概念長文 ${articleSlug} 找不到 §${number} 標題，無法產生回連結`,
+    );
+  }
+  return `${articleHref}#${heading.slug}`;
+};
+const publishSectionHref = sectionHref(6);
+const playbackSectionHref = sectionHref(7);
 ---
 
 <BaseLayout
@@ -47,6 +55,15 @@ const publishSectionHref = `${articleHref}#${publishHeading.slug}`;
         §6 發布閘門：舊 token 的產物進不了播放清單
       </h2>
       <VideoProductLabPublishGateDiagram sectionHref={publishSectionHref} />
+    </section>
+
+    <section
+      id="playback-auth"
+      class="lab-section"
+      aria-labelledby="playback-auth-title"
+    >
+      <h2 id="playback-auth-title">§7 播放授權：資格和位元組走不同的路</h2>
+      <VideoProductLabPlaybackAuthDiagram sectionHref={playbackSectionHref} />
     </section>
 
     <footer class="lab-footer">

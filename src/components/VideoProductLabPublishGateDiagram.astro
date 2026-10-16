@@ -15,7 +15,7 @@
 //
 // 靜態 SVG 以 anatomy skill（~/.agents/skills/anatomy @ commit cd1f081）在 repo 外產生，
 // Figure 尺寸、74 個零件；build script 與 kit 不進 repository。互動只切換既有元素的
-// transform、d 與 data-* 屬性，情境步驟來自 src/utils/lab/ 的情境模組。
+// transform、d 與 data-* 屬性；播放邏輯在 src/utils/lab-player.ts，情境步驟來自 src/utils/lab/ 的情境模組。
 import { initialStep, scenarios } from "../utils/lab/index.ts";
 
 interface Props {
@@ -33,10 +33,11 @@ const staticNote =
 <figure
   class="vpg-diagram"
   aria-labelledby="vpg-diagram-caption"
-  data-vpg-root
+  data-lab-root
+  data-vpg
   data-static-note={staticNote}
 >
-  <div class="vpg-diagram__stage" data-vpg-stage>
+  <div class="vpg-diagram__stage" data-lab-stage>
     <svg
       class="vpg-diagram__svg iso-svg"
       viewBox="0 0 640 350"
@@ -2782,7 +2783,7 @@ const staticNote =
     </svg>
   </div>
 
-  <div class="vpg-diagram__controls" data-vpg-controls hidden>
+  <div class="vpg-diagram__controls" data-lab-controls hidden>
     <div class="vpg-diagram__buttons" role="group" aria-label="驗印閘門情境">
       {
         scenarioList.map((scenario) => (
@@ -2799,7 +2800,7 @@ const staticNote =
       <button
         type="button"
         class="vpg-diagram__button vpg-diagram__button--reset"
-        data-vpg-reset
+        data-lab-reset
       >
         重設
       </button>
@@ -2811,7 +2812,7 @@ const staticNote =
       <span class="vpg-diagram__fig">Fig 1</span>
       <span class="vpg-diagram__title">驗印閘門</span>
     </p>
-    <p class="vpg-diagram__hint" data-vpg-hint hidden>
+    <p class="vpg-diagram__hint" data-lab-hint hidden>
       選一個情境，看零件依步驟動作；播放中改按其他情境會從頭開始。
     </p>
     <div class="vpg-diagram__live" aria-live="polite">
@@ -2833,8 +2834,8 @@ const staticNote =
           <dd data-readout="receipt">{start.readout.receipt}</dd>
         </div>
       </dl>
-      <p class="vpg-diagram__note" data-vpg-note>{staticNote}</p>
-      <p class="vpg-diagram__back" data-vpg-back>
+      <p class="vpg-diagram__note" data-lab-note>{staticNote}</p>
+      <p class="vpg-diagram__back" data-lab-back>
         <a href={sectionHref}>回到長文 §6 讀完整論證</a>
       </p>
     </div>
@@ -2849,14 +2850,9 @@ const staticNote =
 
 <script>
   import { initialStep, play } from "../utils/lab/index.ts";
-  import type {
-    LabStep,
-    PublishGateReadout,
-    PublishGateState,
-    WorkerStatus,
-  } from "../utils/lab/index.ts";
+  import { mountLabFigure, type Motion } from "../utils/lab-player.ts";
+  import type { PublishGateState, WorkerStatus } from "../utils/lab/index.ts";
 
-  type Step = LabStep<PublishGateState, PublishGateReadout>;
   type Lane = "a" | "b";
   type Vec = [number, number];
 
@@ -2892,10 +2888,7 @@ const staticNote =
   };
 
   const MECHANISM = "publish-gate";
-  const STEP_MS = 1100;
-  const LEAD_MS = 500;
   const BOUNCE_MS = 450;
-  const TAU = 0.28;
   const LANES: Lane[] = ["a", "b"];
 
   const LANE_POS: Record<WorkerStatus, number> = {
@@ -2942,7 +2935,7 @@ const staticNote =
     "lever",
   ] as const;
   type MotionKey = (typeof MOTION_KEYS)[number];
-  type Motion = Record<MotionKey, number>;
+  type GateMotion = Record<MotionKey, number>;
 
   const fmt = (value: number) => Math.round(value * 10) / 10;
   const point = ([x, y]: Vec) => `${fmt(x)} ${fmt(y)}`;
@@ -2966,7 +2959,7 @@ const staticNote =
   };
 
   /** 由一步的 state 算出各連續量的目標值。 */
-  function targetsOf(state: PublishGateState): Motion {
+  function targetsOf(state: PublishGateState): GateMotion {
     let slip = 0;
     if (state.pointer.switchCount > 0) {
       slip =
@@ -2988,8 +2981,7 @@ const staticNote =
 
   function query(root: HTMLElement) {
     const svg = root.querySelector<SVGSVGElement>("svg");
-    const stage = root.querySelector<HTMLElement>("[data-vpg-stage]");
-    if (!svg || !stage) throw new Error("驗印閘門缺少 SVG 或舞台");
+    if (!svg) throw new Error("驗印閘門缺少 SVG");
     const one = <T extends Element>(selector: string) => {
       const found = svg.querySelector<T>(selector);
       if (!found) throw new Error(`驗印閘門缺少零件：${selector}`);
@@ -2997,7 +2989,6 @@ const staticNote =
     };
     const lamp = (name: string) => one<SVGGElement>(`[data-lamp="${name}"]`);
     return {
-      stage,
       lanes: {
         a: one<SVGGElement>('.vpg-lane[data-lane="a"]'),
         b: one<SVGGElement>('.vpg-lane[data-lane="b"]'),
@@ -3021,19 +3012,12 @@ const staticNote =
       knob: one<SVGCircleElement>(".vpg-lever__knob"),
       attemptPips: svg.querySelectorAll<SVGGElement>('[data-pip="attempt"]'),
       switchPips: svg.querySelectorAll<SVGGElement>('[data-pip="switch"]'),
-      readouts: root.querySelectorAll<HTMLElement>("[data-readout]"),
-      note: root.querySelector<HTMLElement>("[data-vpg-note]"),
-      back: root.querySelector<HTMLElement>("[data-vpg-back]"),
-      buttons: root.querySelectorAll<HTMLButtonElement>("[data-scenario]"),
-      reset: root.querySelector<HTMLButtonElement>("[data-vpg-reset]"),
-      controls: root.querySelector<HTMLElement>("[data-vpg-controls]"),
-      hint: root.querySelector<HTMLElement>("[data-vpg-hint]"),
     };
   }
   type Parts = ReturnType<typeof query>;
 
   /** 把連續量寫進 SVG：只改 transform、d 與座標屬性。 */
-  function draw(parts: Parts, at: Motion) {
+  function draw(parts: Parts, at: GateMotion) {
     parts.lanes.a.setAttribute("transform", translate(GEO.VX, at.a));
     parts.lanes.b.setAttribute("transform", translate(GEO.VX, at.b));
     parts.press.setAttribute(
@@ -3104,175 +3088,44 @@ const staticNote =
     setFlag(parts.knob, "data-on", state.pointer.lane !== null);
   }
 
-  function renderText(parts: Parts, readout: PublishGateReadout, note: string) {
-    parts.readouts.forEach((element) => {
-      const key = element.dataset.readout as keyof PublishGateReadout;
-      element.textContent = readout[key];
-    });
-    if (parts.note) parts.note.textContent = note;
-  }
-
-  /** 一個圖一個動畫迴圈：離開畫面或全部到位就停。 */
-  function createAnimator(parts: Parts, still: MediaQueryList) {
-    const target: Motion = targetsOf(initialStep(MECHANISM).state);
-    const current: Motion = { ...target };
-    let frame = 0;
-    let last = 0;
-    let visible = false;
-
-    function tick(now: number) {
-      const dt = last ? Math.min((now - last) / 1000, 1 / 30) : 1 / 60;
-      last = now;
-      const ease = 1 - Math.exp(-dt / TAU);
-      let moving = false;
-      for (const key of MOTION_KEYS) {
-        const gap = target[key] - current[key];
-        if (Math.abs(gap) < 0.002) current[key] = target[key];
-        else {
-          current[key] += gap * ease;
-          moving = true;
-        }
-      }
-      draw(parts, current);
-      frame = visible && moving ? requestAnimationFrame(tick) : 0;
-    }
-
-    function run() {
-      if (still.matches) {
-        Object.assign(current, target);
-        draw(parts, current);
-      } else if (!frame && visible) {
-        last = 0;
-        frame = requestAnimationFrame(tick);
-      }
-    }
-
-    return {
-      aim(next: Partial<Motion>) {
-        Object.assign(target, next);
-        run();
-      },
-      setVisible(next: boolean) {
-        visible = next;
-        if (visible) run();
-      },
-    };
-  }
-
-  /** 情境播放的計時器；開新情境或重設時整批取消。 */
-  function createSchedule() {
-    let timers: number[] = [];
-    return {
-      later(fn: () => void, ms: number) {
-        timers.push(window.setTimeout(fn, ms));
-      },
-      cancel() {
-        timers.forEach((id) => window.clearTimeout(id));
-        timers = [];
-      },
-    };
-  }
-
-  function observe(stage: HTMLElement, onChange: (visible: boolean) => void) {
-    new IntersectionObserver(
-      (entries) => {
-        // 同一次回呼可能帶進出兩筆，讀最新的一筆。
-        const newest = entries[entries.length - 1];
-        if (newest) onChange(newest.isIntersecting);
-      },
-      { rootMargin: "120px 0px" },
-    ).observe(stage);
-  }
-
   function mount(root: HTMLElement) {
     const parts = query(root);
-    const still = matchMedia("(prefers-reduced-motion: reduce)");
-    const animator = createAnimator(parts, still);
-    const schedule = createSchedule();
-    const staticNote = root.dataset.staticNote ?? "";
     const status: Record<Lane, WorkerStatus> = { a: "idle", b: "idle" };
-
-    const showBack = (on: boolean) => {
-      if (parts.back) parts.back.hidden = !on;
-    };
-
-    function renderStep(step: Step, note: string) {
-      const targets = targetsOf(step.state);
-      for (const lane of LANES) {
-        const next = step.state.workers[lane].status;
-        // 被拒絕時先送到閘門口再彈回，看得出是「交件後被退」。
-        if (
-          next === "rejected" &&
-          status[lane] !== "rejected" &&
-          !still.matches
-        ) {
-          targets[lane] = GEO.POS.submit;
-          schedule.later(
-            () => animator.aim({ [lane]: LANE_POS.rejected }),
-            BOUNCE_MS,
-          );
-        }
-        status[lane] = next;
-      }
-      renderFlags(parts, step.state);
-      renderText(parts, step.readout, note);
-      animator.aim(targets);
-    }
-
-    function pressed(id: string | null) {
-      parts.buttons.forEach((button) =>
-        button.setAttribute(
-          "aria-pressed",
-          String(button.dataset.scenario === id),
-        ),
-      );
-    }
-
-    function startScenario(button: HTMLButtonElement) {
-      const id = button.dataset.scenario ?? "";
-      const label = button.textContent?.trim() ?? id;
-      const steps = play(MECHANISM, id);
-      schedule.cancel();
-      pressed(id);
-      showBack(false);
-      // 先回到起點，再逐步播放。
-      renderStep(initialStep(MECHANISM), `播放中：${label}`);
-      steps.forEach((step, index) => {
-        const final = index === steps.length - 1;
-        schedule.later(
-          () => {
-            renderStep(
-              step,
-              final && step.caption
-                ? step.caption
-                : `播放中：${label}（第 ${index + 1}／${steps.length} 步）`,
-            );
-            if (final) showBack(true);
-          },
-          LEAD_MS + index * STEP_MS,
-        );
-      });
-    }
-
-    function reset() {
-      schedule.cancel();
-      pressed(null);
-      showBack(false);
-      renderStep(initialStep(MECHANISM), staticNote);
-    }
-
-    parts.buttons.forEach((button) =>
-      button.addEventListener("click", () => startScenario(button)),
+    mountLabFigure(
+      root,
+      {
+        initial: () => initialStep(MECHANISM),
+        play: (id) => play(MECHANISM, id),
+      },
+      {
+        targets: (step) => targetsOf(step.state),
+        draw: (current) => draw(parts, current as GateMotion),
+        render(step, targets: Motion, ctx) {
+          for (const lane of LANES) {
+            const next = step.state.workers[lane].status;
+            // 被拒絕時先送到閘門口再彈回，看得出是「交件後被退」。
+            if (
+              next === "rejected" &&
+              status[lane] !== "rejected" &&
+              !ctx.still
+            ) {
+              targets[lane] = GEO.POS.submit;
+              ctx.later(
+                () => ctx.aim({ [lane]: LANE_POS.rejected }),
+                BOUNCE_MS,
+              );
+            }
+            status[lane] = next;
+          }
+          renderFlags(parts, step.state);
+        },
+      },
     );
-    parts.reset?.addEventListener("click", reset);
-    observe(parts.stage, animator.setVisible);
-
-    showBack(false);
-    parts.controls?.removeAttribute("hidden");
-    parts.hint?.removeAttribute("hidden");
   }
 
-  document.querySelectorAll<HTMLElement>("[data-vpg-root]").forEach(mount);
+  document
+    .querySelectorAll<HTMLElement>("[data-lab-root][data-vpg]")
+    .forEach(mount);
 </script>
 
 <style>

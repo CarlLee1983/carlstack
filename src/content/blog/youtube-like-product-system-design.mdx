@@ -216,6 +216,8 @@ COMMIT
 
 <VideoProductPlaybackDiagram />
 
+想看資格檢查和影片位元組怎麼分開走？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#playback-auth)操作售票亭與輸送管。
+
 對私密影片，只保護 manifest 不夠。如果 segments 的 URL 可以被任何人持續讀取，知道路徑的人就可能繞過播放 API。因此我們要求 CDN 在媒體請求到達時驗證資格，包含快取命中的情況；origin 同時限制只能由預期的 CDN 路徑存取。
 
 以 CloudFront 為例，[signed cookies](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-signed-cookies.html) 適合授權一組受限檔案，[signed URL／cookie 選擇指引](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html) 舉的情境就包含 HLS。signed cookies 文件說明，CloudFront 驗證簽章與政策後，才決定從 edge cache 或 origin 回應。這可以避免每個 segment 都回到應用查資料庫，但需要設計 cookie domain、路徑、跨來源請求與播放器相容性。
