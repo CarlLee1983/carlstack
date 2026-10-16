@@ -8,7 +8,7 @@
 | `pnpm test`                     | `node --experimental-strip-types --test tests/*.test.ts`                                                                     |
 | `pnpm content:policy -- <base>` | 比對 `<base>` 至工作目錄的文章 diff，擋下 Mermaid fence（[ADR 0004](adr/0004-native-svg-over-mermaid.md)）與無法渲染的 LaTeX |
 
-CI（`.github/workflows/ci.yml`）在 pull request 執行前兩者；`deploy.yml` 在 `main` 更新後先驗證再部署。內容 policy 不在 CI 而在本地 commit 前執行，因為它需要 diff base。
+CI（`.github/workflows/ci.yml`）在 pull request 以 base commit 為 diff base 執行三道 gate；`deploy.yml` 在 `main` 更新後以推送前的 commit 為 base 先驗證再部署。兩者都以 `actions/cache` 保存 `node_modules/.astro`（圖片最佳化結果）與 Prettier 快取，`main` 存下的快取供後續 pull request 沿用。
 
 ## 測試檔對應的規則
 
