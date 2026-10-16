@@ -1,0 +1,225 @@
+<figure class="late-payment-diagram" aria-labelledby="late-payment-caption">
+  <svg
+    class="late-payment-diagram__desktop"
+    viewBox="0 0 960 580"
+    role="img"
+    aria-labelledby="late-payment-title late-payment-desc"
+  >
+    <title id="late-payment-title">同一張訂單，兩種本地交易順序</title>
+    <desc id="late-payment-desc"
+      >取消先提交時，訂單維持取消，晚到付款被記錄並建立退款待辦。付款先提交時，訂單維持已付款，未付款取消被拒絕。兩種順序都保留真實收款，不以通知到達順序推測遠端收款時間。</desc
+    >
+    <defs
+      ><marker
+        id="late-payment-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0 L8 4 L0 8 Z"></path></marker
+      ></defs
+    >
+    <text x="40" y="42" class="late-payment-diagram__title"
+      >同一張訂單，先取得鎖並提交的決定生效</text
+    >
+    <text x="40" y="73" class="late-payment-diagram__detail"
+      >這是本店履約政策；通知先後不等於金流收款先後。</text
+    >
+    <rect
+      x="30"
+      y="105"
+      width="900"
+      height="175"
+      rx="16"
+      class="late-payment-diagram__row"></rect>
+    <text x="54" y="140" class="late-payment-diagram__title">取消先提交</text>
+    <rect
+      x="54"
+      y="166"
+      width="244"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="72" y="194" class="late-payment-diagram__label">A：cancelled</text
+    ><text x="72" y="222" class="late-payment-diagram__detail"
+      >預留已釋放，可賣給 B</text
+    >
+    <path d="M308 207 H342" class="late-payment-diagram__arrow"></path>
+    <rect
+      x="354"
+      y="166"
+      width="220"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="372" y="194" class="late-payment-diagram__label">晚到付款成功</text
+    ><text x="372" y="222" class="late-payment-diagram__detail"
+      >保存同一筆收款</text
+    >
+    <path d="M584 207 H618" class="late-payment-diagram__arrow"></path>
+    <rect
+      x="630"
+      y="166"
+      width="276"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="648" y="194" class="late-payment-diagram__label"
+      >A 不復活，建立退款待辦</text
+    ><text x="648" y="222" class="late-payment-diagram__detail"
+      >收款與待辦共同提交</text
+    >
+    <rect
+      x="30"
+      y="305"
+      width="900"
+      height="175"
+      rx="16"
+      class="late-payment-diagram__row"></rect>
+    <text x="54" y="340" class="late-payment-diagram__title"
+      >付款處理先提交</text
+    >
+    <rect
+      x="54"
+      y="366"
+      width="244"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="72" y="394" class="late-payment-diagram__label">A：paid</text><text
+      x="72"
+      y="422"
+      class="late-payment-diagram__detail">收款已記錄，預留仍 held</text
+    >
+    <path d="M308 407 H342" class="late-payment-diagram__arrow"></path>
+    <rect
+      x="354"
+      y="366"
+      width="220"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="372" y="394" class="late-payment-diagram__label"
+      >未付款取消抵達</text
+    ><text x="372" y="422" class="late-payment-diagram__detail"
+      >鎖定後重讀 A 的狀態</text
+    >
+    <path d="M584 407 H618" class="late-payment-diagram__arrow"></path>
+    <rect
+      x="630"
+      y="366"
+      width="276"
+      height="82"
+      rx="10"
+      class="late-payment-diagram__card"></rect>
+    <text x="648" y="394" class="late-payment-diagram__label"
+      >拒絕這條取消路徑</text
+    ><text x="648" y="422" class="late-payment-diagram__detail"
+      >已付款取消須另訂規則</text
+    >
+    <text x="40" y="532" class="late-payment-diagram__label"
+      >兩條路都記下收款；只有第一條產生本篇的退款責任。</text
+    >
+  </svg>
+  <div class="late-payment-diagram__mobile">
+    <section>
+      <h3>取消先提交</h3><ol>
+        <li>A 已取消，預留已釋放，可以賣給 B。</li><li>
+          付款通知晚到，保存收款。
+        </li><li>A 維持取消；收款與唯一退款待辦共同提交。</li>
+      </ol>
+    </section>
+    <section>
+      <h3>付款處理先提交</h3><ol>
+        <li>A 已付款，收款已記錄，預留仍保留。</li><li>
+          未付款取消取得鎖後重讀 A。
+        </li><li>拒絕這條取消路徑；已付款取消須另訂規則。</li>
+      </ol>
+    </section>
+    <p>這是本店履約政策。通知先後不代表金流實際收款的先後。</p>
+  </div>
+  <figcaption id="late-payment-caption">
+    付款事實保存在兩條路徑中，取消決定則不被晚到通知推翻。
+  </figcaption>
+</figure>
+<style>
+  .late-payment-diagram {
+    margin: 2rem 0;
+  }
+  .late-payment-diagram__desktop {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .late-payment-diagram__row {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .late-payment-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .late-payment-diagram__title {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .late-payment-diagram__label {
+    font-size: 15px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .late-payment-diagram__detail {
+    font-size: 14px;
+    fill: var(--dg-ink-2);
+  }
+  .late-payment-diagram__arrow {
+    stroke: var(--dg-ink-2);
+    stroke-width: 2;
+    fill: none;
+    marker-end: url(#late-payment-arrow);
+  }
+  marker path {
+    fill: var(--dg-ink-2);
+  }
+  .late-payment-diagram__mobile {
+    display: none;
+  }
+  .late-payment-diagram__mobile section {
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .late-payment-diagram__mobile h3 {
+    margin: 0 0 0.8rem;
+    color: var(--dg-ink);
+    font-size: 1rem;
+  }
+  .late-payment-diagram__mobile ol {
+    padding-left: 1.3rem;
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .late-payment-diagram__mobile li {
+    margin: 0.5rem 0;
+  }
+  .late-payment-diagram__mobile p,
+  figcaption {
+    color: var(--dg-ink-2);
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .late-payment-diagram__desktop {
+      display: none !important;
+    }
+    .late-payment-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
