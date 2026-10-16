@@ -375,8 +375,91 @@ test("授權服務不可用：資格到期後 edge 拒絕 viewer 的新請求，
 });
 
 test("mechanisms 依註冊順序列出所有機制，且每個都有情境", () => {
-  assert.deepEqual(mechanisms(), ["publish-gate", "playback-auth"]);
+  assert.deepEqual(mechanisms(), [
+    "publish-gate",
+    "playback-auth",
+    "origin-cost",
+  ]);
   for (const mechanism of mechanisms()) {
     assert.ok(scenarios(mechanism).length > 0);
   }
+});
+
+test("origin-cost 依顯示順序列出四個情境", () => {
+  assert.deepEqual(scenarios("origin-cost"), [
+    { id: "hit-95", label: "命中率 95%" },
+    { id: "hit-70", label: "命中率 70%" },
+    { id: "cold-to-hot", label: "冷門轉熱門" },
+    { id: "overload", label: "origin 超載" },
+  ]);
+});
+
+test("origin-cost 初始狀態：三座 edge 皆滿水位、無 Shield、無合併、基本畫質與後補皆正常", () => {
+  const step = initialStep("origin-cost");
+  assert.equal(step.caption, undefined);
+  assert.equal(step.state.edges.length, 3);
+  assert.ok(step.state.edges.every((e) => e.level === 1 && !e.missing));
+  assert.equal(step.state.shield.enabled, false);
+  assert.equal(step.state.collapse, false);
+  assert.equal(step.state.egressGbps, 10.4);
+  assert.equal(step.state.deferred, "running");
+  assert.ok(step.state.originLoad < 1);
+});
+
+test("命中率 95%：總下行 10.4 Gbps 下，回源約 0.52 Gbps", () => {
+  const final = last(play("origin-cost", "hit-95"));
+  assert.equal(final.state.byteHit, 0.95);
+  assert.equal(final.state.egressGbps, 10.4);
+  assert.ok(Math.abs(final.state.originGbps - 0.52) < 1e-9);
+  assert.ok(final.state.originLoad < 1);
+});
+
+test("命中率 70%：回源約 3.12 Gbps，是 95% 情境的六倍", () => {
+  const final = last(play("origin-cost", "hit-70"));
+  assert.equal(final.state.byteHit, 0.7);
+  assert.ok(Math.abs(final.state.originGbps - 3.12) < 1e-9);
+  const at95 = last(play("origin-cost", "hit-95")).state.originGbps;
+  assert.ok(Math.abs(final.state.originGbps / at95 - 6) < 1e-9);
+});
+
+test("冷門轉熱門：多個 edge 同時未命中使回源暴衝，啟用 Shield 與合併回源後回落", () => {
+  const steps = play("origin-cost", "cold-to-hot");
+  const spike = steps.reduce((a, b) =>
+    b.state.originGbps > a.state.originGbps ? b : a,
+  );
+  assert.ok(
+    spike.state.edges.every((e) => e.missing),
+    "暴衝時所有 edge 同時未命中",
+  );
+  assert.equal(spike.state.shield.enabled, false);
+  assert.equal(spike.state.collapse, false);
+
+  const final = last(steps);
+  assert.equal(final.state.shield.enabled, true);
+  assert.equal(final.state.collapse, true);
+  assert.ok(final.state.originGbps < spike.state.originGbps);
+  assert.ok(final.state.originLoad < 1);
+});
+
+test("origin 超載：先超過容量，暫緩後補格式後負載回到容量以內", () => {
+  const steps = play("origin-cost", "overload");
+  const final = last(steps);
+  assert.equal(final.state.deferred, "paused");
+  assert.equal(final.state.backfillGbps, 0);
+  assert.ok(final.state.originLoad < 1);
+  assert.ok(
+    steps.some((s) => s.state.deferred === "running" && s.state.originLoad > 1),
+    "暫緩之前曾經超載",
+  );
+  assert.equal(steps[0]?.state.deferred, "running");
+  assert.ok((steps[0]?.state.backfillGbps ?? 0) > 0);
+});
+
+test("origin 超載：觀眾持續被服務（下行不變），後補才暫緩，說明明講基本畫質繼續播放", () => {
+  const steps = play("origin-cost", "overload");
+  assert.ok(steps.every((s) => s.state.egressGbps === 10.4));
+  assert.equal(last(steps).state.deferred, "paused");
+  const caption = last(steps).caption ?? "";
+  assert.ok(caption.includes("基本畫質"));
+  assert.ok(caption.includes("繼續播放"));
 });

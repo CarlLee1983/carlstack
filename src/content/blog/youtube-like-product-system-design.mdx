@@ -238,6 +238,8 @@ COMMIT
 
 <VideoProductOriginDiagram />
 
+想看快取命中率掉一點，origin 要多扛多少？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#origin-cost)操作水塔與抽水站。
+
 版本化、不變的 segment 路徑有利於長期共享快取。相對地，帶狀態意義的 metadata、播放許可、或會變動的清單，應有不同的 TTL 與快取策略。把所有東西設成一年快取，會讓後來的權限修改與內容替換難以說清楚；把所有東西設成不快取，則把成本推回 origin。
 
 多個 edge 同時遇到冷門轉熱門的影片，可以再加一層共享回源快取。[CloudFront Origin Shield](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html) 的官方定位，是提供額外的快取層來減少 origin 負載。它不是替代授權的安全層，也不保證每個部署與工作負載都值得增加費用；應比較回源請求、位元組、額外延遲與單位成本。

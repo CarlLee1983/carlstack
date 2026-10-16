@@ -1,5 +1,6 @@
 ---
 import { render } from "astro:content";
+import VideoProductLabOriginCostDiagram from "../../../components/VideoProductLabOriginCostDiagram.astro";
 import VideoProductLabPlaybackAuthDiagram from "../../../components/VideoProductLabPlaybackAuthDiagram.astro";
 import VideoProductLabPublishGateDiagram from "../../../components/VideoProductLabPublishGateDiagram.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
@@ -29,6 +30,7 @@ const sectionHref = (number: number) => {
 };
 const publishSectionHref = sectionHref(6);
 const playbackSectionHref = sectionHref(7);
+const originSectionHref = sectionHref(8);
 ---
 
 <BaseLayout
@@ -64,6 +66,17 @@ const playbackSectionHref = sectionHref(7);
     >
       <h2 id="playback-auth-title">§7 播放授權：資格和位元組走不同的路</h2>
       <VideoProductLabPlaybackAuthDiagram sectionHref={playbackSectionHref} />
+    </section>
+
+    <section
+      id="origin-cost"
+      class="lab-section"
+      aria-labelledby="origin-cost-title"
+    >
+      <h2 id="origin-cost-title">
+        §8 回源成本：命中率掉一點，origin 多扛好幾倍
+      </h2>
+      <VideoProductLabOriginCostDiagram sectionHref={originSectionHref} />
     </section>
 
     <footer class="lab-footer">

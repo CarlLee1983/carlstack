@@ -1,6 +1,8 @@
 // 機制實驗室情境模組的統一入口。純資料、無 DOM、無時鐘；
 // 新增機制只要寫好一個 MechanismModule，並在 registry 登記一列。
 
+import { originCost } from "./origin-cost.ts";
+import type { OriginCostReadout, OriginCostState } from "./origin-cost.ts";
 import { playbackAuth } from "./playback-auth.ts";
 import type {
   PlaybackAuthReadout,
@@ -22,18 +24,24 @@ export type {
   ViewerState,
 } from "./playback-auth.ts";
 export type {
+  DeferredRendition,
+  EdgeTower,
+  OriginCostReadout,
+  OriginCostState,
+} from "./origin-cost.ts";
+export type {
   GateStatus,
   PublishGateReadout,
   PublishGateState,
   WorkerStatus,
 } from "./publish-gate.ts";
 
-// 之後加入 "origin-cost" 時在此擴充。
-export type Mechanism = "publish-gate" | "playback-auth";
+export type Mechanism = "publish-gate" | "playback-auth" | "origin-cost";
 
 interface StateByMechanism {
   "publish-gate": { state: PublishGateState; readout: PublishGateReadout };
   "playback-auth": { state: PlaybackAuthState; readout: PlaybackAuthReadout };
+  "origin-cost": { state: OriginCostState; readout: OriginCostReadout };
 }
 
 type StepOf<M extends Mechanism> = LabStep<
@@ -49,6 +57,7 @@ const registry: {
 } = {
   "publish-gate": publishGate,
   "playback-auth": playbackAuth,
+  "origin-cost": originCost,
 };
 
 const isMechanism = (value: string): value is Mechanism =>
