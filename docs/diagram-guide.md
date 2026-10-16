@@ -126,6 +126,16 @@ SVG 的 `font-size` 屬於 viewBox 座標系，用純數字 px（12／14／18 �
 
 - **動作**：互動與動畫是選配，用元件內的 vanilla `<script>`，遵守 skill 的 reduced motion 與離開視窗即停；關掉 JavaScript 時靜態 SVG 必須完整可讀。WebGL 與 3D 模式不用於文章圖解。
 
+### 機制實驗室
+
+互動式 anatomy 圖集中在 `/blog/<slug>/lab/`，決策見 [ADR 0008](adr/0008-mechanism-lab-companion-page.md)。每張圖遵守三條互動規則：
+
+1. 情境與重設按鈕是 SVG 外的原生 `<button>`，鍵盤可操作並套用 `:focus-visible`。
+2. 讀數與情境說明放在 `aria-live="polite"` 區域。
+3. 每張圖都有重設按鈕。
+
+情境邏輯放在 `src/utils/lab/` 的純函式，由 `pnpm test` 驗證；元件的 `<script>` 只負責呈現。播放中切換情境時先取消前一個，不讓兩段動畫交錯。`prefers-reduced-motion` 下直接跳到每一步的目標狀態，但按鈕與讀數仍照常回應操作。
+
 ## 驗收
 
 發布前在桌面與 320 px 視窗各看一次，淺色與深色各看一次。四種組合都要文字可讀、不產生整頁水平捲軸、顏色隨主題切換。

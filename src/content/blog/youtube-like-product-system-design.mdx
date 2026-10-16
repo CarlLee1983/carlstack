@@ -11,6 +11,7 @@ tags:
   - 分散式系統
 series: 產品系統設計實戰
 seriesOrder: 1
+updatedDate: 2026-10-16T10:00:00+08:00
 cover: ../../assets/covers/youtube-like-product-system-design.webp
 coverAlt: 透明膠卷穿過一道玻璃閘門，向多個播放螢幕展開，象徵影片確認可發布後才分送觀眾。
 ---
@@ -33,6 +34,9 @@ import VideoProductFailureDiagram from "../../components/VideoProductFailureDiag
 本文設計的是具有 YouTube 類似核心功能的隨選影音平台，不代表 YouTube 的實際內部架構。案例中的流量、容量、延遲與期限都是教學假設，沒有聲稱完成效能壓測。外部協定與雲端產品行為另附官方來源，查核日期為 2026 年 10 月 15 日。
 
 「產品系統設計實戰」會沿著完整產品的使用情境走一遍。這一篇先把影音生命週期做完整：建立影片、上傳、處理、發布、播放、曝光、下架。直播、廣告競價、版權辨識模型與個人化推薦模型不在本次實作範圍；但它們將來接入時，不能破壞本文的發布與授權規則。
+
+> [!NOTE]
+> 本文的關鍵機制另有可以動手操作的版本：[機制實驗室](/blog/youtube-like-product-system-design/lab/)。讀到發布閘門時，可以直接選故障情境，看舊 token 的產物怎麼被擋下。
 
 ## 1. 上傳完成，只代表創作者交出了檔案
 
@@ -172,6 +176,8 @@ S3 的 [multipart 概觀](https://docs.aws.amazon.com/AmazonS3/latest/userguide/
 每次 attempt 寫到獨立、不可變的產物前綴，例如影片 v42、generation 7、profile p3、attempt b。worker 不覆寫正在服務觀眾的 manifest，也不直接修改播放資產指標。它只提出候選資產，附上工作鍵、attempt token、檔案清單與驗證結果。
 
 <VideoProductPublishDiagram />
+
+想看舊 token 的產物怎麼被擋下？到[機制實驗室](/blog/youtube-like-product-system-design/lab/#publish-gate)操作驗印閘門。
 
 相同工作、attempt 與候選資產的完成通知若已被接受，先回傳儲存的完成收據；它只證明當時接受過，不代表影片此刻仍可播放，現在的狀態須另查。唯一完成約束與終止狀態避免重送再次產生啟用事件。首次完成交易除了核對 Video generation，還核對目前有效的 job attempt token，以及以資料庫時間判斷的租約期限；claim 新 token 與續約也要透過帶條件的原子更新。這是應用的 fencing 規則：租約過期後取得新 token 的工作可以提出結果，舊 token 不能再贏得完成狀態。若只檢查 generation，兩個同代 worker 仍可能搶著覆寫。未被採用的物件由延後清理處理；清理前要確認沒有任何目前播放或回復用的引用。已被替換的 manifest／segments 也不能立即刪除：仍有效的播放 session 可能正在使用舊版本，須保留到允許的 session／許可期限與清理緩衝結束，或依明確的強制撤銷政策處理。
 
