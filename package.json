@@ -16,7 +16,7 @@
     "check": "pnpm format:check && astro check && pnpm build",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check --cache --cache-strategy content .",
     "content:policy": "node scripts/validate-content-policy.mjs",
     "validate:site-url": "node scripts/validate-site-url.mjs"
   },
