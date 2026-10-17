@@ -1,0 +1,143 @@
+<figure class="due-work-diagram" aria-labelledby="due-work-caption">
+  <svg
+    class="due-work-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="due-work-title due-work-desc"
+  >
+    <title id="due-work-title">候選查詢對應的索引順序</title>
+    <desc id="due-work-desc"
+      >先固定 ready 狀態，再找截止時間以前的 next_attempt_at，最後用 id
+      排定相同時間。這是希望索引提供的讀取路徑，實際使用方式須由執行計畫確認。找到候選並不等於領取成功。</desc
+    >
+    <text x="40" y="48" class="due-work-diagram__title"
+      >(state, next_attempt_at, id)</text
+    >
+    <text x="40" y="82" class="due-work-diagram__detail"
+      >把查詢的條件與順序，放進一條可驗證的讀取路徑</text
+    >
+    <rect
+      x="30"
+      y="110"
+      width="900"
+      height="105"
+      rx="14"
+      class="due-work-diagram__card"></rect>
+    <text x="55" y="150" class="due-work-diagram__label">01　state = ready</text
+    >
+    <text x="55" y="184" class="due-work-diagram__detail"
+      >先限定可排程狀態，讓已完成紀錄留在其他狀態區段。</text
+    >
+    <path d="M480 219 V239" class="due-work-diagram__line"></path>
+    <rect
+      x="30"
+      y="245"
+      width="900"
+      height="105"
+      rx="14"
+      class="due-work-diagram__card"></rect>
+    <text x="55" y="285" class="due-work-diagram__label"
+      >02　next_attempt_at ≤ cutoff</text
+    >
+    <text x="55" y="319" class="due-work-diagram__detail"
+      >在 ready 裡找已到期的時間範圍，先取最早排定的一批。</text
+    >
+    <path d="M480 354 V374" class="due-work-diagram__line"></path>
+    <rect
+      x="30"
+      y="380"
+      width="900"
+      height="105"
+      rx="14"
+      class="due-work-diagram__card"></rect>
+    <text x="55" y="420" class="due-work-diagram__label"
+      >03　ORDER BY next_attempt_at, id · LIMIT 20</text
+    >
+    <text x="55" y="454" class="due-work-diagram__detail"
+      >時間相同時以 id 排定；最多回傳 20 筆，不代表只讀了 20 筆。</text
+    >
+    <text x="40" y="530" class="due-work-diagram__detail"
+      >找到候選 → 原子領取 → 提交 → 呼叫金流；候選查詢不授予執行權。</text
+    >
+  </svg>
+  <div class="due-work-diagram__mobile">
+    <div><h3>01　固定 ready</h3><p>已完成紀錄留在其他狀態區段。</p></div>
+    <div>
+      <h3>02　只找已到期工作</h3><p>
+        next_attempt_at 不晚於同一次查詢的截止時間。
+      </p>
+    </div>
+    <div>
+      <h3>03　依到期時間、id 排序</h3><p>
+        最多回傳 20 筆。實際讀取量仍要檢查執行計畫。
+      </p>
+    </div>
+    <p>找到候選後，還要原子領取並提交，才能呼叫金流。</p>
+  </div>
+  <figcaption id="due-work-caption">
+    索引設計對齊的是候選查詢；它不保證計畫一定採用，也不取代工作領取與退款冪等。
+  </figcaption>
+</figure>
+<style>
+  .due-work-diagram {
+    margin: var(--space-8) 0;
+  }
+  .due-work-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .due-work-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .due-work-diagram__line {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 3;
+  }
+  .due-work-diagram__title {
+    font: 800 24px var(--font-mono);
+    fill: var(--dg-ink);
+  }
+  .due-work-diagram__label {
+    font: 700 20px var(--font-body);
+    fill: var(--dg-ink);
+  }
+  .due-work-diagram__detail {
+    font: 400 18px var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+  .due-work-diagram__mobile {
+    display: none;
+    overflow-wrap: anywhere;
+  }
+  .due-work-diagram__mobile > div {
+    background: var(--dg-surface-2);
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .due-work-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: var(--dg-ink);
+  }
+  .due-work-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .due-work-diagram__desktop {
+      display: none !important;
+    }
+    .due-work-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
