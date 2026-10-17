@@ -1,0 +1,141 @@
+---
+const layers = [
+  {
+    title: "01 程式結構",
+    detail: "授權入口收斂資料存取，減少繞路",
+    width: 860,
+  },
+  {
+    title: "02 可執行檢查",
+    detail: "跨租戶反例與依賴邊界，持續攔錯",
+    width: 740,
+  },
+  {
+    title: "03 文字與驗證技能",
+    detail: "保留理由、操作步驟與可核對證據",
+    width: 620,
+  },
+  { title: "04 人工判斷", detail: "決定需求、授權範圍與風險取捨", width: 500 },
+];
+---
+
+<figure class="trust-diagram" aria-labelledby="trust-diagram-caption">
+  <svg
+    class="trust-diagram__desktop"
+    viewBox="0 0 960 540"
+    role="img"
+    aria-labelledby="trust-diagram-title trust-diagram-desc"
+  >
+    <title id="trust-diagram-title">把重複糾錯的投入往上移</title>
+    <desc id="trust-diagram-desc"
+      >四層由上而下逐漸收窄：程式結構、可執行檢查、文字與驗證技能、人工判斷。寬度表示投入優先順序，不代表量化比例。每一層仍然需要存在。</desc
+    >
+    <text x="480" y="36" text-anchor="middle" class="trust-diagram__lead"
+      >讓下一個 PR 少依賴一次人的記憶</text
+    >
+    {
+      layers.map((layer, i) => (
+        <g transform={`translate(${(960 - layer.width) / 2}, ${64 + i * 116})`}>
+          <rect
+            class="trust-diagram__card"
+            width={layer.width}
+            height="96"
+            rx="12"
+          />
+          <text
+            x={layer.width / 2}
+            y="34"
+            text-anchor="middle"
+            class="trust-diagram__title"
+          >
+            {layer.title}
+          </text>
+          <text
+            x={layer.width / 2}
+            y="66"
+            text-anchor="middle"
+            class="trust-diagram__detail"
+          >
+            {layer.detail}
+          </text>
+        </g>
+      ))
+    }
+  </svg>
+  <div class="trust-diagram__mobile">
+    {
+      layers.map((layer) => (
+        <section class="trust-diagram__item">
+          <>
+            <strong>{layer.title}</strong>
+            <p>{layer.detail}</p>
+          </>
+        </section>
+      ))
+    }
+  </div>
+  <figcaption id="trust-diagram-caption">
+    四層投入優先順序。寬度是概念示意，沒有量測比例；上游攔住重複錯誤，人審保留無法機械判定的決策。
+  </figcaption>
+</figure>
+<style>
+  .trust-diagram {
+    margin: 2rem 0;
+    font-family: var(--font-body);
+  }
+  .trust-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .trust-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .trust-diagram__lead {
+    font-size: 18px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .trust-diagram__title {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .trust-diagram__detail {
+    font-size: 15px;
+    fill: var(--dg-ink-2);
+  }
+  .trust-diagram__mobile {
+    display: none;
+  }
+  .trust-diagram__item {
+    padding: 1rem;
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 0.75rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .trust-diagram__item + .trust-diagram__item {
+    margin-top: 0.75rem;
+  }
+  .trust-diagram__item p {
+    margin: 0.5rem 0 0;
+    color: var(--dg-ink-2);
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--dg-muted);
+    line-height: 1.7;
+  }
+  @media (max-width: 48rem) {
+    .trust-diagram__desktop {
+      display: none !important;
+    }
+    .trust-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
