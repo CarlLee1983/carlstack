@@ -1,0 +1,142 @@
+<figure class="order-read-diagram" aria-labelledby="order-read-caption">
+  <svg
+    class="order-read-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="order-read-title order-read-desc"
+  >
+    <title id="order-read-title">兩個入口，兩種讀取承諾</title>
+    <desc id="order-read-desc"
+      >訂單清單可讀有時間標示的快取摘要。退款明細讀主庫的新快照，並拒絕舊版本回應覆蓋。所有退款操作都回到權威狀態驗證。</desc
+    >
+    <text x="40" y="48" class="order-read-diagram__title"
+      >依用途決定可以接受的舊值</text
+    >
+    <text x="40" y="82" class="order-read-diagram__detail"
+      >同一筆退款，不必讓每個入口共用同一個快取答案</text
+    >
+    <rect
+      x="30"
+      y="110"
+      width="900"
+      height="135"
+      rx="14"
+      class="order-read-diagram__card"></rect>
+    <text x="55" y="150" class="order-read-diagram__label"
+      >找訂單：清單摘要</text
+    >
+    <text x="55" y="188" class="order-read-diagram__detail"
+      >可以容許舊值 → 顯示資料取得時間 → 進入明細重新確認</text
+    >
+    <text x="55" y="219" class="order-read-diagram__detail"
+      >是否快取，仍要用命中率與主庫負載驗證</text
+    >
+    <rect
+      x="30"
+      y="270"
+      width="900"
+      height="135"
+      rx="14"
+      class="order-read-diagram__card"></rect>
+    <text x="55" y="310" class="order-read-diagram__label"
+      >確認結果：退款明細</text
+    >
+    <text x="55" y="348" class="order-read-diagram__detail"
+      >提交後開始的新查詢 → 同一主庫新快照 → 版本防止回應倒退</text
+    >
+    <text x="55" y="379" class="order-read-diagram__detail"
+      >無法確認時回報未知，不用舊摘要代答</text
+    >
+    <rect
+      x="30"
+      y="430"
+      width="900"
+      height="90"
+      rx="14"
+      class="order-read-diagram__card"></rect>
+    <text x="55" y="467" class="order-read-diagram__label"
+      >執行退款：後端重新驗證權限、狀態與冪等條件</text
+    >
+    <text x="55" y="497" class="order-read-diagram__detail"
+      >畫面上的按鈕與快取命中，都不是執行許可</text
+    >
+  </svg>
+  <div class="order-read-diagram__mobile">
+    <section>
+      <h3>找訂單：清單摘要</h3><p>
+        容許舊值，標示資料取得時間。進入明細重新確認；有量測收益才快取。
+      </p>
+    </section>
+    <section>
+      <h3>確認結果：退款明細</h3><p>
+        提交後開始的新查詢，讀同一主庫新快照；較舊版本不能覆蓋新回應。無法確認時如實回報。
+      </p>
+    </section>
+    <section>
+      <h3>執行退款</h3><p>
+        後端重新驗證權限、狀態與冪等條件。舊按鈕不能授予執行許可。
+      </p>
+    </section>
+  </div>
+  <figcaption id="order-read-caption">
+    本案例的讀取契約。快取命中率與狀態新鮮度，需要分開驗收。
+  </figcaption>
+</figure>
+<style>
+  .order-read-diagram {
+    margin: var(--space-8) 0;
+  }
+  .order-read-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .order-read-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .order-read-diagram__title {
+    font: 800 22px var(--font-body);
+    fill: var(--dg-ink);
+  }
+  .order-read-diagram__label {
+    font: 700 19px var(--font-body);
+    fill: var(--dg-ink);
+  }
+  .order-read-diagram__detail {
+    font: 400 16px var(--font-body);
+    fill: var(--dg-ink-2);
+  }
+  .order-read-diagram__mobile {
+    display: none;
+  }
+  .order-read-diagram__mobile section {
+    padding: 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .order-read-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: var(--dg-ink);
+  }
+  .order-read-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .order-read-diagram__desktop {
+      display: none !important;
+    }
+    .order-read-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
