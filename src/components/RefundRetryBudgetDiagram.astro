@@ -1,0 +1,146 @@
+<figure class="refund-budget-diagram" aria-labelledby="refund-budget-caption">
+  <svg
+    class="refund-budget-diagram__desktop"
+    viewBox="0 0 960 560"
+    role="img"
+    aria-labelledby="refund-budget-title refund-budget-desc"
+  >
+    <title id="refund-budget-title">退款外呼共用出口</title>
+    <desc id="refund-budget-desc"
+      >首次嘗試與重試核對兩組持久待辦，交替取得發送機會。所有呼叫共用每秒五次啟動與十個本地在途位置，未知結果回到核對待辦，超過自動預算轉人工而不刪除案件。</desc
+    >
+    <text x="40" y="42" class="refund-budget-diagram__title"
+      >每一通外呼，都占用同一份額度</text
+    >
+    <text x="40" y="72" class="refund-budget-diagram__detail"
+      >教學假設：單一供應商派送程序，資料庫保存待辦</text
+    >
+    <rect
+      x="40"
+      y="102"
+      width="880"
+      height="100"
+      rx="12"
+      class="refund-budget-diagram__card"></rect>
+    <text x="66" y="137" class="refund-budget-diagram__title">持久待辦</text>
+    <text x="66" y="170" class="refund-budget-diagram__detail"
+      >首次嘗試 ↔ 重試／結果核對：兩組交替取件，各組依受理時間排序</text
+    >
+    <path d="M480 208 V232" class="refund-budget-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="242"
+      width="880"
+      height="122"
+      rx="12"
+      class="refund-budget-diagram__gate"></rect>
+    <text x="66" y="277" class="refund-budget-diagram__title"
+      >共用出口：兩個條件都滿足才發送</text
+    >
+    <text x="66" y="310" class="refund-budget-diagram__detail"
+      >啟動間隔 ≥ 200 ms　＋　本地在途呼叫 &lt; 10</text
+    >
+    <text x="66" y="340" class="refund-budget-diagram__detail"
+      >沒有額度就留在待辦；增加 worker 不增加供應商額度</text
+    >
+    <path d="M480 370 V394" class="refund-budget-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="404"
+      width="880"
+      height="116"
+      rx="12"
+      class="refund-budget-diagram__card"></rect>
+    <text x="66" y="439" class="refund-budget-diagram__title"
+      >供應商回應後，再決定案件去向</text
+    >
+    <text x="66" y="471" class="refund-budget-diagram__detail"
+      >已確認結果 → 記錄終局　｜　未知 → 核對待辦</text
+    >
+    <text x="66" y="499" class="refund-budget-diagram__detail"
+      >超過自動預算 → 人工核對；案件與處理責任繼續保留</text
+    >
+  </svg>
+  <div class="refund-budget-diagram__mobile">
+    <section>
+      <h3>持久待辦</h3><p>首次嘗試與重試／核對交替取件，各組依受理時間排序。</p>
+    </section>
+    <section>
+      <h3>共用出口</h3><p>
+        啟動間隔至少 200 ms，且本地在途少於 10 個，兩者都符合才送出。
+      </p><p>沒有額度就留在待辦。多開 worker 不增加額度。</p>
+    </section>
+    <section>
+      <h3>確認案件去向</h3><p>
+        已確認的結果記錄終局；未知結果繼續核對。超過自動預算轉人工，案件不刪除。
+      </p>
+    </section>
+  </div>
+  <figcaption id="refund-budget-caption">
+    示意數值未實測。速率限制啟動次數，在途限制本地等待資源；本地逾時不保證遠端已停止。
+  </figcaption>
+</figure>
+<style>
+  .refund-budget-diagram {
+    margin: 2rem 0;
+  }
+  .refund-budget-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .refund-budget-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .refund-budget-diagram__gate {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .refund-budget-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .refund-budget-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .refund-budget-diagram__arrow {
+    stroke: var(--dg-rule-strong);
+    stroke-width: 3;
+  }
+  .refund-budget-diagram__mobile {
+    display: none;
+  }
+  .refund-budget-diagram__mobile section {
+    padding: 1rem;
+    margin: 0 0 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .refund-budget-diagram__mobile h3 {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+  }
+  .refund-budget-diagram__mobile p {
+    color: var(--dg-ink-2);
+    margin: 0.5rem 0;
+  }
+  figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .refund-budget-diagram__desktop {
+      display: none !important;
+    }
+    .refund-budget-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
