@@ -34,3 +34,18 @@
 最終技術、預覽與正式站驗收結果由後續執行補記；不把資料查核當成技術測試。
 
 預覽限制：Astro dev首次因預設config目錄不存在失敗；改用本工作暫存XDG_CONFIG_HOME後仍於ready前退出。自有雲端Chrome開localhost:4348回ERR_CONNECTION_REFUSED，未完成桌面/窄版/深淺色實頁預覽，依使用者預覽例外續行。封面全尺寸與卡片已獨立目視。
+
+## 2026-10-19 實質更新
+
+保留原始 publishDate、slug、封面，僅更新當前事件截點及新增調查線索。最新 main c31dca7 已核對，open PR 為零。原文及研究檔皆命中同來源，故不建立重複文章。
+
+來源查核由同工作研究員透過 web.open/find 讀取官方全文後交接。本編輯者的 shell 直讀頁面回 Site Unavailable，沒有改身分重試，也不聲稱透過 shell 成功讀取。
+
+- Trust Center 同一精確 URL：最後更新 2026-10-19 01:15 UTC。Cloud Backup、SaaS Security、Cloud Management 仍暫停，無確定恢復時間，受影響應用程式需保持停用至正式恢復指示。與前版的持續隔離狀態相符。
+- 2026-10-18 18:45 UTC Additional IP Indicators：144.172.64[.]99 與 .60 為 NEW，.128 為先前清單。來源是 partner/customer 環境下游安全監測，供 Microsoft 365 authentication/audit log 查核，不等於確認入侵、外洩或新增受害者。
+- https://www.connectwise.com/contentassets/10777cd3364d440c86ed5270a94a5f24/connectwise-cloud-backup-technical-investigation-and-remediation-guide-1.pdf ：已核官方 10/18 版共 15 頁，所有事件時間 UTC。印刷頁 3–4（零起算 2–3）支持新增段落：自 10/13 至今，若有紀錄擴至 10/1；各 App ID 的 service-principal 活動不能限於公布 IP；分成功/失敗、查後續活動；IP 命中不單獨證明 compromise/exfiltration。
+- 官方 status 頁下一更新時間與 Trust Center 不一致，正文省略此不確定資訊，不猜測恢復時間。
+
+未操作真實租戶或執行指南指令。技術門檻與正式站驗證待本次最終檔案完成後執行。
+
+本次工程紀錄：雲端獨立工作區 / Node 24.19.0 / pnpm 12.1.0，frozen-lockfile install 通過。Astro dev 在 ready 前退出，localhost:4359 無法連線，未完成桌機／320px／深淺色實頁預覽；依使用者預覽例外續行。沒有繞過環境限制。最終格式、內容 policy、check/build、test、正式部署與索引核對以本次提交的執行結果為準。

@@ -2,6 +2,7 @@
 title: 備份商停用身分後，租戶調查還不能結案
 description: ConnectWise Cloud Backup 事件把兩件事分開了：供應商切斷認證，與客戶確認自己的租戶還剩哪些存取途徑。本文整理如何界定證據、交接權限與管理備份空窗。
 publishDate: 2026-10-18T10:07:57+08:00
+updatedDate: 2026-10-19T11:15:22+08:00
 draft: false
 featured: false
 tags:
@@ -16,7 +17,7 @@ coverAlt: 玻璃罩封住一把黃銅鑰匙，後方走廊仍有一道側門半�
 
 這是虛構的值班場景，卻點出 ConnectWise Cloud Backup 事件值得工程團隊記住的判斷：供應商能證明自己做了什麼，客戶仍須回答自己的環境發生過什麼。兩份證據不能互相代簽。
 
-截至 2026 年 10 月 18 日 01:00 UTC（臺北 09:00），[ConnectWise 官方公告](https://www.connectwise.com/company/trust/advisories)確認 Cloud Backup（原 SkyKick）相關應用程式身分遭未授權存取；七個身分於前一天 07:00 UTC 停用。既有 access token 仍可能有效，租戶內的其他存取途徑需另查。備份排程及還原暫停；官方稱備份封存仍加密隔離，未見被存取證據。這項說明無法證明個別 Microsoft 365 租戶安全，起始憑證曝露機制仍在調查。
+截至 2026 年 10 月 19 日 01:15 UTC（臺北 09:15），[ConnectWise 官方公告](https://www.connectwise.com/company/trust/advisories)確認 Cloud Backup（原 SkyKick）相關應用程式身分遭未授權存取；七個身分於 10 月 17 日 07:00 UTC 停用。既有 access token 仍可能有效，租戶內的其他存取途徑需另查。Cloud Backup、SaaS Security 與 Cloud Management 仍暫停服務，尚無確定恢復時間；官方要求保持受影響的應用程式停用，等待正式恢復指示。官方稱備份封存仍加密隔離，未見被存取證據。這項說明無法證明個別 Microsoft 365 租戶安全，起始憑證曝露機制仍在調查。
 
 本文不推定任何特定客戶已遭入侵，也不把事件寫成已確認的產品漏洞。以下是一套工程交接建議，沒有在真實租戶執行。
 
@@ -50,6 +51,10 @@ Microsoft 的[受侵應用程式調查指引](https://learn.microsoft.com/en-us/
 本文因此不提供一段跨租戶自動刪除或輪替的指令。安全的自動化起點，可以只是產出待覆核清單；要執行變更，還需要明確的目標範圍與客戶授權。
 
 ## 查無紀錄，是查詢結果，不是環境判決
+
+10 月 18 日 18:45 UTC，官方新增兩個供調查的 IP：`144.172.64[.]99` 與 `144.172.64[.]60`；先前已列出的 `144.172.64[.]128` 仍在清單內。新增地址來自合作夥伴及客戶環境的下游安全監測，應納入 Microsoft 365 認證與稽核紀錄查詢。這項更新擴充了查詢條件，沒有證明又出現多少受害者。
+
+[10 月 18 日版官方調查指南](https://www.connectwise.com/contentassets/10777cd3364d440c86ed5270a94a5f24/connectwise-cloud-backup-technical-investigation-and-remediation-guide-1.pdf)第 3–4 頁要求調查涵蓋 10 月 13 日至今；若紀錄可取得，擴大到 10 月 1 日。也要依各應用程式 ID 查核 service-principal 活動，分開檢視成功、失敗及後續行為，不能只查已公布的 IP。指南明確提醒：IP 命中需要調查，單靠命中不能判定入侵或資料外洩。
 
 假設工程師查了最近一天的登入紀錄，沒有找到列出的可疑來源，便在報告寫下「未受影響」。這個結論至少跳過了兩個問題：事件可能發生在查詢期間以前；要回答的活動，也可能不在這類日誌裡。
 
