@@ -1,0 +1,169 @@
+<figure
+  class="refund-takeover-diagram"
+  aria-labelledby="refund-takeover-caption"
+>
+  <svg
+    class="refund-takeover-diagram__desktop"
+    viewBox="0 0 960 620"
+    role="img"
+    aria-labelledby="refund-takeover-title refund-takeover-desc"
+  >
+    <title id="refund-takeover-title">
+      接管提交之後，舊 attempt 才失去寫入資格
+    </title>
+    <desc id="refund-takeover-desc"
+      >A 取得 attempt 7 後暫停。期限到達只允許 B 嘗試接管；B 提交 attempt 8
+      後，A 的舊世代更新被拒絕。B
+      先核對原退款再結案；本地寫入檢查不會取消遠端已送出的請求。</desc
+    >
+    <text x="40" y="42" class="refund-takeover-diagram__title"
+      >期限允許接管，世代決定寫入權</text
+    >
+    <text x="40" y="74" class="refund-takeover-diagram__detail"
+      >同一 operation_key 持續不變；以下是 B 先完成接管的順序</text
+    >
+    <rect
+      x="40"
+      y="104"
+      width="880"
+      height="94"
+      rx="12"
+      class="refund-takeover-diagram__card"></rect>
+    <text x="65" y="142" class="refund-takeover-diagram__number">1</text>
+    <text x="108" y="139" class="refund-takeover-diagram__title"
+      >A 取得 attempt 7</text
+    >
+    <text x="108" y="170" class="refund-takeover-diagram__detail"
+      >短交易領取後才外呼；A 隨後暫停。</text
+    >
+    <rect
+      x="40"
+      y="214"
+      width="880"
+      height="94"
+      rx="12"
+      class="refund-takeover-diagram__card"></rect>
+    <text x="65" y="252" class="refund-takeover-diagram__number">2</text>
+    <text x="108" y="249" class="refund-takeover-diagram__title"
+      >到達 lease_until</text
+    >
+    <text x="108" y="280" class="refund-takeover-diagram__detail"
+      >B 可以競爭接管；尚未換代，A 仍可提交有效結果。</text
+    >
+    <rect
+      x="40"
+      y="324"
+      width="880"
+      height="94"
+      rx="12"
+      class="refund-takeover-diagram__card"></rect>
+    <text x="65" y="362" class="refund-takeover-diagram__number">3</text>
+    <text x="108" y="359" class="refund-takeover-diagram__title"
+      >B 提交 attempt 8</text
+    >
+    <text x="108" y="390" class="refund-takeover-diagram__detail"
+      >本地處理權換代。B 核對原退款，確認後再結案。</text
+    >
+    <rect
+      x="40"
+      y="434"
+      width="880"
+      height="94"
+      rx="12"
+      class="refund-takeover-diagram__card"></rect>
+    <text x="65" y="472" class="refund-takeover-diagram__number">4</text>
+    <text x="108" y="469" class="refund-takeover-diagram__title"
+      >A 恢復，帶 attempt 7 寫回</text
+    >
+    <text x="108" y="500" class="refund-takeover-diagram__detail"
+      >目前世代已是 8，舊完成或錯誤重排都無法轉移狀態。</text
+    >
+    <text x="40" y="580" class="refund-takeover-diagram__detail"
+      >邊界：拒絕舊世代寫入，不會撤回已送出的遠端退款。</text
+    >
+  </svg>
+  <div class="refund-takeover-diagram__mobile">
+    <section>
+      <h3>1. A 取得 attempt 7</h3><p>短交易領取後才外呼；A 隨後暫停。</p>
+    </section>
+    <section>
+      <h3>2. 到達 lease_until</h3><p>
+        B 可以競爭接管；尚未換代，A 仍可提交有效結果。
+      </p>
+    </section>
+    <section>
+      <h3>3. B 提交 attempt 8</h3><p>
+        本地處理權換代。B 核對原退款，確認後再結案。
+      </p>
+    </section>
+    <section>
+      <h3>4. A 恢復，帶 attempt 7 寫回</h3><p>
+        目前世代已是 8，舊完成或錯誤重排都無法轉移狀態。
+      </p>
+    </section>
+  </div>
+  <figcaption id="refund-takeover-caption">
+    若 A 先完成，B
+    就不能接管已結案工作。所有轉移都在同一筆工作上裁決；遠端結果另行核對。
+  </figcaption>
+</figure>
+<style>
+  .refund-takeover-diagram {
+    margin: 2rem 0;
+  }
+  .refund-takeover-diagram__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .refund-takeover-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .refund-takeover-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 19px;
+    font-weight: 800;
+  }
+  .refund-takeover-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .refund-takeover-diagram__number {
+    fill: var(--dg-muted);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .refund-takeover-diagram__mobile {
+    display: none;
+  }
+  .refund-takeover-diagram__mobile section {
+    padding: 1rem;
+    margin: 0 0 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .refund-takeover-diagram__mobile h3 {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+  }
+  .refund-takeover-diagram__mobile p {
+    color: var(--dg-ink-2);
+    margin: 0.5rem 0;
+  }
+  figcaption {
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .refund-takeover-diagram__desktop {
+      display: none !important;
+    }
+    .refund-takeover-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
