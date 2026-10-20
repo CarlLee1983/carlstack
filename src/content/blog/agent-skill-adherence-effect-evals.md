@@ -103,7 +103,7 @@ Makarevych 建議比較無技能、候選技能與等長無關文字。本文採
 
 - Sergii Makarevych：[指定 X 原文與長文](https://x.com/sermakarevich/status/2112198653469241856)，頁面標示 2026-10-19。本文取其 adherence／effect 區分與比較設計，不把規劃當實測，也不採用原文對所有技能的概括判斷。
 - Vercel：[AGENTS.md outperforms skills in our agent evals](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)，用於說明載入與結果應分開記錄。
-- [Signal or Noise: Evaluating Agent Skills on Real Coding Tasks](https://arxiv.org/html/2608.23067v1)，用於長度對照與評測範圍的限制。
+- [Signal or Noise: A Benchmark Study of Agent Skills in Web Development](https://arxiv.org/html/2608.23067v1)，用於長度對照與評測範圍的限制。
 - [SkillsBench，v4](https://arxiv.org/abs/2602.12670v4)，用於呈現正面結果及其特定評測範圍。
 
 以上於 2026-10-20 查核。折扣案例、驗收步驟與採用規則為本文的工程建議；本文未安裝技能、呼叫付費模型或重現上述研究。
