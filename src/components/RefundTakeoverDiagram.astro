@@ -17,7 +17,7 @@
       先核對原退款再結案；本地寫入檢查不會取消遠端已送出的請求。</desc
     >
     <text x="40" y="42" class="refund-takeover-diagram__title"
-      >期限允許接管，世代決定寫入權</text
+      >租約到期開放搶單，attempt 決定寫入權</text
     >
     <text x="40" y="74" class="refund-takeover-diagram__detail"
       >同一 operation_key 持續不變；以下是 B 先完成接管的順序</text
@@ -34,7 +34,7 @@
       >A 取得 attempt 7</text
     >
     <text x="108" y="170" class="refund-takeover-diagram__detail"
-      >短交易領取後才外呼；A 隨後暫停。</text
+      >短交易 COMMIT 後才打金流 API；A 等待回應時卡住。</text
     >
     <rect
       x="40"
@@ -62,7 +62,7 @@
       >B 提交 attempt 8</text
     >
     <text x="108" y="390" class="refund-takeover-diagram__detail"
-      >本地處理權換代。B 核對原退款，確認後再結案。</text
+      >B 接管 COMMIT 成功，先查帳，確認退款後才結案。</text
     >
     <rect
       x="40"
@@ -76,7 +76,7 @@
       >A 恢復，帶 attempt 7 寫回</text
     >
     <text x="108" y="500" class="refund-takeover-diagram__detail"
-      >目前世代已是 8，舊完成或錯誤重排都無法轉移狀態。</text
+      >目前版號已是 8；A 結案或 Timeout 重排皆更新 0 筆。</text
     >
     <text x="40" y="580" class="refund-takeover-diagram__detail"
       >邊界：拒絕舊世代寫入，不會撤回已送出的遠端退款。</text
@@ -84,7 +84,9 @@
   </svg>
   <div class="refund-takeover-diagram__mobile">
     <section>
-      <h3>1. A 取得 attempt 7</h3><p>短交易領取後才外呼；A 隨後暫停。</p>
+      <h3>1. A 取得 attempt 7</h3><p>
+        短交易 COMMIT 後才打金流 API；A 等待回應時卡住。
+      </p>
     </section>
     <section>
       <h3>2. 到達 lease_until</h3><p>
@@ -93,12 +95,12 @@
     </section>
     <section>
       <h3>3. B 提交 attempt 8</h3><p>
-        本地處理權換代。B 核對原退款，確認後再結案。
+        B 接管 COMMIT 成功，先查帳，確認退款後才結案。
       </p>
     </section>
     <section>
       <h3>4. A 恢復，帶 attempt 7 寫回</h3><p>
-        目前世代已是 8，舊完成或錯誤重排都無法轉移狀態。
+        目前版號已是 8；A 結案或 Timeout 重排皆更新 0 筆。
       </p>
     </section>
   </div>

@@ -38,3 +38,15 @@ RefundTakeoverDiagram原生SVG960×620＋窄版HTML卡片，四個時間步驟�
 本次使用雲端獨立 checkout。Node24.19.0、隔離Corepack cache的pnpm12.1.0；frozen-lockfile install通過。執行命令停optionaltelemetry，不改repo設定。Astro dev回報Dev server process exited before becoming ready，localhost:4360連線拒絕；未繞限制，桌機/320px深淺色實頁預覽未完成，依使用者預覽例外續行。封面檢視不能替代實頁預覽。
 
 最終格式、內容policy、check、test、build及RSS/sitemap/Pagefind/series產物檢查，以本次執行紀錄確認；正式站須等精確main提交的部署完成後另核。
+
+## 2026-10-20 敘事修訂
+
+以作者提供的完整改稿為底稿，恢復 Socket Timeout、catch、A／B 持有 attempt 7／8 的提交順序，以及讀者對續約與長交易的疑問。保留原 URL、publishDate、封面與系列第 10 篇位置，更新 updatedDate。這是既有文章修訂，不新增文章。
+
+技術校訂：全文統一退款用語；不同冪等鍵只表示失去同鍵去重，是否退款兩次仍看供應商規則；UPDATE 零筆可能是換代或先前提交已成功，不能直接判定處理權旁落。租約只開放接管，接管 COMMIT 才換代；NOW() 是 statement 起始時間，主庫時鐘跳動的影響沒有「最多幾秒」保證。未知退款在「沒有可靠核對，也沒有有效冪等保證」時停止自動重送；可靠核對證明未發生且原請求不會稍後生效的後續流程，仍須依供應商契約與原業務授權判定。未新增 API 閘道架構。舊回執可去重留存，不授予舊 Worker 修改 Job 的權限。
+
+重新核對 MySQL 8.4 Locking Reads、UPDATE、Date and Time Functions 的 NOW 章節、AWS Leader Election 及 Stripe API v1 Idempotent Requests。官方連結保留於正文。以隔離測試資料推進 lease_until 的 Pause／Resume 計畫取代籠統「快轉時間」，並明寫 A、B 的 COMMIT 次序。SQL 競爭測試、真實退款、壓測仍未執行；此限制集中呈現於正文備註。
+
+本輪從最新 main f57c7b5 的獨立雲端 checkout 開始；Trail 命令與 cache 皆不可用，使用直接檔案檢視。重新讀取 AGENTS、內容指南、schema、部署 workflow、圖解指南與相關寫作 skills。使用 Node 24.19.0、pnpm 12.1.0 執行 frozen-lockfile 安裝成功。其餘發布 gates 待最終整合後執行，不以原發布紀錄代替。
+
+本輪 `pnpm dev --host 0.0.0.0 --port 4367` 回報 `Dev server process exited before becoming ready`，localhost:4367 連線拒絕。未繞過環境限制，桌面與 320 px 的深淺色實頁預覽仍未完成，依既有預覽例外繼續；其餘發布 gates 不豁免。
