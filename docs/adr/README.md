@@ -14,3 +14,4 @@
 | [0006](0006-featured-posts-expire.md)             | 首頁精選改為有期限的人工策展加自動補位               | accepted |
 | [0007](0007-article-order-by-update.md)           | 時序文章清單依更新時間排序                           | accepted |
 | [0008](0008-mechanism-lab-companion-page.md)      | 概念長文可附一個機制實驗室，網址為 /blog/<slug>/lab/ | accepted |
+| [0009](0009-cjk-friendly-emphasis.md)             | Markdown 管線改用 CJK 友善的強調與刪除線規則         | accepted |
