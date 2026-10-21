@@ -88,3 +88,5 @@ stop_rule: OOM、p95 超過 SLO，或延遲引用題的正確性下降時停止�
 如果 GPU 已滿，先找能減少常駐 bytes 的手段：量化、token budget、prefix reuse 或模型架構；如果 GPU 還有空間但 decode 慢，才檢查 attention read 與 batch scheduling；如果只有冷 session 壓住 HBM，再評估 offloading。vLLM 的 [PagedAttention 論文](https://arxiv.org/abs/2309.06180)證明 allocation 與共享本身值得處理，但它不能替模型刪除一個 KV head、也不會替你決定哪些歷史 token 可以遺忘。
 
 下一次看到「KV cache 太大」，先填完上面的四格測試。你要減少的是容量、頻寬、重複還是 HBM 駐留？答得出來，才值得改設定或換模型。
+
+若同時評估 TPU 後端，可接著看 [TorchTPU 的 shape 與 KV 搬運驗收](/blog/torchtpu-shape-cache-serving-migration/)：容量足夠之外，編譯預熱與快取資料所在位置仍會影響服務延遲。

@@ -77,3 +77,5 @@ GitHub 的初始估算約 13 萬行 TypeScript；由於 TUI 與 runtime 原先�
 - [Migrating the GitHub Copilot runtime to Rust, using Copilot](https://github.blog/ai-and-ml/generative-ai/migrating-the-github-copilot-runtime-to-rust-using-copilot/)，GitHub Blog，2026-09-16，更新於 2026-09-23。
 - [Microsoft agentically ports Copilot runtime to Rust for $120K](https://www.theregister.com/devops/2026/09/18/microsoft-agentically-ports-copilot-runtime-to-rust-for-120k/5297549)，The Register，2026-09-18。
 - [Rust AI in Practice: Building LLM Applications With Rig](https://blog.jetbrains.com/rust/2026/09/09/rust-ai-in-practice/)，JetBrains，2026-09-09。
+
+若評估的是編譯器而非 Agent runtime，可接著看 [tsrs 的型別檢查影子驗證](/blog/tsrs-typecheck-shadow-validation/)：相同語意、診斷差異與版本基線需要另一套驗收，不能直接套用程序內嵌入的收益。
