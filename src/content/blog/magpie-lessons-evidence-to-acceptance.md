@@ -15,11 +15,11 @@ cover: ../../assets/covers/magpie-lessons-evidence-to-acceptance.webp
 coverAlt: "深色版畫中的三份證據頁帶著紅色斷裂圓環，右側規則冊印上修復後的青綠圓環，象徵重複教訓被整理為驗收標準。"
 ---
 
-Agent 修完一個 bug，下一個版本又收到相似回報。你把「先重現使用者的案例」寫進對話，它當下照做；換一個 session，同樣的提醒又得講一次。問題在於，這次糾正沒有進入下一次工作的驗收條件。
+Agent 修完一個 bug，下一個版本又收到相似回報。你把「先重現使用者的案例」寫進對話，它當下照做；換一個 session，同樣的提醒又得講一次。這次糾正沒有進入下一次工作的驗收條件。
 
-@wquguru 在 [2026 年 10 月 12 日的貼文](https://x.com/wquguru/status/2109650264601117141)（台北時間）連到長文[〈yetone 的魔法：magpie 是怎么让 AI 自己维护项目的〉](https://x.com/i/article/2109642412037476352)。他分析 Magpie 的提交、發版與工程文件，將 `AGENTS.md` 比成路由表、`LESSONS.md` 比成錯題本。Magpie 是一個供不同 coding agent 共用的本地模型 gateway；本文關心的是它如何保存返工經驗，讓審查能追問「這次真的驗過了嗎」。
+@wquguru 在 [2026 年 10 月 12 日的貼文](https://x.com/wquguru/status/2109650264601117141)（台北時間）連到長文[〈yetone 的魔法：magpie 是怎么让 AI 自己维护项目的〉](https://x.com/i/article/2109642412037476352)。他分析 Magpie 的提交、發版與工程文件，將 `AGENTS.md` 比成路由表、`LESSONS.md` 比成錯題本。Magpie 是一個供不同 coding agent 共用的本地模型 gateway；我關心的是它如何保存返工經驗，讓審查能追問「這次真的驗過了嗎」。
 
-以下查核固定在 [Magpie 提交 `41972b25`](https://github.com/yetone/magpie/tree/41972b25fce9769f6d13b9a1888218a62835fe33)，並對照原始 PR 評論。本文沒有執行 Magpie、重跑其測試或驗證供應商整合；文件描述與維護者的測試紀錄，會各自標明。原文的 commit、tag 與星數統計也不能直接換算成品質或生產力，因此不拿發版數當驗收結果。
+以下查核固定在 [Magpie 提交 `41972b25`](https://github.com/yetone/magpie/tree/41972b25fce9769f6d13b9a1888218a62835fe33)，並對照原始 PR 評論。我沒有執行 Magpie、重跑它的測試或驗證供應商整合，也沒有重新計算所有返工，或查完外部 release repository 與私有設定。文中的測試結果都是維護者留下的紀錄，文件規定和實際執行會分開寫。原文的 commit、tag 與星數統計也不能直接換算成品質或生產力，因此不拿發版數當驗收結果。
 
 ## 路由文件負責指路，教訓要保留原因與證據
 
@@ -29,15 +29,15 @@ Agent 修完一個 bug，下一個版本又收到相似回報。你把「先重�
 
 [`LESSONS.md`](https://github.com/yetone/magpie/blob/41972b25fce9769f6d13b9a1888218a62835fe33/LESSONS.md)把一則教訓寫成規則、原因與提交／issue 證據。有些項目再附上修正提交或做對的案例。這比一句「不要再犯」多了查核路徑：下一位維護者能回到原始案例，確認規則是在處理哪種失敗。
 
-拿它的重現要求為例，文件記錄 #834 曾反覆回來，每次只修截圖裡的一個 Agent。它因此要求重現報告者實際使用的 provider、plan、Agent 與 GUI、TUI 或 CLI。這仍是 repository 的復盤紀錄，本文沒有重新計算所有返工；可採用的判斷是：測試輸入與操作介面必須對準回報者的案例，不能用「看起來很像」的替代品宣布修好。
+拿它的重現要求為例，文件記錄 #834 曾反覆回來，每次只修截圖裡的一個 Agent。它因此要求重現報告者實際使用的 provider、plan、Agent 與 GUI、TUI 或 CLI。可以採用的判斷是，測試輸入與操作介面必須對準回報者的案例，不能用「看起來很像」的替代品宣布修好。
 
 ## Seen 3 次是升級訊號，不是品質保證
 
-Magpie 的文件寫明，`Seen` 計算的是不同復盤日期；同一則教訓在三個或更多不同日期被觀察到，就移入 `docs/code-standards.md`。這不是同一天複製三次，也不是同一個問題開了三個 issue 就自動滿額。
+Magpie 的文件寫明，`Seen` 計算的是不同復盤日期；同一則教訓在三個或更多不同日期被觀察到，就移入 `docs/code-standards.md`。同一天複製三次，或同一個問題開了三個 issue，都不會自動滿額。
 
 我會把它理解成維護者對重複模式的分流：一次案例先保存證據，多日再現表示需要變成每次 review 都檢查的條件。它提供的是升級時機，不能推導成「所有問題都先等三次」。一次資料損毀或權限錯誤，已可能需要立即處理。
 
-更值得注意的是，固定版本的 `LESSONS.md` 在「Moved to the code standards」之後，仍記錄同類修復漏掉 sibling、只跑部分 suite，以及未實測的功能被發布。**移入規範，代表審查義務提高；不代表已建立自動阻擋。**
+固定版本的 `LESSONS.md` 在「Moved to the code standards」之後，仍記錄同類修復漏掉 sibling、只跑部分 suite，以及未實測的功能被發布。**移入規範，代表審查義務提高；不代表已建立自動阻擋。**
 
 如果採用這套方法，每則升級教訓還要補一個具體落點：
 
@@ -62,7 +62,7 @@ Magpie 的 [`code-standards.md`](https://github.com/yetone/magpie/blob/41972b25f
 
 在 [PR #1339 的合併前評論](https://github.com/yetone/magpie/pull/1339#issuecomment-6063735313)，維護者記錄：把原本的 `dshCheck` 放回去，`TestDshStoreHoldingAGatewayCallerKey` 會失敗；恢復修改後則通過。評論另有 Break check：刻意讓 `gatewayTakes` 永遠為 true，同一測試會在另一項判斷失敗，確認它也能辨認不被 gateway 接受的 key。
 
-這是維護者留下的驗證紀錄，本文沒有獨立重跑。它的價值在於讀者能看出測試針對哪個行為、怎麼破壞、失敗在哪裡。Red check 證明原 bug 可被抓到；Break check 再探查相關保障，不等於兩次測試就覆蓋所有風險。
+讀者能從這份紀錄看出測試針對哪個行為、怎麼破壞、失敗在哪裡。Red check 證明原 bug 可被抓到；Break check 再探查相關保障，不等於兩次測試就覆蓋所有風險。
 
 採用時，先在隔離環境對一個穩定的 bug fix 做回退。若失敗只來自環境缺依賴，先修環境；若恢復舊程式仍是綠燈，先查測試是否觀察到正確結果。不要把一次無關的紅燈當成回歸 coverage。
 
@@ -70,7 +70,7 @@ Magpie 的 [`code-standards.md`](https://github.com/yetone/magpie/blob/41972b25f
 
 同一則 #1339 評論記錄了 Linux Docker、macOS 測試與 Linux／Windows vet，也明寫沒有跑真實的 dsh desktop app。這讓讀者知道它驗證了什麼，以及哪些使用情境還沒有證據。
 
-Magpie 規範的要求更進一步：如果真實檢查做不到，要說明；沒有試過的整合不能當成已可用的基礎繼續建置，也不能向使用者宣稱能用。這是文件規定，不是本文替每個已合併 PR 作的通過認證。
+Magpie 規範的要求更進一步：如果真實檢查做不到，要說明；沒有試過的整合不能當成已可用的基礎繼續建置，也不能向使用者宣稱能用。
 
 對自己的專案，我會把結果分成三句話：
 
@@ -82,15 +82,15 @@ Magpie 規範的要求更進一步：如果真實檢查做不到，要說明；�
 
 真實 provider 驗證應使用獲授權的專用測試帳號與隔離環境，不能為了補綠燈而讀取使用者正在使用的憑證或改動 live config。自動測試使用真實格式的 fixture，也不表示每次都要連上第三方服務。固定版本的 `LESSONS.md` 正好另有一條教訓，要求測試不要載入真實第三方頁面；真實使用驗證與可重跑的離線回歸，各自處理不同問題。
 
-## 記下 reviewed head，還要知道測過哪個 base
+## 驗收紀錄要同時寫 reviewed head 和 tested base
 
 Magpie 規範要求維護者拉取 PR、整合到當前 `main` 後驗證，合併前在評論記錄 head 與檢查結果，並使用 `gh pr merge --match-head-commit` 指定已審過的 head。#1339 評論也記下它先整合到 `238f0d92`，之後 main 更新到 `8df15fd4`，再跑相關 package。
 
-需要區分的是，評論留下了整合驗證紀錄，沒有留下實際使用的 merge 命令；本文能確認文件要求這個 flag，不能確認該 PR 合併時真的用了它。
+評論留下了整合驗證紀錄，沒有留下實際使用的 merge 命令。我能確認文件要求這個 flag，不能確認該 PR 合併時真的用了它。
 
 [GitHub CLI 文件](https://cli.github.com/manual/gh_pr_merge)將 `--match-head-commit` 定義為合併所需的 PR head SHA。它可以避免 review 後 PR 被推入新修改卻照樣合併，但沒有單獨鎖住 base。若測試的是 head A 加上 main B，合併前 main 已移到 C，PR head 仍是 A，flag 依然可能符合。
 
-因此，本文建議驗收紀錄同時保存 reviewed head、tested base，以及實際測試的整合結果。base 更新影響驗證條件時，重新整合並跑相關檢查；多人頻繁合併時，也可以評估 [GitHub merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue)，讓 checks 對準最新 base 與前方排隊的變更。這是採用建議，並非 Magpie 已配置 queue 的宣稱。
+因此，我建議驗收紀錄同時保存 reviewed head、tested base，以及實際測試的整合結果。base 更新影響驗證條件時，重新整合並跑相關檢查。多人頻繁合併時，也可以評估 [GitHub merge queue](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue)，讓 checks 對準最新 base 與前方排隊的變更。這是我的採用建議，並非宣稱 Magpie 已配置 queue。
 
 ## 發版要有完成的驗證，被取消不算通過
 
@@ -98,7 +98,7 @@ Magpie 規範要求維護者拉取 PR、整合到當前 `main` 後驗證，合�
 
 其中「後續提交也可」是原規範允許的條件。它並不等同於精確的 tagged tree 本身測過；後續提交可能已修掉 tag 裡的問題。如果你的發布契約要求「下載的版本就是驗過的版本」，就應將證據對準那個版本的實際原始碼與 artifact，而不是只檢查某個包含它的後續綠燈。
 
-還要看這些要求由誰強制。查核版本的 [`test.yml`](https://github.com/yetone/magpie/blob/41972b25fce9769f6d13b9a1888218a62835fe33/.github/workflows/test.yml)設定 main 上已開始的 run 不因後續 push 取消；[`release.yml`](https://github.com/yetone/magpie/blob/41972b25fce9769f6d13b9a1888218a62835fe33/.github/workflows/release.yml)由 tag 或手動觸發，交給另一個 release repository 建置，再等待發布資產並鏡像回來。這個主 repository 的 release workflow 沒有直接檢查上述 Test 綠燈條件；本文沒有查完外部 repository 與私有設定，不能據此宣稱整個發布系統完全沒有 gate。
+還要看這些要求由誰強制。查核版本的 [`test.yml`](https://github.com/yetone/magpie/blob/41972b25fce9769f6d13b9a1888218a62835fe33/.github/workflows/test.yml)設定 main 上已開始的 run 不因後續 push 取消。[`release.yml`](https://github.com/yetone/magpie/blob/41972b25fce9769f6d13b9a1888218a62835fe33/.github/workflows/release.yml)由 tag 或手動觸發，交給另一個 release repository 建置，再等待發布資產並鏡像回來。這個主 repository 的 release workflow 沒有直接檢查上述 Test 綠燈條件，外部 release repository 裡有沒有 gate 則看不到。
 
 能確認的是：文件約定、CI 排程與發布檢查不是同一件事。把「打 tag 前要看 CI」寫進規範後，還要確認發布者是否必須交出相符證據，且缺證據時真的不能繼續。
 
