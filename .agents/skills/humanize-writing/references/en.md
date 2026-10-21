@@ -107,7 +107,7 @@ A kept negation may be recast as a positive statement, but keep its original rol
 
 ## 11. "This article" disclaimers
 
-"The fields this article suggests are not a completed audit." "This article has not run these in your environment." Talking about your own piece in the third person reads like compliance boilerplate. "This example", "this post", and "this series" count too. If the author writes as "I" elsewhere, switch to first person; if not, drop the subject. Keep the author's scope limits and hedges.
+"The fields this article suggests are not a completed audit." "This article has not run these in your environment." Talking about your own piece in the third person reads like compliance boilerplate. "This example", "this post", and "this series" count too. If the author writes as "I" elsewhere, switch to first person; if not, drop the subject, or use "here" when the sentence needs one. Keep the author's scope limits and hedges.
 
 - ❌ As of this article's check on Oct 21, public sources do not prove abuse; unknown does not mean it never happened.
 - ✅ When I checked on Oct 21, there was no public evidence of abuse — which only means none has surfaced yet.
