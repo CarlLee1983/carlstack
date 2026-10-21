@@ -29,6 +29,7 @@ Apply when the body text is predominantly English. Each item says why it's cut, 
 - ✅ This release cuts batch processing from 3s to 0.4s.
 
 If two real facts hide behind the contrast, keep the facts, drop the frame:
+
 - ❌ The point isn't the feature, it's the philosophy behind it.
 - ✅ We only shipped the retry logic this time; the UI is unchanged.
 
@@ -111,7 +112,7 @@ A kept negation may be recast as a positive statement, but keep its original rol
 - ❌ As of this article's check on Oct 21, public sources do not prove abuse; unknown does not mean it never happened.
 - ✅ When I checked on Oct 21, there was no public evidence of abuse — which only means none has surfaced yet.
 - ❌ Below are two examples from the incident page; this article has not executed them in the reader's environment.
-- ✅ Below are two examples from the incident page. I haven't actually run them. (Say it the way a person would, not "I have not executed them in the reader's environment.")
+- ✅ Below are two examples from the incident page. I haven't run them in your environment. (Say it the way a person would, but keep the source's scope: "not in the reader's environment" must not become "never run at all".)
 
 ## 12. Stock paragraph-closing warnings
 
