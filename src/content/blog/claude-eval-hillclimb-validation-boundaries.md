@@ -33,6 +33,8 @@ Anthropic 的〈[Demystifying evals for AI agents](https://www.anthropic.com/eng
 
 再把同一份輸出交給評分器重評。若結果改變，先記錄差異並校準；不要讓 prompt 同時追逐不穩定的判決。這裡也要把 API timeout、截斷與執行環境錯誤另列，否則基礎設施故障會被誤診成模型不會分類。
 
+如果評分器會輸出連續分數，還需要決定何時判 FAIL，以及這個分數能否當成機率；[評估器說 PASS，還不足以讓 Agent 過關](/blog/evaluator-pass-threshold-calibration/)用錯放與誤擋拆解這一步。
+
 ## 資料切分必須連到讀取權限
 
 原文提醒，保留樣本與答案隔離能降低過擬合風險。官方 [hillclimb 指南](https://github.com/anthropics/skills/blob/main/skills/claude-api/shared/evals/eval-hillclimb.md)更列出可選的三份切分：用 train 分析、用 validation 選版本，最後以未參與迭代的 test 比較基線與勝出版本。
