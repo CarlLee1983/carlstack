@@ -1,0 +1,223 @@
+<figure class="multi-item-diagram" aria-labelledby="multi-item-caption">
+  <svg
+    class="multi-item-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="multi-item-title multi-item-desc"
+  >
+    <title id="multi-item-title">鎖定全部品項後，才選擇整單成立或拒絕</title>
+    <desc id="multi-item-desc"
+      >同一筆交易先保存未提交的操作收據，依 SKU
+      順序鎖定所有庫存。缺貨時只提交拒絕收據，庫存不變；全部足夠才共同提交訂單、全部預留、扣減與成功收據。</desc
+    >
+    <defs>
+      <marker
+        id="multi-item-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 Z"></path></marker
+      >
+    </defs>
+    <rect
+      class="multi-item-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="multi-item-diagram__heading" x="48" y="62"
+      >同一條 MySQL 連線・同一筆交易</text
+    >
+    <text class="multi-item-diagram__lead" x="48" y="94"
+      >操作收據尚未提交；商品顯示順序不決定取鎖順序。</text
+    >
+    <rect
+      class="multi-item-diagram__card"
+      x="48"
+      y="120"
+      width="864"
+      height="100"
+      rx="12"></rect>
+    <text class="multi-item-diagram__label" x="72" y="154"
+      >依完整主鍵逐筆鎖定</text
+    >
+    <text class="multi-item-diagram__detail" x="72" y="187"
+      >SKU 101 → SKU 202 → …　每筆取得後才繼續，這時尚未扣庫存。</text
+    >
+    <path class="multi-item-diagram__arrow" d="M480 228 V252"></path>
+    <rect
+      class="multi-item-diagram__card"
+      x="48"
+      y="266"
+      width="864"
+      height="88"
+      rx="12"></rect>
+    <text class="multi-item-diagram__label" x="72" y="299"
+      >拿齊鎖定列後，檢查每種商品的合併需求</text
+    >
+    <text class="multi-item-diagram__detail" x="72" y="329"
+      >101 要 2 件，202 要 1 件；任一不足就整單拒絕。</text
+    >
+    <path class="multi-item-diagram__arrow" d="M270 362 V390"></path>
+    <path class="multi-item-diagram__arrow" d="M690 362 V390"></path>
+    <rect
+      class="multi-item-diagram__card"
+      x="48"
+      y="404"
+      width="414"
+      height="140"
+      rx="12"></rect>
+    <text
+      class="multi-item-diagram__label multi-item-diagram__reject"
+      x="72"
+      y="438">有品項缺貨</text
+    >
+    <text class="multi-item-diagram__detail" x="72" y="473"
+      >只提交缺貨終局收據。</text
+    >
+    <text class="multi-item-diagram__detail" x="72" y="505"
+      >沒有訂單、沒有預留、沒有扣減。</text
+    >
+    <rect
+      class="multi-item-diagram__card"
+      x="486"
+      y="404"
+      width="426"
+      height="140"
+      rx="12"></rect>
+    <text
+      class="multi-item-diagram__label multi-item-diagram__accept"
+      x="510"
+      y="438">全部足夠</text
+    >
+    <text class="multi-item-diagram__detail" x="510" y="473"
+      >建立訂單、全部預留與扣減。</text
+    >
+    <text class="multi-item-diagram__detail" x="510" y="505"
+      >與成功收據共同提交，才回 201。</text
+    >
+  </svg>
+
+  <div class="multi-item-diagram__mobile">
+    <p class="multi-item-diagram__mobile-lead">
+      同一條連線、同一筆交易；以下是同一個檢查點的兩種結果。
+    </p>
+    <section class="multi-item-diagram__mobile-card">
+      <h3>依序鎖定，再檢查全部</h3>
+      <p>
+        收據尚未提交。依主鍵先鎖 101，再鎖 202，拿齊後檢查合併需求；尚未扣庫存。
+      </p>
+    </section>
+    <section class="multi-item-diagram__mobile-card">
+      <h3 class="multi-item-diagram__reject">有品項缺貨</h3>
+      <p>只提交缺貨終局收據。沒有訂單、預留或扣減。</p>
+    </section>
+    <section class="multi-item-diagram__mobile-card">
+      <h3 class="multi-item-diagram__accept">全部足夠</h3>
+      <p>訂單、全部預留、扣減及成功收據共同提交，確認成功才回 201。</p>
+    </section>
+  </div>
+  <figcaption id="multi-item-caption">
+    鎖等待失敗不屬於缺貨分支：它沒有提供判定缺貨的資料，應清理整筆交易，再依原鍵恢復。
+  </figcaption>
+</figure>
+
+<style>
+  .multi-item-diagram {
+    margin-block: var(--space-xl);
+  }
+  .multi-item-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .multi-item-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .multi-item-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .multi-item-diagram__heading {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .multi-item-diagram__lead {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .multi-item-diagram__label {
+    font-size: 17px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .multi-item-diagram__detail {
+    font-size: 14px;
+    fill: var(--dg-ink-2);
+  }
+  .multi-item-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#multi-item-arrow);
+  }
+  .multi-item-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .multi-item-diagram__reject {
+    fill: #9a3412;
+    color: #9a3412;
+  }
+  .multi-item-diagram__accept {
+    fill: #166534;
+    color: #166534;
+  }
+  :global(:root[data-theme="dark"]) .multi-item-diagram__reject {
+    fill: #fdba74;
+    color: #fdba74;
+  }
+  :global(:root[data-theme="dark"]) .multi-item-diagram__accept {
+    fill: #86efac;
+    color: #86efac;
+  }
+  .multi-item-diagram__mobile {
+    display: none;
+  }
+  .multi-item-diagram__mobile-lead {
+    color: var(--dg-ink-2);
+  }
+  .multi-item-diagram__mobile-card {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+    background: var(--dg-surface);
+  }
+  .multi-item-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--text-base);
+  }
+  .multi-item-diagram__mobile-card p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .multi-item-diagram figcaption {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--dg-ink-2);
+  }
+  @media (max-width: 48rem) {
+    .multi-item-diagram__desktop {
+      display: none !important;
+    }
+    .multi-item-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
