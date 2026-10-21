@@ -21,7 +21,7 @@ import OrderOwnershipDiagram from "../../components/OrderOwnershipDiagram.astro"
 
 沿著呼叫往下找，會看到一種容易漏掉的寫法：下單用例借了連線 A，庫存 repository 又從同一個 pool 借了連線 B。B 扣完庫存就提交，A 稍後才失敗。兩條連線連向同一個 MySQL，A 的 rollback 仍然撤不回 B 已提交的變更。
 
-這是虛構案例，本文沒有執行這套服務或資料庫測試。要修的是交易的傳遞方式：由下單用例協調交易，參與的模組都使用它提供的同一條連線；庫存 SQL 仍留在庫存模組，模組不能自行 commit。
+這是虛構案例，沒有實際執行這套服務或資料庫測試。要修的是交易的傳遞方式：由下單用例協調交易，參與的模組都使用它提供的同一條連線；庫存 SQL 仍留在庫存模組，模組不能自行 commit。
 
 這是系列第 3 篇，沿用[需求契約](/blog/order-system-requirements-slo/)的單倉、單幣別、單品項訂單，尚未付款。回覆 `201` 前，訂單、成交價快照與庫存預留必須一起提交；原鍵重送不能多扣庫存，成立後的明細讀主庫。下面只處理「誰寫哪些資料、哪些寫入一起成功」，不把模組拆成遠端服務。
 
@@ -38,13 +38,13 @@ MySQL 的交易跟著 session 走。預設 autocommit 開啟；要把多條 SQL 
 
 每個 repository 都可能通過自己的單元測試。庫存測試只確認「呼叫後少一件」，訂單測試只確認「例外後沒有訂單」，兩個測試一起綠燈，也沒有檢查兩份資料是否一起回復。
 
-所以介面要傳遞的不能只有 `sku` 和 `quantity`。這次呼叫屬於哪筆交易，也要一路帶到 SQL adapter。可以明傳 transaction context，也可以由交易執行器建立綁定連線的模組介面；本例選後者，讓呼叫端取得 `scope.inventory`，而非隨手使用全域 repository。
+所以介面要傳遞的不能只有 `sku` 和 `quantity`。這次呼叫屬於哪筆交易，也要一路帶到 SQL adapter。可以明傳 transaction context，也可以由交易執行器建立綁定連線的模組介面；這裡選後者，讓呼叫端取得 `scope.inventory`，而非隨手使用全域 repository。
 
 ## 既然要一起提交，為什麼不把 SQL 全寫在下單用例？
 
 這確實是可行起點。若只有一個很小的下單入口，直接在同一連線寫訂單與庫存，比先做多層介面更容易追蹤。
 
-本例選擇保留模組，是因為後台補單、庫存調整與取消也會碰到同一批資料。如果每個入口各抄一份 `UPDATE stock`，下次新增預留規則，就得找齊所有副本。漏改的那支程式仍能成功執行 SQL，卻可能留下沒有對應預留的庫存變化。
+保留模組，是因為後台補單、庫存調整與取消也會碰到同一批資料。如果每個入口各抄一份 `UPDATE stock`，下次新增預留規則，就得找齊所有副本。漏改的那支程式仍能成功執行 SQL，卻可能留下沒有對應預留的庫存變化。
 
 因此這裡分的是寫入責任，不是資料庫連線：
 
@@ -54,9 +54,9 @@ MySQL 的交易跟著 session 走。預設 autocommit 開啟；要把多條 SQL 
 
 呼叫端拿到的是預留結果或缺貨結果，不應拿到庫存 query builder 再自行 `update()`。否則只是多套一個 repository 名稱，原來四散的寫入入口還在。
 
-商品價格也需要說清楚。這個案例接受「本次下單讀到的伺服器價格」，保存成交快照；讀價之後、提交之前即使有人改價，也不重算這份快照。若產品要求提交時仍是最新價，就要加報價有效期或版本衝突政策。單靠 transaction callback 不會替產品作這個決定。
+這個案例接受「本次下單讀到的伺服器價格」，保存成交快照；讀價之後、提交之前即使有人改價，也不重算這份快照。若產品要求提交時仍是最新價，就要加報價有效期或版本衝突政策，transaction callback 不會替產品作這個決定。
 
-Fowler 在 2014-01-15 的 [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html) 談到，同一個詞在不同模型裡可能有不同意思。這裡「商品的目前價格」和「訂單的成交價格」就是需要分開的兩個值。本文只以此說明模型差異，沒有把每張表都稱作一個限界上下文。
+Fowler 在 2014-01-15 的 [Bounded Context](https://martinfowler.com/bliki/BoundedContext.html) 談到，同一個詞在不同模型裡可能有不同意思。這裡「商品的目前價格」和「訂單的成交價格」就是需要分開的兩個值。這裡只借它說明模型差異，沒有把每張表都稱作一個限界上下文。
 
 ## 讓交易執行器借連線，模組只做自己的寫入
 
@@ -78,9 +78,9 @@ transactionRunner.run(scope => {
 // run 確認共同交易提交後，HTTP 層才回覆終局結果。
 ```
 
-這裡每個 `scope` 介面都綁定同一條連線。`run` 要等 callback 內所有非同步操作完成，才能提交；模組不可把寫入丟進未等待的背景工作，也不可在裡面另開 pool 連線自行提交。遇到例外，由 `run` 結束整筆交易，不能捕捉失敗後照常回成功。
+這裡每個 `scope` 介面都綁定同一條連線。`run` 要等 callback 內所有非同步操作完成，才能提交。模組不可把寫入丟進未等待的背景工作，也不可在裡面另開 pool 連線自行提交。遇到例外，由 `run` 結束整筆交易，不能捕捉失敗後照常回成功。
 
-`key` 是 `(customer_id, idempotency_key)`。`findOrClaimOperation` 必須處理同鍵競爭；不能把「SELECT 沒找到」當成已取得資格。同鍵同內容重放，同鍵不同內容拒絕，細節留給[下一篇的唯一收據](/blog/order-system-idempotency-receipt/)。這份示意只畫出交易傳遞，沒有證明冪等安全。
+`key` 是 `(customer_id, idempotency_key)`。`findOrClaimOperation` 必須處理同鍵競爭；不能把「SELECT 沒找到」當成已取得資格。同鍵同內容重放，同鍵不同內容拒絕。這份示意只畫出交易傳遞，沒有證明冪等安全，細節留給[下一篇的唯一收據](/blog/order-system-idempotency-receipt/)。
 
 缺貨分支則正常提交拒絕結果。庫存模組必須已保證沒有扣減或預留，訂單模組才可以保存 `out_of_stock`。補貨後再送原鍵，依然重放原缺貨；顧客要重新購買，才建立新鍵。若把缺貨一律當例外 rollback，拒絕結果也一起消失，原鍵下次就可能突然成立。
 
@@ -88,7 +88,7 @@ transactionRunner.run(scope => {
 
 另一個容易誤判的地方是巢狀 transaction：庫存模組又執行一次 `START TRANSACTION`，不會在外層交易裡生出一個可獨立回滾的小交易。MySQL 會隱式提交當前交易。框架若用 savepoint 模擬巢狀 scope，則要查它的實際行為；函式都叫 `transaction()` 不代表語意相同。[MySQL 隱式提交規則](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html)
 
-**模組不得自行提交共同交易。** schema migration 也不放進這段流程；許多 DDL 有隱式提交行為，不能拿外層 rollback 當保護。
+**模組不得自行提交共同交易。** schema migration 也不放進這段流程。許多 DDL 有隱式提交行為，不能拿外層 rollback 當保護。
 
 ## 把庫存改成 HTTP 呼叫，這份承諾會在哪裡斷掉？
 
@@ -98,11 +98,11 @@ transactionRunner.run(scope => {
 
 留在同一個應用也有代價：訂單和庫存共用故障域與資料庫；使用同一組 DB 權限時，模組 API 是程式協作約定，不是資料庫強制的存取隔離。還要靠相依檢查、adapter 所有權與程式審查，找出繞過入口的 raw SQL。
 
-Shopify 在 2019-02-21 的 [Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity) 描述以公開 API 和資料 ownership 隔開單體元件，也明說完整隔離仍在推進。本例借用的是這個做法，沒有假定改完目錄結構就已完成隔離。
+Shopify 在 2019-02-21 的 [Deconstructing the Monolith](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity) 描述以公開 API 和資料 ownership 隔開單體元件，也明說完整隔離仍在推進。這裡借用的是這個做法，沒有假定改完目錄結構就已完成隔離。
 
 效能仍要另外量。沿用[容量篇](/blog/order-system-capacity-budget/)的教學假設：每秒 20 次嘗試，每次累計借用 DB 平均 0.08 連線秒，平均占用是 `20 × 0.08 = 1.6 條`。SQL 藏進模組不會自動縮短占用時間；如果模組另開 pool，還可能增加總量。
 
-因此要記錄連線借用總時間、交易時間與鎖等待。日後加入付款，也不能在持鎖期間等金流 HTTP，再以為外層 rollback 能撤銷遠端扣款。這篇的共同提交，只涵蓋同一筆本地 InnoDB 交易。
+因此要記錄連線借用總時間、交易時間與鎖等待。共同提交只涵蓋同一筆本地 InnoDB 交易，日後加入付款時，不能在持鎖期間等金流 HTTP，再以為外層 rollback 能撤銷遠端扣款。
 
 ## 驗收時，把庫存寫完後的程式暫停
 
@@ -119,7 +119,7 @@ Shopify 在 2019-02-21 的 [Deconstructing the Monolith](https://shopify.enginee
 - 兩個請求同鍵進入，最終只有一張訂單與一次預留；同鍵不同內容衝突，缺貨結果也能重放。
 - 搜尋跨模組 repository import 與 raw SQL。import lint 能抓部分依賴，無法單獨辨認每條 SQL 寫了誰的表。
 
-以上都還是待執行的驗收計畫，本文沒有跑 MySQL 測試，也沒有量測效能。實作時，先讓第 4 步那個故意寫壞的 adapter 確實把測試弄紅，再檢查正式 adapter 能否通過。
+以上都還是待執行的驗收計畫，沒有實際跑過 MySQL 測試，也沒有量測效能。實作時，先讓第 4 步那個故意寫壞的 adapter 確實把測試弄紅，再檢查正式 adapter 能否通過。
 
 ## 練習：取消訂單時，誰能 commit？
 
@@ -127,7 +127,7 @@ Shopify 在 2019-02-21 的 [Deconstructing the Monolith](https://shopify.enginee
 
 ### 參考思路
 
-不行，這仍是同一筆共同交易。取消用例協調順序與提交，訂單模組驗證並改狀態，庫存模組確認預留仍有效後釋放；兩邊都使用同一 transaction scope，並約定一致的取鎖順序。
+不行，這仍是同一筆共同交易。取消用例協調順序與提交，訂單模組驗證並改狀態，庫存模組確認預留仍有效後釋放。兩邊都使用同一 transaction scope，並約定一致的取鎖順序。
 
 把程式停在「釋放預留後、保存取消狀態前」，恢復時拋出例外。rollback 後訂單應仍成立、預留仍有效、可售數不能增加。成功取消後重送則不再釋放。完整的狀態與併發處理見[取消訂單篇](/blog/order-system-cancellation-release/)。
 
