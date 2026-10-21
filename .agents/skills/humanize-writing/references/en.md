@@ -13,6 +13,11 @@ Apply when the body text is predominantly English. Each item says why it's cut, 
 7. Transition and emphasis filler
 8. Empty conclusions
 9. Slop vocabulary
+10. Defensive negation stacking
+11. "This article" disclaimers
+12. Stock paragraph-closing warnings
+13. Repeated concessive antithesis
+14. Semicolon chains
 
 ---
 
@@ -24,7 +29,6 @@ Apply when the body text is predominantly English. Each item says why it's cut, 
 - ✅ This release cuts batch processing from 3s to 0.4s.
 
 If two real facts hide behind the contrast, keep the facts, drop the frame:
-
 - ❌ The point isn't the feature, it's the philosophy behind it.
 - ✅ We only shipped the retry logic this time; the UI is unchanged.
 
@@ -89,6 +93,49 @@ Words that mark machine prose. Replace with plain equivalents or cut:
 - "robust", "seamless", "cutting-edge", "game-changer" → say the specific property instead
 - em-dash pile-ups used for drama → split into sentences
 
+## 10. Defensive negation stacking
+
+"This should not be read as…", "This is not a universal fix.", "This is not an exhaustive list." Pre-empting misreadings again and again makes a piece sound like it's on trial. Unlike §1, these negations stand alone, with no "it's Y" half.
+
+Test: does the negation rule out a misreading a reader would **actually** have, or draw an operational red line? Then keep it (e.g. "don't use `--insecure` to force a connection"). If it only repeats the heading or anything said earlier, cut it. Keep each red line once in the body, usually the one the author bolded; the opening statement of the thesis doesn't count as a repeat.
+
+A kept negation may be recast as a positive statement, but keep its original role: if the source states a purpose, write the purpose — don't extend it into a diagnostic method or inference the source never gave.
+
+- ❌ The cross-platform page went up on Oct 20. This should not be described as a vulnerability first found on Oct 20. (The heading already dates it to Oct 17.)
+- ✅ The cross-platform page published on Oct 20 collects each platform's response.
+
+## 11. "This article" disclaimers
+
+"The fields this article suggests are not a completed audit." "This article has not run these in your environment." Talking about your own piece in the third person reads like compliance boilerplate. "This example", "this post", and "this series" count too. If the author writes as "I" elsewhere, switch to first person; if not, drop the subject. Keep the author's scope limits and hedges.
+
+- ❌ As of this article's check on Oct 21, public sources do not prove abuse; unknown does not mean it never happened.
+- ✅ When I checked on Oct 21, there was no public evidence of abuse — which only means none has surfaced yet.
+- ❌ Below are two examples from the incident page; this article has not executed them in the reader's environment.
+- ✅ Below are two examples from the incident page. I haven't actually run them. (Say it the way a person would, not "I have not executed them in the reader's environment.")
+
+## 12. Stock paragraph-closing warnings
+
+Every paragraph ends the same way: state the facts, then append "but you can't just…", "you still need to prove…", or a scope limit like "this only covers…, not…". Once or twice it's emphasis; every paragraph, it's a cadence readers learn to skip. Keep the one or two that change what the reader does; fold the rest into the paragraph or cut them.
+
+- ❌ Updating the dev toolchain doesn't rewrite deployed binaries. … You can't close this on `go version` alone.
+- ✅ Updating the dev toolchain doesn't rewrite deployed binaries: rebuild with the patched toolchain, ship it, and get traffic onto the new process.
+
+## 13. Repeated concessive antithesis
+
+"X is possible, but Y remains." "Give it A, hold back B." Each one alone is a real judgment; used in the opening, headings, body, and ending, the shape becomes a slogan. Keep the one that states the thesis; turn the rest into the concrete action. Headings especially should say what the section contains. Likewise, when every heading uses one shape (all questions, all balanced pairs), vary some; a single question heading with real content stays.
+
+- ❌ (heading) Give it compute, not merge rights
+- ✅ (heading) Run it as a shadow job; tsc still gates PRs
+- ❌ (ending) If all you can see is speed, it isn't ready to judge CI.
+- ✅ (ending) Until every diff is explained, the original TypeScript keeps the CI gate.
+
+## 14. Semicolon chains
+
+Three or four clauses joined by semicolons leave the reader to sort fact from conclusion. Split into one point per sentence. Keep only the relation the source states: if it says two things are related, don't write that one causes the other.
+
+- ❌ Store file, position, code, and message for each diagnostic; comparing totals misses one error dropped here and another added there. The docs also disclose differences related to diagnostic order and parallel execution; any normalization must keep the raw output.
+- ✅ Store file, position, code, and message for each diagnostic. Comparing totals misses one error dropped here and another added there. The docs also disclose two kinds of difference: diagnostic order, and something tied to parallel execution. Normalize if you need to, but keep the raw output.
+
 ---
 
 ## Audit checklist
@@ -104,5 +151,10 @@ After editing, scan once more:
 - [ ] "It's worth noting / needless to say" filler removed
 - [ ] Ends on a real judgment or fact, not a platitude
 - [ ] Slop words (delve, tapestry, leverage, robust…) gone
+- [ ] Standalone negations only where they rule out a real misreading or draw a red line
+- [ ] No "this article" self-referential disclaimers
+- [ ] Paragraphs don't all close on a "but you can't just…" warning
+- [ ] Concessive antithesis kept only for the thesis; headings state content
+- [ ] No three- or four-clause semicolon chains
 - [ ] Facts, numbers, terms, model names untouched
 - [ ] Author's hedges, tone, and stance preserved
