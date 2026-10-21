@@ -18,6 +18,7 @@ Apply when the body text is predominantly English. Each item says why it's cut, 
 12. Stock paragraph-closing warnings
 13. Repeated concessive antithesis
 14. Semicolon chains
+15. Verification scope scattered across paragraphs
 
 ---
 
@@ -137,6 +138,17 @@ Three or four clauses joined by semicolons leave the reader to sort fact from co
 - ❌ If the patch breaks a business endpoint, keep the chain and error evidence first; deleting a widely trusted root may break other valid chains; prefer the vendor's official update, and route any emergency block through change review, limited scope, and a rollback plan.
 - ✅ If the patch breaks a business endpoint, keep the chain and error evidence first. Deleting a widely trusted root may break other valid chains. Prefer the vendor's official update. If you must block urgently, go through change review, limit the scope, and prepare a rollback.
 
+## 15. Verification scope scattered across paragraphs
+
+"I didn't rerun this." "I didn't check every repository." "This is the documented rule, not my certification." Scattered at paragraph ends, these are real limits on what the author verified, so priority 2 keeps them, but stating one per paragraph turns into §12's stock closer. Gather them into a scope paragraph near the opening (merge into one if the source has it, add one if not), and leave each paragraph with its findings and technical red lines.
+
+- ❌ (end of paragraph 5) This is still the repository's own retrospective; I didn't recount every rework.
+- ❌ (end of paragraph 12) I didn't check the external repository or private settings, so I can't claim the release system has no gate at all.
+- ✅ (opening scope paragraph) I didn't run Magpie or rerun its tests, recount every rework, or check the external release repository and private settings. Test results quoted here are the maintainers' own records.
+- ✅ (paragraph 12) The main repository's release workflow doesn't check for a green Test run; whether the external release repository does isn't visible.
+
+Keep sentences that are themselves findings in place ("I can confirm the docs require the flag, not that this PR used it"). Keep the source's scope exactly when gathering; don't widen or narrow it.
+
 ---
 
 ## Audit checklist
@@ -157,5 +169,6 @@ After editing, scan once more:
 - [ ] Paragraphs don't all close on a "but you can't just…" warning
 - [ ] Concessive antithesis kept only for the thesis; headings state content
 - [ ] No three- or four-clause semicolon chains
+- [ ] Unverified scope gathered in the opening scope paragraph; paragraphs keep findings and red lines
 - [ ] Facts, numbers, terms, model names untouched
 - [ ] Author's hedges, tone, and stance preserved
