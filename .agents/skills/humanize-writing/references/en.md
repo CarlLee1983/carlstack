@@ -134,8 +134,8 @@ Every paragraph ends the same way: state the facts, then append "but you can't j
 
 Three or four clauses joined by semicolons leave the reader to sort fact from conclusion. Split into one point per sentence. Keep only the relation the source states: if it says two things are related, don't write that one causes the other.
 
-- ❌ Store file, position, code, and message for each diagnostic; comparing totals misses one error dropped here and another added there. The docs also disclose differences related to diagnostic order and parallel execution; any normalization must keep the raw output.
-- ✅ Store file, position, code, and message for each diagnostic. Comparing totals misses one error dropped here and another added there. The docs also disclose two kinds of difference: diagnostic order, and something tied to parallel execution. Normalize if you need to, but keep the raw output.
+- ❌ If the patch breaks a business endpoint, keep the chain and error evidence first; deleting a widely trusted root may break other valid chains; prefer the vendor's official update, and route any emergency block through change review, limited scope, and a rollback plan.
+- ✅ If the patch breaks a business endpoint, keep the chain and error evidence first. Deleting a widely trusted root may break other valid chains. Prefer the vendor's official update. If you must block urgently, go through change review, limit the scope, and prepare a rollback.
 
 ---
 
