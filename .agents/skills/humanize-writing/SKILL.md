@@ -12,7 +12,7 @@ Strip machine-flavored patterns from writing while keeping what the author actua
 Apply in order; a lower priority never justifies breaking a higher one.
 
 1. **Preserve facts** — numbers, model names, technical terms, API names, proper nouns, quoted results. Never alter, round, or invent them. In narrative, the events, their order, names, and setting are facts too.
-2. **Preserve stance and uncertainty** — if the author hedges ("大概", "I think", "not sure yet"), keep the hedge. Do not upgrade a guess into a confident claim.
+2. **Preserve stance and uncertainty** — if the author hedges ("大概", "I think", "not sure yet"), keep the hedge. Do not upgrade a guess into a confident claim, and keep a reworded hedge at its original strength (尚不是…的指令 does not become 還不能; "may" does not become "will").
 3. **Concrete over abstract** — prefer the specific result over the abstract lesson. Cut sentences that could apply to any topic.
 4. **Structure before words** — delete empty framing sentences first; only then polish wording. Most AI flavor is structural, not lexical.
 
@@ -36,8 +36,14 @@ Apply in order; a lower priority never justifies breaking a higher one.
 - Match the source register (casual post stays casual; spec stays precise). Do not formalize a tweet.
 - When unsure whether a sentence is substance or shell, ask: _does deleting it lose a fact, a stance, or an action?_ If no, it's shell. In narrative, also ask whether it loses a beat, an image, or the narrator's voice.
 - Never add claims the source doesn't make. Humanizing removes; it does not embellish.
+- When rewording or moving a scope limit, keep its scope exactly: "not run in the reader's environment" does not become "never run".
+- When a heading or sentence carries two halves (a concession and its limit), the edit keeps both halves' information.
+- Before changing a heading in a published page, search the site for links to its anchor; update those links in the same change, or keep the heading.
+- Metadata such as a title or description, and visible diagram text (SVG `<title>`, `<desc>`, `<text>`), get the same rules as the body, so the page stays consistent (no 異步 in the title with 非同步 in the body). Change only text content, never markup, and keep diagram labels close to their original length.
+- Leave values that act as URLs or keys unchanged (tags, slugs, category names), even when their wording differs from the body; changing them breaks existing links.
+- Humanizing makes text more credible. When specific numbers, components, or events are attributed to a named company, person, or source without a citation that supports them, stop and report them for fact-checking before polishing.
 - If the source is already clean, say so and make minimal edits rather than manufacturing changes.
-- Traditional Chinese uses Taiwan usage and vocabulary (軟體/程式/資料/伺服器, not 軟件/代碼/數據/服務器).
+- Traditional Chinese uses Taiwan usage and vocabulary (軟體/程式/資料/伺服器, not 軟件/代碼/數據/服務器); see the term table in `references/zh-tw.md`.
 
 ## Banned patterns by language and mode
 

@@ -1,6 +1,6 @@
 ---
-title: "Linux I/O 多路復用架構演進：select vs. poll vs. epoll 底層原理與 Reactor 模式"
-description: "深入剖析高效能網路伺服器核心基石：傳統同步阻塞 I/O 的 C10K 瓶頸、select 的 1024 限制與 O(N) 線性輪詢、poll 鏈表結構、epoll 紅黑樹與就緒雙向鏈表 O(1) 回調機制、水平觸發 (LT) vs. 邊緣觸發 (ET) 實戰。"
+title: "Linux I/O 多工架構演進：select vs. poll vs. epoll 底層原理與 Reactor 模式"
+description: "高效能網路伺服器的基礎：傳統同步阻塞 I/O 的 C10K 瓶頸、select 的 1024 限制與 O(N) 線性輪詢、poll 的鏈結串列結構、epoll 的紅黑樹與就緒雙向鏈結串列 O(1) 回呼機制，以及水平觸發 (LT) vs. 邊緣觸發 (ET) 實戰。"
 publishDate: 2026-09-02T13:05:00+08:00
 draft: false
 featured: false
@@ -17,61 +17,61 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 
 在網際網路初期，伺服器通常採用**同步阻塞 I/O（Blocking I/O）** 結合「一個連線對應一個執行緒（Thread-per-Connection）」的模型（如早期 Apache HTTP Server）。
 
-當連線數達到數千時，高達數千個作業系統執行緒帶來的**執行緒堆疊記憶體消耗**與**劇烈的 CPU 核心上下文切換（Context Switch）** 會直接讓伺服器瀕臨崩潰——這就是著名的 **C10K 難題**。
+連線數到了數千，數千個作業系統執行緒帶來的**執行緒堆疊記憶體消耗**與**劇烈的 CPU 核心上下文切換（Context Switch）** 會讓伺服器瀕臨崩潰，也就是著名的 **C10K 難題**。
 
-為了解決以單一或少量執行緒同時高效監聽數萬乃至數百萬個 Socket 連線的難題，Linux 核心演進出了 **I/O 多路復用（I/O Multiplexing）** 技術：從 `select`、`poll` 到顛覆性的 `epoll`。
+為了用單一或少量執行緒同時監聽數萬到數百萬個 Socket 連線，Linux 核心發展出 **I/O 多工（I/O Multiplexing）**，從 `select`、`poll` 一路演進到 `epoll`。
 
-本文將完整剖析這三代技術的底層資料結構、核心態與使用者態複製開銷、以及 Nginx 和 Netty 依賴的 **Reactor 事件驅動模式**。
+下面拆解這三代技術的底層資料結構、核心與使用者空間之間的複製開銷，以及 Nginx 和 Netty 依賴的 **Reactor 事件驅動模式**。
 
 ---
 
-## 1. 三代 I/O 多路復用架構全景對決
+## 1. 三代 I/O 多工架構比較
 
-| 評估維度                | select (1983)          | poll (1997)           | epoll (2002)            |
-| :---------------------- | :--------------------- | :-------------------- | :---------------------- |
-| 底層核心資料結構        | 固定大小位元遮罩 Array | 動態陣列 / 鏈表       | 紅黑樹 + 就緒雙向鏈表   |
-| 最大監聽連線數限制      | 預設 1024 (FD_SETSIZE) | 無上限 (受記憶體限制) | 無上限 (受系統 FD 限制) |
-| FD 從使用者態複製到核心 | 每次呼叫全量重複拷貝   | 每次呼叫全量重複拷貝  | 僅 epoll_ctl 註冊一次   |
-| 核心就緒檢索複雜度      | O(N) 全量線性輪詢      | O(N) 全量線性輪詢     | O(1) 回調通知立即返回   |
-| 事件觸發模式            | 僅支援水平觸發 (LT)    | 僅支援水平觸發 (LT)   | 支援 LT 與邊緣觸發 (ET) |
-| 適用高併發規模          | 連線數極少 (`< 100`)   | 連線數較少 (`< 1000`) | 百萬級長連線 (C1000K)   |
+| 比較項目                  | select (1983)          | poll (1997)            | epoll (2002)              |
+| :------------------------ | :--------------------- | :--------------------- | :------------------------ |
+| 底層核心資料結構          | 固定大小位元遮罩 Array | 動態陣列 / 鏈結串列    | 紅黑樹 + 就緒雙向鏈結串列 |
+| 最大監聽連線數限制        | 預設 1024 (FD_SETSIZE) | 無上限 (受記憶體限制)  | 無上限 (受系統 FD 限制)   |
+| FD 從使用者空間複製到核心 | 每次呼叫都整份重新複製 | 每次呼叫都整份重新複製 | 僅 epoll_ctl 註冊一次     |
+| 核心就緒檢索複雜度        | O(N) 線性輪詢全部 FD   | O(N) 線性輪詢全部 FD   | O(1) 回呼通知立即回傳     |
+| 事件觸發模式              | 僅支援水平觸發 (LT)    | 僅支援水平觸發 (LT)    | 支援 LT 與邊緣觸發 (ET)   |
+| 適用高併發規模            | 連線數極少 (`< 100`)   | 連線數較少 (`< 1000`)  | 百萬級長連線 (C1000K)     |
 
 ---
 
 ## 2. 第一代 `select` 與第二代 `poll` 的瓶頸
 
-### 2.1 `select` 的兩大致命缺陷
+### 2.1 `select` 的兩大缺陷
 
-`select` 系統呼叫使用 `fd_set` 位元向量傳遞欲監聽的檔案描述符：
+`select` 系統呼叫用 `fd_set` 位元向量傳遞要監聽的檔案描述子：
 
-1. **1024 限制**：核心標頭檔宏定義 `FD_SETSIZE` 固定為 1024，無法直接突破。
-2. **全量拷貝與 `O(N)` 線性輪詢**：
-   - 應用程式每次呼叫 `select`，都必須將包含所有監聽 FD 的陣列**從使用者態完整複製到核心態**。
-   - 核心不知道「究竟哪一個 Socket 收到資料」，只能以 `O(N)` 遍歷所有 1024 個 FD。
-   - 返回後，使用者端應用程式又必須再次以 `O(N)` 遍歷檢查 `FD_ISSET`，造成嚴重的 CPU 空轉。
+1. **1024 限制**：核心標頭檔以巨集定義 `FD_SETSIZE` 固定為 1024，無法直接突破。
+2. **整份複製與 `O(N)` 線性輪詢**：
+   - 應用程式每次呼叫 `select`，都要把包含所有監聽 FD 的陣列**從使用者空間完整複製到核心空間**。
+   - 核心不知道是哪一個 Socket 收到資料，只能以 `O(N)` 走訪所有 1024 個 FD。
+   - 回傳後，使用者端應用程式還要再以 `O(N)` 逐一檢查 `FD_ISSET`，造成嚴重的 CPU 空轉。
 
 ### 2.2 `poll` 的微幅改進
 
-`poll` 採用 `pollfd` 結構體陣列取代位元遮罩，突破了 1024 的數量限制。然而，其**每次呼叫的全量核心態拷貝**與**核心態/使用者態雙重 `O(N)` 線性輪詢**問題依然完全未獲解決。當監聽 10 萬個連線且只有 10 個有活動時，系統 99.99% 的時間都在做無效掃描。
+`poll` 用 `pollfd` 結構陣列取代位元遮罩，突破了 1024 的數量限制。但**每次呼叫都要整份複製到核心**，**核心與使用者空間兩邊也各要做一次 `O(N)` 線性輪詢**，這兩個問題都沒有解決。監聽 10 萬個連線、只有 10 個有活動時，系統 99.99% 的時間都在做無效掃描。
 
 ---
 
-## 3. 革命性突破：`epoll` 核心架構解析
+## 3. `epoll` 核心架構解析
 
-Linux 2.6 核心引入了 `epoll`，徹底將「註冊監聽」與「等待事件就緒」在核心層面解耦。
+Linux 2.6 核心引入了 `epoll`，在核心層面把「註冊監聽」與「等待事件就緒」拆開。
 
-### 3.1 `epoll` 的核心三部曲 API
+### 3.1 `epoll` 的三個核心 API
 
 1. `int epoll_create(int size)`：在核心中建立一個 `eventpoll` 物件。
 2. `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)`：向核心註冊、修改或刪除需要監聽的 Socket。
-3. `int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)`：等待就緒事件，僅返回**真正有 I/O 事件發生的 Socket 列表**！
+3. `int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)`：等待就緒事件，只回傳**有 I/O 事件發生的 Socket 清單**。
 
-### 3.2 核心內部雙核心資料結構
+### 3.2 核心內部的兩個資料結構
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="epoll-struct-title epoll-struct-desc">
-    <title id="epoll-struct-title">Linux epoll 核心 eventpoll（紅黑樹 ＋ 就緒鏈表）架構圖</title>
-    <desc id="epoll-struct-desc">展示 eventpoll 包含儲存所有監聽 Socket 的紅黑樹，網卡中斷回調時將活躍節點掛入就緒雙向鏈表，由 epoll_wait 以 O(1) 立即返回。</desc>
+    <title id="epoll-struct-title">Linux epoll 核心 eventpoll（紅黑樹 ＋ 就緒鏈結串列）架構圖</title>
+    <desc id="epoll-struct-desc">展示 eventpoll 包含儲存所有監聽 Socket 的紅黑樹，網路卡中斷回呼時將活躍節點掛入就緒雙向鏈結串列，由 epoll_wait 以 O(1) 立即回傳。</desc>
     
     <defs>
       <marker id="ep-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -92,22 +92,22 @@ Linux 2.6 核心引入了 `epoll`，徹底將「註冊監聽」與「等待事�
     <text x="200" y="110" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【紅黑樹 (Red-Black Tree)】</text>
     <text x="50" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• 儲存所有註冊監聽的 Socket FD</text>
     <text x="50" y="158" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• <code>epoll_ctl</code> 高效 O(log N) 增刪改查</text>
-    <text x="50" y="180" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">• 核心內部長期保留，避免重複拷貝</text>
+    <text x="50" y="180" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif">• 核心內部長期保留，避免重複複製</text>
 
     <path d="M 370 152 L 420 152" stroke="#3fb950" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#ep-arrow-green)"/>
-    <text x="395" y="142" fill="#3fb950" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">中斷回調</text>
+    <text x="395" y="142" fill="#3fb950" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle">中斷回呼</text>
 
     <rect x="430" y="85" width="340" height="135" rx="10" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="600" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【就緒雙向鏈表 (Ready List)】</text>
-    <text x="450" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• 僅儲存當前真正觸發 I/O 事件的 Socket</text>
-    <text x="450" y="158" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif">• <code>epoll_wait</code> 以 O(1) 立即返回就緒陣列</text>
-    <text x="450" y="180" fill="#56d364" font-size="11" font-family="system-ui, sans-serif">• 徹底消滅 O(N) 百萬連線無效線性輪詢！</text>
+    <text x="600" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【就緒雙向鏈結串列 (Ready List)】</text>
+    <text x="450" y="135" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif">• 只儲存目前觸發 I/O 事件的 Socket</text>
+    <text x="450" y="158" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif">• <code>epoll_wait</code> 以 O(1) 立即回傳就緒陣列</text>
+    <text x="450" y="180" fill="#56d364" font-size="11" font-family="system-ui, sans-serif">• 省掉百萬連線下 O(N) 的無效線性輪詢</text>
 
   </svg>
 </div>
 
-- **零無效輪詢**：`epoll_wait` 永遠只返回就緒列表中的項目，時間複雜度恆定為 `O(就緒連線數)`，完全與總連線數 N 無關！
-- **避免重複拷貝**：透過 `epoll_ctl` 註冊的 Socket 長期保留在核心紅黑樹中，呼叫 `epoll_wait` 時無需重複傳遞監聽清單。
+- **零無效輪詢**：`epoll_wait` 只回傳就緒清單中的項目，時間複雜度是 `O(就緒連線數)`，與總連線數 N 無關。
+- **避免重複複製**：透過 `epoll_ctl` 註冊的 Socket 會長期保留在核心紅黑樹中，呼叫 `epoll_wait` 時不必再傳一次監聽清單。
 
 ---
 
@@ -117,27 +117,27 @@ Linux 2.6 核心引入了 `epoll`，徹底將「註冊監聽」與「等待事�
 
 ### 4.1 水平觸發（Level-Triggered, LT - 預設模式）
 
-- **行為**：只要 Socket 的接收緩衝區（Receive Buffer）中**還有未讀取的資料**，每次呼叫 `epoll_wait` 都會持續通知該事件。
-- **優缺點**：程式編寫簡單安全，不易遺漏資料；但可能因重複通知帶來微量額外開銷。
+- **行為**：只要 Socket 的接收緩衝區（Receive Buffer）中**還有未讀取的資料**，每次呼叫 `epoll_wait` 都會通知該事件。
+- **優缺點**：程式寫起來簡單安全，不容易漏讀資料；但重複通知可能帶來少量額外開銷。
 
 ### 4.2 邊緣觸發（Edge-Triggered, ET - 高效能極限）
 
-- **行為**：僅在 Socket 狀態**由「未就緒」變為「就緒」的瞬間（狀態跳變）** 通知一次！若應用程式未將緩衝區資料一次性讀完，核心不會再發送第二次通知。
-- **編程要求**：
+- **行為**：僅在 Socket 狀態**由「未就緒」變為「就緒」的瞬間（狀態跳變）** 通知一次。應用程式如果沒有一次把緩衝區資料讀完，核心不會再發第二次通知。
+- **程式要求**：
   1. Socket 必須設定為**非阻塞模式（`O_NONBLOCK`）**。
-  2. 應用程式必須使用 `while` 迴圈持續呼叫 `read()`，直到回傳 `EAGAIN` 或 `EWOULDBLOCK` 為止，否則會造成資料永久丟失！
-- **代表實踐**：Nginx 與 Netty 預設採用 ET 模式以追求極限吞吐量。
+  2. 應用程式必須用 `while` 迴圈持續呼叫 `read()`，直到回傳 `EAGAIN` 或 `EWOULDBLOCK` 為止，否則會造成資料永久遺失。
+- **實際案例**：Nginx 與 Netty 預設採用 ET 模式，追求最大吞吐量。
 
 ---
 
 ## 5. 現代網路伺服器架構：Reactor 模式
 
-基於 `epoll`，現代高效能架構普遍採用 **Reactor 事件驅動模式**：
+以 `epoll` 為基礎，現代高效能架構普遍採用 **Reactor 事件驅動模式**：
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="reactor-title reactor-desc">
-    <title id="reactor-title">主從 Reactor 多線程事件驅動模型架構圖</title>
-    <desc id="reactor-desc">展示 Client 請求進入 Main Reactor (epoll) 經 Acceptor 分發至 Sub-Reactors (epoll_wait)，並交由 Worker Thread Pool 執行業務邏輯。</desc>
+    <title id="reactor-title">主從 Reactor 多執行緒事件驅動模型架構圖</title>
+    <desc id="reactor-desc">展示 Client 請求進入 Main Reactor (epoll) 經 Acceptor 分發至 Sub-Reactors (epoll_wait)，並交由 Worker Thread Pool 執行商業邏輯。</desc>
     
     <defs>
       <marker id="rx-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -163,15 +163,15 @@ Linux 2.6 核心引入了 `epoll`，徹底將「註冊監聽」與「等待事�
 
     <rect x="40" y="85" width="720" height="60" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
     <text x="400" y="110" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">【 Sub-Reactor 1 ~ N 執行緒池 (各自執行 epoll_wait 負責 Socket read / write) 】</text>
-    <text x="400" y="130" fill="#8b949e" font-size="10" text-anchor="middle">非阻塞快速搬移 I/O 資料，與主連線建立徹底解耦</text>
+    <text x="400" y="130" fill="#8b949e" font-size="10" text-anchor="middle">非阻塞搬移 I/O 資料，與主 Reactor 的連線建立分開</text>
 
     <path d="M 400 145 L 400 175" stroke="#3fb950" stroke-width="2" marker-end="url(#rx-arr)"/>
 
     <rect x="180" y="175" width="440" height="45" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="400" y="198" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Worker Thread Pool (計算密集型業務邏輯處理)</text>
-    <text x="400" y="212" fill="#8b949e" font-size="9" text-anchor="middle">非阻塞 I/O 與耗時業務計算分離，榨乾 CPU 極限效能</text>
+    <text x="400" y="198" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Worker Thread Pool (運算密集的商業邏輯處理)</text>
+    <text x="400" y="212" fill="#8b949e" font-size="9" text-anchor="middle">非阻塞 I/O 與耗時的商業運算分開，充分利用 CPU</text>
 
   </svg>
 </div>
 
-- **極致利用 CPU**：I/O 執行緒專注於非阻塞資料搬移，計算密集型業務由工作執行緒池處理，徹底發揮多核心硬體的極限算力。
+- **充分利用 CPU**：I/O 執行緒只負責非阻塞的資料搬移，運算密集的商業邏輯交給工作執行緒池，發揮多核心硬體的運算能力。
