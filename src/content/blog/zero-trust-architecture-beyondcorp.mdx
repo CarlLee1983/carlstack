@@ -160,7 +160,7 @@ BeyondCorp 處理的是使用者與裝置存取內部應用。服務對服務的
 - **微隔離**：每個微服務都是獨立的安全邊界，預設禁止跨服務連線。
 - **雙向 TLS（mTLS）與 SPIFFE / SPIRE**：
   - 每個 Pod / 容器啟動時自動取得短效的 X.509 數位身分憑證（SPIFFE ID：`spiffe://cluster.local/ns/prod/sa/order-service`）。
-  - Service Mesh（如 Istio / Envoy）自動做雙向憑證驗證。即使底層在同一個 VPC 網路，未經授權的微服務也無法發起 TCP 連線。
+  - Service Mesh（如 Istio / Envoy）自動做雙向憑證驗證。即使在同一個 VPC 網路裡，未經授權的微服務仍能建立 TCP 連線，但會在 TLS 握手時被拒絕，呼叫不到對方的服務；要在 TCP 層就擋下，得再搭配 Kubernetes NetworkPolicy 這類網路政策。
 
 ---
 
