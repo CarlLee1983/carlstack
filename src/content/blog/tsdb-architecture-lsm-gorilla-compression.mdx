@@ -151,19 +151,19 @@ Facebook 在 2015 年發表的 [Gorilla 論文](https://www.vldb.org/pvldb/vol8/
     <desc id="gorilla-ts-desc">展示等間隔 D=0 僅需 1 bit '0'，以及不同差分區間對應的變長前綴與位元長度。</desc>
     
     <rect x="20" y="15" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="40" y="41" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 情況 1: D == 0 (等間隔採樣，ODS 實測約 96%) ➔ 僅寫入 1 個 bit: '0'</text>
+    <text x="40" y="41" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 1. D == 0（等間隔採樣，ODS 實測約 96%）➔ 只寫 1 bit：'0'</text>
 
     <rect x="20" y="65" width="370" height="36" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="35" y="88" fill="#58a6ff" font-size="12" font-family="monospace">情況 2: -63 &le; D &le; 64 ➔ '10' (2b) + 7b (共 9 bits)</text>
+    <text x="35" y="88" fill="#58a6ff" font-size="12" font-family="monospace">2. -63 &le; D &le; 64 ➔ '10'+7b（9 bits）</text>
 
     <rect x="410" y="65" width="370" height="36" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="425" y="88" fill="#58a6ff" font-size="12" font-family="monospace">情況 3: -255 &le; D &le; 256 ➔ '110' (3b) + 9b (共 12 bits)</text>
+    <text x="425" y="88" fill="#58a6ff" font-size="12" font-family="monospace">3. -255 &le; D &le; 256 ➔ '110'+9b（12 bits）</text>
 
     <rect x="20" y="110" width="370" height="36" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="35" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">情況 4: -2047 &le; D &le; 2048 ➔ '1110' (4b) + 12b (共 16 bits)</text>
+    <text x="35" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">4. -2047 &le; D &le; 2048 ➔ '1110'+12b（16 bits）</text>
 
     <rect x="410" y="110" width="370" height="36" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="425" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">情況 5: 其餘大跳躍 ➔ '1111' (4b) + 32b (共 36 bits)</text>
+    <text x="425" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">5. 其餘 ➔ '1111'+32b（36 bits）</text>
 
     <text x="400" y="178" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">ODS 實測約 96% 的時間戳只需 1 bit；區塊第一個時間戳用 14 bits 存差值</text>
 
