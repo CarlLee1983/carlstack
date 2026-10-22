@@ -1,7 +1,8 @@
 ---
-title: "經典系統設計：如何設計 Stack Overflow 高併發問答平台？極致單體、多層快取與微秒級效能實踐"
-description: "深度剖析經典系統設計面試題：Stack Overflow 如何以僅僅 9 台 Web 伺服器支撐每月 5,000 萬訪客與數億 QPS？讀多寫少極致架構、多層快取（本地記憶體 + Redis + Fastly CDN）、Tag 標籤倒排索引與單體服務算力極限榨取。"
+title: "經典系統設計：如何設計 Stack Overflow 高併發問答平台？單體架構、兩層快取與毫秒級效能"
+description: "拆解經典系統設計面試題：Stack Overflow 在 2013～2019 年的自建機房時期，用 9 台左右的 Web 伺服器承接每日 2～3 億次 HTTP 請求。整理它公開過的做法：本機記憶體加 Redis 的兩層快取、獨立的 Tag Engine、SQL Server 叢集與 Dapper，以及 2025 年遷到 Google Cloud 後的變化。"
 publishDate: 2026-09-02T14:35:00+08:00
+updatedDate: 2026-10-22T10:31:53+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/system-design-interview-stack-overflow-architecture.png
@@ -12,40 +13,41 @@ tags:
   - "Stack Overflow"
   - "單體架構"
   - "效能優化"
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 series: 系統設計面試與架構方法論
 seriesOrder: 6
 ---
 
-在微服務（Microservices）與 Kubernetes 盛行的今天，許多工程師直覺認為：支撐全球前 50 大網站、每月超過 5,000 萬工程師訪問、單日數億次 PV 的超大型平台，必然需要數千台微服務實例與複雜的分散式架構。
+微服務（Microservices）與 Kubernetes 流行之後，很多工程師直覺認為：一個每天要接兩三億次 HTTP 請求的平台，一定需要大量微服務實例和複雜的分散式架構。
 
-然而，**Stack Overflow** 卻以其「反潮流」的極簡架構震驚了整個軟體工程界：在很長一段時間內，Stack Overflow 僅依賴 **9 台 .NET Web 伺服器、2 台 SQL Server 主從實例與 2 台 Redis 伺服器**，並常年維持著 **CPU 使用率低於 10%、平均渲染延遲低於 15 毫秒** 的恐怖效能。
+**Stack Overflow** 在自建機房時期走的是另一條路。根據 Nick Craver 2016 年的[架構文章](https://nickcraver.com/blog/2016/02/17/stack-overflow-the-architecture-2016-edition/)與 2019 年底的 [stackexchange.com/performance 存檔](http://web.archive.org/web/20191231070423/https://stackexchange.com/performance)，整個 Q&A 網路靠的是 **9 台 Web 伺服器**（2016 年的清單上有 11 台 IIS）、**4 台 SQL Server（分成 2 組叢集）**、**2 台 Redis** 與 **3 台 Tag Engine 伺服器**。Craver 在 [2013 年](https://nickcraver.com/blog/2013/11/22/what-it-takes-to-run-stack-overflow/)寫過，Web 伺服器平均 CPU 使用率在 5～15%，SQL Server 約 5～10%。2019 年的效能頁上，首頁平均渲染 12.2 毫秒、問題頁 18.3 毫秒。
 
-在系統設計面試中，「如何設計 Stack Overflow」是考察候選人是否真正理解「讀多寫少業務特徵」、「極致快取階層」與「單體 vs. 微服務架構權衡」的經典試金石。
+這是 2013～2019 年的架構。2025 年 7 月 31 日機房合約到期，Stack Overflow 以這天為期限把公開站台搬到 Google Cloud，應用程式跑在 Kubernetes 上，前面是 Cloudflare 與 nginx，HAProxy 跟著機房一起退役（[Stack Overflow Blog，2025-08-28](https://stackoverflow.blog/2025/08/28/moving-the-public-stack-overflow-sites-to-the-cloud-part-1/)）。下面講的元件與數字，都以自建機房時期的公開資料為準。stackexchange.com/performance 現在已經是 404，只能看 Wayback Machine 的存檔；文中的每秒請求數是我用每日總數除以 86,400 換算的平均值，官方沒有直接公布。
 
-本文將從需求估算、全鏈路架構設計、標籤檢索到多層快取，完整拆解 Stack Overflow 的架構底層。
+「如何設計 Stack Overflow」是系統設計面試的經典題，考的是候選人懂不懂「讀多寫少業務特徵」、「快取階層」與「單體 vs. 微服務架構權衡」。下面先整理 Stack Overflow 公開過的數字與架構，最後再回到面試時怎麼答。
 
 ---
 
 ## 1. 業務特徵與容量估算（Capacity Estimation）
 
-在著手設計之前，必須先明確系統的容量規模與核心約束：
+動手設計前，先估出系統的容量規模與核心限制。
 
-- **極端讀多寫少（Read-Heavy）**：
-  - 讀寫比例高達 **100:1 乃至 1000:1**（絕大部分流量來自 Google 搜尋進入的工程師閱讀問題，僅極少數用戶會提問或撰寫解答）。
+- **讀多寫少（Read-Heavy）**：
+  - 問答網站的流量大多是讀者從搜尋引擎進來看問題，提問、回答的人少得多，面試時通常就這樣假設。Stack Overflow 沒有公布前端的讀寫比；Craver 在 2013 年提過一個相關數字：資料庫放在記憶體裡、前面又有兩層快取，所以資料庫的磁碟存取反而是寫入居多，讀寫比 40:60。
 - **流量指標**：
-  - 月活躍訪客：5,000 萬。
-  - 平均每秒查詢量（QPS）：約 3,000 ~ 5,000 QPS（峰值可達 15,000+ QPS）。
-  - 儲存量：歷史累積數千萬個問題與解答，純文字資料量約數百 GB 至數 TB，**可完全裝入現代單台伺服器的 RAM 記憶體中！**
+  - 2016-02-09 這一天，負載平衡器收到 209,420,973 次 HTTP 請求，其中 66,294,789 次是頁面載入，平均約每秒 2,400 次請求。
+  - 2019-07-30 這一天是 308,065,226 次 HTTP 請求（[Craver，2019](https://nickcraver.com/blog/2019/08/06/stack-overflow-how-we-do-app-caching/)），平均約每秒 3,600 次。
+  - 2019 年底的效能頁寫的是每月 13 億次頁面瀏覽。
+- **儲存量**：
+  - 2019 年兩組 SQL Server 叢集，一組記憶體 1.5 TB、資料庫 2.8 TB，另一組記憶體 768 GB、資料庫 3.9 TB。2025 年規劃上雲時，團隊估算要約 1.5 TB 記憶體才能把資料庫放進記憶體。
 
 ---
 
-## 2. Stack Overflow 全鏈路核心架構拓撲
+## 2. 自建機房時期的架構拓樸（2013～2019）
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 290" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="so-arch-title so-arch-desc">
-    <title id="so-arch-title">Stack Overflow 全鏈路極致效能垂直擴展架構拓撲圖</title>
-    <desc id="so-arch-desc">展示全球用戶請求經 Fastly CDN 攔截 95% 流量，5% 穿透至 HAProxy 負載均衡與 .NET Web 伺服器 L1 本地快取，底層由 L2 Redis 與 SQL Server 主從庫提供支援。</desc>
+  <svg viewBox="0 0 800 310" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="so-arch-title so-arch-desc">
+    <title id="so-arch-title">Stack Overflow 自建機房時期架構拓樸圖（2013～2019）</title>
+    <desc id="so-arch-desc">使用者請求經過 CDN（問答頁 HTML 不在邊緣快取），由 HAProxy 分給 9 台 Web 伺服器，Web 伺服器先查 L1 本機記憶體快取，底層是 2 台 Redis（L2 快取）、3 台 Tag Engine 與 4 台 SQL Server 組成的 2 組叢集。</desc>
     
     <defs>
       <marker id="so-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -54,86 +56,111 @@ seriesOrder: 6
     </defs>
 
     <rect x="250" y="10" width="300" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
-    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">全球用戶請求 (Google 搜尋點擊)</text>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">使用者請求</text>
 
     <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#so-arrow)"/>
 
     <rect x="180" y="65" width="440" height="40" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="400" y="90" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">L0: 邊緣 CDN (Fastly) ── 攔截 95% 熱門匿名讀取，毫秒級直接回傳！</text>
+    <text x="400" y="90" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">CDN（2016 CloudFlare，2017 起 Fastly）── 問答頁 HTML 不快取</text>
 
     <path d="M 400 105 L 400 125" stroke="#58a6ff" stroke-width="2" marker-end="url(#so-arrow)"/>
-    <text x="410" y="118" fill="#8b949e" font-size="9">僅 5% 動態穿透</text>
+    <text x="410" y="118" fill="#8b949e" font-size="9">頁面請求回到機房</text>
 
     <rect x="220" y="125" width="360" height="35" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="400" y="147" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">HAProxy 負載平衡器 (雙機主備高可用)</text>
+    <text x="400" y="147" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">HAProxy 負載平衡器（2019：1 台運作、1 台備援）</text>
 
     <path d="M 400 160 L 400 175" stroke="#bc8cff" stroke-width="2" marker-end="url(#so-arrow)"/>
 
 
-    <rect x="40" y="175" width="720" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="400" y="200" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Web 伺服器集群 (.NET 9 / IIS) ＋ 【 L1 進程內記憶體本地快取 (Local In-Memory Cache) 】</text>
+    <rect x="40" y="175" width="720" height="45" rx="6" fill="#161b22" stroke="#388bfd"/>
+    <text x="400" y="195" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">9 台 Web 伺服器 ＋ 【 L1 本機記憶體快取 】</text>
+    <text x="400" y="211" fill="#8b949e" font-size="9" text-anchor="middle">2016 年：IIS 8.5、ASP.NET MVC 5.2.3、.NET 4.6.1</text>
 
-    <path d="M 230 215 L 230 235" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
-    <path d="M 570 215 L 570 235" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
+    <path d="M 153 220 L 153 245" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
+    <path d="M 400 220 L 400 245" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
+    <path d="M 647 220 L 647 245" stroke="#388bfd" stroke-width="2" marker-end="url(#so-arrow)"/>
 
 
-    <rect x="40" y="235" width="340" height="45" rx="6" fill="#161b22" stroke="#d29922"/>
-    <text x="210" y="255" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">L2 分散式 Redis 叢集</text>
-    <text x="210" y="270" fill="#8b949e" font-size="9" text-anchor="middle">Tag 記憶體倒排索引 ｜ Session ｜ 即時投票</text>
+    <rect x="40" y="245" width="226" height="50" rx="6" fill="#161b22" stroke="#d29922"/>
+    <text x="153" y="266" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">2 台 Redis（L2 快取）</text>
+    <text x="153" y="282" fill="#8b949e" font-size="9" text-anchor="middle">L1 沒命中時讀取 ｜ pub/sub</text>
 
-    <rect x="420" y="235" width="340" height="45" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="590" y="255" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">SQL Server 巨量 RAM 關係型主從庫</text>
-    <text x="590" y="270" fill="#8b949e" font-size="9" text-anchor="middle">Master 純寫入 ＋ 唯讀副本 ＋ Dapper ORM</text>
+    <rect x="287" y="245" width="226" height="50" rx="6" fill="#161b22" stroke="#bc8cff"/>
+    <text x="400" y="266" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">3 台 Tag Engine</text>
+    <text x="400" y="282" fill="#8b949e" font-size="9" text-anchor="middle">獨立服務，處理依標籤查詢</text>
+
+    <rect x="534" y="245" width="226" height="50" rx="6" fill="#1b2e23" stroke="#238636"/>
+    <text x="647" y="266" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">4 台 SQL Server（2 組叢集）</text>
+    <text x="647" y="282" fill="#8b949e" font-size="9" text-anchor="middle">master 承擔幾乎所有負載 ＋ Dapper</text>
 
   </svg>
 </div>
 
----
-
-## 3. 極致效能的三大核心支柱
-
-### 3.1 階層式極致快取策略（L0 ~ L2 Cache）
-
-1. **L0: 邊緣 CDN 快取（Fastly）**：
-   - 絕大部分存取 Stack Overflow 的使用者均為未登入的匿名訪客。
-   - 伺服器針對問題頁面返回精確的 `Cache-Control: public, s-maxage=60` 與 Surrogate-Keys。
-   - **超過 90% 的讀請求直接在 Fastly 邊緣 CDN 節點終結**，源站實際承受的 QPS 被直接壓縮一個數量級！
-2. **L1: 進程內本地快取（In-Memory Cache）**：
-   - Web 伺服器本地記憶體中快取了最熱門的 20% 問題與全局系統配置，完全零網路 I/O。
-3. **L2: 分散式 Redis 快取**：
-   - 快取跨節點共享的即時狀態（如即時瀏覽數、按讚數、使用者權限分值）。
-
-### 3.2 告別肥大 ORM：採用自研 Dapper 微型 ORM
-
-Stack Overflow 團隊放棄了龐大且難以控管 SQL 生成質量的 Entity Framework，自研了輕量級開源 ORM **Dapper**：
-
-- 直接編寫高度優化的原生 SQL。
-- Dapper 透過發射 IL 程式碼（Emit IL）在記憶體中進行字節級別的物件映射，其執行速度幾乎等同於 C# 原生 `SqlDataReader`。
-
-### 3.3 標籤（Tag）檢索與記憶體倒排索引
-
-在 Stack Overflow 中，使用者經常根據標籤組合（如 `[kubernetes] [go] [networking]`）進行交集篩選：
-
-- 系統將所有 Tag 的關聯索引直接加載至 **Redis 的 Set / BitMap** 或本地記憶體中。
-- 當發起多標籤查詢時，直接在記憶體中執行 `SINTER`（集合交集運算），將多表複雜關聯查詢的耗時從數百毫秒壓低至 **1 毫秒以內**！
+圖上的硬體數量以 2019 年底的效能頁為準，.NET 版本取 2016 年的架構文章。2019 年 8 月 Craver 寫到他們「almost done porting Stack Overflow to .NET Core」；到 2025 年上雲時，公開站台仍有一些舊應用程式跑在完整版 .NET Framework 上。
 
 ---
 
-## 4. 垂直擴展（Vertical Scaling）的藝術：何時不需要微服務？
+## 3. 撐起效能的幾個做法
 
-Stack Overflow 的成功給所有系統架構師帶來了深刻的反思：
+### 3.1 快取：不做輸出快取，靠兩層資料快取
 
-- **硬體的物理極限遠超想像**：一台現代現代伺服器可配備 128 核心 CPU、2TB RAM 與高速 PCIe NVMe SSD。如果代碼編寫足夠精煉（無內存洩漏、無多餘抽象、無無效網絡跳轉），單台機器就能輕鬆扛住數萬 QPS！
-- **消除了分散式網路開銷**：單體架構消除了微服務間漫長的 RPC 序列化、網路延遲、分散式事務與服務發現開銷，極大簡化了維運複雜度。
+1. **CDN 不快取問答頁**：
+   - Craver 在 [2019 年的快取文章](https://nickcraver.com/blog/2019/08/06/stack-overflow-how-we-do-app-caching/)寫明：「For the past several years, Stack Overflow (and all Q&A sites) output cache nothing.」
+   - [2017 年的 HTTPS 文章](https://nickcraver.com/blog/2017/05/22/https-on-stack-overflow/)公開了 Fastly 上的 VCL：只有 `/users/flair/` 快取 180 秒，其他回應一律改成 `Cache-Control: private`，用他的話說是「bypass everything else」。
+2. **L1：Web 伺服器的本機記憶體快取**：
+   - 2019 年的快取文章把它分成 Global、Site、Local 三種，都放在各台 Web 伺服器的記憶體裡。Global 與 Site Cache 沒命中時會去 Redis 找；Local Cache 不經過 Redis，放的是取得成本低、但大到不值得來回 Redis 的資料。
+3. **L2：Redis**：
+   - 2016 年的架構文章說，L1 沒命中就從 Redis 取值；下一台需要這筆資料的伺服器就算 L1 沒命中，也能在 Redis 找到。Redis 同時負責 pub/sub，用來通知各台清掉 L1、推送 websocket 即時更新。2019 年每個資料中心只有 2 台實體 Redis 伺服器。
+
+### 3.2 自行開發的 Dapper 微型 ORM
+
+Stack Overflow 換掉的是 LINQ to SQL。Sam Saffron 在 [2011 年](https://samsaffron.com/archive/2011/03/30/How+I+learned+to+stop+worrying+and+write+my+own+ORM)寫道：「Much of our work at Stack Overflow depended on the assumption that LINQ-2-SQL is fast enough. Turns out it was not fast enough for us.」2016 年時，程式碼裡還留著一些 LINQ to SQL，新開發都用 **Dapper**。Dapper 的 [README](https://github.com/DapperLib/Dapper) 寫明它「originally developed for and by Stack Overflow」，是開源專案。
+
+- 直接寫原生 SQL。
+- Dapper 在執行期用 `DynamicMethod` 產生物件對應的 IL 程式碼（Emit IL），README 的基準測試裡，速度接近手寫的 `SqlCommand`。
+
+### 3.3 標籤（Tag）檢索：獨立的 Tag Engine
+
+Stack Overflow 的使用者常用標籤（例如 `[kubernetes]`、`[go]`）篩選問題。這件事交給獨立的 Tag Engine 服務，不走 Redis：
+
+- 2016 年的架構文章說，Tag Engine 跑在一個以 http.sys 為基礎的「Stack Server」上，造訪 `/questions/tagged/java` 這類頁面就會打到它。2013 年與 2019 年它都跑在 3 台專用伺服器上。
+- 2016-02-09 一天有 3,661,134 次 Tag Engine 請求，總共花了 147,018,571 毫秒（40.8 小時），平均每次約 40 毫秒（換算）。
+
+### 3.4 SQL Server：兩組叢集，master 扛下幾乎所有負載
+
+- 2016 年有 4 台 SQL Server，組成 2 組 AlwaysOn Availability Groups 叢集。每組有 1 台 master「taking almost all of the load」，讀寫都在它上面，另有 1 台在紐約的非同步副本。
+- 2013 年 Craver 提到，備援機開始承接唯讀負載，主要是 Stack Exchange API。
+
+---
+
+## 4. 垂直擴展（Vertical Scaling）：何時不需要微服務？
+
+- **單台硬體的極限比想像中高**：一台現代伺服器可以配 128 核心 CPU、2TB RAM 與高速 PCIe NVMe SSD。程式碼寫得夠精簡（沒有記憶體洩漏、沒有多餘抽象、沒有無效的網路跳轉），單台機器就能扛住數萬 QPS。Stack Overflow 2013 年的 Web 伺服器平均 CPU 只用到 5～15%。
+- **沒有分散式網路開銷**：單體架構省掉了微服務之間的 RPC 序列化、網路延遲、分散式交易與服務發現開銷，維運也簡單得多。
 
 ---
 
 ## 5. 系統設計面試總結矩陣
 
-| 面試維度          | 推薦架構解答方案                                            |
-| :---------------- | :---------------------------------------------------------- |
-| 資料儲存選型      | RDBMS (PostgreSQL / MySQL) 儲存問題與解答實體，搭配全文索引 |
-| 快取階層架構      | CDN (靜態HTML) -> Web 本地記憶體 -> Redis 分散式快取        |
-| 標籤多維度搜尋    | Redis 集合運算 (SINTER) 或 Elasticsearch 倒排索引           |
-| 高併發投票與按讚  | Redis 記憶體計數 + Write-Behind 非同步批量回寫資料庫        |
-| 即時通知 (新回答) | WebSocket / SSE 長連線推播至在線提問者                      |
+下表是面試時的通用解法，不全是 Stack Overflow 的做法：它的標籤篩選用自建的 Tag Engine，問答頁也不放在 CDN 快取。
+
+| 面試維度          | 推薦架構解答方案                                                               |
+| :---------------- | :----------------------------------------------------------------------------- |
+| 資料儲存選型      | RDBMS (PostgreSQL / MySQL) 儲存問題與解答實體，搭配全文索引                    |
+| 快取階層架構      | CDN（靜態資源）-> Web 本地記憶體 -> Redis 分散式快取                           |
+| 標籤多維度搜尋    | 獨立的標籤索引服務（如 Stack Overflow 的 Tag Engine）或 Elasticsearch 倒排索引 |
+| 高併發投票與按讚  | Redis 記憶體計數 + Write-Behind 非同步批次回寫資料庫                           |
+| 即時通知 (新回答) | WebSocket / SSE 長連線推播給線上的提問者                                       |
+
+---
+
+## 參考來源
+
+- Nick Craver，[What it takes to run Stack Overflow](https://nickcraver.com/blog/2013/11/22/what-it-takes-to-run-stack-overflow/)（2013-11-22）
+- Nick Craver，[Stack Overflow: The Architecture – 2016 Edition](https://nickcraver.com/blog/2016/02/17/stack-overflow-the-architecture-2016-edition/)（2016-02-17）
+- Nick Craver，[HTTPS on Stack Overflow: The End of a Long Road](https://nickcraver.com/blog/2017/05/22/https-on-stack-overflow/)（2017-05-22）
+- Nick Craver，[Stack Overflow: How We Do App Caching – 2019 Edition](https://nickcraver.com/blog/2019/08/06/stack-overflow-how-we-do-app-caching/)（2019-08-06）
+- [stackexchange.com/performance](http://web.archive.org/web/20191231070423/https://stackexchange.com/performance)（Wayback Machine，2019-12-31 存檔）
+- Stack Overflow Blog，[Moving the public Stack Overflow sites to the cloud: Part 1](https://stackoverflow.blog/2025/08/28/moving-the-public-stack-overflow-sites-to-the-cloud-part-1/)（2025-08-28）
+- Sam Saffron，[How I learned to stop worrying and write my own ORM](https://samsaffron.com/archive/2011/03/30/How+I+learned+to+stop+worrying+and+write+my+own+ORM)（2011-03-30）
+- [Dapper README](https://github.com/DapperLib/Dapper)

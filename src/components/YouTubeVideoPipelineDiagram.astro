@@ -9,14 +9,12 @@
     role="img"
     aria-labelledby="yt-pipe-title yt-pipe-desc"
   >
-    <title id="yt-pipe-title">
-      YouTube 海量影片非同步上傳與分塊轉碼串流架構
-    </title>
+    <title id="yt-pipe-title">YouTube 影片上傳、分塊轉碼與分發流程</title>
     <desc id="yt-pipe-desc">
-      展示從客戶端可中斷續傳分塊上傳 (Chunked Upload)，經 API 閘道進入 BlobStore
-      原始儲存，由 DAG 工作流排程引擎切分為 GOP
-      影片分塊，透過分散式轉碼工作叢集進行多編碼與多解析度平行轉碼，最終生成
-      HLS/DASH 清單並分發至全球邊緣 CDN。
+      依 YouTube Data API 文件、YouTube 說明中心與 Argos VCU
+      論文（2021）整理：客戶端以可續傳協定上傳，影片切成 closed GOP
+      分塊，依任務依賴圖排程，以多輸出轉碼一次產出各解析度與格式，依熱門程度分級投入算力，
+      輸出存回雲端儲存，經邊緣節點分發給依頻寬選解析度的播放器。
     </desc>
 
     <defs>
@@ -52,17 +50,15 @@
       <text class="yt-pipe-diagram__badge" x="16" y="24">01. INGESTION</text>
       <text class="yt-pipe-diagram__title" x="16" y="52">可續傳分塊上傳</text>
       <text class="yt-pipe-diagram__desc" x="16" y="76"
-        >• Resumable Chunked</text
+        >• uploadType=resumable</text
       >
       <text class="yt-pipe-diagram__desc" x="16" y="96"
-        >• 5MB-20MB 局部區塊</text
+        >• 斷線後查進度再續傳</text
       >
       <text class="yt-pipe-diagram__desc" x="16" y="116"
-        >• 斷網自動重試與校驗</text
+        >• 分塊須為 256 KB 倍數</text
       >
-      <text class="yt-pipe-diagram__tag" x="16" y="142"
-        >HTTP Range / TUS Protocol</text
-      >
+      <text class="yt-pipe-diagram__tag" x="16" y="142">YouTube Data API</text>
     </g>
 
     <g
@@ -73,26 +69,24 @@
       <text
         class="yt-pipe-diagram__badge yt-pipe-diagram__badge--storage"
         x="16"
-        y="24">STORAGE</text
+        y="24">UPLOAD DONE</text
       >
       <text
         class="yt-pipe-diagram__title yt-pipe-diagram__title--storage"
         x="16"
-        y="52">原始儲存與中繼庫</text
+        y="52">上傳完成後處理</text
       >
       <text class="yt-pipe-diagram__desc" x="16" y="76"
-        >• Colossus / BlobStore</text
+        >• 回 201 與影片資源</text
       >
-      <text class="yt-pipe-diagram__desc" x="16" y="96"
-        >• Bigtable 影片中繼資訊</text
-      >
+      <text class="yt-pipe-diagram__desc" x="16" y="96">• 先處理出低畫質</text>
       <text class="yt-pipe-diagram__desc" x="16" y="116"
-        >• 完整性 SHA-256 驗證</text
+        >• 4K 可能慢到 4 倍</text
       >
       <text
         class="yt-pipe-diagram__tag yt-pipe-diagram__tag--storage"
         x="16"
-        y="142">Raw Video Retention</text
+        y="142">YouTube 說明中心</text
       >
     </g>
 
@@ -120,27 +114,24 @@
       <text
         class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
         x="16"
-        y="52">DAG 工作流引擎</text
+        y="52">任務圖與工作佇列</text
       >
       <text class="yt-pipe-diagram__desc" x="16" y="78"
-        >• GOP 關鍵幀精準分塊</text
+        >• 切成 closed GOP 分塊</text
       >
-      <text class="yt-pipe-diagram__desc" x="16" y="98"
-        >• 5-10 秒影片切片 (Chunks)</text
+      <text class="yt-pipe-diagram__desc" x="16" y="98">• 各分塊可平行處理</text
       >
-      <text class="yt-pipe-diagram__desc" x="16" y="118"
-        >• 音訊/視訊/字幕軌分離</text
-      >
+      <text class="yt-pipe-diagram__desc" x="16" y="118">• 無環任務依賴圖</text>
       <text class="yt-pipe-diagram__desc" x="16" y="138"
-        >• 任務依賴圖 (DAG Engine)</text
+        >• 全域工作佇列排程 step</text
       >
       <text class="yt-pipe-diagram__desc" x="16" y="158"
-        >• 轉碼失敗局部自動重試</text
+        >• 失敗改派其他節點重試</text
       >
       <text
         class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red"
         x="16"
-        y="196">動態算力資源調度</text
+        y="196">Argos 論文（2021）</text
       >
     </g>
 
@@ -161,16 +152,13 @@
     <!-- Stage 3: Parallel Transcoding Workers Matrix -->
     <g class="yt-pipe-diagram__card" transform="translate(515, 40)">
       <rect width="210" height="110" rx="10"></rect>
-      <text class="yt-pipe-diagram__badge" x="14" y="22">WORKER POOL 1</text>
-      <text class="yt-pipe-diagram__title" x="14" y="46"
-        >H.264 / AVC 轉碼陣列</text
+      <text class="yt-pipe-diagram__badge" x="14" y="22">MOT STEP</text>
+      <text class="yt-pipe-diagram__title" x="14" y="46">多輸出轉碼（MOT）</text
       >
       <text class="yt-pipe-diagram__desc" x="14" y="68"
-        >• 360p / 720p / 1080p</text
+        >• 一次解碼，產出多種解析度</text
       >
-      <text class="yt-pipe-diagram__tag" x="14" y="92"
-        >最大化老舊設備相容性</text
-      >
+      <text class="yt-pipe-diagram__tag" x="14" y="92">省掉重複解碼</text>
     </g>
 
     <g
@@ -181,34 +169,30 @@
       <text
         class="yt-pipe-diagram__badge yt-pipe-diagram__badge--red"
         x="14"
-        y="22">WORKER POOL 2 (MODERN)</text
+        y="22">ACCELERATOR (VCU)</text
       >
       <text
         class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
         x="14"
-        y="46">VP9 / AV1 轉碼陣列</text
+        y="46">VCU 硬體轉碼</text
       >
       <text class="yt-pipe-diagram__desc" x="14" y="68"
-        >• 1440p 2K / 4K / 8K HDR</text
+        >• 上傳時就產出 VP9 + H.264</text
       >
       <text class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red" x="14" y="92"
-        >節省 30%-50% 串流頻寬</text
+        >運算效率提升 20-33 倍</text
       >
     </g>
 
     <g class="yt-pipe-diagram__card" transform="translate(515, 290)">
       <rect width="210" height="110" rx="10"></rect>
-      <text class="yt-pipe-diagram__badge" x="14" y="22"
-        >AUDIO &amp; THUMBNAILS</text
-      >
-      <text class="yt-pipe-diagram__title" x="14" y="46"
-        >多音軌與精靈圖處理</text
-      >
+      <text class="yt-pipe-diagram__badge" x="14" y="22">POPULARITY</text>
+      <text class="yt-pipe-diagram__title" x="14" y="46">依熱門程度分級</text>
       <text class="yt-pipe-diagram__desc" x="14" y="68"
-        >• AAC / Opus / 多國語音</text
+        >• 熱門 / 中等 / 長尾三級</text
       >
       <text class="yt-pipe-diagram__tag" x="14" y="92"
-        >預覽縮圖 / AI 字幕生成</text
+        >舊片變熱門會重新處理</text
       >
     </g>
 
@@ -229,15 +213,13 @@
     <!-- Stage 4: Packaging, CDN & Adaptive Streaming -->
     <g class="yt-pipe-diagram__card" transform="translate(770, 40)">
       <rect width="160" height="160" rx="12"></rect>
-      <text class="yt-pipe-diagram__badge" x="14" y="24">03. PACKAGING</text>
-      <text class="yt-pipe-diagram__title" x="14" y="50">自適應封裝</text>
-      <text class="yt-pipe-diagram__desc" x="14" y="74">• HLS (.m3u8 清單)</text
+      <text class="yt-pipe-diagram__badge" x="14" y="24">03. STORAGE</text>
+      <text class="yt-pipe-diagram__title" x="14" y="50">輸出存回儲存</text>
+      <text class="yt-pipe-diagram__desc" x="14" y="74">• 各解析度與格式</text>
+      <text class="yt-pipe-diagram__desc" x="14" y="94">• 存進雲端儲存系統</text
       >
-      <text class="yt-pipe-diagram__desc" x="14" y="94"
-        >• DASH (.mpd 描述檔)</text
-      >
-      <text class="yt-pipe-diagram__desc" x="14" y="114">• DRM 加密保護</text>
-      <text class="yt-pipe-diagram__tag" x="14" y="142">分段索引清單合成</text>
+      <text class="yt-pipe-diagram__desc" x="14" y="114">• 依需要提供播放</text>
+      <text class="yt-pipe-diagram__tag" x="14" y="142">論文圖 1 的流程</text>
     </g>
 
     <g
@@ -253,19 +235,20 @@
       <text
         class="yt-pipe-diagram__title yt-pipe-diagram__title--red"
         x="14"
-        y="50">全球 CDN &amp; ABR</text
+        y="50">邊緣節點與 ABR</text
       >
-      <text class="yt-pipe-diagram__desc" x="14" y="74">• Google Edge PoPs</text
+      <text class="yt-pipe-diagram__desc" x="14" y="74"
+        >• Google 邊緣節點快取</text
       >
       <text class="yt-pipe-diagram__desc" x="14" y="94">• 自適應碼率 (ABR)</text
       >
       <text class="yt-pipe-diagram__desc" x="14" y="114"
-        >• 毫秒動態切換畫質</text
+        >• 頻寬不足改拿低解析度</text
       >
       <text
         class="yt-pipe-diagram__tag yt-pipe-diagram__tag--red"
         x="14"
-        y="142">零緩衝流暢播放</text
+        y="142">畫質由播放器決定</text
       >
     </g>
 
@@ -279,52 +262,54 @@
   <div class="yt-pipe-diagram__mobile">
     <div class="yt-pipe-mobile-card">
       <span class="yt-pipe-mobile-badge">01. 可續傳上傳 (Ingestion)</span>
-      <h4>Chunked Upload &amp; 原始儲存</h4>
+      <h4>Resumable Upload 與上傳後處理</h4>
       <p>
-        客戶端透過 5MB-20MB 分塊上傳，斷網可精確續傳；原始大檔寫入分散式
-        BlobStore 並寫入中繼資料。
+        YouTube Data API 以 uploadType=resumable
+        建立上傳工作階段，斷線後先查已收到的位元組再續傳。上傳完成後影片先處理出低畫質，4K
+        等高畫質要等更久。
       </p>
     </div>
 
-    <div class="yt-pipe-mobile-arrow">↓ 觸發非同步轉碼 DAG</div>
+    <div class="yt-pipe-mobile-arrow">↓ 進入轉碼排程</div>
 
     <div class="yt-pipe-mobile-card yt-pipe-mobile-card--red">
       <span class="yt-pipe-mobile-badge yt-pipe-mobile-badge--red"
-        >02. 任務排程中心</span
+        >02. 任務排程</span
       >
-      <h4>GOP 分塊切片與 DAG 工作流</h4>
+      <h4>closed GOP 分塊與任務依賴圖</h4>
       <p>
-        依關鍵幀切分成 5-10
-        秒小片段，自動建立跨編碼器與解析度的轉碼依賴有向無環圖。
+        影片切成可平行處理的 closed GOP
+        分塊，依需要的輸出版本產生無環任務依賴圖，放進全域工作佇列排程；失敗的步驟改派其他節點重試。
       </p>
     </div>
 
-    <div class="yt-pipe-mobile-arrow">↓ 萬核平行矩陣轉碼</div>
+    <div class="yt-pipe-mobile-arrow">↓ 平行轉碼</div>
 
     <div class="yt-pipe-mobile-card">
-      <span class="yt-pipe-mobile-badge">03. 分散式轉碼叢集</span>
-      <h4>多編碼矩陣 (H.264 / VP9 / AV1)</h4>
+      <span class="yt-pipe-mobile-badge">03. 轉碼與熱度分級</span>
+      <h4>MOT、VCU 與熱門程度分級</h4>
       <p>
-        數百台工作節點平行壓製各清晰度切片，兼顧老舊裝置相容性與現代高效頻寬節省。
+        一個轉碼任務解碼一次，產出分塊需要的各種解析度與格式。導入 VCU 後，VP9
+        與 H.264 都在上傳時產出；熱門影片再多投入算力省頻寬，長尾影片壓低成本。
       </p>
     </div>
 
-    <div class="yt-pipe-mobile-arrow">↓ 清單封裝與邊緣分發</div>
+    <div class="yt-pipe-mobile-arrow">↓ 存回儲存，經邊緣節點分發</div>
 
     <div class="yt-pipe-mobile-card yt-pipe-mobile-card--red">
       <span class="yt-pipe-mobile-badge yt-pipe-mobile-badge--red"
         >04. 串流分發與 ABR</span
       >
-      <h4>HLS / DASH 封裝與全球 CDN 邊緣快取</h4>
+      <h4>Google 邊緣節點與自適應碼率</h4>
       <p>
-        產生動態清單，播放器依據用戶即時頻寬毫秒動態切換解析度，達到極致零停頓觀影體驗。
+        熱門內容快取在 Google 邊緣節點；頻寬變差時，播放器改拿較低解析度的版本。
       </p>
     </div>
   </div>
 
   <figcaption id="yt-pipe-caption">
-    圖 1：YouTube 影片非同步上傳與分塊轉碼全景架構：分塊續傳、DAG
-    任務排程、分散式編碼矩陣與 CDN 自適應串流。
+    圖 1：依官方文件與 Argos 論文（2021）整理的 YouTube
+    影片流程：可續傳上傳、GOP 分塊與任務圖排程、多輸出轉碼、熱度分級與邊緣分發。
   </figcaption>
 </figure>
 

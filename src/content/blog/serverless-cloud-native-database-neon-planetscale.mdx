@@ -1,7 +1,8 @@
 ---
 title: "雲原生無伺服器資料庫架構演進：Neon（PostgreSQL 計算儲存分離）vs. PlanetScale（Vitess 分散式分片）"
-description: "深度剖析現代無伺服器（Serverless）資料庫技術前沿：為什麼傳統 AWS RDS 在 Serverless 浪潮下難以滿足現代開發需求？Neon 如何在原生 PostgreSQL 內核上實現計算儲存分離、秒級冷啟動分支（Database Branching）與 Scale-to-Zero；PlanetScale 如何基於 YouTube Vitess 引擎實現水平無限擴展與無鎖 Schema 遷移實戰。"
+description: "比較兩種無伺服器（Serverless）資料庫的架構：傳統 AWS RDS 在 Serverless 場景遇到哪些限制？Neon 如何在 PostgreSQL 上做計算儲存分離、資料庫分支（Database Branching）與 Scale-to-Zero；PlanetScale 如何用源自 YouTube 的 Vitess 做水平分片，並以 VReplication 執行線上 Schema 變更。"
 publishDate: 2026-09-02T17:55:00+08:00
+updatedDate: 2026-10-22T10:31:53+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/serverless-cloud-native-database-neon-planetscale.png
@@ -13,46 +14,43 @@ tags:
   - "Vitess"
   - "Neon"
   - "PlanetScale"
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 series: 現代資料庫與儲存引擎內核
 seriesOrder: 8
 ---
 
-在雲原生與 Jamstack / Serverless（如 Vercel、Cloudflare Workers、AWS Lambda）盛行的今天，開發者可以在數秒內全球部署前端與邊緣函數。
-
-然而，傳統的關聯式資料庫（如 AWS RDS PostgreSQL / MySQL）卻成為了現代架構體系中最大的阻礙：
+Jamstack / Serverless（如 Vercel、Cloudflare Workers、AWS Lambda）可以在數秒內把前端與邊緣函數部署到全球。傳統的關聯式資料庫（如 AWS RDS PostgreSQL / MySQL）在這種架構下有三個問題：
 
 - **連線數瞬間耗盡**：數千個短暫的 Serverless 函數同時連線，瞬間打爆資料庫連線池（Connection Pool）；
 - **無法縮容到零（Scale to Zero）**：即使夜間完全無流量，仍需支付全天候昂貴的實例租金；
 - **分支開發極度痛苦**：無法像 Git Branch 一樣秒級為每個 Pull Request 複製一個獨立的資料庫副本進行測試。
 
-為了徹底打破這些桎梏，**Neon** 與 **PlanetScale** 代表了現代雲原生資料庫的兩大巔峰技術流派。
+**Neon** 與 **PlanetScale** 各自用不同的方式處理這些問題：Neon 做計算儲存分離，PlanetScale 用 Vitess 做分散式分片。下面分別看兩者的架構。
 
-本文將帶你深入兩者的底層微架構，拆解計算儲存分離與分散式分片的革新秘密。
+> 時間註記：PlanetScale 已在 2025-09-22 讓 PlanetScale for Postgres 正式上線（[官方公告](https://planetscale.com/blog/planetscale-for-postgres-is-generally-available)），所以「Neon 是 Postgres、PlanetScale 是 MySQL」只描述 PlanetScale 的 Vitess 產品線。
 
 ---
 
 ## 1. 兩大技術流派全景對比矩陣
 
-| 評估維度                       | Neon (Serverless PostgreSQL)                                   | PlanetScale (Vitess 分散式 MySQL)                           |
-| :----------------------------- | :------------------------------------------------------------- | :---------------------------------------------------------- |
-| **底層資料庫引擎**             | 原生 100% 相容 **PostgreSQL**                                  | 原生相容 **MySQL** (基於 YouTube Vitess 分散式中介軟體)     |
-| **核心架構哲學**               | **計算與儲存徹底分離 (Disaggregated Compute & Storage)**       | **水平分庫分表與連接池池化 (Horizontal Sharding & VTGate)** |
-| **資料庫分支 (Branching)**     | **極致（基於儲存層 Copy-on-Write，秒級建立 TB 級資料庫分支）** | 基於 Vitess 邏輯分支與 Schema 鏡像                          |
-| **無流量縮容 (Scale-to-Zero)** | **✅ 原生支援（無請求時計算節點完全凍結，秒級冷啟動恢復）**    | 託管環境自適應休眠                                          |
-| **連線池治理**                 | 內建基於 Rust 的 WebSocket / TCP 輕量 Connection Pooler        | **透過 VTGate 提供抗數十萬併發的頂級連接池**                |
-| **水平擴展極限**               | 單計算節點垂直擴展 + 儲存無上限 + 多唯讀副本                   | **跨節點無限水平 Sharding 分片**                            |
+| 評估維度                       | Neon (Serverless PostgreSQL)                                            | PlanetScale (Vitess 分散式 MySQL)                     |
+| :----------------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------- |
+| **底層資料庫引擎**             | 託管的 **PostgreSQL**（與原生 Postgres 有部分差異）                     | 相容 **MySQL**（基於源自 YouTube 的 Vitess）          |
+| **核心架構哲學**               | **計算與儲存徹底分離 (Disaggregated Compute & Storage)**                | **水平分片與連線池 (Horizontal Sharding & VTTablet)** |
+| **資料庫分支 (Branching)**     | **基於儲存層 Copy-on-Write，官方稱可在約 1 秒內複製 1 TB 以上的資料庫** | 基於 Vitess 的分支，只複製 Schema，不複製資料         |
+| **無流量縮容 (Scale-to-Zero)** | **✅ 支援（預設閒置 5 分鐘後暫停，約數百毫秒內恢復）**                  | 不支援依流量自動休眠                                  |
+| **連線池治理**                 | PgBouncer 連線池，最高 10,000 併發連線；Rust 寫的 proxy 負責驗證與路由  | **VTGate 接收大量連線並路由，連線池在 VTTablet 層**   |
+| **水平擴展極限**               | 單計算節點垂直擴展 + 付費方案儲存無上限 + 多唯讀副本                    | **跨節點水平 Sharding 分片**                          |
 
 ---
 
 ## 2. Neon 底層架構：PostgreSQL 內核級計算儲存分離
 
-Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）改造成完全無狀態的臨時容器，而將儲存層下沉至自研的 Rust 分散式儲存引擎！**
+Neon 把 PostgreSQL 的計算節點（Compute Node）改成不持有持久狀態、可隨時替換的節點，儲存層則換成自研的 Rust 分散式儲存引擎（[neondatabase/neon](https://github.com/neondatabase/neon)）。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 520" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="neon-arch-title neon-arch-desc">
     <title id="neon-arch-title">Neon Serverless PostgreSQL 計算儲存分離架構圖</title>
-    <desc id="neon-arch-desc">展示邊緣客戶端透過 PgBouncer 連線池接入無狀態 PostgreSQL 計算節點，後端儲存層由 Safekeeper 叢集、Pageserver 節點與 AWS S3 物件儲存構成的計算儲存分離架構。</desc>
+    <desc id="neon-arch-desc">展示邊緣客戶端透過 Neon proxy 與 PgBouncer 連線池接入無狀態 PostgreSQL 計算節點，後端儲存層由 Safekeeper 叢集、Pageserver 節點與物件儲存構成的計算儲存分離架構。</desc>
     
     <defs>
       <linearGradient id="neon-compute-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -80,8 +78,8 @@ Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）�
 
 
     <rect x="220" y="110" width="360" height="54" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
-    <text x="400" y="137" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Neon Connection Pooler (PgBouncer in Rust)</text>
-    <text x="400" y="154" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">連線池化・毫秒級多路復用・抗突發流量</text>
+    <text x="400" y="137" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Neon Proxy (Rust) + PgBouncer 連線池</text>
+    <text x="400" y="154" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">proxy 負責驗證與路由・PgBouncer 負責連線池化</text>
 
 
     <path d="M 400 164 L 400 195" stroke="#58a6ff" stroke-width="2" marker-end="url(#neon-arrow)"/>
@@ -89,7 +87,7 @@ Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）�
 
     <rect x="180" y="200" width="440" height="74" rx="12" fill="url(#neon-compute-grad)" stroke="#388bfd" stroke-width="1.5"/>
     <text x="400" y="228" fill="#58a6ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">無狀態 PostgreSQL 計算節點 (Stateless Compute VM)</text>
-    <text x="400" y="250" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif" text-anchor="middle">僅保留 Buffer Pool 與 SQL 執行引擎 ｜ ❌ 本地無資料磁碟 (Scale-to-Zero)</text>
+    <text x="400" y="250" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif" text-anchor="middle">Buffer Pool 與 SQL 執行引擎 ｜ 持久資料不在本地，NVMe 作頁面快取</text>
 
 
     <path d="M 400 274 L 400 315" stroke="#3fb950" stroke-width="2" marker-end="url(#neon-arrow-green)"/>
@@ -102,7 +100,7 @@ Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）�
 
     <rect x="65" y="365" width="300" height="60" rx="10" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
     <text x="215" y="392" fill="#e3b341" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">Safekeeper Quorum 叢集</text>
-    <text x="215" y="412" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Paxos 共識協議・持久化最新 WAL</text>
+    <text x="215" y="412" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Paxos 共識協定・持久化最新 WAL</text>
 
 
     <rect x="435" y="365" width="300" height="60" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
@@ -114,26 +112,26 @@ Neon 的核心突破在於：**將 PostgreSQL 的計算節點（Compute Node）�
 
 
     <rect x="200" y="445" width="400" height="42" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="400" y="471" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">AWS S3 物件儲存（不可變歷史 Block 冷資料歸檔・無限擴展）</text>
+    <text x="400" y="471" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">物件儲存（如 S3）・不可變檔案・冷資料歸檔</text>
 
   </svg>
 </div>
 
 ### 秒級資料庫分支（Copy-on-Write Branching）
 
-- 由於儲存層以不可變的 WAL 日誌組織，當開發者執行 `neon branch create pr-123` 時；
-- Neon **完全不需要複製物理數據**，只需記錄一個快照指針（Snapshot LSN），在 **1 秒內** 就能為 PR 提供一個包含生產環境全量資料的獨立測試庫！
+- 儲存層以不可變檔案組織，開發者執行 `neon branches create --name pr-123`（[CLI 參考](https://neon.com/docs/reference/cli-branches)）時，不需要複製實體資料。分支和父分支共用資料，從建立分支的時間點開始各自寫入。
+- 官方部落格（2024-03）稱，用分支複製超過 1 TB 的 Postgres 資料庫只要約 1 秒（[說明](https://neon.com/blog/how-to-copy-large-postgres-databases-in-seconds)），所以每個 PR 都能有一份含生產資料的獨立測試庫。
 
 ---
 
-## 3. PlanetScale 底層架構：承載全球最大流量的 Vitess 引擎
+## 3. PlanetScale 底層架構：Vitess
 
-PlanetScale 的底層採用了支撐 YouTube 數十億 QPS 的開源專案 **Vitess**：
+PlanetScale 的 Vitess 產品線採用開源專案 **Vitess**。Vitess 在 2010 年為了解決 YouTube 遇到的 MySQL 擴展問題而誕生（[Vitess 歷史](https://vitess.io/docs/overview/history/)）：
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 430" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="planetscale-arch-title planetscale-arch-desc">
     <title id="planetscale-arch-title">PlanetScale / Vitess 分散式分片架構圖</title>
-    <desc id="planetscale-arch-desc">展示前端應用流量進入無狀態 VTGate 代理叢集，由 VTGate 執行連接池收斂與分散式 SQL 路由，下發給各個 VTTablet 管理的分片 MySQL 主從實例。</desc>
+    <desc id="planetscale-arch-desc">展示前端應用流量進入無狀態 VTGate 代理叢集，由 VTGate 執行分散式 SQL 路由，下發給各個 VTTablet 管理的分片 MySQL 主從實例，連線池位於 VTTablet 層。</desc>
     
     <defs>
       <linearGradient id="ps-gate-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -149,7 +147,7 @@ PlanetScale 的底層採用了支撐 YouTube 數十億 QPS 的開源專案 **Vit
     </defs>
 
     <rect x="280" y="15" width="240" height="46" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="400" y="44" fill="#f0f6fc" font-size="15" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">業務應用程式請求 (MySQL 協議)</text>
+    <text x="400" y="44" fill="#f0f6fc" font-size="15" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">業務應用程式請求 (MySQL 協定)</text>
 
 
     <path d="M 400 61 L 400 95" stroke="#bc8cff" stroke-width="2" marker-end="url(#ps-arrow)"/>
@@ -158,8 +156,8 @@ PlanetScale 的底層採用了支撐 YouTube 數十億 QPS 的開源專案 **Vit
 
     <rect x="140" y="100" width="520" height="80" rx="12" fill="url(#ps-gate-grad)" stroke="#a371f7" stroke-width="1.5"/>
     <text x="400" y="128" fill="#d2a8ff" font-size="16" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">VTGate (無狀態分散式查詢路由代理叢集)</text>
-    <text x="400" y="149" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif" text-anchor="middle">連線池收斂（萬級連線壓至數百）｜ 分散式 SQL 解析 ｜ 跨分片查詢優化 ｜ 查詢快取</text>
-    <text x="400" y="168" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">無狀態架構・支援任意水平擴展</text>
+    <text x="400" y="149" fill="#c9d1d9" font-size="13" font-family="system-ui, sans-serif" text-anchor="middle">接收大量客戶端連線 ｜ 分散式 SQL 解析 ｜ 路由與跨分片查詢</text>
+    <text x="400" y="168" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">無狀態架構・可水平擴展</text>
 
 
     <path d="M 230 180 L 150 225" stroke="#58a6ff" stroke-width="2" marker-end="url(#ps-arrow-blue)"/>
@@ -169,48 +167,71 @@ PlanetScale 的底層採用了支撐 YouTube 數十億 QPS 的開源專案 **Vit
 
     <rect x="40" y="235" width="220" height="170" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <rect x="55" y="250" width="190" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
-    <text x="150" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 1 (Sidecar)</text>
+    <text x="150" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 1 連線池 (Sidecar)</text>
     <path d="M 150 292 L 150 315" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ps-arrow-blue)"/>
     <rect x="55" y="320" width="190" height="65" rx="8" fill="#0d1117" stroke="#238636" stroke-width="1.5"/>
     <text x="150" y="347" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">MySQL Master (分片 1)</text>
-    <text x="150" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">數據範圍: Keyspace [-80)</text>
+    <text x="150" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">資料範圍: Keyspace [-80)</text>
 
 
     <rect x="290" y="235" width="220" height="170" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <rect x="305" y="250" width="190" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
-    <text x="400" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 2 (Sidecar)</text>
+    <text x="400" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 2 連線池 (Sidecar)</text>
     <path d="M 400 292 L 400 315" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ps-arrow-blue)"/>
     <rect x="305" y="320" width="190" height="65" rx="8" fill="#0d1117" stroke="#238636" stroke-width="1.5"/>
     <text x="400" y="347" fill="#3fb950" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">MySQL Master (分片 2)</text>
-    <text x="400" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">數據範圍: Keyspace [80-]</text>
+    <text x="400" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">資料範圍: Keyspace [80-]</text>
 
 
     <rect x="540" y="235" width="220" height="170" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
     <rect x="555" y="250" width="190" height="42" rx="8" fill="#1f242c" stroke="#58a6ff" stroke-width="1.2"/>
-    <text x="650" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 3 (Sidecar)</text>
+    <text x="650" y="276" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">VTTablet 3 連線池 (Sidecar)</text>
     <path d="M 650 292 L 650 315" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ps-arrow-blue)"/>
     <rect x="555" y="320" width="190" height="65" rx="8" fill="#0d1117" stroke="#388bfd" stroke-width="1.5"/>
     <text x="650" y="347" fill="#58a6ff" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">MySQL Read Replica</text>
-    <text x="650" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">只讀副本・分析報表負載</text>
+    <text x="650" y="368" fill="#8b949e" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">唯讀副本・分析報表負載</text>
 
   </svg>
 </div>
 
-### PlanetScale 殺手級特性：無鎖 Schema 遷移（Deploy Requests）
+連線池的位置值得留意：官方部落格說明，Vitess 與 PlanetScale 的連線池在 VTTablet 層（[一百萬連線](https://planetscale.com/blog/one-million-connections)，2022-11）。VTGate 負責接收客戶端連線並路由。
 
-在生產環境執行 `ALTER TABLE` 傳統上極易引發鎖表導致系統崩潰：
+### 線上 Schema 變更（Deploy Requests）
 
-- PlanetScale 引入了類似 GitHub PR 的 **Deploy Request** 流程；
-- 透過 `gh-ost` 原理在後台建立影子表並以 CDC 雙寫同步，切換過程**零鎖表、零停機時間**！
+在生產環境執行 `ALTER TABLE` 傳統上容易長時間鎖表：
+
+- PlanetScale 的 **Deploy Request** 流程類似 GitHub PR：在開發分支修改 Schema，檢視 Schema diff 後部署（[文件](https://planetscale.com/docs/vitess/schema-changes/deploy-requests)）。
+- 底層用 Vitess 的 `vitess` 線上 DDL 策略，由 VReplication 在後台建立影子表並同步資料。Vitess 自 v22 起不再支援 `gh-ost` 與 `pt-osc` 策略（[DDL 策略](https://vitess.io/docs/24.0/user-guides/schema-changes/ddl-strategies/)）。
+- 官方稱部署零停機。切換（cut-over）時需要取得表的 metadata lock，進來的查詢會被短暫阻擋，但不會遺失（[運作方式](https://planetscale.com/docs/vitess/schema-changes/how-online-schema-change-tools-work)）。
 
 ---
 
 ## 4. 總結與架構選型指南
 
 - **選 Neon (Postgres)**：
-  - 開發現代 Serverless 全端應用（Next.js、Supabase、FastAPI）；
-  - 需要強大的 **Git-like 數據庫分支** 進行 CI/CD 預覽與測試；
-  - 流量具有潮汐性，強烈需要 **Scale-to-Zero（降至 0 成本）**。
+  - 開發現代 Serverless 全端應用（Next.js、FastAPI）；
+  - 需要 **Git-like 資料庫分支** 進行 CI/CD 預覽與測試；
+  - 流量有明顯的尖離峰，需要 **Scale-to-Zero**（閒置時暫停計算節點）。
 - **選 PlanetScale (MySQL / Vitess)**：
-  - 超大型企業核心交易業務，資料量達數十 TB 且持續高速增長；
-  - 需要極致的 **水平分庫分表（Horizontal Sharding）** 與抗數十萬併發連線能力。
+  - 大型核心交易業務，資料量達數十 TB 且持續快速增長；
+  - 需要 **水平分片（Horizontal Sharding）** 與大量併發連線的支援。
+
+---
+
+## 參考連結
+
+- [Neon 架構概覽](https://neon.com/docs/introduction/architecture-overview)
+- [Neon 與 Postgres 的相容性差異](https://neon.com/docs/reference/compatibility)
+- [Neon 連線池（PgBouncer）](https://neon.com/docs/connect/connection-pooling)
+- [Neon proxy（neondatabase/neon）](https://github.com/neondatabase/neon/tree/main/proxy)
+- [Neon Scale to Zero](https://neon.com/docs/introduction/scale-to-zero)
+- [Neon 分支](https://neon.com/docs/introduction/branching)
+- [Neon CLI：branches](https://neon.com/docs/reference/cli-branches)
+- [PlanetScale：分支](https://planetscale.com/docs/vitess/schema-changes/branching)
+- [PlanetScale：Database sleeping](https://planetscale.com/docs/plans/database-sleeping)
+- [PlanetScale：一百萬連線](https://planetscale.com/blog/one-million-connections)
+- [PlanetScale：Deploy requests](https://planetscale.com/docs/vitess/schema-changes/deploy-requests)
+- [PlanetScale：線上 Schema 變更工具如何運作](https://planetscale.com/docs/vitess/schema-changes/how-online-schema-change-tools-work)
+- [PlanetScale for Postgres 正式上線（2025-09-22）](https://planetscale.com/blog/planetscale-for-postgres-is-generally-available)
+- [Vitess DDL 策略](https://vitess.io/docs/24.0/user-guides/schema-changes/ddl-strategies/)
+- [Vitess 歷史](https://vitess.io/docs/overview/history/)

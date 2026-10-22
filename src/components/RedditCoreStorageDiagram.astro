@@ -9,10 +9,10 @@
     role="img"
     aria-labelledby="rd-title rd-desc"
   >
-    <title id="rd-title">Reddit 核心儲存與高併發留言樹架構</title>
+    <title id="rd-title">高併發社群儲存與留言樹參考設計</title>
     <desc id="rd-desc">
-      展示從 Thing2 EAV 架構、Redis/Memcached 多層快取、Cassandra
-      留言樹持久化、即時投票管線到 Baseplate 微服務的演進全景。
+      展示 EAV 實體模型、Memcached 與排行列表多層快取、Cassandra
+      留言樹持久化、投票顯示擾動示意到 Baseplate 微服務的參考設計全景。
     </desc>
 
     <defs>
@@ -29,11 +29,11 @@
       </marker>
     </defs>
 
-    <!-- Column 1: Thing2 & PostgreSQL -->
+    <!-- Column 1: EAV & PostgreSQL -->
     <g class="rd-diagram__card" transform="translate(20, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="rd-diagram__badge" x="14" y="26">EARLY ERA (THING2)</text>
-      <text class="rd-diagram__title" x="14" y="54">Thing2 EAV 架構</text>
+      <text class="rd-diagram__badge" x="14" y="26">REFERENCE: EAV</text>
+      <text class="rd-diagram__title" x="14" y="54">EAV 實體模型</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -42,10 +42,10 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
         <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
-          >Thing2 EAV 模型</text
+          >EAV 模型</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
-          >• 僅兩張表: Thing 與 Data</text
+          >• 每型別兩張表: Thing/Data</text
         >
         <text class="rd-diagram__desc" x="10" y="58"
           >• Key-Value 結構隨意加欄位</text
@@ -64,12 +64,10 @@
         <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
           >PostgreSQL Shards</text
         >
-        <text class="rd-diagram__desc" x="10" y="40"
-          >• 依 Type + ID 分庫分表</text
-        >
+        <text class="rd-diagram__desc" x="10" y="40">• 依 Type 分庫分表</text>
         <text class="rd-diagram__desc" x="10" y="58">• 應用層自己做 JOIN</text>
         <text class="rd-diagram__desc" x="10" y="76"
-          >• 讀寫比 100:1 極端讀多</text
+          >• 讀多寫少，快取擋讀取</text
         >
       </g>
 
@@ -80,14 +78,12 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
         <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
-          >EAV 致命極限</text
+          >EAV 的限制</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
           >• 關聯查詢依賴大量 SELECT</text
         >
-        <text class="rd-diagram__desc" x="10" y="58"
-          >• 記憶體膨脹與維護困難</text
-        >
+        <text class="rd-diagram__desc" x="10" y="58">• 約束與檢查靠應用層</text>
       </g>
     </g>
 
@@ -95,7 +91,7 @@
     <g class="rd-diagram__card" transform="translate(255, 35)">
       <rect width="215" height="380" rx="12"></rect>
       <text class="rd-diagram__badge" x="14" y="26">CACHING LAYER</text>
-      <text class="rd-diagram__title" x="14" y="54">多層快取與防護</text>
+      <text class="rd-diagram__title" x="14" y="54">多層快取與列表</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -104,15 +100,13 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
         <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
-          >Memcached 集群</text
+          >Memcached 叢集</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
           >• 快取 Thing 原生資料物件</text
         >
         <text class="rd-diagram__desc" x="10" y="58">• 一致性雜湊分流節點</text>
-        <text class="rd-diagram__desc" x="10" y="76"
-          >• 99% 讀取請求在此命中</text
-        >
+        <text class="rd-diagram__desc" x="10" y="76">• 讀取先查快取再回源</text>
       </g>
 
       <g transform="translate(14, 180)">
@@ -122,16 +116,15 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
         <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
-          >Redis Sorted Sets (ZSet)</text
+          >Redis ZSet (設計示意)</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
           >• Subreddit 貼文熱門排行</text
         >
-        <text class="rd-diagram__desc" x="10" y="58"
-          >• 毫秒級 ZREVRANGEBYSCORE</text
+        <text class="rd-diagram__desc" x="10" y="58">• ZREVRANGE 取前 N 名</text
         >
         <text class="rd-diagram__desc" x="10" y="76"
-          >• 限制儲存 Top N 貼文 ID</text
+          >• 限制只存 Top N 貼文 ID</text
         >
       </g>
 
@@ -154,7 +147,7 @@
     <!-- Column 3: Modern Storage & Comments -->
     <g class="rd-diagram__card" transform="translate(490, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="rd-diagram__badge" x="14" y="26">STORAGE EVOLUTION</text>
+      <text class="rd-diagram__badge" x="14" y="26">REFERENCE: COMMENTS</text>
       <text class="rd-diagram__title" x="14" y="54">留言樹與 Cassandra</text>
 
       <g transform="translate(14, 75)">
@@ -164,16 +157,14 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
         <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
-          >Cassandra / ScyllaDB</text
+          >Cassandra 寬表 (示意)</text
         >
-        <text class="rd-diagram__desc" x="10" y="40"
-          >• 遷移百億級留言與投票</text
-        >
+        <text class="rd-diagram__desc" x="10" y="40">• 留言以寬表列儲存</text>
         <text class="rd-diagram__desc" x="10" y="58"
           >• 按 Post ID 分區寫入特化</text
         >
         <text class="rd-diagram__desc" x="10" y="76"
-          >• 寬表高吞吐寫入無鎖競爭</text
+          >• 寫入只追加列、免鎖樹</text
         >
       </g>
 
@@ -187,14 +178,12 @@
           >留言樹階層渲染</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
-          >• Materialized Path 路徑編碼</text
+          >• Materialized Path 路徑</text
         >
         <text class="rd-diagram__desc" x="10" y="58"
-          >• 應用層記憶體極速構建樹</text
+          >• 應用層記憶體極速建構樹</text
         >
-        <text class="rd-diagram__desc" x="10" y="76"
-          >• 支援萬層巢狀折疊與分頁</text
-        >
+        <text class="rd-diagram__desc" x="10" y="76">• 支援巢狀折疊與分頁</text>
       </g>
 
       <g transform="translate(14, 285)">
@@ -204,12 +193,12 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--gold"></rect>
         <text class="rd-diagram__header rd-diagram__header--gold" x="10" y="20"
-          >Vote Fuzzing (防刷票)</text
+          >投票顯示擾動 (示意)</text
         >
-        <text class="rd-diagram__desc" x="10" y="40"
-          >• 隨機微幅擾動顯示分數</text
+        <text class="rd-diagram__desc" x="10" y="40">• 顯示票數略有出入</text>
+        <text class="rd-diagram__desc" x="10" y="58"
+          >• 讓機器人難判斷是否生效</text
         >
-        <text class="rd-diagram__desc" x="10" y="58">• 迷惑作弊機器人偵測</text>
       </g>
     </g>
 
@@ -219,7 +208,7 @@
       <text class="rd-diagram__badge" x="14" y="26"
         >MICROSERVICES &amp; STACK</text
       >
-      <text class="rd-diagram__title" x="14" y="54">Baseplate 現代架構</text>
+      <text class="rd-diagram__title" x="14" y="54">Baseplate 微服務</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -231,13 +220,13 @@
           >Baseplate 微服務框架</text
         >
         <text class="rd-diagram__desc" x="10" y="40"
-          >• Python ➔ Go / Rust 重構</text
+          >• Python 版與 Go 版開源</text
         >
         <text class="rd-diagram__desc" x="10" y="58"
-          >• Thrift &amp; gRPC 高效能通訊</text
+          >• Thrift &amp; gRPC 通訊套件</text
         >
         <text class="rd-diagram__desc" x="10" y="76"
-          >• 統一日誌、追蹤與指標</text
+          >• 日誌、追蹤與指標套件</text
         >
       </g>
 
@@ -248,11 +237,11 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--teal"></rect>
         <text class="rd-diagram__header rd-diagram__header--teal" x="10" y="20"
-          >Hot Ranking 即時管線</text
+          >Hot Ranking 排行</text
         >
         <text class="rd-diagram__desc" x="10" y="40">• 時間衰減與對數權重</text>
         <text class="rd-diagram__desc" x="10" y="58"
-          >• Flink 串流處理即時投票</text
+          >• 投票佇列增量更新列表</text
         >
         <text class="rd-diagram__desc" x="10" y="76"
           >• 動態平衡熱點與新貼文</text
@@ -266,13 +255,11 @@
           rx="6"
           class="rd-diagram__subcard rd-diagram__subcard--blue"></rect>
         <text class="rd-diagram__header rd-diagram__header--blue" x="10" y="20"
-          >全面高可用保證</text
+          >反作弊事件流</text
         >
-        <text class="rd-diagram__desc" x="10" y="40"
-          >• 多區域 Kubernetes 部署</text
-        >
+        <text class="rd-diagram__desc" x="10" y="40">• Kafka 事件觸發規則</text>
         <text class="rd-diagram__desc" x="10" y="58"
-          >• 毫秒級跨 AZ 故障轉移</text
+          >• Flink 與 Baseplate 執行</text
         >
       </g>
     </g>
@@ -299,88 +286,82 @@
     role="img"
     aria-labelledby="rd-m-title"
   >
-    <title id="rd-m-title">Reddit 核心架構（手機檢視）</title>
+    <title id="rd-m-title">高併發社群儲存參考設計（手機檢視）</title>
 
     <g class="rd-diagram__card" transform="translate(10, 10)">
       <rect width="300" height="130" rx="8"></rect>
-      <text class="rd-diagram__badge" x="12" y="22"
-        >1. 早期 Thing2 EAV 架構</text
-      >
+      <text class="rd-diagram__badge" x="12" y="22">1. EAV 實體模型</text>
       <text class="rd-diagram__desc" x="12" y="45"
-        >• 僅兩張表 (Thing/Data) 模擬 NoSQL</text
+        >• 每型別兩張表 (Thing/Data) 模擬 NoSQL</text
       >
       <text class="rd-diagram__desc" x="12" y="65"
         >• 免除 Schema 變更成本，快速迭代</text
       >
       <text class="rd-diagram__desc" x="12" y="85"
-        >• 極端讀多寫少 (100:1)，應用層手動拼裝</text
+        >• 讀多寫少，應用層手動拼裝</text
       >
       <text class="rd-diagram__desc" x="12" y="105"
-        >• 規模化後遭遇 SQL 爆炸與記憶體瓶頸</text
+        >• 資料量大時 SQL 查詢數量暴增</text
       >
     </g>
 
     <g class="rd-diagram__card" transform="translate(10, 155)">
       <rect width="300" height="135" rx="8"></rect>
-      <text class="rd-diagram__badge" x="12" y="22"
-        >2. 多層快取與排行榜設計</text
-      >
+      <text class="rd-diagram__badge" x="12" y="22">2. 多層快取與排行列表</text>
       <text class="rd-diagram__desc" x="12" y="45"
-        >• Memcached 承載 99% 物件讀取流量</text
+        >• Memcached 快取 Thing 物件</text
       >
       <text class="rd-diagram__desc" x="12" y="65"
-        >• Redis Sorted Sets 維護 Subreddit 熱榜</text
+        >• Redis ZSet 維護熱榜 (設計示意)</text
       >
       <text class="rd-diagram__desc" x="12" y="85"
         >• 互斥鎖 (Mutex) 防範熱點快取擊穿</text
       >
       <text class="rd-diagram__desc" x="12" y="105"
-        >• 投票防刷演算法 (Vote Fuzzing) 混淆數值</text
+        >• 投票顯示擾動 (設計示意)</text
       >
     </g>
 
     <g class="rd-diagram__card" transform="translate(10, 305)">
       <rect width="300" height="140" rx="8"></rect>
       <text class="rd-diagram__badge" x="12" y="22"
-        >3. 留言樹與 Cassandra 儲存</text
+        >3. 留言樹與 Cassandra 儲存 (示意)</text
       >
       <text class="rd-diagram__desc" x="12" y="45"
-        >• 遷至 Cassandra/ScyllaDB 寬表寫入特化</text
+        >• Cassandra 寬表，以追加列寫入</text
       >
       <text class="rd-diagram__desc" x="12" y="65"
-        >• Materialized Path 實現巢狀留言即時排序</text
+        >• Materialized Path 表示巢狀階層</text
       >
       <text class="rd-diagram__desc" x="12" y="85"
-        >• 應用層記憶體遞迴構建階層樹狀結構</text
+        >• 應用層記憶體遞迴建構階層樹狀結構</text
       >
-      <text class="rd-diagram__desc" x="12" y="105"
-        >• 解決百萬併發留言讀寫衝突與鎖爭用</text
-      >
+      <text class="rd-diagram__desc" x="12" y="105">• 寫入不必鎖整棵樹</text>
     </g>
 
     <g class="rd-diagram__card" transform="translate(10, 460)">
       <rect width="300" height="145" rx="8"></rect>
       <text class="rd-diagram__badge" x="12" y="22"
-        >4. Baseplate 微服務與即時管線</text
+        >4. Baseplate 微服務與排行</text
       >
       <text class="rd-diagram__desc" x="12" y="45"
-        >• Baseplate (Go/Rust) 高效能微服務底座</text
+        >• Baseplate (Python/Go) 微服務框架</text
       >
       <text class="rd-diagram__desc" x="12" y="65"
-        >• Flink 串流計算 Hot Ranking 時間衰減權重</text
+        >• Hot Ranking 時間衰減與對數權重</text
       >
       <text class="rd-diagram__desc" x="12" y="85"
-        >• Thrift / gRPC 內部高速通訊協議</text
+        >• Thrift / gRPC 內部通訊協定</text
       >
       <text class="rd-diagram__desc" x="12" y="105"
-        >• 支撐每日數億活躍用戶的即時互動</text
+        >• Kafka + Flink 執行反作弊規則</text
       >
     </g>
   </svg>
 
   <figcaption id="rd-caption" class="rd-diagram__caption">
-    圖 1：Reddit 核心儲存與高併發留言樹架構 — 從 Thing2 EAV、Redis
-    快取、Cassandra 到 Baseplate 微服務
+    圖 1：受 Reddit 啟發的高併發儲存與留言樹參考設計 — 從 EAV、
+    多層快取、Cassandra 寬表到 Baseplate 微服務
   </figcaption>
 </figure>
 

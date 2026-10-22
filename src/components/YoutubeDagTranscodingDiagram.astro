@@ -10,10 +10,12 @@
     role="img"
     aria-labelledby="ytd-diag-title ytd-diag-desc"
   >
-    <title id="ytd-diag-title">YouTube GOP 切片與 DAG 任務排程編排圖</title>
+    <title id="ytd-diag-title">YouTube GOP 分塊與任務依賴圖排程</title>
     <desc id="ytd-diag-desc">
-      展示原始 4K 影片解耦為音訊軌與視訊 GOP 關鍵幀切片，分發為數千個獨立 Chunk
-      平行轉碼為 H.264 與 AV1 格式。
+      依 Argos
+      論文（2021）：上傳的影片依需要的輸出產生無環任務依賴圖、放進全域工作佇列，
+      同時切成 closed GOP 分塊；每個分塊由一個多輸出轉碼步驟一次產出各解析度的
+      VP9 與 H.264。
     </desc>
 
     <defs>
@@ -77,10 +79,10 @@
         class="ytd-diag__title ytd-diag__title--blue"
         text-anchor="middle"
       >
-        原始 4K 影片上傳完成 (Raw Blob Storage)
+        上傳的原始影片（轉碼輸入）
       </text>
       <text x="170" y="39" class="ytd-diag__sub" text-anchor="middle"
-        >50 GB ｜ 60 FPS ｜ 無損母片</text
+        >輸出版本決定要做哪些工作</text
       >
     </g>
 
@@ -108,10 +110,10 @@
         class="ytd-diag__title ytd-diag__title--purple"
         text-anchor="middle"
       >
-        音訊軌解封裝與多音軌轉碼
+        產生無環任務依賴圖
       </text>
       <text x="170" y="48" class="ytd-diag__sub" text-anchor="middle"
-        >AAC-LC ｜ Opus ｜ 5.1 空間音訊 ｜ 多國語言</text
+        >放進全域工作佇列，每個 step 排到資料中心機器</text
       >
     </g>
 
@@ -128,10 +130,10 @@
         class="ytd-diag__title ytd-diag__title--green"
         text-anchor="middle"
       >
-        視訊 GOP 關鍵幀（I-Frame）切片
+        切成 closed GOP 分塊
       </text>
       <text x="170" y="48" class="ytd-diag__sub" text-anchor="middle"
-        >切分 Chunk_001 ~ Chunk_100 (5~10 秒無損切片)</text
+        >Chunk_001 ~ Chunk_N，各自可平行處理</text
       >
     </g>
 
@@ -162,7 +164,7 @@
         rx="8"
         class="ytd-diag__box ytd-diag__box--worker"></rect>
       <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
-        >Chunk_001 Worker</text
+        >Chunk_001 MOT step</text
       >
       <rect
         x="20"
@@ -172,10 +174,10 @@
         rx="4"
         class="ytd-diag__worker-tag"></rect>
       <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
-        >H.264 (1080p, 720p)</text
+        >解碼一次 → 縮放</text
       >
       <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
-        >AV1 / VP9 (4K, 1440p)</text
+        >VP9 + H.264 各解析度</text
       >
     </g>
 
@@ -187,7 +189,7 @@
         rx="8"
         class="ytd-diag__box ytd-diag__box--worker"></rect>
       <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
-        >Chunk_002 Worker</text
+        >Chunk_002 MOT step</text
       >
       <rect
         x="20"
@@ -197,10 +199,10 @@
         rx="4"
         class="ytd-diag__worker-tag"></rect>
       <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
-        >H.264 (1080p, 720p)</text
+        >解碼一次 → 縮放</text
       >
       <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
-        >AV1 / VP9 (4K, 1440p)</text
+        >VP9 + H.264 各解析度</text
       >
     </g>
 
@@ -212,7 +214,7 @@
         rx="8"
         class="ytd-diag__box ytd-diag__box--worker"></rect>
       <text x="125" y="25" class="ytd-diag__worker-title" text-anchor="middle"
-        >Chunk_003 ... Worker</text
+        >Chunk_003 ... MOT step</text
       >
       <rect
         x="20"
@@ -222,10 +224,10 @@
         rx="4"
         class="ytd-diag__worker-tag"></rect>
       <text x="125" y="52" class="ytd-diag__worker-code" text-anchor="middle"
-        >H.264 (1080p, 720p)</text
+        >解碼一次 → 縮放</text
       >
       <text x="125" y="65" class="ytd-diag__worker-code" text-anchor="middle"
-        >AV1 / VP9 (4K, 1440p)</text
+        >VP9 + H.264 各解析度</text
       >
     </g>
   </svg>
@@ -236,49 +238,49 @@
       <span class="ytd-mobile-badge ytd-mobile-badge--blue"
         >STAGE 1: 原始輸入</span
       >
-      <h4>1. 原始 4K 影片入庫 (Raw Video)</h4>
+      <h4>1. 上傳的原始影片 (Raw Video)</h4>
       <p>
-        完整的未轉碼無損影片（50GB+）安全沉澱於分散式 BlobStore，觸發非同步轉碼
-        DAG 工作流。
+        上傳完成的影片是轉碼的輸入。平台要產出哪些輸出版本，決定了接下來要排哪些工作。
       </p>
     </div>
 
     <div class="ytd-mobile-card ytd-mobile-card--purple">
       <span class="ytd-mobile-badge ytd-mobile-badge--purple"
-        >STAGE 2A: 音訊分離</span
+        >STAGE 2A: 任務依賴圖</span
       >
-      <h4>2. 音訊軌解封裝與多音軌編碼</h4>
+      <h4>2. 產生無環任務依賴圖</h4>
       <p>
-        解耦音訊串流，獨立並行轉碼為 AAC、Opus、立體聲、5.1
-        空間音訊與多語系音軌。
+        依需要的輸出版本產生任務依賴圖，放進全域工作佇列。每個 step
+        由排程系統分配到資料中心的機器，遇到負載變化或故障時重新分配。
       </p>
     </div>
 
     <div class="ytd-mobile-card ytd-mobile-card--green">
       <span class="ytd-mobile-badge ytd-mobile-badge--green"
-        >STAGE 2B: 視訊 GOP 切片</span
+        >STAGE 2B: closed GOP 分塊</span
       >
-      <h4>3. 視訊關鍵幀 (Keyframe) 精準切分</h4>
+      <h4>3. 切成 closed GOP 分塊</h4>
       <p>
-        嚴格在 I-Frame 邊界精確切分為 5~10 秒獨立
-        Chunk，確保每一個小切片都能獨立並行解碼編碼而無上下文依賴。
+        影片切成 closed GOP
+        分塊，每塊不依賴前後分塊，可以平行處理。論文舉的例子是 150 幀的 2160p
+        分塊（30 FPS 下 5 秒）。
       </p>
     </div>
 
     <div class="ytd-mobile-card ytd-mobile-card--worker">
       <span class="ytd-mobile-badge ytd-mobile-badge--worker"
-        >STAGE 3: 萬核轉碼矩陣</span
+        >STAGE 3: 多輸出轉碼</span
       >
-      <h4>4. 分散式平行轉碼矩陣</h4>
+      <h4>4. 多輸出轉碼（MOT）</h4>
       <p>
-        數千個 Worker 並行領取切片任務，同時產出全解析度階梯（360p ~
-        4K）與多格式轉碼（H.264、VP9、AV1）。
+        一個轉碼任務解碼一次，產出該分塊需要的各種解析度與格式。導入 VCU 後，VP9
+        與 H.264 都在上傳時產出。
       </p>
     </div>
   </div>
 
   <figcaption id="ytd-diag-caption" class="ytd-diag__caption">
-    圖二：YouTube GOP 切片與分散式 DAG 任務轉碼編排工作流
+    圖二：依 Argos 論文（2021）整理的 GOP 分塊、任務依賴圖與多輸出轉碼
   </figcaption>
 </figure>
 

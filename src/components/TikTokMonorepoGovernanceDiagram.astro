@@ -1,5 +1,5 @@
 ---
-// TikTok 200k+ Files Massive MonoRepo Architecture & Governance Diagram Component
+// 200k+ Files Frontend MonoRepo Governance Reference Design Diagram Component
 ---
 
 <figure class="tiktok-mono-diagram" aria-labelledby="tiktok-mono-caption">
@@ -9,9 +9,7 @@
     role="img"
     aria-labelledby="tiktok-mono-title tiktok-mono-desc"
   >
-    <title id="tiktok-mono-title">
-      TikTok 20 萬檔案超大型前端 MonoRepo 治理架構
-    </title>
+    <title id="tiktok-mono-title">20 萬檔案前端 MonoRepo 治理參考設計</title>
     <desc id="tiktok-mono-desc">
       展示超大型前端 MonoRepo
       的四大核心治理防線：領域套件邊界隔離、依賴圖譜影響範圍分析、雲端增量雜湊快取與分散式任務排程
@@ -85,16 +83,16 @@
         >200,000+ 檔案巨庫</text
       >
       <text class="tiktok-mono-diagram__desc" x="16" y="76"
-        >• 數千名工程師每日提交</text
+        >• 多條業務線共用一個倉庫</text
       >
       <text class="tiktok-mono-diagram__desc" x="16" y="96"
-        >• 數百個獨立業務子 App</text
+        >• 多個獨立業務子 App</text
       >
       <text class="tiktok-mono-diagram__desc" x="16" y="116"
         >• Git 稀疏檢出 (Sparse Checkout)</text
       >
       <text class="tiktok-mono-diagram__tag" x="16" y="142"
-        >Eden / Turbo Monorepo</text
+        >Rush / PNPM Workspaces</text
       >
     </g>
 
@@ -137,7 +135,7 @@
         >• 阻斷無效的全庫重編譯</text
       >
       <text class="tiktok-mono-diagram__desc" x="16" y="158"
-        >• 減少 80% CI 運算量</text
+        >• 只跑受影響專案的 CI</text
       >
       <text
         class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--teal"
@@ -167,10 +165,10 @@
         >• 內容雜湊 (Content Hash)</text
       >
       <text class="tiktok-mono-diagram__desc" x="14" y="94"
-        >• 輸入未變則秒級命中重用</text
+        >• 輸入未變則直接重用</text
       >
       <text class="tiktok-mono-diagram__desc" x="14" y="114"
-        >• 全域跨開發者/CI 快取共享</text
+        >• 跨 CI 機器快取共享</text
       >
       <text class="tiktok-mono-diagram__tag" x="14" y="142"
         >Zero-Compute Replay</text
@@ -196,10 +194,10 @@
         >• 任務圖動態切片分配</text
       >
       <text class="tiktok-mono-diagram__desc" x="14" y="94"
-        >• 數十台 CI Agent 負載均衡</text
+        >• 多台 CI Agent 負載平衡</text
       >
       <text class="tiktok-mono-diagram__desc" x="14" y="114"
-        >• CI 耗時從 60m 縮短至 5m</text
+        >• 多機平行縮短 CI 耗時</text
       >
       <text
         class="tiktok-mono-diagram__tag tiktok-mono-diagram__tag--pink"
@@ -265,7 +263,7 @@
       <h4>領域模組邊界隔離 (Boundary Defense)</h4>
       <p>
         規範 Workspace 邊界，透過 ESLint 與 AST 靜態攔截跨領域非法 private
-        import，防止巨庫架構腐化。
+        import，避免巨庫架構腐化。
       </p>
     </div>
 
@@ -280,8 +278,8 @@
       >
       <h4>Affected Graph 影響分析</h4>
       <p>
-        精準比對 Git Diff，只對真正受影響的下游套件執行建置與測試，剔除 80%
-        無效運算負擔。
+        精準比對 Git Diff，只對真正受影響的下游套件執行建置與測試，略過
+        無關的運算。
       </p>
     </div>
 
@@ -296,19 +294,19 @@
       >
       <h4>Content Hash 雲端快取與分散式執行</h4>
       <p>
-        已建置產物全域共享秒級命中，未命中任務動態派發給數十台 CI Agent
-        平行執行，流水線時間由 60 分鐘壓縮至 5 分鐘。
+        已建置產物共享，命中即重用，未命中任務分給多台 CI Agent 平行執行，縮短
+        CI 管線時間。
       </p>
     </div>
 
-    <div class="tiktok-mono-diagram-mobile-arrow">↓ 獨立運行時沙盒</div>
+    <div class="tiktok-mono-diagram-mobile-arrow">↓ 獨立執行期沙盒</div>
 
     <div
       class="tiktok-mono-diagram-mobile-card tiktok-mono-diagram-mobile-card--teal"
     >
       <span
         class="tiktok-mono-diagram-mobile-badge tiktok-mono-diagram-mobile-badge--teal"
-        >04. 運行時沙盒</span
+        >04. 執行期沙盒</span
       >
       <h4>微前端執行環境隔離 (Garfish / 沙盒)</h4>
       <p>
@@ -319,8 +317,8 @@
   </div>
 
   <figcaption id="tiktok-mono-caption">
-    圖 1：TikTok 20 萬檔案超大型前端 MonoRepo
-    治理架構：邊界防禦、依賴影響分析、雲端快取與微前端運行隔離。
+    圖 1：20 萬檔案前端 MonoRepo 治理參考設計（非 TikTok
+    實際架構）：邊界防禦、依賴影響分析、雲端快取與微前端執行期隔離。
   </figcaption>
 </figure>
 

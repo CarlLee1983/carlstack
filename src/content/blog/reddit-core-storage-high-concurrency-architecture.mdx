@@ -1,7 +1,8 @@
 ---
-title: "Reddit 核心儲存與高併發架構演進：從 Thing2 EAV、Redis 快取到 Cassandra 留言樹與 Baseplate 微服務"
-description: "深入剖析 Reddit 承載百億級貼文、留言與即時投票的架構演進史：從 PostgreSQL 上的 Thing2 EAV 模型、Memcached/Redis 多層快取、Cassandra 留言樹渲染，到 Baseplate 微服務與 Hot Ranking 排行演算法。"
+title: "受 Reddit 啟發的高併發社群儲存參考設計：EAV 模型、多層快取、留言樹與熱門排行"
+description: "以 Reddit 公開過的做法為參考，整理社群論壇的高併發儲存設計：EAV 實體模型、Memcached 與排行列表快取、巢狀留言樹，以及 Hot Ranking 排行演算法。文中區分哪些是 Reddit 公開過的，哪些是參考設計。"
 publishDate: 2026-09-02T11:09:00+08:00
+updatedDate: 2026-10-22T10:31:53+08:00
 draft: false
 featured: false
 tags:
@@ -10,7 +11,6 @@ tags:
   - "快取架構"
   - "高併發"
   - "社群網路"
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/reddit-core-storage-high-concurrency-architecture.png
 coverAlt: "分層快取與分散式儲存支撐高併發巢狀留言樹的熱點流量"
 series: 矽谷巨頭高併發架構復盤
@@ -19,65 +19,60 @@ seriesOrder: 3
 
 import RedditCoreStorageDiagram from "../../components/RedditCoreStorageDiagram.astro";
 
-作為全球最大的社群論壇與討論聚落之一，Reddit 每月擁有超過 8.5 億名活躍訪問者，沉澱了數億條熱門貼文、數十億條樹狀巢狀留言（Nested Comments）以及無時無刻不在變動的即時投票（Upvotes / Downvotes）。
+這篇是受 Reddit 啟發的參考設計，不是 Reddit 的實際架構。Reddit 公開過的部分有這些：r2 原始碼裡每種 thing 型別各用兩張 EAV 表、前面放 Memcached、用鎖避免快取失效時的擊穿、投票存在 Cassandra、貼文 listing 是 Cassandra 上的 CachedQuery 並由 vote queue 增量更新、留言樹整棵存在 permacache 且寫入要加鎖。來源是 [reddit-archive/reddit 原始碼](https://github.com/reddit-archive/reddit)、官方 wiki 的 [Architecture Overview](https://github.com/reddit-archive/reddit/wiki/Architecture-Overview)，以及 Neil Williams 在 QCon SF 2017 的演講 [The Evolution of Reddit.com's Architecture](https://www.infoq.com/presentations/reddit-architecture-evolution/)。其餘的元件、資料表欄位與流程，都是我為了示範而設計的，文中會標明。
 
-社群討論系統有著非常特殊的讀寫模式：**極端讀多寫少（讀寫比高達 100:1 以上）**，但在熱點事件爆發時，單一貼文下的評論與投票會在一秒內湧入數萬次寫入。
-
-更具挑戰性的是，Reddit 標誌性的**深層巢狀留言樹**需要在毫秒內完成排序與層次渲染。
-
-本文將完整拆解 Reddit 核心儲存架構的三代演進：從早期在 PostgreSQL 上極具爭議的「Thing2 EAV 模型」、多層快取設計、Cassandra 留言儲存，到基於 Go / Rust 的現代 Baseplate 微服務架構。
+社群討論系統通常讀多寫少，熱門貼文下的留言與投票會集中湧入，巢狀留言樹還得在請求時排序與呈現。下面的設計就從這個讀寫特性出發。
 
 ---
 
-## 核心儲存與留言樹架構全景
+## 參考設計全景
 
-Reddit 的高併發儲存與渲染管線歷經多次重構，形成如下的多層解耦架構：
+資料從 EAV 實體表出發，前面疊快取，留言樹與排行列表各自預先算好，最後由微服務框架串起來：
 
 <RedditCoreStorageDiagram />
 
-整個系統的運作包含四個關鍵核心：
+整個設計分四個部分：
 
-1. **早期 Thing2 EAV 模型**：在關聯式資料庫中以兩張表模擬 NoSQL，享受免 Schema 變更紅利。
-2. **多層快取與防護（Caching Layer）**：Memcached 吸收 99% 的實體讀取，Redis Sorted Sets 維護 Subreddit 貼文熱度排行。
-3. **留言樹與分散式儲存（Cassandra Storage）**：透過 Materialized Path 與寬表寫入特化，支撐百億級留言的高速擴展。
-4. **Baseplate 微服務與排行計算（Hot Ranking Pipeline）**：高效能微服務框架搭配時間衰減對數演算法，即時輸出熱門動態。
+1. **EAV 實體模型**：在關聯式資料庫中用「主表加屬性表」模擬 NoSQL，新增欄位不用改 Schema。
+2. **多層快取與防護（Caching Layer）**：Memcached 快取 Thing 物件並用鎖防擊穿，Redis Sorted Sets 在這裡只是排行列表的設計示意。
+3. **留言樹與分散式儲存**：以 Materialized Path 加 Cassandra 寬表為例，說明留言樹的另一種做法。
+4. **Baseplate 與排行計算**：Reddit 開源的 Baseplate 框架，以及時間衰減對數的 Hot Ranking 演算法。
 
 ---
 
-## 1. 傳奇的 Thing2 EAV 模型：在 PostgreSQL 上建構 NoSQL
+## 1. EAV 模型：在 PostgreSQL 上模擬 NoSQL
 
-在 NoSQL 資料庫（如 MongoDB、Cassandra）尚未成熟的 2008 年，Reddit 工程師面臨著頻繁迭代功能但關聯式資料庫 `ALTER TABLE` 會鎖死整張表的巨大痛點。
-
-為此，Reddit 設計了名為 **Thing2** 的 **實體-屬性-值（Entity-Attribute-Value, EAV）** 儲存模型：
+Steve Huffman 在 2010 年的演講裡提到，每個新功能都要改 Schema，而在一千萬筆資料的表上新增一個欄位要花很長的時間（[InfoQ 報導](https://www.infoq.com/news/2010/05/7-Lessons-Reddit)）。Reddit 的做法是 **實體-屬性-值（Entity-Attribute-Value, EAV）** 模型：官方 wiki 說每種 thing 型別用[兩張表](https://github.com/reddit-archive/reddit/wiki/Architecture-Overview)，r2 的 `tdb_sql.py` 為每個型別建立 `<app>_thing_<name>` 與 `<app>_data_<name>`，另有 `<app>_rel_<name>` 存關聯（[tdb_sql.py](https://github.com/reddit-archive/reddit/blob/master/r2/r2/lib/db/tdb_sql.py)）。
 
 ### 1.1 核心資料表結構
 
-整套系統的核心僅由兩張 PostgreSQL 資料表構成：
+下面以「貼文」這一種型別示範。欄位是我參照 r2 的 thing 表與 data 表簡化而成，其他型別各自再建一組：
 
 ```sql
--- 實體主表 (Things)
-CREATE TABLE things (
+-- 貼文的實體主表 (link_thing)
+CREATE TABLE link_thing (
     thing_id BIGINT PRIMARY KEY,
-    thing_type INT NOT NULL,       -- 1: Account, 2: Subreddit, 3: Link, 4: Comment
     ups INT DEFAULT 0,
     downs INT DEFAULT 0,
     deleted BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    spam BOOLEAN DEFAULT FALSE,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 屬性鍵值表 (Data)
-CREATE TABLE data (
-    thing_id BIGINT NOT NULL REFERENCES things(thing_id),
+-- 貼文的屬性鍵值表 (link_data)
+CREATE TABLE link_data (
+    thing_id BIGINT NOT NULL REFERENCES link_thing(thing_id),
     key VARCHAR(64) NOT NULL,
     value TEXT NOT NULL,
+    kind VARCHAR(16),              -- 記錄值原本的型別
     PRIMARY KEY (thing_id, key)
 );
 ```
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rd-thing-title rd-thing-desc">
-    <title id="rd-thing-title">Reddit Thing2 EAV 模型 1 對 N 鍵值對映圖</title>
-    <desc id="rd-thing-desc">展示 things 實體表與 data 屬性鍵值表的 1 對多關聯，單一 Thing 1001 掛載 title、author 與 url 等自定義屬性。</desc>
+    <title id="rd-thing-title">EAV 模型 1 對 N 鍵值對映圖（參考設計）</title>
+    <desc id="rd-thing-desc">展示 link_thing 實體表與 link_data 屬性鍵值表的 1 對多關聯，單一 Thing 1001 掛載 title、author 與 url 等自定義屬性。</desc>
     
     <defs>
       <marker id="rd-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -86,9 +81,9 @@ CREATE TABLE data (
     </defs>
 
     <rect x="30" y="15" width="260" height="95" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="160" y="38" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">things (實體主表)</text>
+    <text x="160" y="38" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">link_thing (貼文主表)</text>
     <text x="50" y="60" fill="#c9d1d9" font-size="11" font-family="monospace">thing_id: 1001</text>
-    <text x="50" y="78" fill="#c9d1d9" font-size="11" font-family="monospace">thing_type: 3 (Link/貼文)</text>
+    <text x="50" y="78" fill="#c9d1d9" font-size="11" font-family="monospace">date: 2026-09-02</text>
     <text x="50" y="96" fill="#8b949e" font-size="10" font-family="monospace">ups: 450 ｜ downs: 12</text>
 
     <path d="M 290 62 L 360 62" stroke="#58a6ff" stroke-width="2" marker-end="url(#rd-arrow)"/>
@@ -96,7 +91,7 @@ CREATE TABLE data (
 
 
     <rect x="370" y="15" width="400" height="95" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
-    <text x="570" y="38" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">data (屬性鍵值表)</text>
+    <text x="570" y="38" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">link_data (屬性鍵值表)</text>
     <text x="390" y="60" fill="#c9d1d9" font-size="11" font-family="monospace">ID: 1001 ｜ key: "title"  ｜ value: "System Design 101"</text>
     <text x="390" y="78" fill="#c9d1d9" font-size="11" font-family="monospace">ID: 1001 ｜ key: "author" ｜ value: "Carl"</text>
     <text x="390" y="96" fill="#8b949e" font-size="10" font-family="monospace">ID: 1001 ｜ key: "url"    ｜ value: "https://carlstack.dev"</text>
@@ -104,61 +99,70 @@ CREATE TABLE data (
   </svg>
 </div>
 
-### 1.2 Thing2 的得與失
+### 1.2 EAV 的得與失
 
-| 維度              | 優勢                                             | 代價與瓶頸                                     |
-| :---------------- | :----------------------------------------------- | :--------------------------------------------- |
-| **Schema 敏捷性** | 新增功能只需寫入新的 key，完全無需 DDL Migration | 無法依賴資料庫的外鍵（FK）與約束檢查           |
-| **儲存彈性**      | 所有物件類型（用戶、貼文、投票）統一抽象         | 屬性都是字串，無法利用 DB 內建索引高效範圍查詢 |
-| **查詢效能**      | 讀取單一 Thing 時極為單純                        | 查詢複雜關聯必須在應用層手動執行多次 `SELECT`  |
+| 維度              | 優勢                                             | 代價與瓶頸                                         |
+| :---------------- | :----------------------------------------------- | :------------------------------------------------- |
+| **Schema 敏捷性** | 新增功能只需寫入新的 key，完全無需 DDL Migration | 無法依賴資料庫的外鍵（FK）與約束檢查               |
+| **儲存彈性**      | 使用者、貼文、留言等實體共用同一種抽象           | 屬性值以字串存放，無法利用 DB 內建索引高效範圍查詢 |
+| **查詢效能**      | 讀取單一 Thing 時極為單純                        | 查詢複雜關聯必須在應用層手動執行多次 `SELECT`      |
 
-隨著資料量突破數十億筆，EAV 的 SQL 查詢爆炸問題日益嚴重，Reddit 必須將資料庫查詢嚴密防禦在多層快取之後。
+Huffman 也提到，這個設計讓資料庫不需要 join，比較容易分散到多台機器。代價是應用層要自己拼資料，所以讀取要擋在快取後面。
+
+投票不屬於這套模型。r2 最終版的 `LinkVotesByAccount` 與 `CommentVotesByAccount` 存在 Cassandra（[vote.py](https://github.com/reddit-archive/reddit/blob/master/r2/r2/models/vote.py)）。
 
 ---
 
-## 2. 快取架構：Memcached 與 Redis 排行榜
-
-為了不讓龐大的讀取流量穿透至 PostgreSQL，Reddit 建立了極其激進的快取策略。
+## 2. 快取架構：Memcached 物件快取與排行列表
 
 ### 2.1 Memcached 物件快取
 
-- **快取整個 Thing 物件**：當應用層讀取 `Thing ID: 1001` 時，首先在 Memcached 尋找。命中時直接取得反序列化後的 Python/Go 物件，讀取延遲小於 1ms。
-- **快取穿透防禦**：使用分散式 Mutex Lock。當快取失效時，只允許一個 Worker 執行 SQL 回源載入並回寫 Memcached，其餘請求等待，避免資料庫被瞬間打垮。
+- **快取整個 Thing 物件**：Neil Williams 提到，讀取 Thing 時先查 memcache，沒有才回資料庫；資料變更時是直接寫入 memcache，不是刪除快取（[QCon SF 2017](https://www.infoq.com/presentations/reddit-architecture-evolution/)）。r2 的 `cache.py` 設定 Memcached 用 ketama 一致性雜湊分流。
+- **快取擊穿防禦**：r2 的 `memoize.py` 在快取失效時用 Memcached 實作的鎖，拿到鎖後會先確認等待期間資料是否已被別人算好，只有一個請求回源（[memoize.py](https://github.com/reddit-archive/reddit/blob/master/r2/r2/lib/memoize.py)）。查詢結果的快取也有同樣的鎖。依我讀原始碼的結果，用 ID 直接讀取單一 Thing 的路徑沒有這把鎖。
 
-### 2.2 Redis Sorted Sets (ZSet) 與即時排行榜
+### 2.2 排行列表：Reddit 的做法與 Redis ZSet 示意
 
-Subreddit（看板）的熱門文章列表不走關聯查詢，而是由 **Redis Sorted Sets** 直接提供：
+Reddit 的 subreddit 熱門列表不是 Redis。r2 的 `query_cache.py` 說明列表在 Cassandra 裡維護，每份最多保留 1000 筆（`MAX_CACHED_ITEMS`）；Neil Williams 說早期列表是 memcache 裡的 ID 清單，後來移到 Cassandra，並由 vote queue 頻繁更新，更新時加鎖、依 subreddit ID 分區（[query_cache.py](https://github.com/reddit-archive/reddit/blob/master/r2/r2/models/query_cache.py)、[QCon SF 2017](https://www.infoq.com/presentations/reddit-architecture-evolution/)）。
+
+如果改用 Redis Sorted Sets 實作同樣的列表，是這個樣子。這是我的設計示意，Reddit 沒有公開這樣的做法：
 
 ```redis
-# 將貼文 ID 加入 Subreddit 的熱度排行榜 (Score 為 Hot 演算法計算出的數值)
-ZADD subreddit:tech:hot 1725278400.45 "link_1001"
-ZADD subreddit:tech:hot 1725278100.80 "link_1002"
+# 將貼文 ID 加入 Subreddit 的熱度排行榜 (Score 為 Hot 演算法計算出的數值，
+# 例：淨票數 120、900，發文時間 2024-09-02 約 12:00 UTC)
+ZADD subreddit:tech:hot 13140.98 "link_1001"
+ZADD subreddit:tech:hot 13141.85 "link_1002"
 
-# 獲取前 25 筆熱門貼文 (時間複雜度 O(log N + M))
+# 取得前 25 筆熱門貼文 (時間複雜度 O(log N + M))
 ZREVRANGE subreddit:tech:hot 0 24
 ```
 
 ---
 
-## 3. 留言樹（Comment Tree）架構與 Cassandra 遷移
+## 3. 留言樹（Comment Tree）：Reddit 公開的做法與寬表設計示意
 
-Reddit 討論區最核心的靈魂是**多層級留言樹**。在一篇熱門貼文下，可能存在 50,000 條留言，巢狀深度可達數十層。
+留言樹要處理多層級的巢狀結構，常見的儲存模式有三種：
 
 ### 3.1 樹狀資料的儲存模式比較
 
 | 模式                                   | 寫入複雜度                | 查詢單一子樹          | 跨層級排序難度               |
 | :------------------------------------- | :------------------------ | :-------------------- | :--------------------------- |
 | **Adjacency List (鄰接表: parent_id)** | **`O(1)` 最快**           | 需要遞迴 CTE 查詢，慢 | 難以在資料庫內一次性排序     |
-| **Nested Sets (巢狀集合: lft/rgt)**    | `O(N)` 插入節點需更新全樹 | `O(1)` 單次範圍查詢   | 寫入併發極差，不適用高頻評論 |
+| **Nested Sets (巢狀集合: lft/rgt)**    | `O(N)` 插入節點需更新全樹 | `O(1)` 單次範圍查詢   | 寫入併發極差，不適用高頻留言 |
 | **Materialized Path (物化路徑)**       | **`O(1)` 高效**           | **前綴索引快速匹配**  | **應用層組裝最佳選擇**       |
 
-### 3.2 Materialized Path 與記憶體樹重構
+### 3.2 Reddit 實際用的是哪一種
 
-Reddit 採用了 **物化路徑（Materialized Path）** 搭配應用層記憶體重構：
+Reddit 沒有用物化路徑。r2 的 `comment_tree.py` 存的是「留言 ID 對應子留言 ID 清單」的整棵樹（`CommentTreePermacache`，key 為 `comments_<link id>`），parents 與 depth 在讀出後由樹算出，寫入時要加 `comment_tree` 鎖。檔案註解還記錄了兩版 Cassandra 寬表設計都已放棄：一版因為計數器不可靠，另一版因為 GC 問題（[comment_tree.py](https://github.com/reddit-archive/reddit/blob/master/r2/r2/models/comment_tree.py)）。排序用的分數則另外存成預先算好的 `CommentScoresByLink`。
+
+後來留言功能重新改寫過。InfoQ 2025 年 11 月報導 RedditEng 的文章，說留言從舊的 Python 系統遷到 Go 微服務，建立留言時寫入 PostgreSQL、Memcached 與 Redis（[InfoQ](https://www.infoq.com/news/2025/11/reddit-comments-go-migration/)）。我沒能直接開啟 RedditEng 原文，這段是轉述。
+
+### 3.3 參考設計：Materialized Path 加寬表
+
+下面是我設計的另一種做法，不屬於 Reddit。它想換到的好處是：寫入只追加一列、不用鎖整棵樹，讀取時一次抓出同一篇貼文的所有留言。上面提到 Reddit 放棄寬表的原因，也是這個做法要自己驗證的風險。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 170" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rd-tree-title rd-tree-desc">
-    <title id="rd-tree-title">Reddit 留言樹物化路徑（Materialized Path）階層示意圖</title>
+    <title id="rd-tree-title">留言樹物化路徑（Materialized Path）階層示意圖（參考設計）</title>
     <desc id="rd-tree-desc">展示 Comment 1 (0001) 下階層物化路徑 Comment 1.1 (0001.0001)、Comment 1.1.1 (0001.0001.0001) 與 Comment 1.2 (0001.0002)。</desc>
     
     <rect x="30" y="15" width="220" height="35" rx="6" fill="#1b2e23" stroke="#238636"/>
@@ -181,21 +185,23 @@ Reddit 採用了 **物化路徑（Materialized Path）** 搭配應用層記憶�
   </svg>
 </div>
 
-1. **儲存結構**：在 **Apache Cassandra** 中建立寬表，以 `post_id` 作為 Partition Key，以 `comment_id` 或 `path` 作為 Clustering Key。
-2. **批次加載**：打開貼文時，一次性拉取該 `post_id` 下的所有評論 ID、Parent ID 與 Vote Score。
+1. **儲存結構**：在 **Apache Cassandra** 中建立寬表，以 `post_id` 作為 Partition Key，以 `path` 作為 Clustering Key。
+2. **批次載入**：打開貼文時，一次性拉取該 `post_id` 下的所有留言 ID、Parent ID 與 Vote Score。
 3. **應用層組裝**：在應用伺服器記憶體中，透過 Hash Map 在 `O(N)` 時間內建立出樹狀指標結構，並在記憶體中遞迴執行子留言的熱度排序與分頁裁剪（Pagination Truncation）。
 
 ---
 
-## 4. 演算法揭秘：Hot Ranking 與 Vote Fuzzing
+## 4. 演算法：Hot Ranking 與投票顯示
 
-### 4.1 Reddit 經典熱門排行演算法 (Hot Ranking)
+### 4.1 Reddit 的熱門排行演算法 (Hot Ranking)
 
-Reddit 貼文的排名分數計算公式如下：
+Reddit 貼文的排名分數，現行版本是這樣算的（U 為讚數、D 為倒讚數、t_post 為發文時間）：
 
 ```text
-Score = log10(max(|U - D|, 1)) + (sign(U - D) * (t_post - t_0)) / 45000
+Score = sign(U - D) * log10(max(|U - D|, 1)) + (t_post - t_0) / 45000
 ```
+
+t_0 是 2005-12-08 07:46:43 UTC（Unix 時間 1134028003）。這個版本出自 r2 的 [`_sorts.pyx`](https://github.com/reddit-archive/reddit/blob/master/r2/r2/lib/db/_sorts.pyx)。2014 年 1 月 12 日的 commit [Make hot score continuous](https://github.com/reddit-archive/reddit/commit/50d35de04b) 把舊版的 `order + sign * seconds / 45000` 改成 `sign * order + seconds / 45000`。網路上流傳的公式很多還是舊版。
 
 ```python
 # Reddit 經典 Hot Ranking 演算法 Python 實作
@@ -214,41 +220,48 @@ def calculate_hot_score(ups: int, downs: int, post_time: datetime) -> float:
     return round(sign * order + seconds / 45000, 7)
 ```
 
-- **對數效應**：前 10 個推票的權重等同於後續的 100 個推票、再等同於後續的 1000 個推票。
-- **時間衰減**：每過 12.5 小時，貼文的分數需要增加 10 倍的淨推票才能維持相同排名，確保首頁永遠有新鮮內容。
+- **對數效應**：淨票數每多 10 倍，分數加 1。第 1–10 票、第 11–100 票、第 101–1000 票，各讓分數加 1。
+- **時間衰減**：每過 12.5 小時，貼文需要多 10 倍的淨票數才能維持相同排名，首頁因此一直有新貼文。
 
-### 4.2 投票模糊化機制 (Vote Fuzzing)
+這個分數不是在請求時算的，也不是用 cron 批次算的。依 Neil Williams 的說法，投票進入 vote queue，由背景程式增量更新 listing。
 
-為了防止垃圾郵件與惡意刷票機器人（Spambots）檢測出自己的帳號是否已被系統「影子封禁（Shadowbanned）」，Reddit 在 API 回傳與前端渲染貼文的投票數時，會加入一個**受控的隨機微幅波動（Noise +/- 3%）**。機器人無法透過單次回傳精確得知其投票是否生效。
+### 4.2 投票顯示的擾動（設計示意）
 
----
-
-## 5. 現代架構：Baseplate 微服務生態
-
-隨著 Python 單體的效能瓶頸顯現，Reddit 開發了開源微服務底座 **Baseplate**（支援 Go 與 Rust）：
-
-- **高效能 Thrift / gRPC 通訊**：全面取代舊有的 HTTP JSON 內部呼叫。
-- **統一可觀測性**：內建 OpenTelemetry 追蹤、Prometheus 指標與結構化日誌。
-- **非同步事件流**：基於 Apache Kafka 與 Apache Flink 實現即時反作弊風控與動態投票聚合。
+防刷票的設計常見一種做法：API 回傳的票數與實際票數略有出入，讓機器人無法確定自己的投票是否生效，例如帳號被影子封禁時。幅度與規則由實作自訂。Reddit 是否這樣做、怎麼做，我沒有找到一手來源，這裡只當作設計示意。
 
 ---
 
-## 6. 架構總結與設計啟示
+## 5. Baseplate 微服務框架
 
-| 架構維度       | 早期方案 (Thing2)            | 現代架構 (Baseplate + Cassandra)              |
-| :------------- | :--------------------------- | :-------------------------------------------- |
-| **資料儲存**   | PostgreSQL 上的 EAV 兩表模型 | Cassandra (留言/投票) + Aurora PostgreSQL     |
-| **留言樹渲染** | SQL 多次查詢拼裝             | Cassandra 寬表 + Materialized Path 記憶體構建 |
-| **排行榜**     | 批次 Cron Job 計算           | Redis ZSets + Flink 即時流式 Hot Ranking 計算 |
-| **後端技術棧** | Python 2 單體                | Go / Rust (Baseplate 框架) + Kubernetes       |
+Reddit 開源了自家的服務框架 Baseplate，有 [Python 版](https://github.com/reddit/baseplate.py)（已封存）與 [Go 版](https://github.com/reddit/baseplate.go)。Go 版的 README 說它是 Python 版的 Go 實作。從 repo 內容可以確認的有：
 
-Reddit 的架構演進證明了：在極端讀多寫少的社群場景中，**資料庫並不是用來做複雜運算的，而是用來持久化狀態**。透過記憶體快取矩陣、物化路徑預排序與應用層高效構建，才能在百萬併發下維持極致的流暢體驗。
+- **通訊**：有 `thriftbp` 與 `grpcbp` 套件，go.mod 依賴 Apache Thrift 與 gRPC；Neil Williams 也說 Thrift 提供了清楚的強型別 schema。同一個 repo 也有 `httpbp`，所以 HTTP 並沒有被取代。
+- **可觀測性**：有 `prometheusbp` 與 `log` 套件；追蹤是接 Zipkin，實作的是 OpenTracing 介面，go.mod 裡沒有 OpenTelemetry。
+- **事件流**：RedditEng 介紹過 REV2 規則引擎，Lua 規則由 Kafka 事件觸發，由 Flink Stateful Functions 與 Baseplate 應用執行，用於反作弊（[InfoQ，2023 年 10 月](https://www.infoq.com/news/2023/10/reddit-rev2)）。
+
+---
+
+## 6. 設計對照
+
+| 架構維度       | Reddit r2 時期公開的做法                           | 本文參考設計                               |
+| :------------- | :------------------------------------------------- | :----------------------------------------- |
+| **資料儲存**   | PostgreSQL 上每種型別兩張 EAV 表；投票在 Cassandra | 同樣的 EAV 兩表，以貼文為例                |
+| **留言樹**     | 整棵樹存 permacache，寫入加鎖                      | Cassandra 寬表加 Materialized Path         |
+| **排行榜**     | Cassandra 上的 CachedQuery，由 vote queue 增量更新 | Redis ZSets                                |
+| **後端技術棧** | Python 單體；留言功能後來改寫為 Go 微服務          | 不指定，Baseplate 是 Reddit 開源的選項之一 |
+
+這套參考設計的取向是：資料庫只負責持久化，讀取交給快取，排序結果事先算好。Reddit 公開的做法與我的示意設計在留言樹和排行榜上走了不同的路，要採用哪一種，得看自己的寫入量和團隊能承擔的維運成本。
 
 ---
 
 ## 參考一手來源與延伸閱讀
 
-- [Reddit Engineering Blog: Evolution of Reddit Core Storage](https://www.reddit.com/r/RedditEng/)
-- [Reddit Open Source: Baseplate.py / Baseplate.go](https://github.com/reddit/baseplate.go)
-- [How Reddit Ranking Algorithms Work (Amir Salihefendic Analysis)](https://moz.com/blog/reddit-stumbleupon-delicious-and-hacker-news-algorithms-exposed)
-- [ByteByteGo: Reddit's Core Architecture Visual Guide](https://bytebytego.com/guides/reddit's-core-architecture)
+- [reddit-archive/reddit 原始碼](https://github.com/reddit-archive/reddit)：`tdb_sql.py`、`query_cache.py`、`comment_tree.py`、`_sorts.pyx`、`vote.py`、`memoize.py`
+- [Reddit 官方 wiki：Architecture Overview](https://github.com/reddit-archive/reddit/wiki/Architecture-Overview)
+- [Neil Williams, The Evolution of Reddit.com's Architecture（QCon SF 2017，InfoQ）](https://www.infoq.com/presentations/reddit-architecture-evolution/)
+- [InfoQ：7 Lessons Learned While Building Reddit（Steve Huffman，2010）](https://www.infoq.com/news/2010/05/7-Lessons-Reddit)
+- [reddit/baseplate.py](https://github.com/reddit/baseplate.py) 與 [reddit/baseplate.go](https://github.com/reddit/baseplate.go)
+- [InfoQ：Reddit 留言後端遷移至 Go（2025 年 11 月）](https://www.infoq.com/news/2025/11/reddit-comments-go-migration/)
+- [InfoQ：Reddit REV2 規則引擎（2023 年 10 月）](https://www.infoq.com/news/2023/10/reddit-rev2)
+- [Danny Dover, Reddit, Stumbleupon, Del.icio.us and Hacker News Algorithms Exposed!（Moz，2008）](https://moz.com/blog/reddit-stumbleupon-delicious-and-hacker-news-algorithms-exposed)：二手來源，解釋 45000 秒，屬舊版公式
+- [ByteByteGo：Reddit's Core Architecture Visual Guide](https://bytebytego.com/guides/reddits-core-architecture/)：二手整理

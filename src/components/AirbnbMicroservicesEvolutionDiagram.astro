@@ -1,5 +1,5 @@
 ---
-// Airbnb Microservices Evolution Architecture Diagram
+// Microservices Evolution Reference Diagram
 ---
 
 <figure class="ab-diagram" aria-labelledby="ab-caption">
@@ -9,11 +9,10 @@
     role="img"
     aria-labelledby="ab-title ab-desc"
   >
-    <title id="ab-title">Airbnb 微服務架構三代演進全景</title>
+    <title id="ab-title">微服務架構三階段演進參考設計</title>
     <desc id="ab-desc">
-      展示從單體 Monorail (Rails)、第一代無序 SOA 蜘蛛網，到第二代 DAG
-      樹狀分層治理 (Presentation, Mid-tier, DAS) 與 Viaduct GraphQL
-      資料網格的演進。
+      展示從 Rails 單體、無序 SOA 蜘蛛網，到單向分層治理 (Presentation,
+      Mid-tier, DAS) 與統一 GraphQL 資料層的參考設計。
     </desc>
 
     <defs>
@@ -33,8 +32,8 @@
     <!-- Column 1: Era 1 Monorail -->
     <g class="ab-diagram__card" transform="translate(20, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="ab-diagram__badge" x="14" y="26">ERA 1 (2008-2015)</text>
-      <text class="ab-diagram__title" x="14" y="54">Monorail 單體時代</text>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 1</text>
+      <text class="ab-diagram__title" x="14" y="54">Rails 單體階段</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -49,11 +48,9 @@
           >• 所有業務緊密耦合在一個 Repo</text
         >
         <text class="ab-diagram__desc" x="10" y="58"
-          >• 數百名工程師同時提交代碼</text
+          >• 數百名工程師同時提交程式碼</text
         >
-        <text class="ab-diagram__desc" x="10" y="76"
-          >• 部署隊列嚴重阻塞 (Hours)</text
-        >
+        <text class="ab-diagram__desc" x="10" y="76">• 部署佇列嚴重阻塞</text>
       </g>
 
       <g transform="translate(14, 185)">
@@ -63,15 +60,13 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
         <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
-          >Single Massive MySQL</text
+          >Single Shared Database</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
-          >• 房源、用戶、訂單混在同庫</text
+          >• 房源、使用者、訂單混在同庫</text
         >
         <text class="ab-diagram__desc" x="10" y="58">• 大量複雜跨表 JOIN</text>
-        <text class="ab-diagram__desc" x="10" y="76"
-          >• 連線池與 CPU 頻繁打滿</text
-        >
+        <text class="ab-diagram__desc" x="10" y="76">• 慢查詢互相拖累</text>
       </g>
 
       <g transform="translate(14, 295)">
@@ -91,8 +86,8 @@
     <!-- Column 2: Era 2 Ad-hoc SOA -->
     <g class="ab-diagram__card" transform="translate(255, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="ab-diagram__badge" x="14" y="26">ERA 2 (2015-2018)</text>
-      <text class="ab-diagram__title" x="14" y="54">第一代無序 SOA 蜘蛛網</text>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 2</text>
+      <text class="ab-diagram__title" x="14" y="54">無序 SOA 蜘蛛網</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -101,10 +96,10 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--blue"></rect>
         <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
-          >Service Sprawl (500+)</text
+          >Service Sprawl</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
-          >• 快速拆分出數百個微服務</text
+          >• 各團隊各自拆出大量微服務</text
         >
         <text class="ab-diagram__desc" x="10" y="58"
           >• Thrift RPC 點對點互相呼叫</text
@@ -141,10 +136,10 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
         <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
-          >SmartStack 服務發現</text
+          >服務發現</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
-          >• Nerve + Synapse + HAProxy</text
+          >• 例：Nerve + Synapse + HAProxy</text
         >
         <text class="ab-diagram__desc" x="10" y="58"
           >• 基礎網路路由能力成型</text
@@ -155,8 +150,8 @@
     <!-- Column 3: Era 3 Structured SOA & DAG -->
     <g class="ab-diagram__card" transform="translate(490, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="ab-diagram__badge" x="14" y="26">ERA 3 (2018-PRESENT)</text>
-      <text class="ab-diagram__title" x="14" y="54">第二代 DAG 樹狀分層</text>
+      <text class="ab-diagram__badge" x="14" y="26">ERA 3</text>
+      <text class="ab-diagram__title" x="14" y="54">單向分層 (參考設計)</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -200,11 +195,9 @@
           >Data Access Services (DAS)</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
-          >• 唯一獲取實體資料的門戶</text
+          >• 唯一取得實體資料的門戶</text
         >
-        <text class="ab-diagram__desc" x="10" y="58"
-          >• 隔離底層 MySQL/HBase/Redis</text
-        >
+        <text class="ab-diagram__desc" x="10" y="58">• 隔離底層儲存引擎</text>
       </g>
 
       <g transform="translate(14, 325)">
@@ -214,7 +207,7 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
         <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
-          >DAG 依賴檢查 (Arch CI)</text
+          >依賴檢查 (CI)</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
           >• CI 自動檢測禁止循環依賴</text
@@ -231,7 +224,7 @@
       <text class="ab-diagram__badge" x="14" y="26"
         >DATA MESH &amp; PLATFORM</text
       >
-      <text class="ab-diagram__title" x="14" y="54">Viaduct 與平台工程</text>
+      <text class="ab-diagram__title" x="14" y="54">資料層與平台工程</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -240,17 +233,11 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--gold"></rect>
         <text class="ab-diagram__header ab-diagram__header--gold" x="10" y="20"
-          >Viaduct GraphQL Mesh</text
+          >統一 GraphQL 資料層</text
         >
-        <text class="ab-diagram__desc" x="10" y="40"
-          >• 統一領域實體 Schema 拼接</text
-        >
-        <text class="ab-diagram__desc" x="10" y="58"
-          >• 自動批次 DataLoader (防 N+1)</text
-        >
-        <text class="ab-diagram__desc" x="10" y="76"
-          >• 跨服務欄位層級權限控制</text
-        >
+        <text class="ab-diagram__desc" x="10" y="40">• 單一中央 Schema</text>
+        <text class="ab-diagram__desc" x="10" y="58">• 自動批次 (防 N+1)</text>
+        <text class="ab-diagram__desc" x="10" y="76">• 欄位層級存取檢查</text>
       </g>
 
       <g transform="translate(14, 180)">
@@ -260,17 +247,13 @@
           rx="6"
           class="ab-diagram__subcard ab-diagram__subcard--teal"></rect>
         <text class="ab-diagram__header ab-diagram__header--teal" x="10" y="20"
-          >OneTouch Deployment</text
+          >宣告式部署</text
         >
         <text class="ab-diagram__desc" x="10" y="40"
           >• 宣告式服務配置 (YAML)</text
         >
-        <text class="ab-diagram__desc" x="10" y="58"
-          >• Spinnaker 自動化金絲雀發布</text
-        >
-        <text class="ab-diagram__desc" x="10" y="76"
-          >• 指標異常自動秒級回滾</text
-        >
+        <text class="ab-diagram__desc" x="10" y="58">• 自動化金絲雀發布</text>
+        <text class="ab-diagram__desc" x="10" y="76">• 指標異常自動回滾</text>
       </g>
 
       <g transform="translate(14, 285)">
@@ -282,9 +265,7 @@
         <text class="ab-diagram__header ab-diagram__header--blue" x="10" y="20"
           >Observability &amp; Tracing</text
         >
-        <text class="ab-diagram__desc" x="10" y="40"
-          >• OpenTelemetry 全鏈路追蹤</text
-        >
+        <text class="ab-diagram__desc" x="10" y="40">• 分散式追蹤</text>
         <text class="ab-diagram__desc" x="10" y="58"
           >• 服務依賴拓撲即時分析</text
         >
@@ -313,20 +294,19 @@
     role="img"
     aria-labelledby="ab-m-title"
   >
-    <title id="ab-m-title">Airbnb 架構演進（手機檢視）</title>
+    <title id="ab-m-title">微服務架構演進參考設計（手機檢視）</title>
 
     <g class="ab-diagram__card" transform="translate(10, 10)">
       <rect width="300" height="130" rx="8"></rect>
-      <text class="ab-diagram__badge" x="12" y="22">1. 單體時代 (Monorail)</text
-      >
+      <text class="ab-diagram__badge" x="12" y="22">1. Rails 單體階段</text>
       <text class="ab-diagram__desc" x="12" y="45"
         >• Ruby on Rails 單體包含所有業務</text
       >
       <text class="ab-diagram__desc" x="12" y="65"
-        >• 數百名工程師同時提交，部署隊列阻塞</text
+        >• 數百名工程師同時提交，部署佇列阻塞</text
       >
       <text class="ab-diagram__desc" x="12" y="85"
-        >• 單一巨大 MySQL 負擔重，跨表 JOIN 混亂</text
+        >• 單一共用資料庫負擔重，跨表 JOIN 混亂</text
       >
       <text class="ab-diagram__desc" x="12" y="105"
         >• 單點故障直接威脅全站可用性</text
@@ -335,9 +315,9 @@
 
     <g class="ab-diagram__card" transform="translate(10, 155)">
       <rect width="300" height="135" rx="8"></rect>
-      <text class="ab-diagram__badge" x="12" y="22">2. 第一代 SOA 蜘蛛網</text>
+      <text class="ab-diagram__badge" x="12" y="22">2. 無序 SOA 蜘蛛網</text>
       <text class="ab-diagram__desc" x="12" y="45"
-        >• 快速拆分 500+ 微服務，缺乏架構邊界</text
+        >• 大量微服務各自拆分，缺乏架構邊界</text
       >
       <text class="ab-diagram__desc" x="12" y="65"
         >• Thrift RPC 點對點網狀呼叫</text
@@ -346,13 +326,13 @@
         >• 循環依賴導致級聯雪崩與排障困難</text
       >
       <text class="ab-diagram__desc" x="12" y="105"
-        >• 演化為「分佈式單體 (Distributed Monolith)」</text
+        >• 演化為「分散式單體 (Distributed Monolith)」</text
       >
     </g>
 
     <g class="ab-diagram__card" transform="translate(10, 305)">
       <rect width="300" height="140" rx="8"></rect>
-      <text class="ab-diagram__badge" x="12" y="22">3. 第二代 DAG 樹狀分層</text
+      <text class="ab-diagram__badge" x="12" y="22">3. 單向分層 (參考設計)</text
       >
       <text class="ab-diagram__desc" x="12" y="45"
         >• 嚴格三層：Presentation ➔ Mid-tier ➔ DAS</text
@@ -361,7 +341,7 @@
         >• Data Access Services 封裝底層資料庫</text
       >
       <text class="ab-diagram__desc" x="12" y="85"
-        >• 嚴格單向呼叫，CI 靜態檢查阻止循環依賴</text
+        >• 嚴格單向呼叫，CI 檢查阻止循環依賴</text
       >
       <text class="ab-diagram__desc" x="12" y="105"
         >• 架構邊界清晰，服務所有權明確</text
@@ -370,27 +350,25 @@
 
     <g class="ab-diagram__card" transform="translate(10, 460)">
       <rect width="300" height="145" rx="8"></rect>
-      <text class="ab-diagram__badge" x="12" y="22"
-        >4. Viaduct 與平台工程化</text
-      >
+      <text class="ab-diagram__badge" x="12" y="22">4. 資料層與平台工程化</text>
       <text class="ab-diagram__desc" x="12" y="45"
-        >• Viaduct GraphQL 統一資料網格與 Schema 拼接</text
+        >• 統一 GraphQL 資料層與單一中央 Schema</text
       >
       <text class="ab-diagram__desc" x="12" y="65"
-        >• DataLoader 自動批次查詢消除 N+1 效能陷阱</text
+        >• 自動批次查詢消除 N+1 效能陷阱</text
       >
       <text class="ab-diagram__desc" x="12" y="85"
-        >• OneTouch + Spinnaker 宣告式金絲雀自動部署</text
+        >• 宣告式配置 + 自動化金絲雀部署</text
       >
       <text class="ab-diagram__desc" x="12" y="105"
-        >• 全鏈路 OpenTelemetry 可觀測性守護系統</text
+        >• 分散式追蹤與服務依賴分析</text
       >
     </g>
   </svg>
 
   <figcaption id="ab-caption" class="ab-diagram__caption">
-    圖 1：Airbnb 微服務演進史 — 從 Monorail 單體、無序 SOA 蜘蛛網到 DAG
-    樹狀分層與 Viaduct 資料網格
+    圖 1：微服務演進參考設計 — 從 Rails 單體、無序 SOA 蜘蛛網到單向分層
+    與統一資料層（設計示意，非 Airbnb 實際架構）
   </figcaption>
 </figure>
 

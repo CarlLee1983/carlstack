@@ -9,12 +9,10 @@
     role="img"
     aria-labelledby="netflix-diag-title netflix-diag-desc"
   >
-    <title id="netflix-diag-title">
-      Netflix 階層式快取與 Zuul 百萬推播架構
-    </title>
+    <title id="netflix-diag-title">Netflix Zuul Push 與 EVCache 架構</title>
     <desc id="netflix-diag-desc">
-      展示 Netflix 如何透過 Zuul Push 邊緣節點維護數千萬智慧電視的長連線、利用
-      Push Registry 精準派發事件，並以 EVCache 與 XFetch 演算法消解快取雪崩。
+      展示 Netflix 公開過的做法：Zuul Push 邊緣節點維護裝置長連線、Push Registry
+      記錄連線位置，以及 EVCache 跨可用區的記憶體快取。
     </desc>
 
     <defs>
@@ -47,25 +45,27 @@
     <g class="netflix-diag__card" transform="translate(30, 40)">
       <rect width="200" height="370" rx="12"></rect>
       <text class="netflix-diag__badge" x="18" y="28">ENDPOINTS</text>
-      <text class="netflix-diag__title" x="18" y="58">全球多終端設備</text>
+      <text class="netflix-diag__title" x="18" y="58">全球多終端裝置</text>
       <text class="netflix-diag__desc" x="18" y="86"
         >• Smart TVs / Roku / 盒子</text
       >
       <text class="netflix-diag__desc" x="18" y="108"
-        >• iOS / Android 行動客戶端</text
+        >• iOS / Android（走 APNs / FCM）</text
       >
       <text class="netflix-diag__desc" x="18" y="130">• 瀏覽器 Web 端</text>
 
       <g transform="translate(14, 150)">
         <rect width="172" height="190" rx="8" class="netflix-diag__subcard"
         ></rect>
-        <text class="netflix-diag__subhead" x="12" y="24">連線協議特化</text>
+        <text class="netflix-diag__subhead" x="12" y="24">連線協定特化</text>
         <text class="netflix-diag__code" x="12" y="48">WebSocket / SSE</text>
         <text class="netflix-diag__subdesc" x="12" y="76"
           >取代輪詢 (No Polling)</text
         >
         <text class="netflix-diag__subdesc" x="12" y="96">保持長連線狀態</text>
-        <text class="netflix-diag__subdesc" x="12" y="116">毫秒級即時互動</text>
+        <text class="netflix-diag__subdesc" x="12" y="116"
+          >伺服器可主動推播</text
+        >
         <text class="netflix-diag__tag" x="12" y="155">依連線數彈性伸縮</text>
       </g>
     </g>
@@ -99,10 +99,10 @@
         >Zuul Push 邊緣叢集</text
       >
       <text class="netflix-diag__desc" x="18" y="86"
-        >• Goldilocks 策略（大量輕量節點）</text
+        >• Goldilocks 策略（大量較小節點）</text
       >
       <text class="netflix-diag__desc" x="18" y="108"
-        >• 單機故障不引發驚群崩潰</text
+        >• 降低單機故障的驚群衝擊</text
       >
 
       <g transform="translate(14, 130)">
@@ -120,7 +120,7 @@
           >Map: Client ID ➔ Zuul Server Node</text
         >
         <text class="netflix-diag__subdesc" x="14" y="78"
-          >• 微服務發布事件時直接尋址目標邊緣機</text
+          >• Message Processor 查表後投遞</text
         >
 
         <path class="netflix-diag__divider" d="M 14 105 H 268"></path>
@@ -134,10 +134,10 @@
           >• 基於 Memcached 的跨 AZ 分散式記憶體</text
         >
         <text class="netflix-diag__subdesc" x="14" y="176"
-          >• XFetch 演算法：機率性提前失效防止雪崩</text
+          >• 寫入各 AZ，讀取本地 AZ</text
         >
         <text class="netflix-diag__tag netflix-diag__tag--red" x="14" y="200"
-          >亞毫秒級書籤與片單響應</text
+          >zone fallback 容錯</text
         >
       </g>
     </g>
@@ -152,7 +152,7 @@
       d="M 710 280 H 630"
       marker-end="url(#nf-arrow)"></path>
     <text class="netflix-diag__wire-label" x="670" y="170" text-anchor="middle"
-      >RENO 事件流</text
+      >事件經 Kafka</text
     >
     <text class="netflix-diag__wire-label" x="670" y="300" text-anchor="middle"
       >快取讀寫</text
@@ -164,7 +164,9 @@
       <text class="netflix-diag__badge" x="18" y="28">BACKEND & STORAGE</text>
       <text class="netflix-diag__title" x="18" y="58">後端微服務與事件中心</text
       >
-      <text class="netflix-diag__desc" x="18" y="86">• 推薦演算法引擎</text>
+      <text class="netflix-diag__desc" x="18" y="86"
+        >• RENO：去重、優先級佇列</text
+      >
       <text class="netflix-diag__desc" x="18" y="108"
         >• 多區域雙活 (Active-Active)</text
       >
@@ -175,17 +177,15 @@
         <text class="netflix-diag__subhead" x="12" y="24">智慧訊息策略</text>
         <text class="netflix-diag__code" x="12" y="48">Slow-Fast Policy</text>
         <text class="netflix-diag__subdesc" x="12" y="76"
-          >• Slow: 評估用戶疲勞度</text
+          >• Slow: 週訊息節奏規劃</text
         >
         <text class="netflix-diag__subdesc" x="12" y="96"
-          >• Fast: 毫秒級內容選擇</text
+          >• Fast: 每日挑選當下訊息</text
         >
         <text class="netflix-diag__subdesc" x="12" y="116"
-          >• 去重與優先級調度</text
+          >• 推播與 Email 頻率</text
         >
-        <text class="netflix-diag__tag" x="12" y="155"
-          >跨區 Cassandra 異步複製</text
-        >
+        <text class="netflix-diag__tag" x="12" y="155">與 RENO 為不同系統</text>
       </g>
     </g>
   </svg>
@@ -194,10 +194,8 @@
   <div class="netflix-diag__mobile">
     <div class="netflix-mobile-card">
       <span class="netflix-mobile-badge">01. 全球終端</span>
-      <h4>電視與行動端長連線</h4>
-      <p>
-        透過 WebSocket / SSE 建立持久連線，消除無效輪詢，連線負載自動彈性縮放。
-      </p>
+      <h4>電視、串流裝置與瀏覽器長連線</h4>
+      <p>透過 WebSocket / SSE 建立持久連線，消除無效輪詢，依連線數縮放節點。</p>
     </div>
 
     <div class="netflix-mobile-arrow">↓ 註冊與長連線</div>
@@ -208,8 +206,8 @@
       >
       <h4>Zuul Push 與 EVCache 叢集</h4>
       <p>
-        採用大量輕量節點（Goldilocks）降低單點故障衝擊，透過 Push Registry
-        尋址裝置，並以 EVCache 實現亞毫秒片單查詢。
+        採用大量較小節點（Goldilocks）降低單點故障衝擊，透過 Push Registry
+        尋址裝置，EVCache 寫入各 AZ、讀取本地 AZ。
       </p>
     </div>
 
@@ -217,17 +215,17 @@
 
     <div class="netflix-mobile-card">
       <span class="netflix-mobile-badge">03. 後端引擎</span>
-      <h4>RENO 事件分發與 Slow-Fast 決策</h4>
+      <h4>RENO 事件與 Slow-Fast 訊息策略</h4>
       <p>
-        Slow 政策防止通知疲勞，Fast 政策動態推播最新影片，配合多區域
-        Active-Active 實現極致高可用。
+        RENO 負責事件的去重與優先級；Slow-Fast 是另一套通知決策，Slow
+        規劃訊息節奏，Fast 每日挑選當下訊息。
       </p>
     </div>
   </div>
 
   <figcaption id="netflix-diag-caption">
-    圖 1：Netflix 邊緣推播與快取架構：結合 Zuul Push 長連線註冊表、EVCache
-    記憶體叢集與 Slow-Fast 智慧推播決策。
+    圖 1：Netflix 公開過的邊緣推播與快取架構：Zuul Push 長連線註冊表、EVCache
+    記憶體叢集、RENO 與 Slow-Fast 通知決策。
   </figcaption>
 </figure>
 
