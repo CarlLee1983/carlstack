@@ -14,3 +14,6 @@ graft/
 # 本機工具產物
 .playwright-mcp/
 output/
+
+# trail 本機 session 筆記，未納入版控
+.trail/learnings/2026-10-16-main-carl.md
