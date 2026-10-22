@@ -2,6 +2,7 @@
 title: "GitLab 緊急修補要驗收到工作流，19.3 分支目標已改為 19.3.5"
 description: "核對 GitLab 十月修補的 RCE 與 Duo 提示注入條件，分開處理版本到位、升級回復與權限驗收，避免把套件更新成功當成事件結案。"
 publishDate: 2026-10-13T10:10:30+08:00
+updatedDate: 2026-10-22T10:04:50+08:00
 draft: false
 featured: false
 tags:
@@ -15,6 +16,8 @@ coverAlt: "紅色金屬夾具扣住深色管件，黃銅量測頭接觸接縫，
 GitLab 的十月緊急修補，值得放進變更單的第一個細節是版本號。[官方 10 月 12 日公告](https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-4-2-released/)目前列出 19.4.2、19.3.5、19.2.8；19.3.4 在啟用 Ona 整合時有 merge request 頁面問題，後續由 19.3.5 修正。只照早期新聞填升級目標，可能讓修補工單過早結案。
 
 我會把這次驗收拆成版本、工作流、事件調查三份結果。套件裝完可以完成第一項的一部分；另外兩項仍需要各自的證據。以下是工程建議，本文未部署 GitLab、重現漏洞或執行升級。查核截至 2026 年 10 月 13 日台北上午。
+
+2026 年 10 月 21 日另有 CVE-2026-110264 緊急修補，受影響版本與目標已擴大。新的 [GitLab regex RCE 日誌查核](/blog/gitlab-regex-rce-patch-verification/)整理該輪修補界線，以及崩潰請求可能缺少 Rails 紀錄、需交叉核對 Workhorse 與 Puma 的調查限制。以下保留 10 月 12 日公告的驗收脈絡，不能用它的版本號判定後續漏洞已修補。
 
 ## RCE 與 Duo 注入需要不同的盤點問題
 
