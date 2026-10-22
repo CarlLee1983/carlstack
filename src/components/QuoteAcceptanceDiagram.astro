@@ -1,0 +1,202 @@
+<figure
+  class="quote-acceptance-diagram"
+  aria-labelledby="quote-acceptance-caption"
+>
+  <svg
+    class="quote-acceptance-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="quote-acceptance-title quote-acceptance-desc"
+  >
+    <title id="quote-acceptance-title">
+      報價到期，只影響尚未作成決定的新操作
+    </title>
+    <desc id="quote-acceptance-desc"
+      >三張獨立卡片比較原鍵重放、新操作及到期拒絕。原鍵同內容已有終局收據，直接重放原結果。新操作鎖定屬於顧客且尚未使用的報價後，取得新的資料庫時間判定期限，庫存足夠才共同提交訂單、報價使用紀錄與成功收據。到期則只提交拒絕收據。</desc
+    >
+    <rect
+      class="quote-acceptance-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="quote-acceptance-diagram__heading" x="48" y="62"
+      >同一份報價，依操作是否已有決定分流</text
+    >
+    <text class="quote-acceptance-diagram__lead" x="48" y="94"
+      >報價承諾價格；下單交易才檢查並預留庫存。</text
+    >
+
+    <rect
+      class="quote-acceptance-diagram__card"
+      x="48"
+      y="120"
+      width="864"
+      height="108"
+      rx="12"></rect>
+    <text class="quote-acceptance-diagram__label" x="72" y="154"
+      >原鍵同內容・已有終局收據</text
+    >
+    <text class="quote-acceptance-diagram__detail" x="72" y="188"
+      >重放原訂單或原拒絕結果，不再用目前的報價期限重判。</text
+    >
+
+    <rect
+      class="quote-acceptance-diagram__card"
+      x="48"
+      y="248"
+      width="864"
+      height="134"
+      rx="12"></rect>
+    <text
+      class="quote-acceptance-diagram__label quote-acceptance-diagram__accept"
+      x="72"
+      y="282">新操作・尚未使用的報價仍在期限內</text
+    >
+    <text class="quote-acceptance-diagram__detail" x="72" y="316"
+      >取得報價鎖後，另取資料庫時間：accepted_at &lt; expires_at。</text
+    >
+    <text class="quote-acceptance-diagram__detail" x="72" y="348"
+      >全部庫存足夠，才共同提交訂單、報價使用紀錄與成功收據。</text
+    >
+
+    <rect
+      class="quote-acceptance-diagram__card"
+      x="48"
+      y="402"
+      width="864"
+      height="108"
+      rx="12"></rect>
+    <text
+      class="quote-acceptance-diagram__label quote-acceptance-diagram__reject"
+      x="72"
+      y="436">新操作・報價已到期</text
+    >
+    <text class="quote-acceptance-diagram__detail" x="72" y="470"
+      >只提交到期拒絕收據；顧客確認新報價後，以新鍵購買。</text
+    >
+
+    <text class="quote-acceptance-diagram__note" x="48" y="548"
+      >正常缺貨只提交拒絕收據，報價仍未使用；死結或鎖等待逾時，清理整筆交易。</text
+    >
+  </svg>
+
+  <div class="quote-acceptance-diagram__mobile">
+    <p class="quote-acceptance-diagram__mobile-lead">
+      報價承諾價格；下單交易才檢查並預留庫存。
+    </p>
+    <section class="quote-acceptance-diagram__mobile-card">
+      <h3>原鍵同內容・已有終局收據</h3>
+      <p>重放原訂單或原拒絕結果，不再用目前的報價期限重判。</p>
+    </section>
+    <section class="quote-acceptance-diagram__mobile-card">
+      <h3 class="quote-acceptance-diagram__accept">新操作・未使用且未到期</h3>
+      <p>
+        取得報價鎖後，另取資料庫時間，以 accepted_at 小於 expires_at
+        判定。全部庫存足夠，才共同提交訂單、報價使用紀錄與成功收據。
+      </p>
+    </section>
+    <section class="quote-acceptance-diagram__mobile-card">
+      <h3 class="quote-acceptance-diagram__reject">新操作・報價已到期</h3>
+      <p>只提交到期拒絕收據。顧客確認新報價後，以新鍵購買。</p>
+    </section>
+    <p class="quote-acceptance-diagram__mobile-lead">
+      正常缺貨只提交拒絕收據，報價仍未使用。死結或鎖等待逾時，清理整筆交易。
+    </p>
+  </div>
+  <figcaption id="quote-acceptance-caption">
+    期限裁決放在取得報價鎖之後。原鍵恢復的是既有決定，只有尚未作成決定的新操作需要重新判定期限。
+  </figcaption>
+</figure>
+
+<style>
+  .quote-acceptance-diagram {
+    margin-block: var(--space-xl);
+  }
+  .quote-acceptance-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .quote-acceptance-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .quote-acceptance-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .quote-acceptance-diagram__heading {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .quote-acceptance-diagram__lead {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .quote-acceptance-diagram__label {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .quote-acceptance-diagram__detail,
+  .quote-acceptance-diagram__note {
+    font-size: 14px;
+    fill: var(--dg-ink-2);
+  }
+  .quote-acceptance-diagram__accept {
+    fill: #166534;
+    color: #166534;
+  }
+  .quote-acceptance-diagram__reject {
+    fill: #9a3412;
+    color: #9a3412;
+  }
+  :global(:root[data-theme="dark"]) .quote-acceptance-diagram__accept {
+    fill: #86efac;
+    color: #86efac;
+  }
+  :global(:root[data-theme="dark"]) .quote-acceptance-diagram__reject {
+    fill: #fdba74;
+    color: #fdba74;
+  }
+  .quote-acceptance-diagram__mobile {
+    display: none;
+  }
+  .quote-acceptance-diagram__mobile-lead {
+    color: var(--dg-ink-2);
+  }
+  .quote-acceptance-diagram__mobile-card {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+    background: var(--dg-surface);
+    overflow-wrap: anywhere;
+  }
+  .quote-acceptance-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--text-base);
+  }
+  .quote-acceptance-diagram__mobile-card p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .quote-acceptance-diagram figcaption {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--dg-ink-2);
+  }
+  @media (max-width: 48rem) {
+    .quote-acceptance-diagram__desktop {
+      display: none !important;
+    }
+    .quote-acceptance-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
