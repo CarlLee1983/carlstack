@@ -17,13 +17,13 @@ Apply to passages that tell what happened: incident stories, debugging journeys,
 
 ## 1. What narrative keeps
 
-In narrative, substance includes **beats**, concrete images, dialogue, and the narrator's voice — not only facts and judgments. These look like shell but are the story's skeleton. Keep them:
+In narrative, substance includes **beats**, concrete images, dialogue, and the narrator's voice, not only facts and judgments. These look like shell but are the story's skeleton. Keep them:
 
 - **Chronology**: tell events in the order they happened. Do not turn a nonfiction story into a list of lessons or flip it into conclusion-first unless the source already does.
 - **Scene and sensory detail**: the concrete picture in the source (the 2 a.m. alert, red text in the terminal) is substance. `en.md` §2 and §5 cut grand backdrops unrelated to the topic; a scene opening is not one.
 - **Sentence rhythm**: the author's mix of long and short sentences is their voice. Do not chop everything short.
 - **Deliberate repetition**: a line that opens and closes a passage, three knocks at a door. `en.md` §6 targets triplets added for cadence, not repetition doing narrative work.
-- **Open endings**: stopping on an image or action is a real ending. `en.md` §8's "stop at the last fact" means, in narrative, stop at the last beat — no summary line.
+- **Open endings**: stopping on an image or action is a real ending. `en.md` §8's "stop at the last fact" means, in narrative, stop at the last beat, with no summary line.
 - **Spoken dialogue**: characters may speak in fragments, repeat themselves, get things wrong. Do not polish speech into prose.
 
 When reworking an emotion or description, use only details already in the source, or cut the label. Never invent actions, scenes, or plot.
@@ -35,7 +35,7 @@ When reworking an emotion or description, use only details already in the source
 - ❌ When the tests finally passed, I felt an indescribable sense of accomplishment.
 - ✅ The tests passed. I stared at the screen for ten seconds before remembering to commit. (Only if the source has the staring; otherwise just "The tests passed.")
 
-In nonfiction, a feeling the author states plainly as their own ("honestly, I panicked") is stance — priority 2 — and stays. Cut the stock emotional phrasing, not the admission.
+In nonfiction, a feeling the author states plainly as their own ("honestly, I panicked") is stance (priority 2) and stays. Cut the stock emotional phrasing, not the admission.
 
 ## 3. Stock description
 
