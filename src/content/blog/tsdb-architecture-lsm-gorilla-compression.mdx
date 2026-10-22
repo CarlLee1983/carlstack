@@ -1,7 +1,8 @@
 ---
 title: "時序資料庫（TSDB）架構演進：LSM-Tree 寫入特化、倒排索引與 Facebook Gorilla 浮點壓縮"
-description: "深度拆解千萬級監控指標與 IoT 遙測場景下的時序資料庫（TSDB）核心架構：為何傳統 B+ Tree 無法承載高頻時序寫入；剖析 LSM-Tree / TSM 寫入管線；詳解 Tag 倒排索引（Inverted Index）多維檢索；深入 Facebook Gorilla 核心壓縮演算法（時間戳 Delta-of-Delta 與 Float64 XOR 壓縮）；對比 InfluxDB 與 TimescaleDB 架構選型。"
+description: "拆解千萬級監控指標與 IoT 遙測場景下的時序資料庫（TSDB）架構：傳統 B+ Tree 為何撐不住高頻時序寫入、LSM-Tree / TSM 寫入管線、Tag 倒排索引（Inverted Index）多維檢索、Facebook Gorilla 壓縮演算法（時間戳 Delta-of-Delta 與 Float64 XOR 壓縮），以及 InfluxDB 與 TimescaleDB 的架構選型。"
 publishDate: 2026-09-02T10:33:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -11,7 +12,6 @@ tags:
   - LSM-Tree
   - 資料結構
   - 儲存引擎
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/tsdb-architecture-lsm-gorilla.png
 coverAlt: "立體等距視角展示 TSDB 時序儲存引擎分層架構：頂部千萬級遙測波形串流寫入 MemTable，經由倒排索引與 Gorilla 壓縮模組，沉澱至底層分層壓縮 Chunk 儲存區。"
 series: 現代資料庫與儲存引擎內核
@@ -20,18 +20,18 @@ seriesOrder: 7
 
 import TsdbArchitectureLsmGorillaDiagram from "../../components/TsdbArchitectureLsmGorillaDiagram.astro";
 
-在現代雲端原生可觀測性（Prometheus、Grafana、Datadog）、IoT 物聯網遙測與金融高頻行情中，系統每秒需要接收**數百萬至數千萬筆帶有時間戳的指標數據（Metrics Data Points）**。
+在雲端原生可觀測性（Prometheus、Grafana、Datadog）、IoT 物聯網遙測與金融高頻行情這類場景，系統每秒要接收**數百萬至數千萬筆帶時間戳的指標資料（Metrics Data Points）**。
 
-這類資料具有高度鮮明的特徵：
+這類資料有幾個特徵：
 
-- **極致寫多讀少（95%+ 為寫入操作）**；
+- **寫多讀少（95%+ 為寫入操作）**；
 - **資料嚴格按時間單調遞增（Append-Only）**；
 - **幾乎不發生隨機覆蓋更新（No In-place Updates）**；
 - **隨時間推移，歷史資料價值急劇衰減（Hot/Cold Tiering）**。
 
-傳統基於 B+ Tree 的關聯式資料庫在這種持續高併發寫入下會迅速遭遇隨機 I/O 瓶頸與索引膨脹。因此，**時序資料庫（TSDB, Time Series Database）** 應運而生。
+以 B+ Tree 為索引的傳統關聯式資料庫，在這種持續的大量並行寫入下，很快就會碰到隨機 I/O 瓶頸與索引膨脹。**時序資料庫（TSDB, Time Series Database）** 就是為這類負載設計的。
 
-本文基於 Facebook 經典論文 [Gorilla: A Fast, Scalable, In-Memory Time Series Database (VLDB 2015)](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，深入剖析 TSDB 寫入管線、倒排索引與 Gorilla 極致壓縮演算法。
+以下參考 Facebook 的論文 [Gorilla: A Fast, Scalable, In-Memory Time Series Database (VLDB 2015)](https://www.vldb.org/pvldb/vol8/p1816-teller.pdf)，依序拆解 TSDB 的寫入管線、倒排索引與 Gorilla 壓縮演算法。
 
 <TsdbArchitectureLsmGorillaDiagram />
 
@@ -43,18 +43,18 @@ import TsdbArchitectureLsmGorillaDiagram from "../../components/TsdbArchitecture
 
 在時序場景中，每一筆寫入都是 `(metric_name, timestamp, value, tags)`。當建立索引時：
 
-1. **隨機 I/O 與頁分裂（Page Splits）**：多個不同的時間序列（Time Series）交錯寫入，導致 B+ Tree 葉節點在記憶體中不斷發生隨機尋址與分裂，磁碟寫放大（Write Amplification）極其嚴重。
+1. **隨機 I/O 與頁分裂（Page Splits）**：多個不同的時間序列（Time Series）交錯寫入，導致 B+ Tree 葉節點在記憶體中不斷發生隨機尋址與分裂，磁碟寫放大（Write Amplification）相當嚴重。
 2. **鎖爭用與高開銷**：B+ Tree 為了維護樹的平衡，寫入時需要對節點加鎖（Latch），無法充分發揮多核心平行寫入能力。
 
 ---
 
 ## 二、TSDB 儲存引擎：LSM-Tree 與 TSM 特化
 
-為了最大化寫入吞吐量，現代 TSDB（如 InfluxDB TSM、Prometheus TSDB）全面轉向 **LSM-Tree（Log-Structured Merge-tree）** 架構：
+為了拉高寫入吞吐量，現代 TSDB（如 InfluxDB TSM、Prometheus TSDB）全面轉向 **LSM-Tree（Log-Structured Merge-tree）** 架構：
 
-1. **WAL（預寫日誌）**：所有寫入直接順序追加到磁碟末尾，提供崩潰恢復保證，將隨機 I/O 轉化為**極限順序 I/O**。
+1. **WAL（預寫日誌）**：所有寫入直接順序追加到磁碟末尾，當機後可以靠它復原，也把隨機 I/O 變成**順序 I/O**。
 2. **MemTable（記憶體跳躍表）**：資料在記憶體中按 `SeriesKey + Timestamp` 排序。
-3. **Immutable Chunk Flush**：當 MemTable 達到大小閾值時，轉為不可變塊並 Flush 到磁碟，產生連續存放的時序 Chunk 檔案。
+3. **Immutable Chunk Flush**：當 MemTable 達到大小閾值時，轉成不可變的區塊並 Flush 到磁碟，產生連續存放的時序 Chunk 檔案。
 
 ---
 
@@ -66,7 +66,7 @@ import TsdbArchitectureLsmGorillaDiagram from "../../components/TsdbArchitecture
 http_requests_total{method="POST", handler="/api/pay", status="500", region="us-east"}
 ```
 
-用戶常發起多維度過濾查詢：`WHERE method="POST" AND status="500"`。
+使用者常下多維度的過濾查詢：`WHERE method="POST" AND status="500"`。
 
 ### 1. Series Key 到 Series ID (SID) 的映射
 
@@ -120,21 +120,21 @@ TSDB 將 `metric_name + sorted(tags)` 進行雜湊，分配一個全域唯一的
   </svg>
 </div>
 
-### 3. Roaring Bitmap 實現百萬級位元交集
+### 3. 用 Roaring Bitmap 做百萬級位元交集
 
-當執行 `method="POST" AND status="500"` 時，TSDB 透過 **Roaring Bitmap** 進行硬體加速的位元交集運算（AND bitwise operation），在**微秒級（microsecond）**內鎖定符合條件的 SID 集合 `[105, 203]`，再直接精確尋址讀取對應的時序資料塊。
+當執行 `method="POST" AND status="500"` 時，TSDB 用 **Roaring Bitmap** 做硬體加速的位元交集運算（AND bitwise operation），在**微秒級（microsecond）**內找出符合條件的 SID 集合 `[105, 203]`，再直接讀取對應的時序資料塊。
 
 > [!WARNING]
 > **高基數問題（High Cardinality Trap）**：
-> 若在 Tag 中放入使用者 ID（User ID）或訂單號（UUID），會導致 Series ID 數量瞬間暴增至數億級，壓垮倒排索引記憶體。**TSDB 標籤必須保持有限的低基數（Low Cardinality）**。
+> 若在 Tag 中放入使用者 ID（User ID）或訂單號（UUID），Series ID 數量會暴增到數億級，壓垮倒排索引記憶體。**TSDB 標籤必須保持有限的低基數（Low Cardinality）**。
 
 ---
 
-## 四、Facebook Gorilla 核心壓縮演算法（VLDB 2015）
+## 四、Facebook Gorilla 壓縮演算法（VLDB 2015）
 
 時序資料點由兩部分組成：**(Timestamp 64-bit, Value Float64 64-bit)**，原始大小為 **16 Bytes / 點**。
 
-Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓縮演算法，將平均每點大小壓縮至 **1.37 Bytes**，實現了 **12 倍以上的記憶體節省**。
+Facebook 在 2015 年發表的 [Gorilla 論文](https://www.vldb.org/pvldb/vol8/p1816-teller.pdf)把時間戳和數值分開壓縮：時間戳用 delta-of-delta 編碼，數值則把既有的 XOR 浮點壓縮法改成串流版本。以兩小時為一個區塊時，每個資料點平均從 16 Bytes 壓到 **1.37 Bytes**，論文記錄的縮減約 **12 倍**。
 
 ### 1. 時間戳壓縮：Delta-of-Delta（二階差分編碼）
 
@@ -151,7 +151,7 @@ Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓�
     <desc id="gorilla-ts-desc">展示等間隔 D=0 僅需 1 bit '0'，以及不同差分區間對應的變長前綴與位元長度。</desc>
     
     <rect x="20" y="15" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="40" y="41" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 情況 1: D == 0 (等間隔採樣，佔比 &gt; 90%) ➔ 僅寫入 1 個 bit: '0' (極致壓縮！)</text>
+    <text x="40" y="41" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 情況 1: D == 0 (等間隔採樣，ODS 實測約 96%) ➔ 僅寫入 1 個 bit: '0'</text>
 
     <rect x="20" y="65" width="370" height="36" rx="6" fill="#161b22" stroke="#388bfd"/>
     <text x="35" y="88" fill="#58a6ff" font-size="12" font-family="monospace">情況 2: -63 &le; D &le; 64 ➔ '10' (2b) + 7b (共 9 bits)</text>
@@ -165,20 +165,20 @@ Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓�
     <rect x="410" y="110" width="370" height="36" rx="6" fill="#161b22" stroke="#bc8cff"/>
     <text x="425" y="133" fill="#d2a8ff" font-size="12" font-family="monospace">情況 5: 其餘大跳躍 ➔ '1111' (4b) + 32b (共 36 bits)</text>
 
-    <text x="400" y="178" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">在穩定採樣週期中，每個時間戳平均開銷僅需 1 bit！</text>
+    <text x="400" y="178" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">ODS 實測約 96% 的時間戳只需 1 bit；區塊第一個時間戳用 14 bits 存差值</text>
 
   </svg>
 </div>
 
-在絕大多數週期性監控場景中，D = 0 佔比超過 90%，**每個時間戳僅需 1 個 bit 即可完成儲存**！
+論文在 Facebook 的監控系統 ODS 上實測，約 96% 的時間戳 D = 0，**只需 1 個 bit**。其餘依 D 的大小用 9 到 36 bits；每個兩小時區塊的第一個時間戳，則用 14 bits 存它和區塊起點的差值。
 
 ---
 
 ### 2. 浮點數值壓縮：Float64 XOR 演算法
 
-相鄰採樣點的浮點數值（如 CPU 使用率 55.42% ➔ 55.45%）在 IEEE 754 二進位表示中，**符號位、指數位以及大部分高位尾數是完全相同的**。
+相鄰採樣點的浮點數值（如 CPU 使用率 55.42% ➔ 55.45%）在 IEEE 754 二進位表示中，**符號位、指數位以及尾數最前面幾個位元會相同**。
 
-令當前值 Vn 與前值 Vn-1 進行 XOR 運算：X = Vn XOR Vn-1。
+把目前的值 Vn 和前一個值 Vn-1 做 XOR：X = Vn XOR Vn-1。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 160" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="gorilla-fp-title gorilla-fp-desc">
@@ -196,7 +196,7 @@ Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓�
   </svg>
 </div>
 
-透過 XOR 消除連續數值冗餘，浮點數平均大小由 8 Bytes 驟降至 **1.37 Bytes**。
+前面的 **1.37 Bytes** 是整個資料點（時間戳加數值，原本 16 Bytes）的平均，不是數值單獨的大小。論文給的數值分布是：約 51% 只需 1 bit，約 30% 用前綴 `10`（控制位 `0`）、平均 26.6 bits，其餘約 19% 用前綴 `11`、平均 36.9 bits。
 
 ---
 
@@ -206,18 +206,18 @@ Facebook 在 2015 年發表的 Gorilla 論文中提出了革命性的雙重壓�
 | :------------------ | :--------------------------------------- | :----------------------------------------- |
 | **底層引擎**        | 自研 TSM (LSM 變種) / Apache Arrow (IOx) | PostgreSQL 核心 + Hypertables 分區         |
 | **查詢語言**        | Flux / InfluxQL / SQL (v3)               | 標準 SQL (完整支援 JOIN、CTE、視窗函數)    |
-| **寫入吞吐量**      | ⭐️⭐️⭐️⭐️⭐️ (極高，專為寫入優化)          | ⭐️⭐️⭐️⭐️ (極高，Chunk 空間分區)            |
-| **關聯查詢 (JOIN)** | 較弱，不擅長複雜關聯                     | ⭐️⭐️⭐️⭐️⭐️ (完整享用 Postgres 生態)        |
+| **寫入吞吐量**      | ⭐️⭐️⭐️⭐️⭐️ (極高，專為寫入最佳化)        | ⭐️⭐️⭐️⭐️ (極高，Chunk 空間分區)            |
+| **關聯查詢 (JOIN)** | 較弱，不擅長複雜關聯                     | ⭐️⭐️⭐️⭐️⭐️ (可用完整 Postgres 生態)        |
 | **儲存成本**        | 極低（Gorilla + Parquet 列存）           | 較低（內建 Chunk 等級透明壓縮）            |
 | **最佳適用場景**    | 純監控指標、IoT 遙測、日誌時序           | 既需要時序高寫入、又需與業務資料庫關聯分析 |
 
 ---
 
-## 六、工程總結與落地實踐
+## 六、實作建議
 
-1. **寫入管線一律走順序追加**：拒絕隨機原地更新，利用 LSM-Tree / Chunk 分層將寫入放大降至最低。
+1. **寫入管線一律走順序追加**：不做隨機原地更新，靠 LSM-Tree / Chunk 分層把寫入放大壓到最低。
 2. **嚴格控制 Tag 標籤基數**：在 API Gateway 與 Ingestion 邊界防禦高基數標籤，防止倒排索引 OOM。
-3. **配置階層式降採樣（Downsampling Rollup）**：
+3. **設定階層式降採樣（Downsampling Rollup）**：
    - 原始精確度（10s）保存 7 天；
    - 5 分鐘 Rollup 降採樣保存 30 天；
-   - 1 小時 Rollup 降採樣歸檔至物件儲存（S3）保存 1 年以上，實現儲存成本與查詢效能的完美平衡。
+   - 1 小時 Rollup 降採樣歸檔至物件儲存（S3）保存 1 年以上，在儲存成本與查詢效能之間取得平衡。

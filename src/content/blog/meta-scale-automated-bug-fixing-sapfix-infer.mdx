@@ -1,7 +1,8 @@
 ---
-title: "Meta 規模化自動修復 Bug 架構：Infer 靜態分析與 SapFix 自動補丁生成的工業級實踐"
-description: "深入解析 Meta 如何在數百億行代碼與數萬次每日提交中，結合 Infer 分離邏輯靜態分析、SapFix 多策略補丁生成、沙盒隔離測試與 Human-in-the-loop 實現 75%+ 採納率的端到端自動 Bug 修復體系。"
+title: "Meta 的 SapFix 怎麼自動修 Bug：Sapienz 找當機、SapFix 產生補丁、Infer 輔助驗證"
+description: "依 Meta 2018 年的工程部落格與 ICSE-SEIP 2019 論文，整理 SapFix 這個 proof-of-concept 的流程：Sapienz 找到當機後觸發 SapFix 產生補丁，Infer 協助定位並在修補後重跑，最後交給工程師審查；論文報告約一半補丁被判定正確、約四分之一合入生產程式碼。"
 publishDate: 2026-09-02T11:10:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -10,61 +11,157 @@ tags:
   - "靜態分析"
   - "自動化測試"
   - "軟體工程"
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/meta-scale-automated-bug-fixing-sapfix-infer.png
 coverAlt: "程式缺陷經靜態分析、補丁生成與驗證閘門後完成修復"
 ---
 
 import MetaAutomatedBugFixingDiagram from "../../components/MetaAutomatedBugFixingDiagram.astro";
 
-在 Meta（Facebook、Instagram、WhatsApp），全球數萬名軟體工程師每天向巨大的 Monorepo 提交數萬次代碼變更（Diffs）。在如此龐大的規模下，即便是經驗最豐富的工程師，也難免會在代碼中引入**空指針異常（Null Pointer Exception, NPE）**、**記憶體/資源洩漏**或多執行緒**資料競爭（Data Race）**。
+2018 年 9 月 13 日，Meta（當時還叫 Facebook）在工程部落格發表〈[Finding and fixing software bugs automatically with SapFix and Sapienz](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-software-bugs-automatically-with-sapfix-and-sapienz/)〉，介紹自動修復工具 SapFix。細節寫在隔年的論文〈[SapFix: Automated End-to-End Repair at Scale](https://discovery.ucl.ac.uk/id/eprint/10084761/1/SapFix-Automated-End-to-End-Repair-at-Scale-v2.pdf)〉（ICSE-SEIP 2019，[DOI 10.1109/ICSE-SEIP.2019.00039](https://doi.org/10.1109/ICSE-SEIP.2019.00039)）。
 
-傳統的代碼質量保障依賴人工 Code Review 與自動化單元測試。然而，當代碼庫膨脹至數百億行時，人工定位 Bug、撰寫修復補丁、發起 Review 並重新驗證的成本極其高昂。
+論文說 SapFix 是「the first deployment of automated end-to-end fault fixing, from test case design through to deployed repairs in production code」；部落格的說法保守一點，前面加了「To our knowledge」。論文中 SapFix 修過 6 個生產系統，每個都有數千萬行程式碼。另一篇 Meta 作者群的〈[Scaling Static Analyses at Facebook](https://cacm.acm.org/magazines/2019/8/238344-scaling-static-analyses-at-facebook/pdf)〉（CACM，2019 年 8 月）則提到，Facebook 的程式庫每天都有數千次程式碼變更。
 
-Meta 是全球首家在超大規模生產環境中實現**「端到端自動化 Bug 偵測與自動修復閉環」**的科技巨頭。
+先講時期。部落格寫的是「In its current, proof-of-concept state」，也說 SapFix 還在開發，使用規模比不上 Sapienz。部落格同時說 SapFix 設計成獨立工具，有沒有 Sapienz 都能執行（「SapFix is designed to operate as an independent tool, able to run either with or without Sapienz」），但當時的版本專注修 Sapienz 找到的 bug。論文的數字來自前三個月的部署，外加一次三天的實驗。我沒有找到 Meta 後來公開說 SapFix 仍在運作的資料，所以下面都是 2018 年前後的狀態，不是現役管線。
 
-該架構的核心是由靜態分析引擎 **Infer** 與自動程序修復（Automated Program Repair, APR）系統 **SapFix** 協同驅動。
+SapFix 的流程從動態測試工具 **Sapienz** 開始。Sapienz 找到當機、歸因到某個 Diff 後，把它交給 SapFix 產生補丁。靜態分析工具 **Infer** 是輔助：它幫忙定位可能為 null 的運算式，並在修補後重跑一次。
 
 ---
 
-## 自動 Bug 修復全流程架構圖
-
-Meta 的自動修復管線與開發者的日常 CI/CD 流水線無縫集成，整個閉環如下圖所示：
+## 流程總覽
 
 <MetaAutomatedBugFixingDiagram />
 
-系統運作包含四個核心階段：
-
-1. **靜態分析檢測（Bug Detection by Infer）**：在代碼提交時執行增量差量掃描，基於分離邏輯毫秒級精確定位潛在缺陷。
-2. **自動補丁生成（Patch Generation by SapFix）**：結合工程範本、AST 語法樹變異與歷史修復學習，產生多個候選修復 Patch。
-3. **沙盒隔離驗證（Sandboxed CI Verification）**：在隔離容器中編譯並執行全量迴歸測試，確保「零回歸（Zero Regressions）」。
-4. **人機協同審查與合入（Human-in-the-loop Landing）**：機器人自動向代碼作者發起 Pull Request，工程師一鍵核准即可自動合併上線。
+1. **Sapienz 觸發**：Sapienz 在 Android app 上跑自動化測試，找到當機並歸因到引入它的 Diff，再交給 SapFix。
+2. **SapFix 產生補丁**：用範本修復、變異修復、整個 Diff revert、部分 revert 四種策略產生候選補丁。
+3. **隔離環境驗證**：編譯補丁、用 Sapienz 確認當機消失且沒有新當機、跑既有測試，再重跑 Infer。
+4. **人工審查與合入**：透過 Phabricator 把一個候選補丁送給原 Diff 的作者審查，接受後才合入。
 
 ---
 
-## 1. 檢測核心：Infer 靜態分析引擎與分離邏輯
+## 1. 觸發端：Sapienz 找到當機
 
-**Infer** 是 Meta 開源的高效能靜態代碼分析工具（支援 Java、C++、Objective-C、C#）。
+Sapienz 是 Meta 的動態測試工具，用搜尋式方法自動產生測試，部落格說它已經部署到生產環境，檢查 Facebook、Instagram、Workplace、Messenger 的 Android app。依[部落格](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-software-bugs-automatically-with-sapfix-and-sapienz/)，Sapienz 的報告約有四分之三後來被開發者修掉（「Approximately three quarters of Sapienz reports resulted in fixes by developers」）。這個 75% 是 Sapienz 報告的人工修復率，不是 SapFix 補丁的採納率。
 
-### 1.1 分離邏輯（Separation Logic）與雙向演繹（Bi-Abduction）
+Sapienz 定位到造成當機的程式碼區段後，把資訊交給 SapFix。依[論文](https://discovery.ucl.ac.uk/id/eprint/10084761/1/SapFix-Automated-End-to-End-Repair-at-Scale-v2.pdf)的 Algorithm 1，SapFix 的輸入是 Sapienz 的當機資訊：被歸咎的 revision、檔案、行號、stack trace 和 crash id。Infer 提供的可疑運算式是選用的補充，沒有 Infer 資料時這個參數就是 null。
 
-傳統的全程式靜態分析需要載入整個代碼庫的調用圖（Call Graph），在大型 Monorepo 中一次全量掃描需要數天。
+---
 
-Infer 的突破在於引入了理論電腦科學中的 **分離邏輯（Separation Logic）** 與 **雙向演繹（Bi-Abduction）**：
+## 2. 修復端：SapFix 的四種策略
+
+依論文 Fig. 1，Sapienz 把當機交給 SapFix 後，會觸發四種修復策略。挑選補丁時的優先順序是 `[template fix, mutation fix, diff revert, partial diff revert]`：
+
+<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sap-strat-title sap-strat-desc">
+    <title id="sap-strat-title">SapFix 四種修復策略示意圖</title>
+    <desc id="sap-strat-desc">Sapienz 把當機交給 SapFix 後，觸發範本修復、變異修復、整個 Diff revert 與部分 revert；論文前三個月的部署中，57 個 NPE 當機產生 165 個補丁。</desc>
+
+    <defs>
+      <marker id="inf-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
+      </marker>
+    </defs>
+
+    <rect x="260" y="10" width="280" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Sapienz 當機報告（NPE）</text>
+
+    <path d="M 320 45 L 110 70" stroke="#388bfd" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 370 45 L 305 70" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 430 45 L 495 70" stroke="#d29922" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 480 45 L 690 70" stroke="#d29922" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+
+    <rect x="20" y="70" width="180" height="75" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
+    <text x="110" y="92" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. Template Fix（範本）</text>
+    <text x="110" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">範本來自 Getafix</text>
+    <text x="110" y="128" fill="#8b949e" font-size="9" text-anchor="middle">由過去的人類修復收集</text>
+
+    <rect x="215" y="70" width="180" height="75" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
+    <text x="305" y="92" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">2. Mutation Fix（變異）</text>
+    <text x="305" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">加上 null check</text>
+    <text x="305" y="128" fill="#8b949e" font-size="9" text-anchor="middle">或改成 return null</text>
+
+    <rect x="410" y="70" width="180" height="75" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
+    <text x="500" y="92" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">3. Diff Revert</text>
+    <text x="500" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">撤回整個 Diff</text>
+    <text x="500" y="128" fill="#8b949e" font-size="9" text-anchor="middle">前三個月 18 次全被拒</text>
+
+    <rect x="605" y="70" width="180" height="75" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
+    <text x="695" y="92" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">4. Partial Revert</text>
+    <text x="695" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">只撤回 Diff 的一部分</text>
+    <text x="695" y="128" fill="#8b949e" font-size="9" text-anchor="middle">優先序最低</text>
+
+    <path d="M 110 145 L 300 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 305 145 L 370 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 500 145 L 430 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+    <path d="M 695 145 L 500 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
+
+    <rect x="210" y="175" width="380" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
+    <text x="400" y="201" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">前三個月：57 個 NPE 當機產生 165 個候選補丁</text>
+
+  </svg>
+</div>
+
+SapFix 只處理空指標例外（NPE）。論文寫「Algorithm 2 currently only supports fixing Null Pointer Exception (NPE) crashes」，評估裡的當機也全是 NPE。
+
+### 2.1 範本修復
+
+依部落格，範本是從人類工程師過去的修復中自動收集來的（「automatically harvested from those created by human engineers, based on a pool of past fixes」）。論文補充，這些範本來自另一個工具 Getafix。
+
+### 2.2 變異修復
+
+範本不適用時，SapFix 改用變異修復：在造成當機的敘述的 AST 上做小幅修改。論文說變異只有兩種：回傳 null，或用 null check 保護可能為 null 的運算式（「two simple mutations, which either return null or protect potentially null-valued expressions with a null check」）。實作上用 Eclipse JDT 解析出錯檔案的 AST，再把 null check 加在出錯敘述前面。
+
+下面是我依這兩種變異寫的示意，不是論文裡的程式碼：
+
+```java
+// === 原始程式碼：Sapienz 回報的當機點 ===
+User user = getUserProfile(userId);
+String name = user.getName(); // user 為 null 時拋出 NPE
+
+// === 變異一：在出錯敘述前加上 null check ===
+User user = getUserProfile(userId);
+if (user != null) {
+    String name = user.getName();
+}
+
+// === 變異二：遇到 null 就回傳 null ===
+User user = getUserProfile(userId);
+if (user == null) {
+    return null;
+}
+String name = user.getName();
+```
+
+### 2.3 Revert
+
+論文也把撤回整個 Diff 和部分撤回列為策略，[部落格](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-software-bugs-automatically-with-sapfix-and-sapienz/)則說 revert 用在觸發頻率高的 bug。實際結果是：前三個月 SapFix 嘗試 revert 18 個 Diff，這些建議全部被開發者拒絕（「These Diff revert recommendations were all declined by developers」）。
+
+### 2.4 挑選要送審的補丁
+
+論文的挑選順序是：先看策略優先序（範本優先），同一策略內選 Sapienz 最常執行到出錯敘述的那個，再選改動最小的。論文也說會參考 Infer 靜態分析和 linter 的結果（「favouring template-based fixes, where all else is equal, but taking account of results from Infer static analysis and also from linter reports」）。
+
+---
+
+## 3. Infer 在流程裡做什麼
+
+**Infer** 是 Meta 開源的靜態分析工具，依它的 [GitHub README](https://github.com/facebook/infer)，支援 Java、C、C++、Objective-C。
+
+### 3.1 Infer 本身：分離邏輯與 Bi-Abduction
+
+Infer 的理論基礎是分離邏輯（Separation Logic）與 bi-abduction。依 [Infer 文件](https://fbinfer.com/docs/separation-logic-and-bi-abduction/)，bi-abduction 是 Infer 能擴展到大型程式庫、能增量分析程式碼變更的基礎：沒變的部分可以重用分析結果，只重新分析變更的部分。
 
 ```text
 {P}  C  {Q}
 ```
 
-Infer 將每個函式抽象為**前置條件（Preconditions）**與**後置條件（Postconditions）**的合約規範。
+Infer 會替每個函式推導出近似其行為的前置條件與後置條件，分析呼叫端時直接套用這份規格，不必重新分析函式內部（CACM 2019 文章的說法是「It deduces a precondition/postcondition specification … and then uses that specification when reasoning about its calls」）。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="infer-bi-title infer-bi-desc">
-    <title id="infer-bi-title">Infer 雙向演繹（Bi-Abduction）函式合約比對示意圖</title>
-    <desc id="infer-bi-desc">展示函式 foo 抽象出 Pre/Post 合約，bar 調用時僅需比對參數是否滿足前置條件，無需重析 foo 內部實作。</desc>
-    
+    <title id="infer-bi-title">Infer 函式規格比對示意圖</title>
+    <desc id="infer-bi-desc">函式 foo 抽象出前置與後置條件，bar 呼叫 foo 時只需比對傳入參數是否滿足前置條件，不必重新分析 foo 的實作。</desc>
+
     <defs>
-      <marker id="inf-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <marker id="inf-arrow-2" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
       </marker>
     </defs>
@@ -74,116 +171,40 @@ Infer 將每個函式抽象為**前置條件（Preconditions）**與**後置條�
     <text x="50" y="70" fill="#c9d1d9" font-size="11" font-family="monospace">• Precondition: ptr != null</text>
     <text x="50" y="92" fill="#c9d1d9" font-size="11" font-family="monospace">• Postcondition: return ptr-&gt;value + 1</text>
 
-    <path d="M 370 65 L 430 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#inf-arrow)"/>
+    <path d="M 370 65 L 430 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#inf-arrow-2)"/>
 
     <rect x="430" y="20" width="340" height="90" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
     <text x="600" y="45" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Function bar() Calling foo(x)</text>
-    <text x="450" y="70" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 僅需比對 bar 傳入的 x 是否滿足 Precondition</text>
-    <text x="450" y="92" fill="#3fb950" font-size="10" font-weight="700" font-family="system-ui, sans-serif">• 模組化組合分析 ➔ 差量掃描縮短至數秒！</text>
+    <text x="450" y="70" fill="#c9d1d9" font-size="10" font-family="system-ui, sans-serif">• 只需比對 bar 傳入的 x 是否滿足 Precondition</text>
+    <text x="450" y="92" fill="#3fb950" font-size="10" font-weight="700" font-family="system-ui, sans-serif">• 規格可組合、可重用 ➔ 只重新分析變更部分</text>
 
   </svg>
 </div>
 
-- **模組化與組合性（Compositional）**：每個函式可單獨分析並快取其邏輯合約。
-- **差量掃描（Incremental Differential Analysis）**：當工程師修改某個檔案中的 10 行代碼時，Infer 僅需重新分析受影響的函式及其直接呼叫鏈，將掃描時間從「數小時」縮短至「數秒內」。
+Infer 的主要部署方式是在 diff time 做增量分析：Diff 送進 code review 時，Meta 內部 CI 會跑一次 Infer。CACM 2019 文章說這一步平均在 15 分鐘內完成（「within 15 minutes on average」）。
 
-### 1.2 核心偵測缺陷類型
+依 [Infer 官網](https://fbinfer.com/)，它在 Java 上能找出 null pointer exception、資源洩漏、missing lock guard、並行 race condition 等問題；執行緒安全問題由 RacerD 回報。CACM 2019 文章提到，到 2018 年 3 月為止的一年內，RacerD 回報的資料競爭有超過 2,500 個被修掉。
 
-- **Null Pointer Dereference (NPE)**：指標/變數可能為空卻被解引用。
-- **Resource Leaks**：資料庫連線、檔案 Handle 未在 `finally` 區塊中釋放。
-- **Thread Safety Violations**：未加鎖存取共享可變狀態引起的 Data Race。
+bi-abduction 是 Infer 的歷史基礎。目前 Infer 的 [issue 類型清單](https://fbinfer.com/docs/all-issue-types)把 Null Dereference 和 Resource Leak 列在 `pulse` checker 下，所以我推測現行版本的主力 checker 已經換掉了。
 
----
+### 3.2 Infer 在 SapFix 裡的兩個用途
 
-## 2. 修復引擎：SapFix 多策略補丁生成
+部落格的說法是「SapFix uses Infer to assist with localisation and static analysis of fixes proposed」，論文裡對應兩件事：
 
-當 Infer 輸出一份包含精確檔案路徑、行號與 AST 節點上下文的 Bug Report 時，**SapFix** 立即被喚醒開始生成修復代碼。
-
-SapFix 採用多種修復策略的組合矩陣：
-
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
-  <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sap-strat-title sap-strat-desc">
-    <title id="sap-strat-title">SapFix 三大多策略補丁生成矩陣圖</title>
-    <desc id="sap-strat-desc">展示 Infer Bug Report 觸發 Template-Based、Mutation-Based 與 History-Based 三大策略產生候選補丁。</desc>
-    
-    <rect x="280" y="10" width="240" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
-    <text x="400" y="32" fill="#58a6ff" font-size="12" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Infer 缺陷報告 (Bug Report)</text>
-
-    <path d="M 330 45 L 160 70" stroke="#388bfd" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-    <path d="M 400 45 L 400 70" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-    <path d="M 470 45 L 640 70" stroke="#d29922" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-
-
-    <rect x="30" y="70" width="230" height="75" rx="6" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
-    <text x="145" y="92" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. Template-Based (範本)</text>
-    <text x="145" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">Null Guard 預設值注入</text>
-    <text x="145" y="128" fill="#8b949e" font-size="9" text-anchor="middle">Try-with-resources 封裝</text>
-
-
-    <rect x="285" y="70" width="230" height="75" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
-    <text x="400" y="92" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">2. Mutation-Based (變異)</text>
-    <text x="400" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">AST 語法樹節點條件反轉</text>
-    <text x="400" y="128" fill="#8b949e" font-size="9" text-anchor="middle">變數作用域範圍調整</text>
-
-
-    <rect x="540" y="70" width="230" height="75" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.2"/>
-    <text x="655" y="92" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">3. History-Based (學習)</text>
-    <text x="655" y="112" fill="#c9d1d9" font-size="10" text-anchor="middle">挖掘歷史人類修復 Commit</text>
-    <text x="655" y="128" fill="#8b949e" font-size="9" text-anchor="middle">統計機器學習模式匹配</text>
-
-    <path d="M 145 145 L 320 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-    <path d="M 400 145 L 400 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-    <path d="M 655 145 L 480 175" stroke="#3fb950" stroke-width="1.5" marker-end="url(#inf-arrow)"/>
-
-    <rect x="240" y="175" width="320" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="400" y="201" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">生成 5 ~ 20 個候選修復補丁 (Candidate Patches)</text>
-
-  </svg>
-</div>
-
-### 2.1 範本修復 (Template-based Repair)
-
-對於常見的 Null Pointer 缺陷，SapFix 內建了大量高可靠性工程範本：
-
-```java
-// === 原始存在 Bug 的代碼 ===
-User user = getUserProfile(userId);
-String name = user.getName(); // Infer 警告：user 可能為 null
-
-// === SapFix 自動生成的範本補丁 ===
-User user = getUserProfile(userId);
-if (user == null) {
-    return defaultValue; // 或 log.warn() / return early
-}
-String name = user.getName();
-```
-
-### 2.2 語法樹變異 (Mutation-based Repair)
-
-SapFix 會在 AST（抽象語法樹）層級針對出錯行周圍進行微調：
-
-- 在條件表達式中注入 `&& object != null`。
-- 交換 `if-else` 分支邏輯順序。
-- 調整變數初始化與賦值時機。
-
-### 2.3 補丁打分與優先級排序（Patch Ranking）
-
-SapFix 會產生 5 到 20 個潛在的修復 Patch，並根據以下維度計算權重：
-
-1. **改動行數最小化原則**：變更越少、越精確的 Patch 排名越靠前。
-2. **範本置信度**：經過數千次生產驗證的固定範本享有最高優先級。
+- **輔助定位**：Infer 標出可能為 null 的運算式，當作 SapFix 的選用輸入。
+- **修補後重跑**：論文說 Infer 會自動在補丁上重跑，當作 sanity check，確認靜態分析不再回報 SapFix 要修的那個問題（「as a sanity check that static analysis also no longer identifies the issue that SapFix seeks to fix」）。
 
 ---
 
-## 3. 沙盒 CI 驗證：嚴格的差量迴歸測試
+## 4. 驗證：在隔離環境確認補丁
 
-生成補丁只是第一步，**絕對不能讓自動修復引入新的 Bug**。SapFix 建立了極其嚴苛的沙盒自動化驗證流程：
+依部落格，驗證是自動進行的，而且和整個程式庫隔離（「this validation process happens autonomously and is isolated from the larger codebase」）。要回答的問題是：有沒有編譯錯誤、當機還在不在、補丁有沒有帶來新的當機。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sapfix-ci-title sapfix-ci-desc">
-    <title id="sapfix-ci-title">Meta SapFix 沙盒自動化三階驗證流水線圖</title>
-    <desc id="sapfix-ci-desc">展示 Candidate Patch 依序通過 Sandbox Compile、Tests 與 Infer Clean 驗證，任一失敗立即拋棄，全過產出 Validated Patch。</desc>
-    
+    <title id="sapfix-ci-title">SapFix 補丁驗證流程圖</title>
+    <desc id="sapfix-ci-desc">候選補丁依序經過編譯、Sapienz 重現當機與既有測試、Infer 重跑，任一步失敗就淘汰；論文中 165 個補丁有 131 個通過編譯與所有測試。</desc>
+
     <defs>
       <marker id="sf-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 0 1 L 8 5 L 0 9 z" fill="#58a6ff"/>
@@ -199,14 +220,14 @@ SapFix 會產生 5 到 20 個潛在的修復 Patch，並根據以下維度計算
     <path d="M 180 40 L 240 40" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#sf-arr)"/>
 
     <rect x="240" y="15" width="230" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="355" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. Sandbox Compile (沙盒編譯)</text>
-    <text x="355" y="54" fill="#8b949e" font-size="9" text-anchor="middle">獨立容器語法與型別校驗</text>
+    <text x="355" y="38" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. Build（編譯）</text>
+    <text x="355" y="54" fill="#8b949e" font-size="9" text-anchor="middle">隔離環境編譯補丁</text>
 
     <path d="M 470 40 L 630 40" stroke="#da3633" stroke-width="1.5" marker-end="url(#sf-red)"/>
     <text x="545" y="32" fill="#f85149" font-size="9" text-anchor="middle">編譯失敗</text>
 
     <rect x="630" y="20" width="140" height="40" rx="6" fill="#2d1d24" stroke="#da3633"/>
-    <text x="700" y="45" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 立即拋棄</text>
+    <text x="700" y="45" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 淘汰</text>
 
 
     <path d="M 355 65 L 355 90" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sf-arr)"/>
@@ -214,14 +235,14 @@ SapFix 會產生 5 到 20 個潛在的修復 Patch，並根據以下維度計算
 
 
     <rect x="240" y="90" width="230" height="50" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="355" y="113" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">2. Unit &amp; Integration Tests</text>
-    <text x="355" y="129" fill="#8b949e" font-size="9" text-anchor="middle">差量迴歸測試 ➔ 零破壞既有功能</text>
+    <text x="355" y="113" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">2. Sapienz 重現 &amp; 既有測試</text>
+    <text x="355" y="129" fill="#8b949e" font-size="9" text-anchor="middle">當機是否消失、有無新當機</text>
 
     <path d="M 470 115 L 630 115" stroke="#da3633" stroke-width="1.5" marker-end="url(#sf-red)"/>
     <text x="545" y="107" fill="#f85149" font-size="9" text-anchor="middle">測試失敗</text>
 
     <rect x="630" y="95" width="140" height="40" rx="6" fill="#2d1d24" stroke="#da3633"/>
-    <text x="700" y="120" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 立即拋棄</text>
+    <text x="700" y="120" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">❌ 淘汰</text>
 
 
     <path d="M 355 140 L 355 165" stroke="#3fb950" stroke-width="1.5" marker-end="url(#sf-arr)"/>
@@ -229,68 +250,53 @@ SapFix 會產生 5 到 20 個潛在的修復 Patch，並根據以下維度計算
 
 
     <rect x="240" y="165" width="230" height="50" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="355" y="188" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">3. Infer Clean Verification</text>
-    <text x="355" y="204" fill="#56d364" font-size="9" text-anchor="middle">靜態分析警告 100% 清零</text>
+    <text x="355" y="188" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">3. Infer Re-run</text>
+    <text x="355" y="204" fill="#56d364" font-size="9" text-anchor="middle">sanity check：不再回報原問題</text>
 
     <path d="M 470 190 L 630 190" stroke="#3fb950" stroke-width="2" marker-end="url(#sf-arr)"/>
-    <text x="545" y="182" fill="#3fb950" font-size="9" font-weight="700">100% 通過</text>
+    <text x="545" y="182" fill="#3fb950" font-size="9" font-weight="700" text-anchor="middle">全部通過</text>
 
     <rect x="630" y="170" width="150" height="40" rx="6" fill="#1f242c" stroke="#3fb950" stroke-width="1.5"/>
-    <text x="705" y="195" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ Validated Patch</text>
+    <text x="705" y="195" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">✅ 可送審補丁</text>
 
   </svg>
 </div>
 
-1. **編譯校驗**：在獨立 Docker 容器中套用 Patch，確保語法無誤且代碼編譯通過。
-2. **差量測試執行（Differential Test Execution）**：
-   - 執行原本失敗或報錯的測試案例，驗證是否已成功修復。
-   - 執行該模組的全量既有單元測試與端到端測試，確保**零功能迴歸（Zero Regressions）**。
-3. **Infer 二次清空驗證**：重新在 Patch 代碼上執行 Infer，確認原有的靜態警告已完全消除，且未引入新的靜態分析違規。
+1. **編譯**：無法編譯的補丁直接淘汰。
+2. **重現當機與既有測試**：論文說 SapFix 用 Sapienz 重現原本的當機，並在候選補丁上多跑幾次 Sapienz，看有沒有新的當機。另外也檢查既有的 unit、integration 和 end-to-end 測試結果。
+3. **Infer 重跑**：見 3.2 節，這是 sanity check。
+
+論文前三個月的部署中，57 個 NPE 當機產生 165 個補丁，其中 131 個成功建構並通過所有測試，約 79%。通過測試不等於修對了，下一節的人工判定只有約一半。
 
 ---
 
-## 4. 人機協同 (Human-in-the-Loop) 與生產落地
+## 5. 人工審查與合入
 
-在所有候選補丁中，通常只有 1 到 2 個能 100% 通過沙盒驗證。
+部落格說 SapFix 不會自己把修復部署到生產程式碼（「it is not designed to deploy fixes to production code on its own」），工程師一直在流程裡（「Engineers are always in the loop」）。論文描述的做法如下：
 
-SapFix 不會盲目地將代碼直接推向生產環境，而是將最終決策權交還給人類工程師：
+- **送審**：SapFix 從通過驗證的候選中挑一個，透過 Phabricator code review 系統請人審查。其他候選以 inline preview 的形式附在這個 Diff 上。
+- **審查人**：指派給提交原 Diff（也就是 SapFix 想修的那個 Diff）的工程師。其他相關工程師依所有 Diff 共用的標準規則加入訂閱。
+- **結果**：開發者拒絕，或 7 天內沒有審查，SapFix 就放棄這個候選。部落格說系統會追蹤審查回饋，合入被接受的補丁，再清掉其他候選。
 
-### 4.1 自動化 PR 與上下文呈現
+### 5.1 論文報告的成效
 
-SapFix 機器人會在內部 Code Review 系統中自動建立一個專屬 Diff：
-
-- **說明標籤**：明確標註由 `SapFix Bot` 自動生成。
-- **證據鏈附帶**：提供 Infer 偵測到的原始警告、修復邏輯說明、通過的單元測試列表與靜態分析前後對比。
-- **智能審核人路由（Reviewer Routing）**：利用 Git Blame 與代碼所有權圖譜（CODEOWNERS），精確將 Diff 指派給引入該 Bug 的工程師或該模組的主導者。
-
-### 4.2 生產採納率指標
-
-在 Meta 的實際生產部署中：
-
-- **工程師接受率（Acceptance Rate）高達 75% 以上**。
-- 工程師只需在 Review 介面點擊「Approve」，系統即自動排隊合入 main 分支並隨日常部署金絲雀發布。
-- 大幅解放了工程師在繁瑣邊界條件檢查上的重複勞動。
+- 約一半的 SapFix 補丁被開發者判定能正確修好當機。判定正確的補丁中，約一半照原樣合入；另一半是開發者自己改過，或開發者看到補丁前已經自行修好（「Of those that were modified, about half were edited by the developers, while half were simply reviewed by the developer only after they had already fixed the bug themselves」）。
+- 換算下來，約四分之一的補丁合入生產程式碼，另有四分之一被判定正確但沒有合入，原因是開發者自己調整了修法，或在看到補丁前已經自行修好當機。
+- 三天的既有當機實驗中，合入比例約 15%。
+- 從當機首次被偵測到補丁送到開發者面前，時間中位數是 69 分鐘（四分位距 65～73 分鐘），最快 37 分鐘，最慢約 1.5 小時。
 
 ---
 
-## 5. 架構總結與現代 AI 時代的演進
+## 6. 我的看法
 
-| 維度         | 傳統人工修復                           | Meta Infer + SapFix 體系           |
-| :----------- | :------------------------------------- | :--------------------------------- |
-| **發現時機** | QA 測試期甚至線上崩潰報警              | 代碼提交（Diff Time）秒級即時捕獲  |
-| **修復耗時** | 數小時至數天（排查 + 寫代碼 + Review） | **數分鐘內完全自動生成並完成驗證** |
-| **質量保障** | 依賴人工測試，容易漏測引發迴歸         | 隔離沙盒 + 差量測試 + 靜態雙重校驗 |
-| **人力成本** | 消耗資深工程師大量精力處理常規 Bug     | 人類僅需花 10 秒審核確認           |
-
-### 啟示與未來展望：
-
-Meta 的 SapFix 與 Infer 實踐奠定了現代 **AI 輔助軟體開發生命週期（AI-Native SDLC）** 的雛形。在大型語言模型（LLM）與 Agent 技術普及的今天，將 **LLM 語義代碼生成能力** 與 **Infer 般嚴謹的符號邏輯驗證沙盒** 相結合，已成為現代軟體工程持續演進的核心方向。
+SapFix 的組合是：動態測試找當機、自動產生小補丁、測試與靜態分析驗證，最後一定交給人審。在 LLM 與 Agent 普及之後，我認為把 LLM 的程式碼生成能力和 Infer 這類符號邏輯驗證結合起來，會是軟體工程接下來的核心方向。SapFix 的數字也提醒一件事：165 個補丁有 131 個通過測試，但開發者判定正確的只有約一半。
 
 ---
 
-## 參考一手來源與延伸閱讀
+## 參考來源
 
-- [Meta Engineering Blog: Finding and fixing bugs automatically with SapFix and Infer](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-bugs-automatically-with-sapfix-and-infer/)
-- [Facebook Infer Static Analyzer Official Documentation](https://fbinfer.com/)
-- [CACM Paper: Compositional Shape Analysis by Means of Bi-Abduction (Calcagno et al.)](https://fbinfer.com/docs/separation-logic-and-bi-abduction/)
-- [ByteByteGo: Fixing Bugs Automatically at Meta Scale Visual Guide](https://bytebytego.com/guides/fixing-bugs-automatically-at-meta-scale)
+- Yue Jia、Ke Mao、Mark Harman，[Finding and fixing software bugs automatically with SapFix and Sapienz](https://engineering.fb.com/2018/09/13/developer-tools/finding-and-fixing-software-bugs-automatically-with-sapfix-and-sapienz/)，Meta Engineering Blog，2018-09-13
+- Marginean 等人，[SapFix: Automated End-to-End Repair at Scale](https://discovery.ucl.ac.uk/id/eprint/10084761/1/SapFix-Automated-End-to-End-Repair-at-Scale-v2.pdf)，ICSE-SEIP 2019（[DOI](https://doi.org/10.1109/ICSE-SEIP.2019.00039)）
+- Dino Distefano、Manuel Fähndrich、Francesco Logozzo、Peter O'Hearn，[Scaling Static Analyses at Facebook](https://cacm.acm.org/magazines/2019/8/238344-scaling-static-analyses-at-facebook/pdf)，Communications of the ACM 62(8)，2019 年 8 月
+- Calcagno、Distefano、O'Hearn、Yang，[Compositional Shape Analysis by Means of Bi-Abduction](https://www.cs.ox.ac.uk/publications/publication4972-abstract.html)，POPL 2009；期刊版 Journal of the ACM 58(6)，2011
+- [Infer 官網](https://fbinfer.com/)、[Separation logic and bi-abduction](https://fbinfer.com/docs/separation-logic-and-bi-abduction/)、[All issue types](https://fbinfer.com/docs/all-issue-types)、[facebook/infer GitHub](https://github.com/facebook/infer)

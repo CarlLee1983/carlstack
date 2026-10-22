@@ -1,7 +1,8 @@
 ---
 title: "API 版本控制與平滑演進策略：URI Path、Header、Query Param 與破壞性變更相容性治理"
-description: "深度剖析現代企業級 API 平台演進核心：如何在業務快速迭代的同時維護數十萬活躍客戶端的平滑相容？4 大主流 API 版本控制策略（URI Path / Custom Header / Content Negotiation Accept / Query Parameter）優缺點對比、向後相容性（Backward Compatibility）鐵律與 Stripe 式雙向轉換適配器架構實戰。"
+description: "比較 4 種主流 API 版本控制策略（URI Path / Custom Header / Content Negotiation Accept / Query Parameter）的優缺點，整理哪些變更向後相容（Backward Compatibility）、哪些會破壞舊客戶端，以及 Stripe 用版本變更模組逐版轉換回應的做法。"
 publishDate: 2026-09-02T17:30:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/api-versioning-strategies-backward-compatibility.png
@@ -12,25 +13,22 @@ tags:
   - "系統設計"
   - "架構演進"
   - "向後相容"
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
-在軟體系統的生命週期中，**「變更是唯一的不變」**。
+API 一旦發布給行動 App、第三方開發者或企業客戶使用，一個看似很小的欄位改名（例如 `user_name` 改成 `username`）或型別變更（例如數字改成字串），都會直接讓舊版客戶端壞掉。
 
-然而，當你的 API 已經發布給數以萬計的行動端 App、第三方開發者或企業客戶使用時，任何一個看似微小的欄位重命名（如將 `user_name` 改為 `username`）或型別變更（如將數字改為字串），都會直接導致舊版客戶端崩潰。
+**API 版本控制（API Versioning）** 讓 API 可以繼續改，又不弄壞既有的客戶端。
 
-**API 版本控制（API Versioning）** 是保證系統可持續演進的最關鍵基礎設施。
-
-本文將帶你深入剖析 4 大主流版本控制策略，並拆解全球頂級 API 典範 **Stripe** 如何在單一核心代碼庫下維護數百個歷史 API 版本的黑科技架構。
+下面比較 4 種主流版本控制策略，再看 **Stripe** 在 2017 年公開的做法：核心程式碼只有一套，舊版 API 的差異抽到一個個版本變更模組裡。到 2026 年 9 月，[Stripe changelog](https://docs.stripe.com/changelog) 列出的正式 API 版本共 124 個。
 
 ---
 
-## 1. 四大 API 版本控制策略全景對比
+## 1. 四種 API 版本控制策略對比
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="api-ver-title api-ver-desc">
-    <title id="api-ver-title">四大 API 版本控制策略示意圖</title>
-    <desc id="api-ver-desc">展示 URI Path、Custom Header、Accept 內容協商與 Query Parameter 四種版本標註格式。</desc>
+    <title id="api-ver-title">四種 API 版本控制策略示意圖</title>
+    <desc id="api-ver-desc">URI Path、Custom Header、Accept 內容協商與 Query Parameter 四種版本標註格式。</desc>
     
     
     <rect x="20" y="15" width="370" height="95" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
@@ -41,7 +39,7 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
     <rect x="410" y="15" width="370" height="95" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.2"/>
     <text x="430" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">2. Custom Header 版本控制 (Stripe)</text>
     <rect x="425" y="55" width="340" height="36" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
-    <text x="595" y="77" fill="#56d364" font-size="11" font-family="monospace" text-anchor="middle">Header: X-API-Version: 2026-09-01</text>
+    <text x="595" y="77" fill="#56d364" font-size="11" font-family="monospace" text-anchor="middle">Header: Stripe-Version: 2026-09-30.endive</text>
 
 
     <rect x="20" y="125" width="370" height="95" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.2"/>
@@ -58,40 +56,40 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
   </svg>
 </div>
 
-| 版本控制方式               | 具體實現範例                          | 優點                                                     | 缺點                                                           | 適用場景                                     |
-| :------------------------- | :------------------------------------ | :------------------------------------------------------- | :------------------------------------------------------------- | :------------------------------------------- |
-| **URI Path (路徑)**        | `/api/v1/orders` ➔ `/api/v2/orders`   | **直觀清晰、可透過瀏覽器直接點擊、CDN 邊緣快取天然隔離** | 違反 REST 資源純粹性（同一資源有多個 URL）、跨版本重構代碼重複 | **公眾開放 API、大型主版本破壞性重構**       |
-| **Custom Header (標頭)**   | `X-API-Version: 2026-09-02`           | **保持 URL 乾淨一致、易於語意化日期發布管理**            | 無法直接在瀏覽器網址列存取、CDN 需配置 Vary Header             | **企業級內部微服務、B2B SaaS 平台 (Stripe)** |
-| **Accept 內容協商**        | `Accept: application/vnd.app.v1+json` | **完全符合 RESTful HATEOAS 標準**                        | 語法繁瑣、客戶端接入門檻高、除錯不易                           | 學術標準嚴格的 REST 架構                     |
-| **Query Parameter (參數)** | `/api/orders?v=2`                     | 實現極其簡單、支援預設缺省值                             | URL 雜亂、容易與業務篩選參數混淆                               | 臨時過渡、輕量內部專案                       |
+| 版本控制方式               | 範例                                  | 優點                                                  | 缺點                                                             | 適用場景                               |
+| :------------------------- | :------------------------------------ | :---------------------------------------------------- | :--------------------------------------------------------------- | :------------------------------------- |
+| **URI Path (路徑)**        | `/api/v1/orders` ➔ `/api/v2/orders`   | **直觀，可在瀏覽器直接開啟，CDN 快取依 URL 自然分開** | 違反 REST 資源唯一性（同一資源有多個 URL）、各版本程式碼容易重複 | **公開 API、大幅度的主版本破壞性重構** |
+| **Custom Header (標頭)**   | `X-API-Version: 2026-09-02`           | **URL 保持一致，方便用日期標記版本**                  | 無法直接在瀏覽器網址列存取、CDN 要設定 Vary 標頭                 | **企業內部微服務、B2B SaaS 平台**      |
+| **Accept 內容協商**        | `Accept: application/vnd.app.v1+json` | **URL 不帶版本，版本隨媒體類型協商**                  | 語法繁瑣、客戶端串接門檻高、除錯不易                             | 嚴格遵循 REST 規範的架構               |
+| **Query Parameter (參數)** | `/api/orders?v=2`                     | 實作非常簡單，可設定預設版本                          | URL 雜亂、容易和業務篩選參數混在一起                             | 臨時過渡、輕量內部專案                 |
 
 ---
 
 ## 2. 什麼是相容變更 vs. 破壞性變更（Breaking Changes）？
 
-### 2.1 ✅ 安全的向後相容變更（無需升級 API 版本）
+### 2.1 ✅ 向後相容的變更（不用升級 API 版本）
 
-1. **新增可選欄位（Optional Fields）**：在 Response JSON 中新增新欄位；
-2. **新增獨立 API 端點**：如新增 `POST /v1/users/export`；
-3. **放寬請求參數約束**：將某個原本必填的參數改為可選。
+1. **新增可選欄位（Optional Fields）**：在 Response JSON 加欄位。
+2. **新增獨立 API 端點**：例如新增 `POST /v1/users/export`。
+3. **放寬請求參數限制**：把原本必填的參數改成可選。
 
-### 2.2 ❌ 破壞性變更（必須引入新版本管理）
+### 2.2 ❌ 破壞性變更（要發新版本）
 
-1. **重新命名或刪除欄位**：如將 `tele` 改為 `phone_number`；
-2. **修改欄位資料型別**：如將 `price: 100`（整數）改為 `price: "100.00"`（字串）；
-3. **修改 HTTP 狀態碼語義**：如原本返回 `404` 突然改為返回 `200 OK` 帶 `{ "data": null }`；
+1. **重新命名或刪除欄位**：例如把 `tele` 改成 `phone_number`。
+2. **修改欄位資料型別**：例如把 `price: 100`（整數）改成 `price: "100.00"`（字串）。
+3. **修改 HTTP 狀態碼語意**：例如原本回傳 `404`，改成回傳 `200 OK` 帶 `{ "data": null }`。
 4. **新增必填請求參數**。
 
 ---
 
-## 3. Stripe 式版本控制架構：雙向變更閘道器（Version Translators）
+## 3. Stripe 的版本變更模組：回應逐版往回轉換
 
-Stripe 最著名的工程奇蹟在於：**用戶在 2017 年註冊時鎖定的 API 版本，在 2026 年依然能完美執行，而後端核心代碼只有一套最新的版本！**
+Brandur Leach 在 Stripe 官方部落格〈[APIs as infrastructure: future-proofing Stripe with versioning](https://stripe.com/blog/api-versioning)〉（2017-08-05）描述了這套做法。帳號第一次發出 API 請求時，會自動鎖定在當時最新的版本；之後每個請求的目標版本，取自 `Stripe-Version` 標頭，沒有帶標頭就用帳號鎖定的版本。API 資源的結構以目前版本為準，回應送出前，再從目前版本往回逐一套用沿途的版本變更模組，直到目標版本為止。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 360" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stripe-ver-title stripe-ver-desc">
-    <title id="stripe-ver-title">Stripe 雙向版本轉換閘道器架構圖</title>
-    <desc id="stripe-ver-desc">展示 2017 舊版請求經 API 轉換層向上相容轉換至最新 2026 商業邏輯，回應再向下修補還原為 2017 格式。</desc>
+    <title id="stripe-ver-title">Stripe 版本變更模組示意圖</title>
+    <desc id="stripe-ver-desc">2017 年版本的客戶端發出請求，API 判定目標版本後由核心程式碼以最新結構產生回應，再由版本變更模組逐版往回轉換成 2017 格式。</desc>
     
     <defs>
       <marker id="str-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -103,58 +101,70 @@ Stripe 最著名的工程奇蹟在於：**用戶在 2017 年註冊時鎖定的 A
     </defs>
 
     <rect x="230" y="15" width="340" height="42" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="400" y="41" fill="#f0f6fc" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">歷史客戶端 (發起 2017-05-10 版本請求)</text>
+    <text x="400" y="41" fill="#f0f6fc" font-size="14" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">舊版客戶端 (帳號鎖定 2017-05-25 版本)</text>
 
 
     <path d="M 400 57 L 400 85" stroke="#58a6ff" stroke-width="2" marker-end="url(#str-arrow)"/>
 
 
     <rect x="150" y="90" width="500" height="52" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="400" y="112" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">API 閘道轉換層 (Request Translators: 2017 ➔ 2019 ➔ 2026)</text>
-    <text x="400" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">按版本更新鏈依序向上補充預設值與欄位映射</text>
+    <text x="400" y="112" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">判定目標版本 (Stripe-Version 標頭或帳號鎖定版本)</text>
+    <text x="400" y="130" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">Stripe 2017 年的原文只描述回應方向的轉換</text>
 
 
     <path d="M 400 142 L 400 170" stroke="#58a6ff" stroke-width="2" marker-end="url(#str-arrow)"/>
 
 
     <rect x="180" y="175" width="440" height="56" rx="10" fill="#1f242c" stroke="#58a6ff" stroke-width="2"/>
-    <text x="400" y="200" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">核心業務微服務 (永遠只運行最新 2026 商業邏輯)</text>
-    <text x="400" y="219" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">單一主幹代碼庫・零歷史相容包袱</text>
+    <text x="400" y="200" fill="#58a6ff" font-size="15" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">核心程式碼 (資源結構以目前最新版本為準)</text>
+    <text x="400" y="219" fill="#c9d1d9" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">有副作用的變更仍要在核心程式碼檢查版本</text>
 
 
     <path d="M 400 231 L 400 258" stroke="#3fb950" stroke-width="2" marker-end="url(#str-arrow-green)"/>
 
 
     <rect x="150" y="260" width="500" height="52" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
-    <text x="400" y="282" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">API 閘道轉換層 (Response Translators: 2026 ➔ 2019 ➔ 2017)</text>
-    <text x="400" y="300" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">依序向下修補舊欄位格式・剃除新版專屬不可識別欄位</text>
+    <text x="400" y="282" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">版本變更模組 (回應：2026 ➔ 2019 ➔ 2017)</text>
+    <text x="400" y="300" fill="#8b949e" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">從目前版本往回逐一套用，直到目標版本</text>
 
 
     <rect x="230" y="320" width="340" height="32" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
-    <text x="400" y="341" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">✅ 舊版客戶端收到 100% 相容的 2017 格式資料！</text>
+    <text x="400" y="341" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="600" text-anchor="middle">✅ 舊版客戶端收到 2017 格式的回應</text>
 
   </svg>
 </div>
 
-- **優勢**：開發團隊只需要維護最新版本的主幹代碼；每個歷史版本的微小差異被封裝為單獨的轉換函式（Translators），極大降低了多版本共存時的維護地獄。
+- **優勢**：每個破壞性變更封裝成一個模組，內含變更說明、轉換邏輯和它影響的 API 資源類型。舊版本的差異因此留在核心路徑之外。
+- **代價**：有些變更有副作用，沒辦法關在模組裡。Stripe 會替這類模組加上 `has_side_effects` 註記，模組本身的轉換變成 no-op，改由程式碼其他地方檢查它是否生效。原文承認這會降低封裝、讓維護更複雜，所以盡量避免。
+
+2017 年時，Stripe 說自 2011 年創立以來的每個 API 版本都維持相容，這套做法撐過了六年來近百次不相容升級；同一篇文章也說，預期最終會開始淘汰舊版本。現行的[版本控制文件](https://docs.stripe.com/api/versioning)沒有寫舊版本的支援期限。
+
+發布流程在 2024 年也改了。依 Stripe 的版本控制文件與〈[Introducing Stripe's new API release process](https://stripe.com/blog/introducing-stripes-new-api-release-process)〉公告，從 `2024-09-30.acacia` 起，每月發布不含破壞性變更的版本，每年兩次 major release 才帶入破壞性變更。內部是否仍沿用版本變更模組，現行官方資料沒有說明。
 
 ---
 
-## 4. API 廢棄（Deprecation）與退役生命週期治理
+## 4. API 廢棄（Deprecation）與退役
 
-1. **Sunset Header 標準規範（RFC 8594）**：
-   在即將廢棄的 API 回應中加入標準標頭：
+1. **Sunset 標頭（RFC 8594）**：
+   在即將廢棄的 API 回應加上這些標頭：
    ```http
    Deprecation: @1756800000
    Sunset: Wed, 02 Sep 2026 00:00:00 GMT
    Link: <https://docs.carlstack.dev/migration-v2>; rel="sunset"
    ```
-2. **主動通知與流量監控**：在 API 閘道器統計各個版本的調用量，定期向仍在使用老舊版本的用戶發送自動化遷移提醒。
+2. **主動通知與流量監控**：在 API 閘道器統計各版本的呼叫量，定期自動提醒還在用舊版本的使用者遷移。
 
 ---
 
 ## 5. 總結
 
-- **對外公開 API 推薦 URI Path（`/v1/`）**：簡單直觀，生態工具支援最完美。
-- **複雜平台推薦 Date-based Header（`X-Version: YYYY-MM-DD`）**：搭配雙向轉換層，兼顧靈活性與相容性。
-- **嚴格遵守相容性鐵律**：只增不刪、廢棄先行、提供充足的遷移過渡期。
+- **對外公開 API 推薦 URI Path（`/v1/`）**：簡單直觀，工具支援也最完整。
+- **複雜平台推薦 Date-based Header（`X-Version: YYYY-MM-DD`）**：搭配版本轉換層，兼顧靈活性與相容性。
+- **遵守相容性規則**：欄位只增不刪，先標記廢棄再移除，留足遷移過渡期。
+
+## 參考資料
+
+- [Brandur Leach, APIs as infrastructure: future-proofing Stripe with versioning（Stripe 官方部落格，2017-08-05）](https://stripe.com/blog/api-versioning)
+- [Stripe Docs：Versioning](https://docs.stripe.com/api/versioning)
+- [Stripe Docs：API changelog](https://docs.stripe.com/changelog)
+- [Stripe：Introducing Stripe's new API release process](https://stripe.com/blog/introducing-stripes-new-api-release-process)

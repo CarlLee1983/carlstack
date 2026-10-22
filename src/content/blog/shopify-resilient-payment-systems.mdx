@@ -1,7 +1,8 @@
 ---
-title: "萬億級交易防禦：Shopify 建構高可用支付系統的 10 大彈性原則"
-description: "拆解 Shopify 在黑五購物節（BFCM）承載百億美元交易的支付系統設計實踐：從 ULID 冪等鍵、原子狀態機、帶抖動指數退避，到非同步頻外對帳循環與混沌工程的系統級防禦。"
+title: "Shopify 支付工程師的 10 個韌性建議：從調低逾時到事故檢討"
+description: "整理 Shopify Payments 工程師 Bart de Water 2022 年的經驗分享：調低逾時、Semian 斷路器、Little's Law、四大黃金訊號、結構化日誌、ULID 冪等鍵、對帳、壓力測試、事故管理與事故檢討。"
 publishDate: 2026-09-02T09:54:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -10,7 +11,6 @@ tags:
   - 高可用架構
   - 分散式系統
   - 後端架構
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/shopify-resilient-payments.png
 coverAlt: "中央金色加密保險艙與雙重備援電路路徑，展示高可用金融交易系統的狀態機流轉與冪等防護機制。"
 series: 金融級架構與交易系統
@@ -21,146 +21,198 @@ import ShopifyPaymentResilienceDiagram from "../../components/ShopifyPaymentResi
 import ShopifyPaymentFsmDiagram from "../../components/ShopifyPaymentFsmDiagram.astro";
 import ShopifyTimeoutBudgetDiagram from "../../components/ShopifyTimeoutBudgetDiagram.astro";
 
-在電商與金融科技領域，支付系統（Payment Systems）是容錯率最低的架構模組。任何網路抖動、下游第三方支付通道（如 Stripe、Adyen 或銀行）的延遲升高，或是重複的扣款請求，都會直接導致資金損失與商譽崩潰。
+支付系統出錯，代價是重複扣款、漏單，或被下游金流夥伴（例如 Stripe、Adyen 或銀行）的延遲拖垮。
 
-在每年的黑色星期五與網路星期一（BFCM）期間，Shopify 平台上的百萬商家會產生數十億美元的交易總額，面對每分鐘數百萬次的高併發結帳衝擊。為了確保在任何極端災難下「不重複扣款、不遺漏訂單、不被外部依賴拖垮」，Shopify 總結了一套經過實戰驗證的支付架構原則。
+2022 年 7 月 28 日，Shopify Payments 團隊的 Staff Developer Bart de Water 在 Shopify Engineering 發表了 [〈10 Tips for Building Resilient Payment Systems〉](https://shopify.engineering/building-resilient-payment-systems)。他從 2016 年起負責 Shopify 支付基礎設施，這篇是他把帶新人時反覆講的內容整理成的「my top 10 tips and tricks」，屬於個人經驗分享，不是 Shopify 公司公布的正式原則。
 
-本文以 [Shopify Engineering 官方技術專文](https://shopify.engineering/10-tips-for-building-resilient-payment-systems) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的分析為依據，深度拆解這 10 大高可用支付系統設計原則與落地機制。
+下面照原文的 10 項順序整理。引用 Shopify 其他官方文章補充時，會標出是哪一篇、哪一年。原文沒有、我自己加的部分，都標成我的做法或示意，最後一節另外整理。
+
+規模可以參考 Shopify 的新聞稿：[2025 年 BFCM 週末](https://www.shopify.com/news/bfcm-data-2025)，商家銷售額 146 億美元，每分鐘銷售額峰值 510 萬美元。這是原文發表三年後的數字。
 
 <ShopifyPaymentResilienceDiagram />
 
 ---
 
-## 原則 01：將所有操作設計為「嚴格冪等（Strictly Idempotent）」
+## 1. 調低逾時（Lower Your Timeouts）
 
-分散式網路中最危險的假設是「請求只會發送一次」。客戶端斷線重連、超時重試或負載均衡器轉發，隨時會引發重複請求。
+Ruby 的 `Net::HTTP` 預設開連線、寫入、讀取各等 60 秒。原文認為，對有人在畫面前等結果的線上服務，這太長了。Go 的 `http.Client` 和 Node.js 的 `http.request` 甚至沒有預設逾時。
 
-Shopify 的核心實踐：
+作者說，如果讀者只記得一件事，就是「investigate and set low timeouts everywhere you can」。他給的起點是：開連線 1 秒，寫入與讀取（或查詢）5 秒。實際該設多少，要靠監控資料決定。資料庫這端，MySQL 可以用 `MAX_EXECUTION_TIME` 提示替單一 `SELECT` 設毫秒級逾時，再搭配 `pt-kill` 等工具，避免有問題的查詢拖垮資料庫。
 
-- **客戶端主動生成冪等鍵（Idempotency Key）**：在點擊「結帳」時，由客戶端生成單調遞增且全域唯一的 **ULID（Universally Unique Lexicographically Sortable Identifier）**。
-- **資料庫唯一性約束（Database Unique Constraint）**：在執行任何扣款動作前，先將 `(idempotency_key, amount, currency)` 寫入資料庫記錄。如果相同 Key 再次到達，直接回傳上一次處理的交易快照，嚴禁重複呼叫下游支付閘道。
+### 多層呼叫怎麼配逾時（我的做法）
+
+原文只講調低逾時，沒有講多層呼叫之間怎麼分配。我自己會讓上游的逾時大於下游，下圖的 5.0／3.5／2.0 秒是示意值，不是 Shopify 的設定：
+
+<ShopifyTimeoutBudgetDiagram />
+
+反過來設會出事。如果第三方 API 要 5 秒才逾時，上游服務卻在 3 秒就斷線，上游會以為扣款失敗，下游卻可能在第 4 秒完成扣款，兩邊的狀態就對不起來。上游的預算比下游大，才收得到下游明確的逾時結果，再決定要不要補償。
+
+---
+
+## 2. 加裝斷路器（Install Circuit Breakers）
+
+Shopify 開發了 [Semian](https://github.com/Shopify/semian)，用 Ruby 替 `Net::HTTP`、MySQL、Redis 和 gRPC 加上斷路器。偵測到某個服務掛了，就直接丟例外，不再白等一次預期會發生的逾時。有些情況下，接住這個例外還能提供 fallback。
+
+原文給的具體做法：Shopify Payments 的信用卡交易，會把商家的國別碼加進 endpoint 的 host 和 port，組成更細的 Semian 識別碼。某個國家當地故障讓斷路器打開時，不會影響其他國家商家的交易。
+
+Semian README 寫的標準斷路器，是看 `error_threshold_timeout` 時間內累積幾次錯誤（`error_threshold`）來決定開路。作者也提醒，斷路器不是加上去就解決所有韌性問題，得先理解應用程式會怎麼失敗、fallback 長什麼樣子。原文另外連到兩篇 Shopify 文章：一篇講怎麼用 Toxiproxy 設計和測試 fallback，一篇講怎麼調整斷路器設定。
+
+---
+
+## 3. 理解容量（Understand Capacity）
+
+原文用 Little's Law 推演系統在負載下的行為：容量 = 吞吐量 × 延遲，所以吞吐量 = 容量 ÷ 延遲。例子是佇列裡有 50 個請求、每個平均處理 100 毫秒，吞吐量就是每秒 500 個請求。
+
+背景工作、Kafka 事件、Web 請求，在原文裡都算是在佇列上處理的工作單位。N+1 查詢拉高延遲，吞吐量就跟著掉。進來的請求超過容量，佇列會變長，等到客戶端等太久就會逾時。作者的結論是，總得替進來的工作量設上限，限流（rate limiting）和負載卸除（load shedding）是兩種做法。
+
+---
+
+## 4. 監控與告警（Add Monitoring and Alerting）
+
+原文採用 Google SRE 書裡的四大黃金訊號：
+
+| 訊號                 | 原文在支付情境的說法                                                                             |
+| :------------------- | :----------------------------------------------------------------------------------------------- |
+| 延遲（Latency）      | 成功和失敗要分開看。斷路器讓失敗回得很快，混在一起圖會誤導                                       |
+| 流量（Traffic）      | 新工作進來的速率，通常用每分鐘請求數                                                             |
+| 錯誤（Errors）       | 餘額不足被拒是付款「失敗」，在預期內；金流夥伴回 HTTP 500 才是「錯誤」。不過失敗突然變多也值得查 |
+| 飽和度（Saturation） | 負載占總容量的比例，例如記憶體用量、執行緒池的使用中執行緒數，任何一層都算                       |
+
+---
+
+## 5. 結構化日誌（Implement Structured Logging）
+
+Rails 預設的日誌給人讀很方便，機器卻不好解析。應用伺服器一多，就得把日誌集中、可搜尋。原文建議用 `key=value` 或 JSON 這類機器可讀格式，讓日誌彙整系統能解析和建索引。
+
+分散式系統裡要傳遞某種關聯識別碼。原文舉了一個假設的例子：買家在結帳時發起付款，Rails controller 產生 `correlation_id`，傳給背景工作；背景工作呼叫處理信用卡資料的支付服務時，把它放進 API 參數和 SQL 查詢註解。每個元件都記下同一個 `correlation_id`，除錯時就能撈出這次付款嘗試的所有日誌。
+
+---
+
+## 6. 冪等鍵（Use Idempotency Keys）
+
+原文說，在 Shopify 的規模下，「百萬分之一」的網路異常機率代表一天會發生很多次。付款 API 逾時要重試，但要安全地重試：重複扣款如果商家沒發現並退款，可能招來退單（chargeback），重複退款對商家也不好。
+
+原文描述的做法是：集中式支付服務替每一次付款嘗試送出唯一的冪等鍵。一次嘗試包含一個或多個（重試的）相同 API 請求。冪等鍵用來查這次嘗試已經完成哪些步驟（例如在本地資料庫建立交易紀錄），確保只對金流夥伴送出一次請求。某個步驟失敗、同一個冪等鍵的重試進來時，會先跑復原步驟重建同樣的狀態，再往下執行。冪等鍵在可重試的期間內要保持唯一，通常是 24 小時以內。
+
+Shopify 偏好用 ULID 而不是隨機的 UUIDv4 當冪等鍵。ULID 是 48 位元時間戳加上 80 位元隨機資料，時間戳讓它可以排序，比較適合資料庫索引用的 B-tree。原文提到 Shopify 有一個高吞吐量系統，從 UUIDv4 改成 ULID 後，`INSERT` 耗時減少 50%。ULID 只保證到毫秒的時間順序，同一毫秒內要遞增得另外用 monotonic 模式。
+
+更細的機制在 Shopify 2019 年的另一篇 [〈Building Resilient GraphQL APIs Using Idempotency〉](https://shopify.engineering/building-resilient-graphql-apis-using-idempotency)：紀錄由呼叫方（client）加冪等鍵唯一識別，同一組 client 和冪等鍵上鎖，並行的重複請求回 HTTP 409；處理進度切成有名字的復原點（recovery points），重試時從上次停下的地方接著做。
+
+下面是我依那篇文章的描述寫的簡化示意，不是 Shopify 的程式碼：
 
 ```ruby
-# Shopify 風格的冪等性鎖定虛擬碼
-def process_payment(idempotency_key, amount)
-  PaymentRecord.transaction do
-    record = PaymentRecord.find_or_create_by!(idempotency_key: idempotency_key) do |p|
-      p.status = :pending
-      p.amount = amount
+# 依 2019 年 Shopify 文章描述寫的簡化示意（非 Shopify 原始碼）
+def perform_payment(client_id, idempotency_key, params)
+  key = IdempotencyKey.find_or_create_by!(client_id: client_id, key: idempotency_key)
+
+  # 同一組 client + key 已有請求在處理中，拒絕並行的重複請求
+  return http_conflict(409) unless key.try_lock
+
+  begin
+    # 從上次完成的復原點往下執行
+    key.run_from(key.recovery_point) do |steps|
+      steps.step(:create_local_record) { create_transaction_record(params) }
+      steps.step(:call_financial_partner) { call_partner(idempotency_key, params) }
+      steps.step(:finished) { build_response }
     end
-
-    # 若已處理完成，直接返回歷史結果
-    return record.cached_response if record.completed?
-
-    # 執行下游扣款並更新狀態
-    response = PaymentGateway.charge(idempotency_key, amount)
-    record.update!(status: :success, cached_response: response)
-    response
+  ensure
+    key.unlock
   end
 end
 ```
 
 ---
 
-## 原則 02：使用明確的有限狀態機（Explicit State Machine）
+## 7. 對帳（Be Consistent With Reconciliation）
 
-支付交易生命週期絕不可使用零散的 Boolean 欄位（如 `is_paid`、`is_failed`）來判定，必須透過**明確有限狀態機（FSM）**管理：
+對帳是確認自己的紀錄和金流夥伴一致。原文對帳的對象包括個別紀錄（扣款、退款），也包括彙總值（例如還沒撥給商家的餘額）。這些紀錄在某些司法管轄區還會拿來產生商家的稅務表單，所以不只是顯示用。
+
+發現不一致時，Shopify 會在資料庫記下一筆 anomaly。原文的例子是 `MismatchCaptureStatusAnomaly`：本地已請款（captured）扣款的狀態，和金流夥伴回傳的狀態不同。很多時候系統能自動嘗試修正、把 anomaly 標成已解決；做不到時，由開發團隊調查並修程式。
+
+即使能自動修，還是要記下每次不一致，才知道系統做了什麼、發生多頻繁。作者的立場是 anomaly 修復是最後手段，優先找出不讓 anomaly 產生的做法。
+
+---
+
+## 8. 壓力測試（Incorporate Load Testing）
+
+Little's Law 在實務上比較亂：處理時間分布不均，飽和度不可能到 100%。原文說，佇列大約在容量 70% 到 80% 時開始變長，佇列等待時間一超過客戶端逾時，在客戶端看來服務就是掛了。
+
+控制佇列長度的一種做法，是用可腳本化的負載平衡器節流同時進行的結帳數。想結帳的買家超過容量時，先把他們放進等候佇列，再讓他們付款。
+
+這套節流的來歷在 Shopify 2017 年的 [〈Surviving Flashes of High-Write Traffic Using Scriptable Load Balancers (Part I)〉](https://shopify.engineering/surviving-flashes-of-high-write-traffic-using-scriptable-load-balancers-part-i)：邊緣層用 Nginx 加 OpenResty 的 Lua 模組，以 leaky bucket 演算法節流，流量過大時對客戶端施加背壓。第一版雖然告訴顧客正在排隊，實際上是隨機輪詢節流器，後來才改成 stateless queue。
+
+Shopify 會在專門設置的 benchmark 商店上模擬大量快閃特賣，測試系統極限和防護機制。金流夥伴的測試與 staging 環境，容量和延遲分布都跟正式環境不同，所以 benchmark 商店接的是一個特製的 benchmark gateway，回應會模擬正式環境的特性。
+
+更近期的做法可以看 Shopify 2025 年的 [〈How we prepare Shopify for BFCM (2025)〉](https://shopify.engineering/bfcm-readiness-2025)：從春季開始一系列 Game Day 混沌工程演練，注入網路故障和延遲；壓力測試從三個 GCP 區域（us-central、us-east、europe-west4）同時發起；也執行了區域故障轉移，把流量撤出美國和歐洲的核心區域，驗證災難復原。那篇也寫到，BFCM 準備從 3 月開始，包含容量規劃和 Google Cloud 上的多區域策略。
+
+---
+
+## 9. 事故管理（Get on Top of Incident Management）
+
+事故通常從值班的服務負責人被呼叫開始，可能是監控自動告警，也可能是有人發現問題手動呼叫。確認有問題後，在 Slack 對機器人 `spy` 下指令，啟動事故流程。
+
+討論移到指定的事故頻道，有三種角色：
+
+- Incident Manager on Call（IMOC）：協調整個事故。
+- Support Response Manager（SRM）：負責對外溝通。
+- 服務負責人：負責恢復穩定。
+
+問題緩解、事故結束後，Slack 機器人會在服務資料庫裡產生一筆 Service Disruption，內容有初步的事件時間軸、標記為重要的 Slack 訊息，以及參與人員名單。
+
+---
+
+## 10. 事故檢討（Organize Incident Retrospectives）
+
+Shopify 的目標是在事故發生後一週內開檢討會，會中要釐清：到底發生什麼事、團隊對系統有哪些錯誤假設、怎麼避免再發生。弄清楚之後，通常會指派幾個行動項目，補上防護措施。
+
+在 Shopify，每個事故的細節都對全體員工內部公開。寫得好的事故紀錄也能拿來訓練剛加入值班輪班的新人，當成查閱用的文件，或改編成災難角色扮演的情境。
+
+---
+
+## 原文沒提、我自己會補的幾項
+
+下面幾項是我設計支付流程時的習慣，原文和上面引用的 Shopify 文章都沒有提到，不代表 Shopify 的做法。
+
+### 用明確的狀態機管理付款
+
+不用 `is_paid`、`is_failed` 這類零散的布林欄位，改用狀態機，並禁止不合法的轉移（例如 `Failed` 直接變成 `Captured`）。下游逾時（例如 HTTP 504）時，把交易標成 `In-Doubt` 或 `Processing`，交給非同步排程確認，不直接標成失敗，避免使用者重新下單造成重複扣款。
 
 <ShopifyPaymentFsmDiagram />
 
-- **禁止非法躍遷**：例如 `Failed` 狀態絕對無法直接躍遷為 `Captured`。
-- **消除模糊狀態**：當下游閘道回傳超時（HTTP 504）時，狀態必須設定為 `In-Doubt` 或 `Processing`，交由非同步排程確認，絕不可直接標記為失敗以防止使用者二次下單造成雙重扣款。
+### 非同步處理結帳
 
----
+API 做完基本驗證就寫進持久化佇列（例如 Kafka 或 RabbitMQ）、回 `202 Accepted`，前端用長輪詢或 WebSocket 等最終結果，把昂貴的外部 I/O 移出 Web 執行緒池。
 
-## 原則 03：非同步解耦與背景隊列處理
+### 帶全抖動的指數退避重試
 
-同一步 HTTP 請求鏈條越長，系統整體可用性（Availability）就越低。若結帳 API 同步等待信用卡授權、庫存扣減、發票生成與 Email 通知，任何一個微服務延遲都會導致使用者結帳失敗。
-
-- **快速接受請求**：API 收到結帳請求並完成基本驗證後，立即寫入持久化佇列（如 Kafka / RabbitMQ）並回傳 `202 Accepted`。
-- **長輪詢或 WebSocket 通知**：前端透過長輪詢或推播連線等待最終扣款結果，將昂貴的外部 I/O 從 Web 執行緒池中解耦。
-
----
-
-## 原則 04：外部依賴嚴格實施熔斷器（Circuit Breakers）
-
-第三方支付閘道的故障具有強傳染性。當 Stripe 或某家銀行 API 發生故障時，如果 Shopify 繼續發送請求，將導致 Web 伺服器連線池被阻塞耗盡。
-
-- **熔斷偵測**：當下游閘道在 30 秒內錯誤率達到 50% 時，熔斷器立即轉為 `Open`。
-- **自動降級路由（Fallback Routing）**：將流量無縫切換至備用支付處理商（如從 Gateway A 切換至 Gateway B），或暫時關閉該支付選項並提示用戶改用其他支付方式。
-
----
-
-## 原則 05：帶全抖動的指數退避重試（Exponential Backoff with Full Jitter）
-
-當外部系統遭遇突發負載短暫崩潰時，固定間隔的重試（如每秒重試一次）會形成**「驚群效應（Thundering Herd Problem）」**，把剛剛重啟的下游服務再次打死。
-
-Shopify 採用 AWS 推薦的 **Full Jitter（全抖動指數退避）** 演算法：
+固定間隔重試會造成驚群效應（thundering herd），把剛恢復的下游再次打垮。我會用 [AWS Architecture Blog 推薦的 Full Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)：
 
 ```text
 Sleep = random(0, min(MaxSleep, BaseSleep * 2^attempt))
 ```
 
-隨機分佈的重試時間將流量均勻分散，大幅提升了下游恢復時的重試成功率。
+Semian 的 `exponential_backoff_error_timeout` 是斷路器重新嘗試的間隔，和這裡講的請求重試是兩回事。
+
+### 死信佇列與重放工具
+
+重試次數用完的任務寫進 DLQ，保留原始 payload、錯誤堆疊和重試紀錄。下游修好後，再依時間區間或錯誤類型重放。
 
 ---
 
-## 原則 06：流量洪峰下的虛擬等候室與速率限制（Rate Limiting）
+## 總結
 
-在黑五限時促銷（Flash Sales）開跑的第 1 秒，可能會有數十萬人同時衝擊同一位名人的店鋪商品。
+| 類別                     | 原文的建議                                          | 防的是什麼                     |
+| :----------------------- | :-------------------------------------------------- | :----------------------------- |
+| **別被依賴拖垮**         | 調低逾時、Semian 斷路器（依國別切分）               | 一個慢掉的依賴耗盡資源         |
+| **知道自己的極限**       | Little's Law、四大黃金訊號、壓力測試、結帳等候佇列  | 佇列失控、尖峰時看似全掛       |
+| **錢只動一次、帳要對**   | ULID 冪等鍵與復原步驟、對帳與 anomaly               | 重複扣款、紀錄和金流夥伴不一致 |
+| **出事時看得到、學得到** | 結構化日誌與 `correlation_id`、事故管理、一週內檢討 | 除錯找不到線索、同樣的事故重演 |
 
-- **可腳本化負載均衡器（Scriptable Load Balancers）**：在 Envoy 或 Nginx 層執行 Lua 腳本，透過 Token Bucket 演算法過濾惡意爬蟲與黃牛搶購機器人。
-- **虛擬等候室（Waiting Queue）**：將超出資料庫安全寫入閾值的請求放入排隊佇列，按序放行進入結帳流程，保證後端資料庫永遠運行在最佳吞吐區間（而非過載崩潰）。
+### 參考資料
 
----
-
-## 原則 07：死信佇列（DLQ）與可視化重放工具
-
-無論重試機制多完善，總有部分請求會因資料格式異常、下游持久性故障而耗盡重試次數。
-
-- **轉移至 DLQ**：重試失敗的任務被寫入 Dead Letter Queue，保留原始 Payload、錯誤堆疊與重試歷程。
-- **運維重放控制台**：提供內部工程工具，在下游服務修復後，可按時間區間或錯誤類型一鍵重放（Replay）死信任務。
-
----
-
-## 原則 08：頻外對帳循環（Out-of-band Reconciliation Loop）
-
-「永遠不要完全信任 Webhook 通知」。網路丟包或防火牆攔截隨時會導致第三方支付回呼（Webhook）遺失。
-
-- **主動拉取對帳報表**：每天或每小時非同步向各支付商拉取結算 CSV/API 報表。
-- **對帳引擎（Reconciliation Engine）**：比對本地資料庫與支付商流水。一旦發現「本地顯示 Pending 但銀行已成功扣款」，對帳程式自動補發確認事件，修復訂單狀態。
-
----
-
-## 原則 09：嚴格的逾時預算（Timeout Budget Hierarchy）
-
-分散式呼叫中，上游客戶端的 Timeout 時間必須**嚴格小於**下游服務的 Timeout：
-
-<ShopifyTimeoutBudgetDiagram />
-
-如果第三方 API 耗時 5 秒才超時，而上游服務早已在 3 秒時中斷連線，上游會誤以為扣款失敗，而下游卻可能在第 4 秒完成扣款，產生致命的狀態脫節。設定層級化的逾時預算可確保上游永遠能收到明確的失敗響應並觸發補償。
-
----
-
-## 原則 10：持續混沌工程與突發災備演練（GameDays）
-
-不要等到真實黑五才發現容災機制失效。
-
-- **常態化故障注入（Fault Injection）**：在生產環境中隨機注入 100ms 網路延遲、5% 模擬 500 錯誤與連線超時。
-- **年度 GameDay 演習**：模擬整個雲端區域（AWS Region）斷網或主要支付合作商全球當機，驗證系統能否自動切換異地雙活資料庫與備用支付線路。
-
----
-
-## 總結：金融級支付架構的本質
-
-| 原則類別       | 關鍵防線                    | 解決的核心風險                 |
-| :------------- | :-------------------------- | :----------------------------- |
-| **資料一致性** | ULID 冪等鍵 + 唯一約束      | 消除重複扣款與網路重發風險     |
-| **狀態確定性** | 明確有限狀態機 + 頻外對帳   | 根除懸空訂單與漏失 Webhook     |
-| **可用性防禦** | 熔斷降級 + 全抖動指數退避   | 隔離第三方故障傳染、消除雪崩   |
-| **規模化削峰** | 等候室排隊 + 非同步背景佇列 | 保護核心資料庫不受瞬間巨量衝擊 |
-
-### 參考資料與一手文獻
-
-- Shopify Engineering: [_10 Tips for Building Resilient Payment Systems_](https://shopify.engineering/10-tips-for-building-resilient-payment-systems)
-- ByteByteGo: [_System Design 101: Resilient Payment Systems_](https://github.com/ByteByteGoHq/system-design-101)
+- Bart de Water，[〈10 Tips for Building Resilient Payment Systems〉](https://shopify.engineering/building-resilient-payment-systems)，Shopify Engineering，2022-07-28
+- Shopify Engineering，[〈Building Resilient GraphQL APIs Using Idempotency〉](https://shopify.engineering/building-resilient-graphql-apis-using-idempotency)，2019-08-27
+- Shopify Engineering，[〈Surviving Flashes of High-Write Traffic Using Scriptable Load Balancers (Part I)〉](https://shopify.engineering/surviving-flashes-of-high-write-traffic-using-scriptable-load-balancers-part-i)，2017-02-03
+- Shopify Engineering，[〈How we prepare Shopify for BFCM (2025)〉](https://shopify.engineering/bfcm-readiness-2025)，2025-11-20
+- Shopify，[Semian README](https://github.com/Shopify/semian)
+- Shopify 新聞稿，[〈Shopify merchants generate record-breaking $14.6 billion in Black Friday Cyber Monday sales〉](https://www.shopify.com/news/bfcm-data-2025)，2025-12-02

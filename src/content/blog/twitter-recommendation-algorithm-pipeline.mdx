@@ -1,7 +1,8 @@
 ---
-title: "Twitter (X) 1.5 秒渲染「為你推薦」時間軸：Earlybird 檢索、Heavy Ranker 評分與重排管線"
-description: "深度拆解 X (Twitter) 開源推薦系統的端到端管線：如何從每日 5 億則推文中透過 Earlybird 與 GraphJet 檢索 1,500 則候選池，經 4800 萬參數 MaskNet 深度神經網路精準預測多目標互動，並在 1.5 秒內完成可見性過濾與多樣性重排。"
+title: "Twitter 2023 年開源的「為你推薦」管線：Earlybird 檢索、Heavy Ranker 評分與重排"
+description: "依 Twitter 2023 年 3 月開源的程式碼與官方部落格，拆解「為你推薦」時間軸的四段管線：從每天約 5 億則推文中以 Earlybird、GraphJet 與 SimClusters 取出約 1,500 則候選，經約 4,800 萬參數的 MaskNet 預測十種互動機率並加權計分，再做可見性過濾與多樣性重排。"
 publishDate: 2026-09-02T10:10:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -10,7 +11,6 @@ tags:
   - 機器學習
   - 高併發
   - 後端架構
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/twitter-recommendation-pipeline.png
 coverAlt: "立體等距視角展示社群圖譜資料流進入多層漏斗管道，經過中央發光的類神經網路矩陣評分後，輸出為條理分明的推薦時間軸。"
 series: 矽谷巨頭高併發架構復盤
@@ -19,26 +19,24 @@ seriesOrder: 2
 
 import TwitterRecommendationPipelineDiagram from "../../components/TwitterRecommendationPipelineDiagram.astro";
 
-當使用者打開 X（原 Twitter）首頁時，系統必須在短短 **1.5 秒（1,500 毫秒）的端到端 SLA 限制** 下，從全球每天產生的 **5 億則推文** 中提煉出最精準、最吸引該使用者的數十則內容，並組裝為「為你推薦（For You）」時間軸。
+2023 年 3 月 31 日，當時還叫 Twitter 的 X 發表 [_Twitter's Recommendation Algorithm_](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)，同時開源 [`twitter/the-algorithm`](https://github.com/twitter/the-algorithm) 與 [`twitter/the-algorithm-ml`](https://github.com/twitter/the-algorithm-ml)。依那篇文章，「為你推薦（For You）」時間軸要把每天約 5 億則新推文篩到少數幾則，整條管線每天執行約 50 億次，**平均**不到 1.5 秒完成，單次執行要花 220 秒的 CPU 時間。
 
-這項任務的挑戰在於：推薦系統不僅要處理極端巨大的搜尋空間，還必須在毫秒級延遲內結合即時社交圖譜、深度學習模型（Deep Learning Ranking）、內容安全策略與作者多樣性約束。
-
-2023 年 X 團隊將核心推薦演算法開源（[Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) 與 [X Engineering Blog](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)）。本文基於開源原始碼與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的架構解析，深度拆解這套工業級推薦管線的四個關鍵階段。
+下面描述的都是 2023 年開源時的版本，依據是那篇部落格文、兩個 repo 的 README 與程式碼。X 在 2026 年 1 月另外開源了新的 For You 管線，元件已經不同，放在文末[另一節](#2026-年另外開源的-xai-orgx-algorithm)說明。
 
 <TwitterRecommendationPipelineDiagram />
 
 ---
 
-## 階段 1：雙軌候選集檢索（500M ➔ 1,500 則候選推文）
+## 階段 1：候選檢索（從數億則到 1,500 則）
 
-從 5 億則推文中直接跑深度神經網路評分在算力上是完全不可行的。推薦的第一步是**候選檢索（Candidate Sourcing）**，目標是透過極度輕量、低延遲的演算法將候選池縮減至 **1,500 則推文**。
+不可能對每天數億則推文都跑一次深度模型，所以第一步是**候選檢索（Candidate Sourcing）**。部落格寫的是：每次請求，從數億則推文的池子裡，透過幾個候選來源取出最好的 1,500 則。
 
-X 將候選池嚴格劃分為兩大等份來源：**50% 關注圈內（In-Network）** 與 **50% 網絡外探索（Out-of-Network）**。
+候選分成兩類：使用者關注的人發的推文（**In-Network**），以及沒關注的人發的推文（**Out-of-Network**）。部落格說，For You 時間軸**平均**各占一半，但因人而異。這是最終時間軸的平均比例，不是候選池的固定配額。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tw-cand-title tw-cand-desc">
-    <title id="tw-cand-title">Twitter / X 雙軌候選集檢索架構圖</title>
-    <desc id="tw-cand-desc">展示每日 5 億則推文經 50% In-Network 記憶體倒排索引與 50% Out-of-Network GraphJet 圖運算，粗篩收斂至 1500 則候選推文。</desc>
+    <title id="tw-cand-title">Twitter 2023 年開源版本的雙軌候選檢索</title>
+    <desc id="tw-cand-desc">每天約 5 億則推文，經 In-Network 的 Earlybird 搜尋索引與 Out-of-Network 的 GraphJet、SimClusters，每次請求收斂到約 1,500 則候選推文。</desc>
     
     <defs>
       <marker id="tw-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -47,92 +45,86 @@ X 將候選池嚴格劃分為兩大等份來源：**50% 關注圈內（In-Networ
     </defs>
 
     <rect x="270" y="10" width="260" height="35" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
-    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">全球每日 5 億則推文 (500M Daily Tweets)</text>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">每天約 5 億則推文 (500M Daily Tweets)</text>
 
     <path d="M 330 45 L 180 70" stroke="#388bfd" stroke-width="2" marker-end="url(#tw-arr)"/>
-    <text x="235" y="55" fill="#58a6ff" font-size="10" font-weight="700">50% 關注圈內</text>
+    <text x="235" y="55" fill="#58a6ff" font-size="10" font-weight="700">關注圈內</text>
 
     <path d="M 470 45 L 620 70" stroke="#bc8cff" stroke-width="2" marker-end="url(#tw-arr)"/>
-    <text x="565" y="55" fill="#d2a8ff" font-size="10" font-weight="700">50% 網絡外探索</text>
+    <text x="565" y="55" fill="#d2a8ff" font-size="10" font-weight="700">關注圈外</text>
 
 
     <rect x="40" y="70" width="280" height="50" rx="6" fill="#161b22" stroke="#388bfd"/>
     <text x="180" y="92" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">In-Network (關注圈內)</text>
-    <text x="180" y="108" fill="#8b949e" font-size="10" text-anchor="middle">Earlybird 記憶體倒排索引 (Lucene)</text>
+    <text x="180" y="108" fill="#8b949e" font-size="10" text-anchor="middle">Earlybird 搜尋索引 (Lucene) ＋ Real Graph</text>
 
 
     <rect x="480" y="70" width="280" height="50" rx="6" fill="#241b35" stroke="#bc8cff"/>
-    <text x="620" y="92" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Out-of-Network (網絡外探索)</text>
-    <text x="620" y="108" fill="#8b949e" font-size="10" text-anchor="middle">GraphJet 動態圖運算 ＋ SimClusters 向量</text>
+    <text x="620" y="92" fill="#d2a8ff" font-size="12" font-weight="700" text-anchor="middle">Out-of-Network (關注圈外)</text>
+    <text x="620" y="108" fill="#8b949e" font-size="10" text-anchor="middle">GraphJet 互動圖遍歷 ＋ SimClusters 嵌入</text>
 
     <path d="M 180 120 L 330 145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
     <path d="M 620 120 L 470 145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
 
     <rect x="250" y="140" width="300" height="32" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="400" y="161" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">收斂至 1,500 則高品質候選推文池</text>
+    <text x="400" y="161" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">每次請求收斂到約 1,500 則候選推文</text>
 
   </svg>
 </div>
 
-### 1. In-Network 檢索：Earlybird 記憶體倒排索引
+### 1. In-Network 檢索：Earlybird 與 Real Graph
 
-In-Network 負責找出使用者已經關注之作者所發布的最新推文：
+In-Network 找的是使用者關注的人最近發的推文，部落格說它是最大的候選來源。
 
-- **底層架構**：基於客製化 Apache Lucene 構建的 **Earlybird** 分散式搜尋叢集。
-- **資料特徵**：所有近期推文的索引完全駐留在記憶體中，並按時間倒序維護。
-- **快取與截斷**：當用戶發起請求時，Earlybird 檢索該用戶關注列表（Following List）中所有作者在過去幾天內發布的推文，並依據互動基礎分值篩選出前幾百則相關度最高的候選推文。
+- **索引**：依 [Earlybird 的 README](https://github.com/twitter/the-algorithm/blob/main/src/java/com/twitter/search/README.md)，Earlybird 是基於 Apache Lucene 的即時搜尋系統，用分片並複製的分散式倒排索引。其中 realtime 叢集索引大約最近 7 天的公開推文。Following 與 For You 兩個分頁的站內推文，主要都從它取得。
+- **排序**：部落格寫，In-Network 來源用 logistic regression 模型依相關度排序關注對象的推文，最重要的元件是 **Real Graph**，它預測兩個使用者之間互動的可能性。你和作者的 Real Graph 分數越高，這位作者的推文就收得越多。
+- **背景**：同一篇文章提到，Twitter 不久前才停用 Fanout Service。這個服務用了 12 年，原本為每個使用者維護一份推文快取，用來提供站內推文。
 
 ### 2. Out-of-Network 檢索：GraphJet 與 SimClusters
 
-Out-of-Network 負責發掘用戶尚未關注、但極可能感興趣的優質內容。主要仰賴兩大計算引擎：
+Out-of-Network 找的是使用者沒關注、但可能感興趣的推文。部落格提到兩類做法。
 
-#### A. GraphJet 即時動態圖遍歷（Real-time Interaction Graph）
+#### A. 社交圖遍歷：GraphJet
 
-GraphJet 維護記憶體中的二分圖（Bipartite Graph），即時記錄「用戶 ⇄ 推文」的互動邊（按讚、轉發、回覆）：
+部落格用兩個問題描述這類做法：「我關注的人最近和哪些推文互動？」「和我喜歡相似推文的人，最近還喜歡什麼？」執行這些遍歷的是 **GraphJet**，一套維護「使用者 ⇄ 推文」即時互動圖的圖處理引擎。repo README 介紹的 User Tweet Entity Graph（UTEG）就建在 GraphJet 上，在記憶體中保存這張互動圖。
 
-1. 找出與目前用戶互動行為最相似的 **Top-K 相似用戶**。
-2. 遍歷這些相似用戶最近高頻點讚或轉發的推文。
-3. 統計推文在鄰近社交圖譜中的共現權重（Co-engagement Weight）。
+部落格也說，這類圖遍歷當時只供應約 15% 的首頁時間軸推文，關注圈外推文的主要來源已經是下面的嵌入空間做法。
 
-#### B. SimClusters 隱式興趣社群（Embedding Space）
+#### B. 嵌入空間：SimClusters
 
-- 將全平台劃分為數千個基於矩陣分解（Matrix Factorization）的 **SimClusters 興趣社群**（例如「Rust 開發者」、「NBA 球迷」、「生成式 AI 研究員」）。
-- 每個用戶與每則推文都會被計算並投影至社群的向量空間中。
-- 當推文在其所屬社群內的熱度指數與用戶的興趣向量高度匹配時，該推文即被納入候選池。
+- SimClusters 用自訂的矩陣分解（Matrix Factorization）演算法，以一群有影響力的使用者為核心找出社群。2023 年時有 **14.5 萬個社群**，每三週更新一次。
+- 使用者和推文都表示在這個社群空間裡，可以同時屬於多個社群。
+- 推文嵌入到各社群的方式，是看它目前在該社群的熱門程度。
 
 ---
 
-## 階段 2：管線協調中心（Home Mixer）與特徵提取
+## 階段 2：Home Mixer 與特徵取得
 
-**Home Mixer** 是整個推薦系統的中央調度中樞（Orchestrator），其基於 Scala / Finagle 微服務框架建構，負責協調整個非同步管線：
+**Home Mixer** 負責串起整條管線。依部落格與 [`home-mixer/README.md`](https://github.com/twitter/the-algorithm/blob/main/home-mixer/README.md)，它建在 Twitter 自己的 Scala 框架 Product Mixer 上，把候選來源、評分函式、啟發式規則與過濾器接在一起。
 
-1. **候選池合併**：並行呼叫 Earlybird、GraphJet 與 SimClusters，收集 1,500 則候選推文。
-2. **即時特徵工程（Feature Hydration）**：
-   - 向 **Feature Store** 查詢數百個維度的特徵向量。
-   - **用戶特徵**：歷史互動偏好、活躍時段、語言設定、隱私過濾級別。
-   - **推文特徵**：發布時間衰減（Time Decay）、是否含媒體/影片/代碼連結、歷史讚轉比。
-   - **交互特徵**：當前用戶與該作者過往的互動頻率與回覆親密度。
+1. **取得候選**：README 列出的候選來源是 Earlybird 搜尋索引、User Tweet Entity Graph、Cr Mixer 與 Follow Recommendations Service。這份清單沒有直接列出 SimClusters。2023 年的 repo 首頁說明，Cr Mixer 是從底層運算服務取得站外候選的協調層。
+2. **取得特徵（Feature Hydration）**：README 寫的是取得排序需要的約 **6,000 個特徵**，部落格的說法是「數千個特徵」。
 
 ---
 
-## 階段 3：Heavy Ranker 4800 萬參數深度神經網路評分
+## 階段 3：Heavy Ranker，約 4,800 萬參數的 MaskNet
 
-匯聚 1,500 則候選與完整特徵矩陣後，Home Mixer 將其派發給專用的機器學習推理叢集——**Heavy Ranker**。
+候選和特徵備齊後，交給 **Heavy Ranker** 評分。部落格寫，這是一個約 **4,800 萬參數**的神經網路，持續以推文互動資料訓練。這個階段不管候選來自哪個來源，一律同等對待。
 
-Heavy Ranker 採用 **MaskNet** 架構，擁有約 **4,800 萬個參數**，其核心任務是透過**多任務學習（Multi-Task Learning, MTL）** 同步預測使用者對該推文做出不同行為的條件機率 `P(Action)`。
+依 [Heavy Ranker 的 README](https://github.com/twitter/the-algorithm-ml/blob/main/projects/home/recap/README.md)，模型架構是 parallel **MaskNet**，輸出 10 個介於 0 到 1 之間的數字，每個代表使用者以某種方式和這則推文互動的機率。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ranker-title ranker-desc">
-    <title id="ranker-title">Heavy Ranker 多任務學習（Multi-Task Learning）預測模型架構圖</title>
-    <desc id="ranker-desc">展示候選推文特徵矩陣進入 48M 參數 MaskNet 模型，平行預測點讚、轉發、作者回覆、媒體查看與負向舉報五大機率。</desc>
+    <title id="ranker-title">Heavy Ranker 多任務預測（2023 年 4 月 5 日的權重）</title>
+    <desc id="ranker-desc">候選推文特徵進入約 48M 參數的 MaskNet 模型，輸出十種互動機率；圖中列出其中五種及其權重：按讚 0.5、轉發 1.0、回覆並獲作者互動 75.0、點開對話並互動 11.0、檢舉 -369.0。</desc>
     
     <rect x="260" y="10" width="280" height="35" rx="6" fill="#1f242c" stroke="#58a6ff"/>
-    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">候選推文特徵矩陣 (1,500 則)</text>
+    <text x="400" y="32" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">候選推文與特徵 (約 1,500 則)</text>
 
     <path d="M 400 45 L 400 65" stroke="#58a6ff" stroke-width="2" marker-end="url(#tw-arr)"/>
 
     <rect x="200" y="65" width="400" height="40" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="400" y="89" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Heavy Ranker 深度模型 (MaskNet / 48M 參數)</text>
+    <text x="400" y="89" fill="#d2a8ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Heavy Ranker (MaskNet / 約 48M 參數)</text>
 
     <path d="M 240 105 L 100 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
     <path d="M 320 105 L 250 135" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
@@ -143,7 +135,7 @@ Heavy Ranker 採用 **MaskNet** 架構，擁有約 **4,800 萬個參數**，其�
 
     <rect x="30" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
     <text x="97" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Like)</text>
-    <text x="97" y="175" fill="#8b949e" font-size="9" text-anchor="middle">點讚 (+30.0)</text>
+    <text x="97" y="175" fill="#8b949e" font-size="9" text-anchor="middle">按讚 (+0.5)</text>
 
     <rect x="180" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
     <text x="247" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Retweet)</text>
@@ -151,50 +143,57 @@ Heavy Ranker 採用 **MaskNet** 架構，擁有約 **4,800 萬個參數**，其�
 
     <rect x="330" y="135" width="140" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
     <text x="400" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(AuthorEngage)</text>
-    <text x="400" y="175" fill="#56d364" font-size="9" font-weight="700" text-anchor="middle">作者深度回覆 (+75.0)</text>
+    <text x="400" y="175" fill="#56d364" font-size="9" font-weight="700" text-anchor="middle">回覆獲作者互動 (+75.0)</text>
 
     <rect x="485" y="135" width="135" height="55" rx="6" fill="#1b2e23" stroke="#238636"/>
-    <text x="552" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(Click)</text>
-    <text x="552" y="175" fill="#8b949e" font-size="9" text-anchor="middle">點開對話 (+11.0)</text>
+    <text x="552" y="157" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">P(GoodClick)</text>
+    <text x="552" y="175" fill="#8b949e" font-size="9" text-anchor="middle">點開對話並互動 (+11.0)</text>
 
     <rect x="635" y="135" width="135" height="55" rx="6" fill="#2d1d24" stroke="#da3633"/>
-    <text x="702" y="157" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">P(Negative)</text>
-    <text x="702" y="175" fill="#f85149" font-size="9" font-weight="700" text-anchor="middle">舉報封鎖 (-369.0)</text>
+    <text x="702" y="157" fill="#f85149" font-size="11" font-weight="700" text-anchor="middle">P(Report)</text>
+    <text x="702" y="175" fill="#f85149" font-size="9" font-weight="700" text-anchor="middle">檢舉推文 (-369.0)</text>
 
   </svg>
 </div>
 
-### 多目標預測與加權期望公式
+### 多目標預測與加權公式
 
-模型會輸出推文引發各類正向與負向行為的機率，系統再透過**動態權重打分公式**計算出該推文的最終排序得分（Score）：
+十個機率再依權重加總，得到這則推文的分數。README 寫的公式是：
 
 ```text
 Score = Σ [ w_i × P(Action_i) ]
 ```
 
-在 X 開源的權重參數配置中，不同行為的權重（Weights）存在巨大差異：
+權重來自設定檔，README 說它「隨時可以調整」。下表是 README 在 **2023 年 4 月 5 日**更新時列出的權重（3 月 31 日的初版數字有幾項不同，例如一般回覆是 27）：
 
-| 互動行為類型 (Action)                       | 模型預測目標     | 權重係數 (w_i) | 工程與產品意涵                                   |
-| :------------------------------------------ | :--------------- | :------------- | :----------------------------------------------- |
-| **點讚 (Like)**                             | `P(Like)`        | `+30.0`        | 基礎正向訊號                                     |
-| **轉發 (Retweet)**                          | `P(Retweet)`     | `+1.0`         | 內容傳播意圖                                     |
-| **作者回覆該互動 (Author Engage Reply)**    | `P(Reply)`       | `+75.0`        | **極高加權**：鼓勵能引發作者雙向深度交流的對話   |
-| **點擊查看對話串 (Conversation Click)**     | `P(Video/Media)` | `+11.0`        | 停留時間與沉浸度                                 |
-| **負向舉報 / 封鎖 (Report / Block / Mute)** | `P(Negative)`    | `-369.0`       | **極重懲罰**：預測到不良或騷擾內容立即予以極低分 |
+| README 中的名稱           | 預測的行為                                 | 權重     |
+| :------------------------ | :----------------------------------------- | :------- |
+| `fav`                     | 按讚                                       | `0.5`    |
+| `retweet`                 | 轉發                                       | `1.0`    |
+| `reply`                   | 回覆                                       | `13.5`   |
+| `good_profile_click`      | 點進作者個人頁，並按讚或回覆               | `12.0`   |
+| `video_playback50`        | （影片推文）看完至少一半                   | `0.005`  |
+| `reply_engaged_by_author` | 回覆，而且這則回覆獲得作者互動             | `75.0`   |
+| `good_click`              | 點進對話串，並按讚或回覆                   | `11.0`   |
+| `good_click_v2`           | 點進對話串，並停留至少 2 分鐘              | `10.0`   |
+| `negative_feedback_v2`    | 負面回饋：要求「減少顯示」、封鎖或靜音作者 | `-74.0`  |
+| `report`                  | 檢舉推文                                   | `-369.0` |
+
+表中名稱省略了 README 的前綴 `scored_tweets_model_weight_`。
 
 > [!TIP]
-> 權重矩陣清晰反映了演算法的優化目標：**引發深度社交互動（Author Engagement）的權重是普通點讚的 2.5 倍**；而單次舉報的負權重（-369）需要十幾個點讚才能抵消。
+> 權重乘的是**預測機率**，不是互動次數，所以不能拿兩個權重相除，推出「一次檢舉抵消幾百個讚」。README 說明，各種互動的平均機率不同，權重最初的設定，是讓每一項加權後的機率平均貢獻差不多的分數，之後才為了平台指標定期調整。X 在 2026 年 8 月 14 日更新的 [`xai-org/x-algorithm` README](https://github.com/xai-org/x-algorithm) 也點名這種讀法是常見誤解。
 
 ---
 
-## 階段 4：可見性過濾、疲勞抑制與多樣性重排
+## 階段 4：過濾、啟發式規則與混排
 
-得分計算完成後，候選池並不能直接輸出給客戶端。推薦系統必須通過最後一道防線——**啟發式過濾與多樣性重排（Heuristics & Filtering）**：
+排序完成後，Home Mixer 還要套用一組啟發式規則與過濾器，再和非推文內容混在一起：
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 100" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="heur-title heur-desc">
-    <title id="heur-title">可見性過濾、疲勞抑制與多樣性重排管線圖</title>
-    <desc id="heur-desc">展示評分完成推文經可見性安全過濾、作者多樣性打散、廣告/社交穿插輸出最終時間軸。</desc>
+    <title id="heur-title">可見性過濾、啟發式規則與混排</title>
+    <desc id="heur-desc">評分完成的推文經可見性過濾、作者多樣性等啟發式規則，再穿插廣告與追蹤推薦，輸出最終時間軸。</desc>
     
     <rect x="15" y="30" width="130" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
     <text x="80" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">評分完成推文</text>
@@ -202,17 +201,17 @@ Score = Σ [ w_i × P(Action_i) ]
     <path d="M 145 50 L 175 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tw-arr)"/>
 
     <rect x="175" y="30" width="150" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="250" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">可見性安全過濾</text>
+    <text x="250" y="55" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">可見性過濾</text>
 
     <path d="M 325 50 L 355 50" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#tw-arr)"/>
 
     <rect x="355" y="30" width="150" height="40" rx="6" fill="#161b22" stroke="#bc8cff"/>
-    <text x="430" y="55" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">作者多樣性打散</text>
+    <text x="430" y="55" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">多樣性與平衡規則</text>
 
     <path d="M 505 50 L 535 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
 
     <rect x="535" y="30" width="140" height="40" rx="6" fill="#161b22" stroke="#d29922"/>
-    <text x="605" y="55" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">廣告 / 社交穿插</text>
+    <text x="605" y="55" fill="#e3b341" font-size="11" font-weight="700" text-anchor="middle">廣告 / 推薦穿插</text>
 
     <path d="M 675 50 L 705 50" stroke="#3fb950" stroke-width="1.5" marker-end="url(#tw-arr)"/>
 
@@ -222,47 +221,62 @@ Score = Σ [ w_i × P(Action_i) ]
   </svg>
 </div>
 
-### 1. 可見性安全過濾（Visibility Filtering）
+### 1. 可見性過濾（Visibility Filtering）
 
-- **社交黑名單**：自動排除已被當前用戶 Block / Mute 的作者。
-- **重複與過期過濾**：排除用戶在過去 24 小時內已經瀏覽過（Impression Deduplication）的推文。
-- **安全與合規模型**：NSFW、垃圾訊息（Spam Bot）與侵權內容的即時下架過濾。
+- **使用者偏好**：排除使用者封鎖或靜音的作者與推文，並依 NSFW 設定過濾。
+- **去重**：移除重複的推文，以及使用者已經看過的推文。
+- **合規與品質**：repo README 介紹的 visibility-filters 負責過濾內容，用途包括法律遵循、提升產品品質與使用者信任。
 
-### 2. 作者多樣性與疲勞抑制（Author Diversity & Fatigue）
+### 2. 多樣性、平衡與疲勞（Heuristics）
 
-如果某個高熱度帳號（如新聞媒體或意見領袖）一口氣發布了 10 則熱門推文，即使得分極高，演算法也不允許其霸佔整個螢幕：
+部落格與 Home Mixer README 列出的規則包括：
 
-- **相鄰作者懲罰（Consecutive Author Penalty）**：同一作者的推文在時間軸中必須間隔出現。
-- **領域分散（Topic Balance）**：平衡政治、科技、娛樂等各類標籤的比例，防止單一熱點造成使用者審美疲勞。
+- **Author Diversity**：避免同一位作者的推文連續出現太多則。
+- **Content Balance**：讓站內與站外推文維持合理的比例。
+- **Feedback-based Fatigue**：使用者對某些推文給過負面回饋，就降低相關推文的分數。
+- **Social Proof**：站外推文必須和使用者有二度連結才會出現，也就是使用者關注的人和這則推文互動過，或關注了它的作者。
 
-### 3. 社交反饋與廣告注入（Social Injection & Ads）
+### 3. 混排（Mixing）
 
-- 在適當的槽位（Slots）交錯插入關注推薦、熱門話題卡片與 Sponsored Ads。
-
----
-
-## 推薦系統架構維度對比
-
-| 評估維度           | 傳統關注時間軸 (Reverse Chronological) | 機器學習「為你推薦」管線 (For You)           |
-| :----------------- | :------------------------------------- | :------------------------------------------- |
-| **候選空間**       | 僅限關注對象（In-Network）             | 全球 5 億推文（In-Network + Out-of-Network） |
-| **核心計算複雜度** | 讀寫擴散（Fan-out）、Redis List 操作   | 倒排索引 + 圖遍歷 + 48M 參數神經網路         |
-| **端到端延遲**     | &lt;50 ms                              | ~1,500 ms（SLA 硬性邊界）                    |
-| **冷啟動處理能力** | 弱（新用戶無關注則時間軸為空）         | 強（藉由社群 SimClusters 與熱度探索）        |
-| **內容可發現性**   | 依賴用戶主動社交關係                   | 高度依賴即時圖譜擴散與演算法推薦             |
+最後把推文和非推文內容混在一起，部落格列出的是廣告、追蹤推薦與新手引導提示，再送回裝置顯示。
 
 ---
 
-## 系統架構師的關鍵思考
+## 兩個首頁分頁的對照
 
-1. **多階段漏斗是海量資料推薦的唯一解**：不可能在 5 億推文上直接跑複雜模型。必須遵守「粗篩（Earlybird/GraphJet 500M ➔ 1.5K）➔ 精排（MaskNet 1.5K ➔ Scored）➔ 業務重排（Diversity ➔ Top 50）」的漏斗架構。
-2. **負向訊號的權重必須遠大於正向訊號**：單次惡意體驗對用戶留存的傷害遠超多次普通互動，因此在打分公式中必須對 Report/Block 給予數百倍的負權重懲罰。
-3. **特徵工程的延遲決定了推薦的即時性**：採用分散式記憶體 Feature Store 與即時圖引擎（GraphJet），確保用戶一分鐘前的點讚行為能立即反映在下一秒的時間軸刷新中。
+Home Mixer README 寫明，它同時負責 For You 與 Following 兩個分頁。下表依 2023 年的開源資料整理：
+
+| 面向         | Following 分頁                            | For You 時間軸                                                       |
+| :----------- | :---------------------------------------- | :------------------------------------------------------------------- |
+| **候選來源** | 關注對象的推文，從 Earlybird 搜尋索引取得 | 站內（Earlybird）加站外（GraphJet、SimClusters 等），每次約 1,500 則 |
+| **排序方式** | 時間倒序                                  | Heavy Ranker 加權分數，再套用啟發式規則與過濾                        |
+| **執行成本** | 一手資料沒有給數字                        | 每天約 50 億次，平均不到 1.5 秒，單次約 220 秒 CPU 時間              |
+
+---
+
+## 2026 年另外開源的 xai-org/x-algorithm
+
+上面四個階段都是 2023 年的快照。X 在 2026 年 1 月另外開源 [`xai-org/x-algorithm`](https://github.com/xai-org/x-algorithm)，README 說它包含決定 For You 顯示哪些貼文的核心程式碼。依 README：
+
+- **站內來源**是 **Thunder**，在記憶體中保存使用者所關注帳號的近期貼文。
+- **站外來源**是 **Phoenix retrieval** 與 SimClusters，另外由 `popular_posts_source` 加入一份共用的近期熱門貼文清單。
+- **排序**用 transformer 模型 **Phoenix**：預測使用者對每則貼文採取各種行為的機率，再用程式碼中的權重合成一個分數。
+
+拿兩份 README 對照，站內來源和排序模型的名稱都和 2023 年不同。想看 X 目前的 For You 怎麼運作，應該讀這個 repo，而不是 2023 年的 `twitter/the-algorithm`。
+
+---
+
+## 從這套管線看推薦系統設計
+
+1. **多階段漏斗**：2023 年的版本先用相對便宜的方法，從數億則推文中取出約 1,500 則候選，才交給 4,800 萬參數的模型評分，最後再套用規則與過濾。要在平均 1.5 秒內完成，這樣的分層是必要的。
+2. **讀權重要連著機率一起讀**：`report` 的權重是 `-369.0`，`fav` 只有 `0.5`，但 README 說權重最初是為了讓各項平均貢獻接近而設定的。照這個說法推下去，權重大的行為，通常是平均機率低的行為。單看權重的倍數，推不出一次檢舉等於幾個讚。
+3. **開源資料有時期之分**：2023 年與 2026 年的兩個 repo 描述的是不同時期的系統。引用某個元件或數字時，先確認它出自哪一份資料、哪個日期。
 
 ---
 
 ### 參考資料與一手文獻
 
-- X Engineering: [_Twitter's Recommendation Algorithm_](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)
-- GitHub: [_twitter/the-algorithm (Official Open Source Repository)_](https://github.com/twitter/the-algorithm)
-- ByteByteGo: [_System Design 101: Social Media Recommendation Architecture_](https://github.com/ByteByteGoHq/system-design-101)
+- Twitter Engineering（2023-03-31）：[_Twitter's Recommendation Algorithm_](https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm)
+- GitHub：[`twitter/the-algorithm`](https://github.com/twitter/the-algorithm)，以及其中的 [`home-mixer/README.md`](https://github.com/twitter/the-algorithm/blob/main/home-mixer/README.md) 與 [Earlybird README](https://github.com/twitter/the-algorithm/blob/main/src/java/com/twitter/search/README.md)
+- GitHub：[`twitter/the-algorithm-ml` Heavy Ranker README](https://github.com/twitter/the-algorithm-ml/blob/main/projects/home/recap/README.md)（權重為 2023-04-05 版）
+- GitHub：[`xai-org/x-algorithm`](https://github.com/xai-org/x-algorithm)（2026 年開源的 For You 管線）

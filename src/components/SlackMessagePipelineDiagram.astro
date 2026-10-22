@@ -9,10 +9,11 @@
     role="img"
     aria-labelledby="slack-title slack-desc"
   >
-    <title id="slack-title">Slack 訊息投遞即時管線架構</title>
+    <title id="slack-title">Slack 訊息投遞相關元件（依原文年份）</title>
     <desc id="slack-desc">
-      展示從客戶端 WebSocket 長連線、Edge Gateway 路由、Channel Server
-      廣播、Redis 緩存與 MySQL 分片持久化的全鏈路架構。
+      整理 Slack 工程部落格四篇原文的元件：2023 年的 Envoy、Gateway Server、
+      Admin Server、Channel Server，2020 年的 Vitess，2017 年的 Flannel 與 Job
+      Queue。
     </desc>
 
     <defs>
@@ -33,10 +34,8 @@
     <!-- Column 1: Client & Edge -->
     <g class="slack-diagram__card" transform="translate(20, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="slack-diagram__badge" x="14" y="26"
-        >EDGE &amp; CONNECTION</text
-      >
-      <text class="slack-diagram__title" x="14" y="54">邊緣長連線與閘道</text>
+      <text class="slack-diagram__badge" x="14" y="26">CONNECTION · 2023</text>
+      <text class="slack-diagram__title" x="14" y="54">連線與閘道</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -50,13 +49,11 @@
           y="20">Slack Client (App/Web)</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• 本地 SQLite 快取狀態</text
+          >• 開機向 Webapp 取 token</text
         >
-        <text class="slack-diagram__desc" x="10" y="58"
-          >• WebSocket 雙向長連線</text
+        <text class="slack-diagram__desc" x="10" y="58">• 連最近的邊緣區域</text
         >
-        <text class="slack-diagram__desc" x="10" y="76"
-          >• 樂觀 UI 渲染 + SeqID 去重</text
+        <text class="slack-diagram__desc" x="10" y="76">• WebSocket 長連線</text
         >
       </g>
 
@@ -69,16 +66,12 @@
         <text
           class="slack-diagram__header slack-diagram__header--blue"
           x="10"
-          y="20">Edge Gateway (Envoy)</text
+          y="20">Envoy</text
         >
-        <text class="slack-diagram__desc" x="10" y="40"
-          >• TLS 終結與連線保持</text
-        >
-        <text class="slack-diagram__desc" x="10" y="58"
-          >• 負載均衡與地理路由</text
-        >
+        <text class="slack-diagram__desc" x="10" y="40">• 負載平衡</text>
+        <text class="slack-diagram__desc" x="10" y="58">• TLS 終結</text>
         <text class="slack-diagram__desc" x="10" y="76"
-          >• 驚群防禦與抖動重連</text
+          >• 把 WebSocket 轉給 GS</text
         >
       </g>
 
@@ -91,13 +84,13 @@
         <text
           class="slack-diagram__header slack-diagram__header--gold"
           x="10"
-          y="20">Flannel Edge Cache</text
+          y="20">Gateway Server</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• 使用者權限與 Workspace</text
+          >• 部署在多個地理區域</text
         >
         <text class="slack-diagram__desc" x="10" y="58"
-          >• 查詢快取降級主資料庫</text
+          >• 存使用者資訊與訂閱</text
         >
       </g>
     </g>
@@ -105,10 +98,8 @@
     <!-- Column 2: Ingestion & Routing -->
     <g class="slack-diagram__card" transform="translate(255, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="slack-diagram__badge" x="14" y="26"
-        >INGESTION &amp; BUSINESS</text
-      >
-      <text class="slack-diagram__title" x="14" y="54">訊息寫入與業務驗證</text>
+      <text class="slack-diagram__badge" x="14" y="26">ROUTING · 2023</text>
+      <text class="slack-diagram__title" x="14" y="54">寫入與路由</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -119,15 +110,14 @@
         <text
           class="slack-diagram__header slack-diagram__header--teal"
           x="10"
-          y="20">WebApp API Cluster</text
+          y="20">Webapp 後端</text
         >
-        <text class="slack-diagram__desc" x="10" y="40">• 頻道發言權限檢查</text
+        <text class="slack-diagram__desc" x="10" y="40"
+          >• 客戶端呼叫 API 送訊息</text
         >
-        <text class="slack-diagram__desc" x="10" y="58"
-          >• 富文本 / 檔案 Markdown 解析</text
-        >
+        <text class="slack-diagram__desc" x="10" y="58">• 把訊息交給 AS</text>
         <text class="slack-diagram__desc" x="10" y="76"
-          >• 生成全域單調遞增 Msg ID</text
+          >• 提供 WebSocket 連線設定</text
         >
       </g>
 
@@ -140,16 +130,14 @@
         <text
           class="slack-diagram__header slack-diagram__header--gold"
           x="10"
-          y="20">Message Server / Kafka</text
+          y="20">Admin Server</text
         >
-        <text class="slack-diagram__desc" x="10" y="40"
-          >• 寫入訊息持久化日誌</text
-        >
+        <text class="slack-diagram__desc" x="10" y="40">• 無狀態</text>
         <text class="slack-diagram__desc" x="10" y="58"
-          >• 非同步觸發 Bot 與 Webhook</text
+          >• 介接 Webapp 與 CS</text
         >
         <text class="slack-diagram__desc" x="10" y="76"
-          >• 派發至搜尋檢索管線</text
+          >• 依頻道 ID 查雜湊環</text
         >
       </g>
 
@@ -162,13 +150,13 @@
         <text
           class="slack-diagram__header slack-diagram__header--blue"
           x="10"
-          y="20">Presence &amp; Typing</text
+          y="20">CHARMs + Consul</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• Ephemeral 短暫狀態</text
+          >• 管理 CS 一致性雜湊環</text
         >
         <text class="slack-diagram__desc" x="10" y="58"
-          >• Redis In-Memory 廣播</text
+          >• 雜湊設定登記在 Consul</text
         >
       </g>
     </g>
@@ -176,12 +164,8 @@
     <!-- Column 3: Realtime Fanout -->
     <g class="slack-diagram__card" transform="translate(490, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="slack-diagram__badge" x="14" y="26"
-        >FANOUT &amp; BROADCAST</text
-      >
-      <text class="slack-diagram__title" x="14" y="54"
-        >頻道多路廣播 (Fanout)</text
-      >
+      <text class="slack-diagram__badge" x="14" y="26">FANOUT · 2023</text>
+      <text class="slack-diagram__title" x="14" y="54">頻道扇出</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -192,17 +176,15 @@
         <text
           class="slack-diagram__header slack-diagram__header--blue"
           x="10"
-          y="20">Channel Server (Pub/Sub)</text
+          y="20">Channel Server</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• 維護 Channel 訂閱者清單</text
+          >• 有狀態，存頻道歷史</text
         >
         <text class="slack-diagram__desc" x="10" y="58"
-          >• 記憶體扇出 (In-Memory Fanout)</text
+          >• 尖峰每台約 1,600 萬頻道</text
         >
-        <text class="slack-diagram__desc" x="10" y="76"
-          >• 萬人大頻道分片廣播</text
-        >
+        <text class="slack-diagram__desc" x="10" y="76">• 送給有訂閱的 GS</text>
       </g>
 
       <g transform="translate(14, 185)">
@@ -214,16 +196,15 @@
         <text
           class="slack-diagram__header slack-diagram__header--gold"
           x="10"
-          y="20">Push Notification (APNs/FCM)</text
+          y="20">Gateway Server</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• 離線/未聚焦使用者過濾</text
+          >• 收到 CS 送來的訊息</text
         >
-        <text class="slack-diagram__desc" x="10" y="58"
-          >• 靜音與 DND 免打擾策略</text
+        <text class="slack-diagram__desc" x="10" y="58">• 送給自己的客戶端</text
         >
         <text class="slack-diagram__desc" x="10" y="76"
-          >• 喚醒客戶端背景拉取</text
+          >• 只送給有訂閱的連線</text
         >
       </g>
 
@@ -236,22 +217,19 @@
         <text
           class="slack-diagram__header slack-diagram__header--teal"
           x="10"
-          y="20">WebSocket Gateway Egress</text
+          y="20">Presence Server</text
         >
-        <text class="slack-diagram__desc" x="10" y="40"
-          >• 下發至在線成員連線</text
-        >
-        <text class="slack-diagram__desc" x="10" y="58"
-          >• 壓縮二進位 / JSON Frame</text
-        >
+        <text class="slack-diagram__desc" x="10" y="40">• 追蹤誰在線上</text>
+        <text class="slack-diagram__desc" x="10" y="58">• 驅動在線指示</text>
       </g>
     </g>
 
     <!-- Column 4: Storage & Recovery -->
     <g class="slack-diagram__card" transform="translate(725, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="slack-diagram__badge" x="14" y="26">STORAGE &amp; SYNC</text>
-      <text class="slack-diagram__title" x="14" y="54">分片持久化與同步</text>
+      <text class="slack-diagram__badge" x="14" y="26">STORAGE · 2017–2020</text
+      >
+      <text class="slack-diagram__title" x="14" y="54">儲存與快取</text>
 
       <g transform="translate(14, 75)">
         <rect
@@ -262,16 +240,13 @@
         <text
           class="slack-diagram__header slack-diagram__header--gold"
           x="10"
-          y="20">MySQL Shards (Vitess)</text
+          y="20">MySQL + Vitess（2020）</text
         >
-        <text class="slack-diagram__desc" x="10" y="40"
-          >• 依 Workspace/Channel 分片</text
-        >
+        <text class="slack-diagram__desc" x="10" y="40">• 2017 年開始遷移</text>
         <text class="slack-diagram__desc" x="10" y="58"
-          >• 嚴格事務保證持久化</text
+          >• 訊息改按頻道 ID 分片</text
         >
-        <text class="slack-diagram__desc" x="10" y="76">• 歷史訊息長青封存</text
-        >
+        <text class="slack-diagram__desc" x="10" y="76">• 承接 99% 查詢量</text>
       </g>
 
       <g transform="translate(14, 180)">
@@ -283,16 +258,13 @@
         <text
           class="slack-diagram__header slack-diagram__header--teal"
           x="10"
-          y="20">Redis Message Cache</text
+          y="20">Flannel（2017）</text
         >
-        <text class="slack-diagram__desc" x="10" y="40"
-          >• 最近 N 筆頻道訊息緩存</text
-        >
+        <text class="slack-diagram__desc" x="10" y="40">• 部署在邊緣 PoP</text>
         <text class="slack-diagram__desc" x="10" y="58"
-          >• Unread Count 未讀計數器</text
+          >• 快取使用者、頻道、bot</text
         >
-        <text class="slack-diagram__desc" x="10" y="76"
-          >• 毫秒級快速頻道切換</text
+        <text class="slack-diagram__desc" x="10" y="76">• 啟動資料延遲載入</text
         >
       </g>
 
@@ -305,13 +277,13 @@
         <text
           class="slack-diagram__header slack-diagram__header--blue"
           x="10"
-          y="20">Search &amp; Lucene Index</text
+          y="20">Job Queue（2017）</text
         >
         <text class="slack-diagram__desc" x="10" y="40"
-          >• 頻道/私訊倒排索引</text
+          >• Kafka → JQRelay → Redis</text
         >
         <text class="slack-diagram__desc" x="10" y="58"
-          >• 實時增量建立全文檢索</text
+          >• 含訊息發送、推播通知</text
         >
       </g>
     </g>
@@ -338,86 +310,87 @@
     role="img"
     aria-labelledby="slack-m-title"
   >
-    <title id="slack-m-title">Slack 訊息投遞管線（手機檢視）</title>
+    <title id="slack-m-title">Slack 訊息投遞相關元件（手機檢視）</title>
 
     <g class="slack-diagram__card" transform="translate(10, 10)">
       <rect width="300" height="130" rx="8"></rect>
-      <text class="slack-diagram__badge" x="12" y="22">1. 邊緣連線與閘道</text>
+      <text class="slack-diagram__badge" x="12" y="22"
+        >1. 連線與閘道（2023）</text
+      >
       <text class="slack-diagram__desc" x="12" y="45"
-        >• Client WebSocket 保持雙向通道</text
+        >• 客戶端連最近邊緣區域的 Envoy</text
       >
       <text class="slack-diagram__desc" x="12" y="65"
-        >• Edge Gateway (Envoy) TLS 終結與路由</text
+        >• Envoy 負載平衡、TLS 終結</text
       >
       <text class="slack-diagram__desc" x="12" y="85"
-        >• Flannel 邊緣快取 Workspace 權限</text
+        >• Gateway Server 部署在多個區域</text
       >
       <text class="slack-diagram__desc" x="12" y="105"
-        >• 樂觀 UI 渲染 + SeqID 去重防抖動</text
+        >• GS 存使用者資訊與頻道訂閱</text
       >
     </g>
 
     <g class="slack-diagram__card" transform="translate(10, 155)">
       <rect width="300" height="135" rx="8"></rect>
       <text class="slack-diagram__badge" x="12" y="22"
-        >2. 訊息寫入與業務驗證</text
+        >2. 寫入與路由（2023）</text
       >
       <text class="slack-diagram__desc" x="12" y="45"
-        >• WebApp 驗證頻道發言權限與 Markdown</text
+        >• 客戶端呼叫 Webapp API 送訊息</text
       >
       <text class="slack-diagram__desc" x="12" y="65"
-        >• 生成全域單調遞增 Message ID</text
+        >• Webapp 把訊息交給 Admin Server</text
       >
       <text class="slack-diagram__desc" x="12" y="85"
-        >• Message Server 寫入 Kafka 事件日誌</text
+        >• AS 依頻道 ID 查雜湊環找 CS</text
       >
       <text class="slack-diagram__desc" x="12" y="105"
-        >• 非同步觸發 Bot / Webhook / 搜尋索引</text
+        >• CHARMs 管理雜湊環，設定在 Consul</text
       >
     </g>
 
     <g class="slack-diagram__card" transform="translate(10, 305)">
       <rect width="300" height="140" rx="8"></rect>
-      <text class="slack-diagram__badge" x="12" y="22"
-        >3. 頻道多路廣播 (Fanout)</text
+      <text class="slack-diagram__badge" x="12" y="22">3. 頻道扇出（2023）</text
       >
       <text class="slack-diagram__desc" x="12" y="45"
-        >• Channel Server 記憶體維護訂閱清單</text
+        >• Channel Server 存頻道歷史</text
       >
       <text class="slack-diagram__desc" x="12" y="65"
-        >• 萬人大群分片並行廣播 (Fanout)</text
+        >• CS 送給每台有訂閱的 GS</text
       >
       <text class="slack-diagram__desc" x="12" y="85"
-        >• WebSocket 閘道下發在線連線</text
+        >• GS 送給自己身上的客戶端</text
       >
       <text class="slack-diagram__desc" x="12" y="105"
-        >• APNs / FCM 喚醒離線成員</text
+        >• Presence Server 追蹤誰在線上</text
       >
     </g>
 
     <g class="slack-diagram__card" transform="translate(10, 460)">
       <rect width="300" height="145" rx="8"></rect>
       <text class="slack-diagram__badge" x="12" y="22"
-        >4. 分片持久化與狀態收斂</text
+        >4. 儲存與快取（2017–2020）</text
       >
       <text class="slack-diagram__desc" x="12" y="45"
-        >• MySQL Shards (Vitess) 分片儲存</text
+        >• 2020：Vitess，訊息按頻道 ID 分片</text
       >
       <text class="slack-diagram__desc" x="12" y="65"
-        >• Redis 緩存近期訊息與未讀計數器</text
+        >• 2020：Vitess 承接 99% 查詢量</text
       >
       <text class="slack-diagram__desc" x="12" y="85"
-        >• Lucene / ES 即時全文倒排索引</text
+        >• 2017：Flannel 部署在邊緣 PoP</text
       >
       <text class="slack-diagram__desc" x="12" y="105"
-        >• Delta Sync 離線斷線增量補償</text
+        >• 2017：Job Queue 處理推播等工作</text
       >
     </g>
   </svg>
 
   <figcaption id="slack-caption" class="slack-diagram__caption">
-    圖 1：Slack 訊息投遞全鏈路架構 — 從 WebSocket 長連線、Channel Server
-    記憶體廣播到分片 MySQL 持久化
+    圖 1：依 Slack 工程部落格四篇原文（2017 年兩篇，2020、2023
+    年各一篇）整理的元件； 不同年份的元件不代表同一時期的架構
   </figcaption>
 </figure>
 

@@ -10,11 +10,13 @@
     aria-labelledby="shopify-diag-title shopify-diag-desc"
   >
     <title id="shopify-diag-title">
-      Shopify 萬億級高可用支付與彈性防護架構
+      Shopify 支付韌性的 10 個建議（2022 年原文）
     </title>
     <desc id="shopify-diag-desc">
-      展示 Shopify 如何透過 ULID
-      冪等鍵、明確狀態機轉移、熔斷降級、帶抖動指數退避重試與非同步對帳循環，建構零重複扣款且高耐災的金融級支付系統。
+      把 Bart de Water 2022 年的 10
+      個建議放到結帳流程上：結帳端的等候佇列、correlation_id 與 ULID
+      冪等鍵，支付服務的逾時、Semian
+      斷路器、容量與監控、事故處理，以及和金流夥伴的對帳。
     </desc>
 
     <defs>
@@ -46,28 +48,27 @@
     <!-- Block 1: Client & Ingress -->
     <g class="shopify-diag__card" transform="translate(30, 40)">
       <rect width="200" height="370" rx="12"></rect>
-      <text class="shopify-diag__badge" x="18" y="28">INGRESS & INITIATION</text
-      >
-      <text class="shopify-diag__title" x="18" y="58">結帳客戶端</text>
-      <text class="shopify-diag__desc" x="18" y="86">• BFCM 百萬湧入流量</text>
+      <text class="shopify-diag__badge" x="18" y="28">CHECKOUT & JOBS</text>
+      <text class="shopify-diag__title" x="18" y="58">結帳與背景工作</text>
+      <text class="shopify-diag__desc" x="18" y="86">• 等候佇列節流 (§8)</text>
       <text class="shopify-diag__desc" x="18" y="108"
-        >• 虛擬等候室 (Waiting Room)</text
+        >• correlation_id 串日誌 (§5)</text
       >
 
       <g transform="translate(14, 140)">
         <rect width="172" height="200" rx="8" class="shopify-diag__subcard"
         ></rect>
-        <text class="shopify-diag__subhead" x="12" y="24"
-          >原則 01: 嚴格冪等鍵</text
-        >
+        <text class="shopify-diag__subhead" x="12" y="24">§6 冪等鍵</text>
         <text class="shopify-diag__code" x="12" y="48">Key: ULID</text>
-        <text class="shopify-diag__subdesc" x="12" y="76">發起請求前先生成</text
+        <text class="shopify-diag__subdesc" x="12" y="76"
+          >每次付款嘗試一個鍵</text
         >
-        <text class="shopify-diag__subdesc" x="12" y="96">單調遞增時間戳</text>
+        <text class="shopify-diag__subdesc" x="12" y="96">重試時跑復原步驟</text
+        >
         <text class="shopify-diag__subdesc" x="12" y="116"
-          >防止網路重發重複扣款</text
+          >INSERT 耗時 -50%</text
         >
-        <text class="shopify-diag__tag" x="12" y="160">客戶端主動帶入</text>
+        <text class="shopify-diag__tag" x="12" y="160">支付服務對外送出</text>
       </g>
     </g>
 
@@ -77,7 +78,7 @@
       d="M 230 225 H 315"
       marker-end="url(#sp-arrow-gold)"></path>
     <text class="shopify-diag__wire-label" x="272" y="215" text-anchor="middle"
-      >帶冪等鍵請求</text
+      >背景工作呼叫</text
     >
 
     <!-- Block 2: Core State Machine & Ledger -->
@@ -87,16 +88,16 @@
     >
       <rect width="310" height="370" rx="12"></rect>
       <text class="shopify-diag__badge shopify-diag__badge--gold" x="18" y="28"
-        >STATE ENGINE</text
+        >PAYMENT SERVICE</text
       >
       <text class="shopify-diag__title shopify-diag__title--gold" x="18" y="58"
-        >支付核心與狀態機</text
+        >集中式支付服務</text
       >
       <text class="shopify-diag__desc" x="18" y="86"
-        >• 明確狀態機 (Explicit FSM)</text
+        >• 逾時：開連線 1s／讀寫 5s (§1)</text
       >
       <text class="shopify-diag__desc" x="18" y="108"
-        >• 唯一性約束 (DB Unique Constraint)</text
+        >• Semian 斷路器，依國別切分 (§2)</text
       >
 
       <g transform="translate(14, 130)">
@@ -108,28 +109,26 @@
         <text
           class="shopify-diag__subhead shopify-diag__subhead--gold"
           x="14"
-          y="26">原子狀態流轉</text
+          y="26">容量與監控</text
         >
         <text class="shopify-diag__code" x="14" y="52"
-          >Pending ➔ Authorized ➔ Captured</text
+          >capacity = throughput × latency</text
         >
         <text class="shopify-diag__subdesc" x="14" y="78"
-          >• 任何重試請求命中既有 ULID 則直接回傳快照</text
+          >• 佇列約在容量 70–80% 開始變長 (§8)</text
         >
         <text class="shopify-diag__subdesc" x="14" y="100"
-          >• 嚴禁模糊狀態（避免 Hanging Transaction）</text
+          >• 黃金訊號：延遲／流量／錯誤／飽和 (§4)</text
         >
 
         <path class="shopify-diag__divider" d="M 14 120 H 268"></path>
 
-        <text class="shopify-diag__subhead" x="14" y="145"
-          >非同步解耦與重試</text
-        >
+        <text class="shopify-diag__subhead" x="14" y="145">事故處理</text>
         <text class="shopify-diag__subdesc" x="14" y="168"
-          >• 指數退避 + 全抖動 (Exponential Jitter)</text
+          >• IMOC／SRM／服務負責人分工 (§9)</text
         >
         <text class="shopify-diag__subdesc" x="14" y="190"
-          >• 逾時預算控制 (Client Timeout &lt; Gateway)</text
+          >• 一週內開事故檢討 (§10)</text
         >
       </g>
     </g>
@@ -140,40 +139,37 @@
       d="M 630 225 H 710"
       marker-end="url(#sp-arrow-gold)"></path>
     <text class="shopify-diag__wire-label" x="670" y="215" text-anchor="middle"
-      >多路分發</text
+      >帶冪等鍵請求</text
     >
 
     <!-- Block 3: External Gateway & Resilience -->
     <g class="shopify-diag__card" transform="translate(715, 40)">
       <rect width="215" height="370" rx="12"></rect>
       <text class="shopify-diag__badge" x="18" y="28">DOWNSTREAM & RECON</text>
-      <text class="shopify-diag__title" x="18" y="58">閘道通訊與對帳</text>
-      <text class="shopify-diag__desc" x="18" y="86"
-        >• Stripe / Adyen / 銀行</text
-      >
+      <text class="shopify-diag__title" x="18" y="58">金流夥伴與對帳</text>
+      <text class="shopify-diag__desc" x="18" y="86">• 金流夥伴 API</text>
       <text class="shopify-diag__desc" x="18" y="108"
-        >• 多渠道故障轉移 (Failover)</text
+        >• 壓測接 benchmark gateway</text
       >
 
       <g transform="translate(14, 140)">
         <rect width="187" height="200" rx="8" class="shopify-diag__subcard"
         ></rect>
-        <text class="shopify-diag__subhead" x="12" y="24"
-          >原則 08: 頻外對帳循環</text
-        >
-        <text class="shopify-diag__code" x="12" y="48">Reconciliation Loop</text
+        <text class="shopify-diag__subhead" x="12" y="24">§7 對帳</text>
+        <text class="shopify-diag__code" x="12" y="48"
+          >MismatchCaptureStatusAnomaly</text
         >
         <text class="shopify-diag__subdesc" x="12" y="76"
-          >• 定期拉取結算報表</text
+          >• 比對扣款、退款與餘額</text
         >
         <text class="shopify-diag__subdesc" x="12" y="96"
-          >• 修補漏失 Webhook</text
+          >• 不一致記成 anomaly</text
         >
         <text class="shopify-diag__subdesc" x="12" y="116"
-          >• 死信佇列 (DLQ) 補償重放</text
+          >• 能自動修就修，否則人工查</text
         >
         <text class="shopify-diag__tag shopify-diag__tag--gold" x="12" y="160"
-          >最終一致性保證</text
+          >anomaly 是最後手段</text
         >
       </g>
     </g>
@@ -182,41 +178,41 @@
   <!-- Mobile Version for 320px screens -->
   <div class="shopify-diag__mobile">
     <div class="shopify-mobile-card">
-      <span class="shopify-mobile-badge">01. 入口防禦</span>
-      <h4>ULID 冪等鍵與流量防護</h4>
+      <span class="shopify-mobile-badge">01. 結帳與背景工作</span>
+      <h4>等候佇列、correlation_id 與冪等鍵</h4>
       <p>
-        在客戶端發起扣款前生成單調遞增 ULID
-        冪等鍵，並在尖峰時透過等候室限制並行流量。
+        結帳量超過容量時先排進等候佇列；correlation_id
+        一路傳到支付服務。每次付款嘗試用一個 ULID 冪等鍵，重試時跑復原步驟。
       </p>
     </div>
 
-    <div class="shopify-mobile-arrow">↓ 帶冪等鍵提交</div>
+    <div class="shopify-mobile-arrow">↓ 背景工作呼叫</div>
 
     <div class="shopify-mobile-card shopify-mobile-card--gold">
       <span class="shopify-mobile-badge shopify-mobile-badge--gold"
-        >02. 核心狀態引擎</span
+        >02. 集中式支付服務</span
       >
-      <h4>明確狀態機與指數抖動重試</h4>
+      <h4>逾時、斷路器、容量與事故處理</h4>
       <p>
-        透過資料庫唯一約束鎖定交易狀態（Pending ➔ Authorized ➔ Captured），並以
-        Exponential Backoff with Jitter 消除重試雪崩。
+        開連線 1 秒、讀寫 5 秒起跳；Semian 斷路器依國別切分。用 Little's Law
+        和四大黃金訊號看容量，出事時由 IMOC 協調，一週內檢討。
       </p>
     </div>
 
-    <div class="shopify-mobile-arrow">↓ 多路安全路由</div>
+    <div class="shopify-mobile-arrow">↓ 帶冪等鍵請求</div>
 
     <div class="shopify-mobile-card">
-      <span class="shopify-mobile-badge">03. 災備與對帳</span>
-      <h4>熔斷切換與頻外對帳循環</h4>
+      <span class="shopify-mobile-badge">03. 金流夥伴與對帳</span>
+      <h4>對帳與 anomaly</h4>
       <p>
-        外部支付閘道故障時自動觸發熔斷並切換備用線路，後台對帳排程持續拉取報表自動修復狀態分歧。
+        比對扣款、退款與餘額，不一致時記成 anomaly（例如
+        MismatchCaptureStatusAnomaly），能自動修就修，否則由團隊調查。
       </p>
     </div>
   </div>
 
   <figcaption id="shopify-diag-caption">
-    圖 1：Shopify 支付彈性架構：結合 ULID
-    冪等鍵、原子狀態機、重試抖動退避與頻外對帳循環。
+    圖 1：把 Bart de Water 2022 年的 10 個建議放到結帳流程上（§ 為原文編號）。
   </figcaption>
 </figure>
 

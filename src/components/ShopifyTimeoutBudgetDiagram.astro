@@ -10,12 +10,10 @@
     role="img"
     aria-labelledby="spt-diag-title spt-diag-desc"
   >
-    <title id="spt-diag-title">
-      分散式呼叫階層式逾時預算（Timeout Budget Hierarchy）圖
-    </title>
+    <title id="spt-diag-title">多層呼叫的逾時預算（作者示意值）</title>
     <desc id="spt-diag-desc">
-      展示客戶端/閘道 Timeout 5.0s 大於內部支付服務 Timeout 3.5s 大於第三方銀行
-      API Timeout 2.0s 的嚴格遞減階層。
+      作者示意值，不是 Shopify 的設定：客戶端／閘道逾時 5.0 秒大於內部支付服務
+      3.5 秒，再大於第三方銀行 API 2.0 秒，上游的預算一律大於下游。
     </desc>
 
     <defs>
@@ -57,7 +55,7 @@
         1. 客戶端 / API 閘道
       </text>
       <text x="117" y="52" class="spt-diag__desc" text-anchor="middle">
-        入口端全域等待上限
+        入口最多等多久
       </text>
       <rect
         x="20"
@@ -97,7 +95,7 @@
         2. 內部支付微服務
       </text>
       <text x="117" y="52" class="spt-diag__desc" text-anchor="middle">
-        核心業務中台處理預算
+        支付服務自己的預算
       </text>
       <rect
         x="20"
@@ -137,7 +135,7 @@
         3. 第三方銀行 API
       </text>
       <text x="115" y="52" class="spt-diag__desc" text-anchor="middle">
-        底層收單渠道通訊超時
+        對外呼叫的逾時
       </text>
       <rect
         x="18"
@@ -164,40 +162,36 @@
         >GATEWAY BUDGET: 5.0s</span
       >
       <h4>1. 客戶端 / API 閘道</h4>
-      <p>
-        最外層客戶端與網關設定 5.0
-        秒最大超時限制，保留足夠餘裕等待內層邏輯完成。
-      </p>
+      <p>最外層的客戶端與閘道最多等 5.0 秒，留餘裕等內層處理完。</p>
     </div>
 
-    <div class="spt-mobile-arrow">▼ 必須嚴格大於下游（留緩衝時間）</div>
+    <div class="spt-mobile-arrow">▼ 上游大於下游（留緩衝時間）</div>
 
     <div class="spt-mobile-card spt-mobile-card--amber">
       <span class="spt-mobile-badge spt-mobile-badge--amber"
         >SERVICE BUDGET: 3.5s</span
       >
       <h4>2. 內部支付微服務</h4>
-      <p>
-        中台服務設定 3.5 秒超時，留出 1.5 秒處理結果封裝、風控更新與重試記錄。
-      </p>
+      <p>支付服務設 3.5 秒逾時，比上游少 1.5 秒，留給回應處理與紀錄。</p>
     </div>
 
-    <div class="spt-mobile-arrow">▼ 必須嚴格大於外部渠道</div>
+    <div class="spt-mobile-arrow">▼ 上游大於對外呼叫</div>
 
     <div class="spt-mobile-card spt-mobile-card--red">
       <span class="spt-mobile-badge spt-mobile-badge--red"
         >BANK API BUDGET: 2.0s</span
       >
-      <h4>3. 第三方銀行 / 渠道 API</h4>
+      <h4>3. 第三方銀行 API</h4>
       <p>
-        底層對外 HTTP 請求嚴格限制 2.0 秒熔斷。若 2.0
-        秒未響應立即斷開並發起狀態查詢，絕不讓上游先於下游超時造成狀態幽靈脫節！
+        對外 HTTP 請求 2.0 秒逾時。2.0
+        秒沒回應就斷開、改查交易狀態，避免上游比下游先逾時，兩邊狀態對不起來。
       </p>
     </div>
   </div>
 
   <figcaption id="spt-diag-caption" class="spt-diag__caption">
-    圖二：分散式服務呼叫階層式逾時預算（Timeout Budget Hierarchy）防脫節架構
+    圖 2：多層呼叫的逾時預算，上游大於下游（數字為作者示意值，不是 Shopify
+    的設定）
   </figcaption>
 </figure>
 

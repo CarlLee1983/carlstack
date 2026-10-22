@@ -1,7 +1,8 @@
 ---
-title: "從單體到分片：Figma 如何將 PostgreSQL 擴展 100 倍並維持零停機"
-description: "拆解 Figma 在四年內承載 100 倍流量成長的資料庫擴展路徑：從單體 RDS 垂直拆庫、自研 DBProxy 智慧路由、Colo 局部一致性分組，到零停機邏輯複製與影子讀驗證的工程權衡。"
+title: "從單體到分片：Figma 把 PostgreSQL 擴展近 100 倍的兩段遷移"
+description: "依 Figma 官方兩篇工程文整理它的資料庫擴展路徑：2020 年的單一 RDS、2022 年的垂直拆庫、2022 年底起用自研 DBProxy 做水平分片，以及 Postgres view、邏輯複製與 PgBouncer 暫停組成的遷移流程。"
 publishDate: 2026-09-02T09:48:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -10,7 +11,6 @@ tags:
   - 資料庫
   - 架構演進
   - 後端架構
-repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 cover: ../../assets/covers/figma-postgres-scaling.png
 coverAlt: "中央智慧路由代理節點解析資料流，並將請求精準分流至周圍多個獨立的 PostgreSQL 資料庫分片實例。"
 series: 矽谷巨頭高併發架構復盤
@@ -19,43 +19,42 @@ seriesOrder: 8
 
 import FigmaPostgresScalingDiagram from "../../components/FigmaPostgresScalingDiagram.astro";
 
-在現代 SaaS 架構的演進史中，當關聯式資料庫遇到高併發與資料量爆炸時，團隊常面臨兩難抉擇：是徹底重寫系統遷移至 NewSQL（如 CockroachDB、TiDB 或 Google Spanner），還是堅守成熟的關聯式資料庫生態並由架構層進行水平擴展？
+關聯式資料庫撐不住的時候，團隊通常要在兩條路之間選：遷移到 CockroachDB、TiDB、Spanner 這類分散式資料庫，或留在原本的資料庫，在架構層自己做水平擴展。Figma 選了後者。
 
-Figma 在 2020 至 2024 年間經歷了超過 **100 倍的流量與資料規模暴增**。其核心產品——即時多人協同設計畫布——背後累積了龐大的畫布節點（Canvas Nodes）、版本歷程、評論與組織權限中繼資料。Figma 團隊並未貿然更換儲存引擎，而是選擇在標準 **AWS RDS PostgreSQL** 的基礎上，透過「單體垂直擴展 → 領域垂直拆庫 → 自研 DBProxy 水平分片（Horizontal Sharding）」的三階段漸進演進，成功支撐起數兆級的請求負載，並實現全生命週期的零停機遷移。
+Figma 用 PostgreSQL 存中繼資料，依它的工程部落格，內容包括權限、檔案資訊、留言、組織資料與檔案版本。2024 年那篇文章說，Figma 的資料庫堆疊「自 2020 年以來成長了接近 100 倍」。這四年裡它沒有換掉 AWS RDS PostgreSQL，而是分三步走：先把單一資料庫撐大，再依資料表群組垂直拆庫，最後自建 Go 寫的 DBProxy 做水平分片。遷移也不是零停機：垂直拆庫時每次切換約 30 秒部分不可用（約 2% 請求失敗），水平分片的第一次實體切換，主庫約 10 秒部分不可用，replica 不受影響。
 
-本文以 [Figma Engineering 官方技術揭秘](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/) 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101) 的分析為基礎，深度拆解這套擴展架構的底層機制、路由邏輯與關鍵權衡。
+這篇依 Figma 官方的兩篇文章整理：
+
+- 【垂直拆庫文】Tim Liang，[_The growing pains of database architecture_](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/)，2023-04-04。
+- 【水平分片文】Sammy Steele，[_How Figma's databases team lived to tell the scale_](https://www.figma.com/blog/how-figmas-databases-team-lived-to-tell-the-scale/)，2024-03-14。
+
+文中標明「示意」或「我的看法」的部分是我補充的，不是 Figma 公開過的做法。
 
 <FigmaPostgresScalingDiagram />
 
 ---
 
-## 階段 1：單體垂直擴展與讀寫分離的物理邊界（1x → 10x）
+## 階段 1：2020 年，單一 RDS 撐到極限
 
-在初期，Figma 的所有業務邏輯都跑在單一巨大的 Amazon RDS PostgreSQL 實例上。隨著用戶量上升，團隊首先實施了標準的擴展手段：
+依垂直拆庫文，2020 年 Figma 的大部分中繼資料還放在單一的大型 Amazon RDS 資料庫，尖峰時 CPU 使用率超過 65%，資料庫流量大約每年成長 3 倍。團隊先做了幾項戰術性修補，為自己多爭取一年：
 
-1. **垂直硬體升級（Vertical Scaling）**：將實例不斷升級至頂規（如 `r5.24xlarge` 與 `io2` 高 IOPS 磁碟），爭取架構改造的緩衝時間。
-2. **連線池治理（Connection Pooling）**：引入 PgBouncer 集中管理應用伺服器的短連線，防止 PostgreSQL 為每個客戶端 Fork 處理程序造成的記憶體開銷與 Context Switch 耗損。
-3. **讀寫分離（Read-Replica Offloading）**：將唯讀查詢、分析報表與搜尋作業導流至多個 Read Replicas。
-4. **快取層引入（Redis Caching）**：對熱門檔案的中繼資料與使用者工作階段進行 Redis 快取。
+1. **升級機型**：從 `r5.12xlarge` 升到當時最大的 `r5.24xlarge`。
+2. **加 read replica**：建立多個 read replica 分擔讀取流量。
+3. **新用途開新庫**：新功能直接用新的資料庫，限制原本那台的成長。
+4. **加 PgBouncer**：連線數已經到數千條，用 PgBouncer 當連線池，降低連線數成長的衝擊。
 
-### 遭遇的硬體天花板
-
-當規模達到 10 倍以上時，單體 Primary 資料庫出現了無法透過硬體解決的瓶頸：
-
-- **Primary 寫入 IOPS 飽和**：高頻協同編輯產生的 WAL（Write-Ahead Logging）寫入速率接近實體磁碟上限。
-- **複寫延遲（Replica Lag）雪崩**：在高寫入壓力下，Replica 節點同步不及，導致應用層讀取到過期資料（Read-After-Write Inconsistency）。
-- **單點故障半徑過大**：任何單一慢查詢（Slow Query）或資料庫鎖爭用（Lock Contention）都會拖垮整個公司的所有功能。
+這些修補有上限。垂直拆庫文提到，因為應用程式對複寫延遲（replication lag）很敏感，並不是所有讀取都能搬到 replica。
 
 ---
 
-## 階段 2：依業務領域垂直拆庫（Vertical Partitioning，10x → 30x）
+## 階段 2：2022 年，依資料表群組垂直拆庫
 
-當單一資料庫無法承擔全域寫入時，下一步標準動作是**垂直拆庫**——依照業務邊界（Bounded Contexts）將彼此低關聯的資料表分離至獨立的 RDS 實例：
+下一步是垂直拆庫：不把一張表拆到多個庫，而是把一組組相關的資料表搬到各自的資料庫。水平分片文舉的例子是「Figma files」和「Organizations」這類表群組。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fg-vert-title fg-vert-desc">
-    <title id="fg-vert-title">Figma 階段二：依業務領域垂直拆庫拓撲圖</title>
-    <desc id="fg-vert-desc">展示原單體 RDS 資料庫依領域拆解為 Auth/Org DB、Files DB 與 Activity Log DB 三個獨立實例。</desc>
+    <title id="fg-vert-title">Figma 階段二：依資料表群組垂直拆庫示意圖</title>
+    <desc id="fg-vert-desc">原本的單一 RDS 資料庫依資料表群組拆成多個垂直分割庫，例如 Figma files 與 Organizations；到 2022 年底共約十幾個。</desc>
     
     <defs>
       <marker id="fg-arr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -64,7 +63,7 @@ Figma 在 2020 至 2024 年間經歷了超過 **100 倍的流量與資料規模�
     </defs>
 
     <rect x="270" y="10" width="260" height="40" rx="6" fill="#1f242c" stroke="#58a6ff" stroke-width="1.5"/>
-    <text x="400" y="35" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">原單體 RDS PostgreSQL 資料庫</text>
+    <text x="400" y="35" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">原本的單一 RDS PostgreSQL</text>
 
     <path d="M 330 50 L 160 85" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
     <path d="M 400 50 L 400 85" stroke="#3fb950" stroke-width="2" marker-end="url(#fg-arr)"/>
@@ -72,160 +71,161 @@ Figma 在 2020 至 2024 年間經歷了超過 **100 倍的流量與資料規模�
 
 
     <rect x="40" y="85" width="230" height="70" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="155" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Auth / Org DB</text>
-    <text x="155" y="134" fill="#8b949e" font-size="10" text-anchor="middle">使用者、團隊組織、權限</text>
+    <text x="155" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Organizations</text>
+    <text x="155" y="134" fill="#8b949e" font-size="10" text-anchor="middle">組織相關的資料表群組</text>
 
     <rect x="290" y="85" width="220" height="70" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="400" y="112" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Files DB (核心瓶頸)</text>
-    <text x="400" y="134" fill="#56d364" font-size="10" text-anchor="middle">檔案、畫布節點、歷史版本</text>
+    <text x="400" y="112" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">Figma files</text>
+    <text x="400" y="134" fill="#56d364" font-size="10" text-anchor="middle">檔案相關的資料表群組</text>
 
     <rect x="530" y="85" width="230" height="70" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="645" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">Activity Log DB</text>
-    <text x="645" y="134" fill="#8b949e" font-size="10" text-anchor="middle">審計日誌、即時通知、評論</text>
+    <text x="645" y="112" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">其他表群組……</text>
+    <text x="645" y="134" fill="#8b949e" font-size="10" text-anchor="middle">2022 年底共約十幾個庫</text>
 
   </svg>
 </div>
 
-### 垂直拆庫付出的架構代價
+拆庫分成多次進行。垂直拆庫文寫道，第一次只搬了兩張高流量的表，2022 年 10 月最後一次搬了 50 張。挑哪些表先搬，依據是查詢的平均活躍工作階段（average active sessions，AAS）。Figma 後端用 Ruby 和 ActiveRecord，靜態分析很難判斷一個查詢碰到哪些實體表，所以團隊先在 ActiveRecord 上掛了執行期驗證器，找出跨群組的查詢再拆。
 
-垂直拆庫大幅降低了各業務間的相互干擾，但隨之而來的是架構複雜度的上升：
+垂直拆庫文給的結果是：最大的分割庫 CPU 使用率降到約 10%。
 
-- **跨庫 Foreign Key 失效**：資料庫層級的參照完整性約束必須移交給應用層程式碼或非同步檢查機制。
-- **跨庫 JOIN 消失**：過去一次 SQL 關聯查詢現在必須拆解為多次 RPC 呼叫並在應用記憶體中拼接。
-- **核心庫再度撞牆**：Figma 的業務重心在於「檔案與畫布（Files DB）」，拆分後僅過了一年，單獨的 Files DB 寫入量與容量再次觸及最高規格 RDS 的極限。
+### 拆庫的代價
 
-> [!IMPORTANT]
-> **垂直拆庫只是爭取時間的過渡解**。只要業務的核心資料模型（Core Entity）持續集中在單一資料表，單庫瓶頸就必然會再次降臨。
+垂直拆庫文直接點出，表分到不同的庫之後，會失去表之間的原子交易、foreign key 驗證和 join。
 
----
+### 為什麼還要水平分片
 
-## 階段 3：水平分片架構與自研 DBProxy 核心（30x → 100x+）
-
-面對核心資料表的無限增長，Figma 必須採用**水平分片（Horizontal Sharding）**，將同一張表內的資料行（Rows）分散至不同的物理實例。
-
-### 為什麼不直接採用現成的分散式資料庫？
-
-在評估 NewSQL（CockroachDB、Google Cloud Spanner）與既有代理（Vitess、Citus）時，Figma 團隊做出了關鍵技術選型決策：
-
-- **不選 NewSQL**：成熟度與運維成本考量。遷移至全新的分散式儲存引擎需要改寫數千個既有查詢、放棄成熟的 PostgreSQL 除錯工具鏈與監控體系，且可能面臨不可預期的分散式事務延遲（Cross-region Latency）。
-- **不選 Vitess**：Vitess 對 MySQL 生態高度最佳化，但在 PostgreSQL 語法與特性的支援上存在落差。
-- **選擇自研 DBProxy + RDS PostgreSQL**：保留底層經過驗證的 AWS RDS PostgreSQL 穩定性，在應用層與資料庫之間插入一層輕量、智慧的 SQL 路由代理。
+依水平分片文，到 2022 年底，Figma 已經有快取、read replica 和十幾個垂直分割庫。但有些表長到幾 TB、數十億列，單一資料庫放不下：Postgres vacuum 開始影響可靠性，寫入量最大的幾張表也很快會超過 RDS 支援的最大 IOPS。下一步是把同一張表的資料列分散到多個資料庫。
 
 ---
 
-### DBProxy 的四大核心設計模式
+## 階段 3：2022 年底起，自建 DBProxy 做水平分片
 
-#### 1. 邏輯分片（Logical Shards）與實體節點解耦
+### 為什麼不換成分散式資料庫
 
-Figma 沒有將資料直接映射到特定數量的實體伺服器，而是預先規劃了 **128 個邏輯分片（Logical Shards）**。
+水平分片文說，團隊評估過 CockroachDB、TiDB、Spanner 和 Vitess。不選的理由有三個：
 
-- 初始階段：128 個邏輯分片可能平均分配在 16 台實體 RDS 實例上（每台承載 8 個邏輯庫）。
-- 擴容階段：當某台實體 RDS 負載過高時，只需將其中的 4 個邏輯分片遷移到新的實體 RDS，應用層與路由規則無需重新計算 Shard Key 雜湊，避免全域資料 Re-hashing。
+- **遷移風險**：換資料庫要做複雜的資料遷移。
+- **專業要重建**：團隊已經累積了大量在內部穩定、高效地運作 RDS Postgres 的經驗，換掉就得從頭學。
+- **時間不夠**：成長太快，只剩幾個月的餘裕。
 
-#### 2. Colo（Colocation Groups）保障局部 ACID 與關聯
+垂直拆庫文在 2023 年也提過類似的考量：如果改用雲端代管的分散式 Postgres，Figma 會是規模最大的單一叢集客戶之一，團隊不想第一個撞上某些擴展問題。至於 Vitess，它是 MySQL 的方案，改用它或 NoSQL 都要做複雜的雙讀雙寫遷移。
 
-分散式資料庫最痛苦的莫過於跨節點 JOIN 與分散式二階段提交（2PC）。Figma 提出了 **Colo（協同定位分組）** 的概念：
+最後的選擇是留在既有的 RDS Postgres，在上面自建水平分片。
 
-- 具有強關聯的資料實體（例如 `Files`、`CanvasNodes`、`Frames`、`Versions`）必須使用相同的 **Shard Key**（例如以 `OrgID` 或 `FileID` 為分片鍵）。
-- DBProxy 保證同一個 Shard Key 的所有資料必然路由至同一個邏輯分片中。
-- **收益**：在同一個分片內部，工程師依然可以自由使用標準的 SQL `JOIN` 與 ACID 事務，完全不需要分散式事務協調器。
+### DBProxy 的位置與功能
+
+DBProxy 是用 Go 寫的新服務，位於應用層與 PgBouncer 之間。水平分片文列出它負責負載卸除（load-shedding）、可觀測性、交易支援、資料庫拓撲管理，以及一個輕量的查詢引擎；有了它之後，團隊也能做動態負載卸除和 request hedging。
+
+查詢引擎的流程是：查詢解析器把應用送來的 SQL 轉成抽象語法樹（AST），邏輯規劃器從 AST 取出查詢類型和邏輯分片 ID，實體規劃器再把邏輯分片 ID 對應到實體資料庫。
+
+### 邏輯分片與實體分片分開
+
+水平分片文把應用層的「邏輯分片」和 Postgres 層的「實體分片」拆成兩件事。邏輯分片用 Postgres view 表示，應用先在邏輯分片上跑，資料還沒搬離原本的庫。確定邏輯分片運作正常之後，才做實體分片，把資料真的分散到多台資料庫。
+
+這樣拆的好處是，一張表一旦在應用層完成水平分片，實體層要用幾個分片都可以，之後要擴充只要再做一次實體分片拆分。
+
+Figma 沒有公開分片數量。原文示意圖畫的是「兩個實體分片承載四個邏輯分片」。
+
+### Shard key 與 colo
+
+Figma 挑了幾個 shard key，例如 `UserID`、`FileID`、`OrgID`，路由時用 shard key 的雜湊值。
+
+強關聯的表會放進同一個 colo（colocation）：同一個 colo 的表共用 shard key 和實體分片配置。原文的示意是「以 UserID 分片的表放在一起，以 FileID 分片的表放在一起」。只要查詢限定在單一 shard key，同一個 colo 內的表就能做跨表 join 和完整交易。
+
+下面是我寫的示意，表名不是 Figma 的實際 schema：
 
 ```sql
--- 在相同 Shard Key (file_id) 下，仍可保有原生關聯與事務效能
+-- 示意：同一個 colo、同一個 shard key（file_id）內，可以用一般交易
 BEGIN;
-  INSERT INTO canvas_nodes (file_id, node_id, data) VALUES ('f_123', 'n_999', '...');
+  INSERT INTO comments (file_id, comment_id, body) VALUES ('f_123', 'c_999', '...');
   UPDATE files SET updated_at = NOW() WHERE file_id = 'f_123';
 COMMIT;
 ```
 
-#### 3. SQL AST 解析與精準路由
+### Scatter-gather 與支援的查詢範圍
 
-DBProxy 會在連線轉發前對 SQL 語句進行 AST（抽象語法樹）解析：
+查詢帶有 shard key 時，只會送到一個分片。缺 shard key 時，查詢引擎要做 scatter-gather：把查詢送到每個分片，再合併結果。水平分片文指出，每個 scatter-gather 都會對所有資料庫造成同樣的負載，太多的話，分片就失去意義。
 
-- **單分片直通（Point Query）**：若 `WHERE` 條件中包含 Shard Key，DBProxy 直接將 SQL 轉發至目標物理分片。
-- **跨分片查詢阻斷 / 散彈聚合（Scatter-Gather）**：若查詢缺少 Shard Key，DBProxy 在開發環境中發出警報或阻斷；僅有極少數受控的後台報表允許向所有分片並行發送查詢並在 Proxy 記憶體中聚合。
-
-#### 4. 連線多路復用與故障隔離
-
-DBProxy 充當了反向代理與安全網，內建：
-
-- **查詢超時與熔斷（Circuit Breaking）**：防止單一分片的慢查詢堆積耗盡全域連線池。
-- **租戶隔離（Tenant Isolation）**：單一超大組織（Mega Tenant）若產生極端流量，其爆炸半徑（Blast Radius）被嚴格限制在所屬分片內，其餘 90% 以上的用戶完全不受影響。
+為了控制範圍，團隊用 shadow planning 分析實際的查詢，選出能涵蓋最常見 90% 查詢的語法子集：範圍掃描和單點查詢都允許，join 只允許在同一個 colo 內、並以 shard key 連接。團隊另外做了一個「shadow application readiness」框架，預測正式流量在不同 shard key 下的表現。
 
 ---
 
-## 階段 4：零停機遷移與生產驗證機制
+## 階段 4：遷移流程
 
-將數 TB 的生產環境資料從單體庫搬遷至 128 個分片庫，且不能有任何資料丟失或服務中斷，Figma 設計了極為嚴謹的四步遷移流水線：
+水平分片文說，團隊希望能在「接近零停機」（near-zero downtime）的情況下擴充，而且每一步都能回滾。實際遷移分兩段：先做邏輯分片，再做實體分片。
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 120" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fg-mig-title fg-mig-desc">
-    <title id="fg-mig-title">Figma 零停機資料庫分片四步遷移流水線圖</title>
-    <desc id="fg-mig-desc">展示 1. 歷史快照複製、2. CDC 邏輯複製追趕、3. 影子讀雙向比對驗證、4. 毫秒級寫入切流的完整遷移流程。</desc>
+    <title id="fg-mig-title">Figma 水平分片遷移流程圖</title>
+    <desc id="fg-mig-desc">1. 用 Postgres view 做邏輯分片並以百分比灰度上線、影子讀比對；2. 邏輯複製整份資料；3. PgBouncer 暫停新連線並等 LSN 同步；4. 切換到新分片，保留回滾能力。</desc>
     
     <rect x="20" y="20" width="165" height="75" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="102" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. 歷史資料快照</text>
-    <text x="102" y="68" fill="#8b949e" font-size="9" text-anchor="middle">Snapshot Copy 恢復基礎</text>
+    <text x="102" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">1. view 邏輯分片</text>
+    <text x="102" y="68" fill="#8b949e" font-size="9" text-anchor="middle">百分比灰度＋影子讀</text>
 
     <path d="M 185 57 L 215 57" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
 
     <rect x="215" y="20" width="165" height="75" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="297" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">2. CDC 邏輯追趕</text>
-    <text x="297" y="68" fill="#8b949e" font-size="9" text-anchor="middle">Replication Slot 追平 WAL</text>
+    <text x="297" y="45" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">2. 整份邏輯複製</text>
+    <text x="297" y="68" fill="#8b949e" font-size="9" text-anchor="middle">不做 filtered replication</text>
 
     <path d="M 380 57 L 410 57" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fg-arr)"/>
 
     <rect x="410" y="20" width="180" height="75" rx="6" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
-    <text x="500" y="45" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">3. 影子讀比對 (Shadow)</text>
-    <text x="500" y="68" fill="#d2a8ff" font-size="9" text-anchor="middle">Double Read 零不一致驗收</text>
+    <text x="500" y="45" fill="#d2a8ff" font-size="11" font-weight="700" text-anchor="middle">3. 暫停並同步</text>
+    <text x="500" y="68" fill="#d2a8ff" font-size="9" text-anchor="middle">PgBouncer 暫停、LSN 對齊</text>
 
     <path d="M 590 57 L 620 57" stroke="#3fb950" stroke-width="2" marker-end="url(#fg-arr)"/>
 
     <rect x="620" y="20" width="160" height="75" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="700" y="45" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">4. 毫秒寫入切流</text>
-    <text x="700" y="68" fill="#3fb950" font-size="9" text-anchor="middle">Write Switch 零停機上線</text>
+    <text x="700" y="45" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">4. 切換與回滾</text>
+    <text x="700" y="68" fill="#3fb950" font-size="9" text-anchor="middle">主庫約 10 秒部分不可用</text>
 
   </svg>
 </div>
 
-1. **基礎快照複製**：建立目標分片實例，從主資料庫備份恢復基礎資料。
-2. **邏輯複製追趕（Change Data Capture）**：利用 PostgreSQL 的 Logical Decoding 機制建立 Replication Slot，即時捕獲主庫的 WAL 變更日誌，並依照 Shard Key 重播至對應的分片庫。
-3. **影子讀驗證（Shadow Reads & Validation）**：
-   - DBProxy 同時向舊單體庫與新分片庫發送讀取請求。
-   - 應用程式只採用舊庫的回傳結果，但在背景比對新舊庫的資料一致性、延遲與錯誤率。
-   - 透過 Datadog 監控比對異常指標，持續運行數週直到比對不一致率（Mismatch Rate）為零。
-4. **即時切流（Traffic Cutover）**：
-   - 在低峰期將 DBProxy 的寫入路由切換至新分片庫。
-   - 整個切換過程在 1 秒內完成，客戶端無感知。
+第 3 步的細節出自垂直拆庫文。水平分片文說，水平分片沿用了垂直拆庫的大部分邏輯，風險最高的元件在垂直拆庫時已經處理過，但沒有逐步重述切換流程。
+
+1. **用 view 做邏輯分片**：先讓應用透過 Postgres view 讀寫，以百分比逐步放量。同時用影子讀（shadow reads）框架，讓所有正式讀取流量也走一次 view，比對經過 view 與不經過 view 的查詢在效能與正確性上有沒有差異。這一步比對的是兩種查詢路徑，不是新舊兩台資料庫。
+2. **邏輯複製整份資料**：水平分片文說，團隊刻意不做「filtered logical replication」（只把屬於該分片的資料複製過去），而是每個分片都複製整份資料，再只允許讀寫屬於該分片的那一部分。垂直拆庫文也說明了為什麼用邏輯複製而不是快照還原：快照還原沒辦法讓目的庫的儲存空間變小。團隊先刪掉目的庫的索引，初始複製完成後再重建，把複製時間縮短到幾個小時。
+3. **暫停與同步**：依垂直拆庫文，切換時用 PgBouncer 暫停新連線，撤銷客戶端在原資料庫上對這些表的查詢權限，短暫等待後取消仍在執行的查詢（通常不到 10 個），再用 LSN 確認兩邊資料庫已經同步。
+4. **切換與回滾**：同步後把流量導到新的資料庫。垂直拆庫文的流程包含建立反向複寫，新庫的修改會複寫回舊庫，必要時可以回滾。水平分片文則說，實體分片的回滾做得到，但需要更複雜的協調來確保資料一致。
+
+切換代價依兩篇原文的數字：垂直拆庫時，每次操作約 30 秒部分不可用（約 2% 請求失敗）。水平分片的第一張表在 2023 年 9 月上線，主庫約 10 秒部分不可用，replica 沒有受到影響。
 
 ---
 
-## 系統設計權衡與工程約束總結
+## 2024 年時還沒完成的部分
 
-Figma 的擴展歷程並非追求技術理論上的極致純粹，而是圍繞著**「務實、可維護性與低風險」**進行權衡：
-
-| 評估維度                    | 單體 RDS 架構            | NewSQL 徹底遷移              | Figma DBProxy + 分片方案         |
-| :-------------------------- | :----------------------- | :--------------------------- | :------------------------------- |
-| **擴展能力**                | 僅能垂直升級（受限硬體） | 理論無限水平擴展             | 依邏輯分片彈性水平擴展           |
-| **應用程式侵入性**          | 無                       | 極高（需適配方言與事務特性） | 極低（SQL 解析與 Colo 局部一致） |
-| **維運難度與工具鏈**        | 熟悉、低                 | 高（全新生態、除錯複雜）     | 中等（底層仍為標準 Postgres）    |
-| **爆炸半徑 (Blast Radius)** | 全局受害 (100%)          | 分散式節點故障轉移           | 嚴格隔離於特定 Shard             |
-| **跨分片查詢成本**          | 無                       | 底層分散式協調 (2PC)         | 應用層規避 / Proxy 受控聚合      |
+水平分片文寫於 2024 年 3 月，當時還在進行的工作包括：替水平分片的主鍵產生全域唯一 ID，以及為業務關鍵的情境支援原子性的跨分片交易。
 
 ---
 
-## 給系統架構師的 5 個核心啟示
+## 三種做法比較（我的看法）
 
-1. **不要過早引入分片**：先榨乾硬體垂直升級、快取、連線池與領域垂直拆庫的潛力，為真正的分片架構爭取足夠的業務沉澱期。
-2. **邏輯分片永遠優於實體分片**：預先規劃固定數量的邏輯分片（如 128 或 256 個），讓未來的實體擴容變成單純的資料搬遷，而非全域雜湊重構。
-3. **用 Colo 保留關鍵交易**：識別核心資料的關聯邊界，將經常需要 JOIN 的關聯表綁定同一個 Shard Key，避免陷入分散式事務的泥淖。
-4. **影子讀是零停機遷移的最高標準**：沒有經過生產影子流量驗證的資料庫遷移，都只是在賭運氣。
-5. **代理層是最好的工程隔離帶**：透過像 DBProxy 這樣的可程式化中介層，可以集中收斂 SQL 語法限制、慢查詢熔斷與租戶配額，無需在數百個微服務中重複造輪子。
+下表是我依上文整理的比較，不是 Figma 原文的評估：
+
+| 評估面向         | 單一 RDS     | 換成分散式資料庫     | DBProxy＋分片（Figma 的選擇）       |
+| :--------------- | :----------- | :------------------- | :---------------------------------- |
+| **擴展方式**     | 只能升級機型 | 由資料庫本身水平擴展 | 先做邏輯分片，實體分片數量可以再拆  |
+| **對應用的影響** | 無           | 要做完整資料遷移     | 查詢要帶 shard key，join 限同 colo  |
+| **維運經驗**     | 沿用既有經驗 | 要從頭累積           | 底層仍是 RDS Postgres，經驗可以沿用 |
+| **跨分片查詢**   | 不需要       | 由資料庫處理         | scatter-gather，限縮在少數查詢      |
 
 ---
 
-### 參考資料與一手文獻
+## 我從這個案例看到的幾點
 
-- Figma Engineering: [_How Figma scaled to multiple databases_](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/)
-- Figma Engineering: [_How Figma's databases team lived to tell the scale_](https://www.youtube.com/watch?v=kYv_3j3m5mE)
-- ByteByteGo: [_System Design 101: Real World Case Studies_](https://github.com/ByteByteGoHq/system-design-101)
+1. **先用便宜的方法爭取時間**：Figma 先升級機型、加 replica 和 PgBouncer，換到一年；再垂直拆庫，等到個別大表真的撞上 IOPS 和 vacuum 的限制，才做水平分片。
+2. **邏輯分片先上線，實體分片後做**：用 Postgres view 先驗證路由和查詢，資料還沒搬，出問題可以退回。
+3. **用 colo 保留交易**：把常一起查的表綁同一個 shard key，join 和交易在單一 shard key 內還能用。
+4. **影子讀比對的是查詢路徑**：Figma 的影子讀比對的是經過 view 與不經過 view 的查詢，在資料搬動前先確認分片後的查詢結果與效能。
+5. **代理層集中處理分片邏輯**：查詢解析、路由、負載卸除都放在 DBProxy，應用程式不用各自處理。
+
+---
+
+### 參考資料
+
+- Tim Liang，Figma Blog：[_The growing pains of database architecture_](https://www.figma.com/blog/how-figma-scaled-to-multiple-databases/)（2023-04-04）
+- Sammy Steele，Figma Blog：[_How Figma's databases team lived to tell the scale_](https://www.figma.com/blog/how-figmas-databases-team-lived-to-tell-the-scale/)（2024-03-14）

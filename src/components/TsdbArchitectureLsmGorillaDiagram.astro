@@ -51,7 +51,7 @@
           y="22">MemTable + WAL</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="42"
-          >• WAL 順序追加寫入磁碟 (防崩潰)</text
+          >• WAL 順序追加寫入磁碟 (防當機)</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="60"
           >• 記憶體 SkipList 按時間戳排序</text
@@ -76,7 +76,7 @@
           >• 每個 Series 按時間排序連續存放</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="78"
-          >• 採用 Gorilla 演算法極致壓縮</text
+          >• 以 Gorilla 演算法壓縮資料</text
         >
       </g>
 
@@ -188,7 +188,7 @@
           >• 若 -63 &lt;= D &lt;= 64 ➔ 儲存 9 bits</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="102"
-          >• 平均壓縮率：96% (1~2 bit/pt)</text
+          >• 約 96% 時間戳只需 1 bit</text
         >
       </g>
 
@@ -210,13 +210,13 @@
           >• 若 XOR == 0 ➔ 僅儲存 1 bit ('0')</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="86"
-          >• 若有效位長度相同 ➔ 複用前導零</text
+          >• 落在前一有效區塊內 ➔ 沿用位置</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="106"
           >• 只存變化有效位 (Meaningful bits)</text
         >
         <text class="tsdb-diagram__subdesc" x="12" y="126"
-          >• 平均每點僅佔 1.37 Bytes (原 8B)</text
+          >• 含時間戳每點 1.37 Bytes (原 16B)</text
         >
       </g>
     </g>
@@ -239,8 +239,8 @@
       >
       <h4>1. LSM / TSM 寫入管線</h4>
       <p>
-        WAL 保障資料不丟失，MemTable 記憶體內排序，Flush 順序寫入磁碟
-        Chunk，透過 Compaction 降採樣合併。
+        WAL 防止資料遺失，MemTable 記憶體內排序，Flush 順序寫入磁碟 Chunk，透過
+        Compaction 降採樣合併。
       </p>
     </div>
 
@@ -255,20 +255,20 @@
       </p>
     </div>
 
-    <div class="tsdb-mobile-arrow">↓ 極致位元級壓縮</div>
+    <div class="tsdb-mobile-arrow">↓ 位元級壓縮</div>
 
     <div class="tsdb-mobile-card tsdb-mobile-card--cyan">
       <span class="tsdb-mobile-badge tsdb-mobile-badge--cyan">GORILLA</span>
       <h4>3. Facebook Gorilla 演算法</h4>
       <p>
         時間戳 Delta-of-Delta 與 Float64 數值 XOR 壓縮，將原始 16 Byte/點 壓縮至
-        1.37 Byte/點，壓縮比達 10 倍以上。
+        1.37 Byte/點，論文記錄的縮減約 12 倍。
       </p>
     </div>
   </div>
 
   <figcaption id="tsdb-caption" class="tsdb-diagram__caption">
-    圖 4：時序資料庫 TSDB 儲存引擎、多維倒排索引與 Gorilla 壓縮演算法全景
+    圖 4：時序資料庫 TSDB 儲存引擎、多維倒排索引與 Gorilla 壓縮演算法總覽
   </figcaption>
 </figure>
 

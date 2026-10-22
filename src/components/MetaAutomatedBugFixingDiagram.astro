@@ -1,5 +1,5 @@
 ---
-// Meta Automated Bug Fixing (SapFix & Infer) Diagram
+// Meta SapFix 自動修復流程圖（Sapienz 觸發、SapFix 產生補丁、Infer 輔助）
 ---
 
 <figure class="meta-diagram" aria-labelledby="meta-caption">
@@ -10,11 +10,12 @@
     aria-labelledby="meta-title meta-desc"
   >
     <title id="meta-title">
-      Meta 規模化自動修復 Bug 架構：Infer 與 SapFix 全流程
+      Meta SapFix 自動修復流程（2018 年 proof-of-concept）
     </title>
     <desc id="meta-desc">
-      展示從工程師提交 Diff、Infer 靜態分析偵測 Bug、SapFix 產生修復補丁、沙盒
-      CI 自動化驗證到 Human-in-the-loop 審查合入的全鏈路。
+      Sapienz 找到當機並歸因到 Diff 後觸發 SapFix；SapFix 以範本、變異與 revert
+      產生候選補丁，經編譯、Sapienz 重跑、既有測試與 Infer 重跑驗證，再透過
+      Phabricator 交給原 Diff 作者審查。
     </desc>
 
     <defs>
@@ -31,12 +32,10 @@
       </marker>
     </defs>
 
-    <!-- Column 1: Detection (Infer) -->
     <g class="meta-diagram__card" transform="translate(20, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="meta-diagram__badge" x="14" y="26">BUG DETECTION</text>
-      <text class="meta-diagram__title" x="14" y="54">Infer 靜態分析檢測</text>
-
+      <text class="meta-diagram__badge" x="14" y="26">CRASH DETECTION</text>
+      <text class="meta-diagram__title" x="14" y="54">Sapienz 找到當機</text>
       <g transform="translate(14, 75)">
         <rect
           width="187"
@@ -46,19 +45,16 @@
         <text
           class="meta-diagram__header meta-diagram__header--teal"
           x="10"
-          y="20">Engineer Submits Diff</text
+          y="20">Sapienz Testing</text
         >
         <text class="meta-diagram__desc" x="10" y="40"
-          >• 提交 Pull Request / Phabricator</text
+          >• Android app 自動化測試</text
         >
-        <text class="meta-diagram__desc" x="10" y="58"
-          >• 觸發 CI 差量分析管線</text
-        >
+        <text class="meta-diagram__desc" x="10" y="58">• 搜尋式產生測試</text>
         <text class="meta-diagram__desc" x="10" y="76"
-          >• 數萬次提交持續掃描</text
+          >• Facebook、Instagram 等</text
         >
       </g>
-
       <g transform="translate(14, 180)">
         <rect
           width="187"
@@ -68,19 +64,14 @@
         <text
           class="meta-diagram__header meta-diagram__header--gold"
           x="10"
-          y="20">Infer Static Analyzer</text
+          y="20">Crash Triage</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 分離邏輯 (Separation Logic)</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 找到 NPE 當機</text>
         <text class="meta-diagram__desc" x="10" y="58"
-          >• 空指針 (NPE) &amp; 記憶體洩漏</text
+          >• 歸因到引入它的 Diff</text
         >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 執行緒競爭 (Data Race)</text
-        >
+        <text class="meta-diagram__desc" x="10" y="76">• 交給 SapFix</text>
       </g>
-
       <g transform="translate(14, 285)">
         <rect
           width="187"
@@ -90,23 +81,20 @@
         <text
           class="meta-diagram__header meta-diagram__header--blue"
           x="10"
-          y="20">Bug Report 生成</text
+          y="20">Infer（輔助）</text
         >
         <text class="meta-diagram__desc" x="10" y="40"
-          >• 定位確切檔案與行號</text
+          >• 標出可能為 null 的運算式</text
         >
         <text class="meta-diagram__desc" x="10" y="58"
-          >• 輸出 AST 語法樹上下文</text
+          >• 選用輸入，可以沒有</text
         >
       </g>
     </g>
-
-    <!-- Column 2: Patch Generation (SapFix) -->
     <g class="meta-diagram__card" transform="translate(255, 35)">
       <rect width="215" height="380" rx="12"></rect>
       <text class="meta-diagram__badge" x="14" y="26">PATCH GENERATION</text>
-      <text class="meta-diagram__title" x="14" y="54">SapFix 自動補丁生成</text>
-
+      <text class="meta-diagram__title" x="14" y="54">SapFix 產生補丁</text>
       <g transform="translate(14, 75)">
         <rect
           width="187"
@@ -116,19 +104,14 @@
         <text
           class="meta-diagram__header meta-diagram__header--gold"
           x="10"
-          y="20">Template-based Repair</text
+          y="20">Template Fix</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 預置高品質防禦範本</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 範本來自 Getafix</text>
         <text class="meta-diagram__desc" x="10" y="58"
-          >• 空值保護 (Null Check Guard)</text
+          >• 收集自過去的人類修復</text
         >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 資源關閉 (Try-with-resources)</text
-        >
+        <text class="meta-diagram__desc" x="10" y="76">• 只處理 NPE</text>
       </g>
-
       <g transform="translate(14, 180)">
         <rect
           width="187"
@@ -138,19 +121,15 @@
         <text
           class="meta-diagram__header meta-diagram__header--blue"
           x="10"
-          y="20">Mutation &amp; History Fix</text
+          y="20">Mutation Fix</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• AST 語法樹節點變異</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 加上 null check</text>
         <text class="meta-diagram__desc" x="10" y="58"
-          >• 學習歷史人類修復 Diff</text
+          >• 或改成 return null</text
         >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 產生多個候選修復 Patch</text
+        <text class="meta-diagram__desc" x="10" y="76">• 在 AST 上小幅修改</text
         >
       </g>
-
       <g transform="translate(14, 285)">
         <rect
           width="187"
@@ -160,21 +139,16 @@
         <text
           class="meta-diagram__header meta-diagram__header--teal"
           x="10"
-          y="20">Patch Candidate Ranking</text
+          y="20">Diff Revert</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 代碼改動最小化優先</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58">• 相似度打分過濾</text>
+        <text class="meta-diagram__desc" x="10" y="40">• 撤回整個 Diff</text>
+        <text class="meta-diagram__desc" x="10" y="58">• 或只撤回一部分</text>
       </g>
     </g>
-
-    <!-- Column 3: Sandboxed Verification -->
     <g class="meta-diagram__card" transform="translate(490, 35)">
       <rect width="215" height="380" rx="12"></rect>
-      <text class="meta-diagram__badge" x="14" y="26">CI VERIFICATION</text>
-      <text class="meta-diagram__title" x="14" y="54">沙盒隔離驗證測試</text>
-
+      <text class="meta-diagram__badge" x="14" y="26">VALIDATION</text>
+      <text class="meta-diagram__title" x="14" y="54">隔離環境驗證</text>
       <g transform="translate(14, 75)">
         <rect
           width="187"
@@ -184,19 +158,12 @@
         <text
           class="meta-diagram__header meta-diagram__header--teal"
           x="10"
-          y="20">Build &amp; Compile Check</text
+          y="20">Build Check</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 沙盒環境套用 Patch</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58"
-          >• 驗證代碼編譯無錯誤</text
-        >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 快速淘汰無法編譯的修復</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 隔離環境套用補丁</text>
+        <text class="meta-diagram__desc" x="10" y="58">• 編譯失敗就淘汰</text>
+        <text class="meta-diagram__desc" x="10" y="76">• 與整個程式庫隔離</text>
       </g>
-
       <g transform="translate(14, 180)">
         <rect
           width="187"
@@ -206,19 +173,14 @@
         <text
           class="meta-diagram__header meta-diagram__header--blue"
           x="10"
-          y="20">Differential Testing</text
+          y="20">Sapienz Re-run</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 執行既有 Unit/E2E 測試</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58"
-          >• 確保通過原本報錯的測試</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 重現原本的當機</text>
+        <text class="meta-diagram__desc" x="10" y="58">• 檢查有無新當機</text>
         <text class="meta-diagram__desc" x="10" y="76"
-          >• 零迴歸 (Zero Regressions)</text
+          >• 既有 Unit/E2E 測試</text
         >
       </g>
-
       <g transform="translate(14, 285)">
         <rect
           width="187"
@@ -228,21 +190,16 @@
         <text
           class="meta-diagram__header meta-diagram__header--gold"
           x="10"
-          y="20">Infer Clean Re-scan</text
+          y="20">Infer Re-run</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 再次執行 Infer 掃描</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58">• 確認警告完全清除</text>
+        <text class="meta-diagram__desc" x="10" y="40">• 修補後重跑 Infer</text>
+        <text class="meta-diagram__desc" x="10" y="58">• sanity check</text>
       </g>
     </g>
-
-    <!-- Column 4: Human Approval & Landing -->
     <g class="meta-diagram__card" transform="translate(725, 35)">
       <rect width="215" height="380" rx="12"></rect>
       <text class="meta-diagram__badge" x="14" y="26">HUMAN-IN-THE-LOOP</text>
-      <text class="meta-diagram__title" x="14" y="54">審核與生產部署</text>
-
+      <text class="meta-diagram__title" x="14" y="54">人工審查與合入</text>
       <g transform="translate(14, 75)">
         <rect
           width="187"
@@ -252,19 +209,14 @@
         <text
           class="meta-diagram__header meta-diagram__header--gold"
           x="10"
-          y="20">Auto-Generated PR</text
+          y="20">Phabricator Review</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 機器人自動發起 Pull Request</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 挑一個候選送審</text>
         <text class="meta-diagram__desc" x="10" y="58"
-          >• 包含詳細原因與測試報告</text
+          >• 指派給原 Diff 作者</text
         >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 自動標記代碼作者 Review</text
-        >
+        <text class="meta-diagram__desc" x="10" y="76">• 其他候選附預覽</text>
       </g>
-
       <g transform="translate(14, 180)">
         <rect
           width="187"
@@ -274,19 +226,12 @@
         <text
           class="meta-diagram__header meta-diagram__header--teal"
           x="10"
-          y="20">Engineer One-Click Accept</text
+          y="20">Engineer Decision</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 工程師一鍵核准 (Approve)</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58"
-          >• 滿意度高達 75% 以上</text
-        >
-        <text class="meta-diagram__desc" x="10" y="76"
-          >• 避免人工繁瑣修復耗時</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 接受、修改或拒絕</text>
+        <text class="meta-diagram__desc" x="10" y="58">• 7 天未審就放棄</text>
+        <text class="meta-diagram__desc" x="10" y="76">• 約一半判定正確</text>
       </g>
-
       <g transform="translate(14, 285)">
         <rect
           width="187"
@@ -296,14 +241,10 @@
         <text
           class="meta-diagram__header meta-diagram__header--blue"
           x="10"
-          y="20">Continuous Landing</text
+          y="20">Landing</text
         >
-        <text class="meta-diagram__desc" x="10" y="40"
-          >• 自動合入 main 分支</text
-        >
-        <text class="meta-diagram__desc" x="10" y="58"
-          >• 灰度金絲雀持續上線</text
-        >
+        <text class="meta-diagram__desc" x="10" y="40">• 合入被接受的補丁</text>
+        <text class="meta-diagram__desc" x="10" y="58">• 清掉其他候選</text>
       </g>
     </g>
 
@@ -329,88 +270,75 @@
     role="img"
     aria-labelledby="meta-m-title"
   >
-    <title id="meta-m-title">Meta 自動修復架構（手機檢視）</title>
+    <title id="meta-m-title">Meta SapFix 自動修復流程（手機檢視）</title>
 
     <g class="meta-diagram__card" transform="translate(10, 10)">
       <rect width="300" height="130" rx="8"></rect>
-      <text class="meta-diagram__badge" x="12" y="22"
-        >1. 提交與 Infer 靜態掃描</text
-      >
+      <text class="meta-diagram__badge" x="12" y="22">1. Sapienz 找到當機</text>
       <text class="meta-diagram__desc" x="12" y="45"
-        >• 開發者提交代碼 Diff 觸發 CI</text
+        >• Sapienz 在 Android app 上測試</text
       >
       <text class="meta-diagram__desc" x="12" y="65"
-        >• Infer 分離邏輯差量分析毫秒級完成</text
+        >• 找到 NPE 當機並歸因到 Diff</text
       >
       <text class="meta-diagram__desc" x="12" y="85"
-        >• 精確捕獲 NPE 空指針與資料競爭</text
+        >• Infer 輔助標出可疑運算式</text
       >
       <text class="meta-diagram__desc" x="12" y="105"
-        >• 產出結構化 Bug Report 與 AST 上下文</text
+        >• 把當機資訊交給 SapFix</text
       >
     </g>
-
     <g class="meta-diagram__card" transform="translate(10, 155)">
       <rect width="300" height="135" rx="8"></rect>
-      <text class="meta-diagram__badge" x="12" y="22"
-        >2. SapFix 自動補丁產生</text
-      >
+      <text class="meta-diagram__badge" x="12" y="22">2. SapFix 產生補丁</text>
       <text class="meta-diagram__desc" x="12" y="45"
-        >• Template 範本產生空值防禦保護</text
+        >• 範本修復（範本來自 Getafix）</text
       >
       <text class="meta-diagram__desc" x="12" y="65"
-        >• AST 變異與歷史修復學習產生候選</text
+        >• 變異修復：null check 或 return null</text
       >
       <text class="meta-diagram__desc" x="12" y="85"
-        >• 代碼變更最小化演算法評分排序</text
+        >• 整個 Diff 或部分 revert</text
       >
       <text class="meta-diagram__desc" x="12" y="105"
-        >• 輸出多個潛在修復 Patch</text
+        >• 依策略優先序挑選送審補丁</text
       >
     </g>
-
     <g class="meta-diagram__card" transform="translate(10, 305)">
       <rect width="300" height="140" rx="8"></rect>
-      <text class="meta-diagram__badge" x="12" y="22"
-        >3. 沙盒隔離與差量回歸</text
-      >
-      <text class="meta-diagram__desc" x="12" y="45"
-        >• 隔離沙盒驗證 Patch 是否通過編譯</text
-      >
+      <text class="meta-diagram__badge" x="12" y="22">3. 隔離環境驗證</text>
+      <text class="meta-diagram__desc" x="12" y="45">• 編譯失敗就淘汰</text>
       <text class="meta-diagram__desc" x="12" y="65"
-        >• 差量回歸測試確認零回歸 (Zero Regressions)</text
+        >• Sapienz 重現當機、找新當機</text
       >
       <text class="meta-diagram__desc" x="12" y="85"
-        >• 重新執行 Infer 確保警告徹底消除</text
+        >• 跑既有 Unit/E2E 測試</text
       >
-      <text class="meta-diagram__desc" x="12" y="105"
-        >• 僅保留 100% 驗證通過的修復補丁</text
-      >
+      <text class="meta-diagram__desc" x="12" y="105">• 修補後重跑 Infer</text>
     </g>
-
     <g class="meta-diagram__card" transform="translate(10, 460)">
       <rect width="300" height="145" rx="8"></rect>
       <text class="meta-diagram__badge" x="12" y="22"
-        >4. 人機協同 (Human-in-the-Loop)</text
+        >4. 人工審查 (Human-in-the-Loop)</text
       >
       <text class="meta-diagram__desc" x="12" y="45"
-        >• 機器人自動建立 PR 並附帶測試證據</text
+        >• Phabricator 指派給原 Diff 作者</text
       >
       <text class="meta-diagram__desc" x="12" y="65"
-        >• 派發給最相關作者一鍵點擊 Approve</text
+        >• 接受、修改或拒絕；7 天未審放棄</text
       >
       <text class="meta-diagram__desc" x="12" y="85"
-        >• 生產接受率高達 75% 以上</text
+        >• 約一半補丁被判定正確</text
       >
       <text class="meta-diagram__desc" x="12" y="105"
-        >• 自動合入 main 分支持續灰度上線</text
+        >• 約四分之一合入生產程式碼</text
       >
     </g>
   </svg>
 
   <figcaption id="meta-caption" class="meta-diagram__caption">
-    圖 1：Meta 自動 Bug 修復架構 — 從 Infer 靜態檢測、SapFix 補丁生成、沙盒 CI
-    驗證到人機協同審核
+    圖 1：SapFix 流程（依 2018 年部落格與 ICSE-SEIP 2019 論文）— Sapienz
+    觸發、SapFix 產生補丁、隔離驗證到人工審查
   </figcaption>
 </figure>
 

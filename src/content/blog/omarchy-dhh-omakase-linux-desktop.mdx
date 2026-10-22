@@ -1,8 +1,8 @@
 ---
-title: "Omarchy 全景解析：DHH 的 Omakase 理念、Arch+Hyprland 架構與 AI-Native 作業系統實踐"
-description: "從 Ubuntu 到 Arch、從 Omakub 到 Omarchy：深入拆解 DHH 精選的 Linux 開發工作站架構、Hyprland 平鋪管理、Quickshell 現代桌面與 AI Agent 系統級整合。"
+title: "Omarchy 解析：DHH 的 Omakase 理念、Arch+Hyprland 架構與 AI-Native 作業系統設計"
+description: "從 Ubuntu 到 Arch、從 Omakub 到 Omarchy：拆解 DHH 精選的 Linux 開發工作站架構，包括 Hyprland 平鋪管理、Quickshell 桌面與 AI Agent 系統級整合。"
 publishDate: 2026-09-02T09:41:00+08:00
-updatedDate: 2026-09-05T16:05:00+08:00
+updatedDate: 2026-10-22T13:29:27+08:00
 draft: false
 featured: false
 tags:
@@ -17,33 +17,33 @@ coverAlt: "Omarchy 桌面工作台概念示意圖，展現平鋪視窗、頂部�
 
 import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
-當多數開發者在 macOS、Windows WSL 與 Ubuntu 之間徘徊時，Ruby on Rails 創始人兼 37signals 共同創辦人 David Heinemeier Hansson（DHH）發表了全新的 Linux 作業系統發行版：[Omarchy](https://omarchy.org/manual/)。
+Ruby on Rails 創始人、37signals 共同創辦人 David Heinemeier Hansson（DHH）在 2025 年推出 Linux 發行版 [Omarchy](https://omarchy.org/manual/)，2026 年 8 月發布 4.0 版。
 
-這不是 DHH 第一次嘗試打造開發者專屬的工作環境。早在 2024 年，他就曾推出基於 Ubuntu 和 GNOME 的自動化設定腳本 [Omakub](https://github.com/basecamp/omakub)。然而，Omakub 最終被宣布退役，取而代之的是獨立且完整的發行版 Omarchy。
+這不是 DHH 第一次嘗試打造開發者專屬的工作環境。早在 2024 年，他就曾推出基於 Ubuntu 和 GNOME 的自動化設定腳本 [Omakub](https://github.com/basecamp/omakub)。然而，Omakub 最終被宣布退役，取而代之的是獨立且完整的發行版 Omarchy（見 [omarchy.org/omakub](https://omarchy.org/omakub)）。
 
-為什麼一位資深架構師會從「寫腳本客製既有發行版」，走向「親自打包一個基於 Arch Linux 的全新發行版」？Omarchy 究竟解決了哪些傳統 Linux 桌面的核心痛點？它所標榜的「AI-Native（以 AI Agent 為一等公民）」架構又是如何運作的？本文將從系統架構、互動設計、AI 整合與工程落地四個維度展開深度拆解。
+DHH 為什麼從「寫腳本客製既有發行版」，走到「親自打包一個基於 Arch Linux 的發行版」？它標榜的「AI-Native（以 AI Agent 為一等公民）」又怎麼運作？下面依序看系統架構、互動設計、AI 整合，最後評估誰適合用。
 
 ---
 
 ## 一、從 Omakub 到 Omarchy：DHH 的「主廚精選（Omakase）」哲學
 
-「Omakase（お任せ）」是日語中的主廚精選料理——食客不需翻閱繁雜菜單逐項挑選，而是信任主廚對食材、風味平衡與出餐節奏的極致把控。
+「Omakase（お任せ）」是日本料理的主廚精選：客人不看菜單逐項點菜，交給主廚決定食材、風味搭配與上菜順序。
 
-在軟體工程領域，DHH 一向是 Omakase 理念的堅定擁護者（正如 Ruby on Rails 預設整合的 Active Record、Stimulus、Turbo 一樣）。在 Linux 桌面環境中，這套理念的衝突尤為劇烈：
+在軟體工程上，DHH 一向擁護這套做法，Ruby on Rails 預設整合 Active Record、Stimulus、Turbo 就是例子。Linux 桌面則很難找到這種由人替你選好的組合，常見的選擇分成兩個極端：
 
-- **傳統 Linux 桌面的極端兩極化**：
-  - **開箱即用型（如 Ubuntu、Fedora）**：預設封裝完整，但常伴隨繁重的桌面環境（如 GNOME/KDE）、預設軟體包包袱（如 Snap）、以及難以徹底客製化的視窗排版邏輯。
-  - **極客折騰型（如原生 Arch Linux、Gentoo）**：給予使用者無限自由，但代價是必須從驅動程式、音訊伺服器（PipeWire）、顯示伺服器（Wayland）、平鋪視窗管理器（Hyprland/i3）到每一份 dotfiles 逐一手動微調，常花費數週除錯。
+- **傳統 Linux 桌面的兩極**：
+  - **開箱即用型（如 Ubuntu、Fedora）**：預設封裝完整，但常附帶厚重的桌面環境（如 GNOME/KDE）和預設套件包袱（如 Snap），視窗排版邏輯也很難完全客製。
+  - **自己動手型（如原生 Arch Linux、Gentoo）**：使用者幾乎什麼都能改，代價是從驅動程式、音訊伺服器（PipeWire）、顯示伺服器（Wayland）、平鋪視窗管理器（Hyprland/i3）到每一份 dotfiles 都要逐一手動調整，除錯常花上數週。
 
 <ProcessPipeline
   title="DHH 開發者桌面環境演進歷程"
-  caption="從依附通用發行版到自主定義端到端技術棧的架構轉移"
+  caption="從依附通用發行版，到自己定義整套技術堆疊"
   steps={[
     {
       num: "01",
       title: "macOS 階段",
       tag: "生態成熟",
-      desc: "享受開箱即用的硬體整合與成熟 GUI，但受限於封閉生態、資源佔用與難以深度定制的開發鏈。",
+      desc: "開箱即用的硬體整合與成熟 GUI，是多數開發者熟悉的起點。",
     },
     {
       num: "02",
@@ -56,7 +56,7 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
       num: "03",
       title: "Omarchy 發行版",
       tag: "Arch + Hyprland + Quickshell",
-      desc: "徹底掌握 OS 底層，結合滾動更新、動態平鋪、現代桌面 Shell 與 AI Agent 系統級整合。",
+      desc: "掌握 OS 底層，結合滾動更新、動態平鋪、現代桌面 Shell 與 AI Agent 系統級整合。",
       gate: "達成端到端控制",
     },
   ]}
@@ -64,40 +64,40 @@ import ProcessPipeline from "../../components/ProcessPipeline.astro";
 
 ### 核心驅動力：美感是動力的源頭
 
-DHH 在其官方手冊中強調：_「A beautiful system is a motivating system, and productivity has always been downstream from motivation.（美感激發動力，而生產力源於動力。）」_
+DHH 在官方手冊裡寫道：_「A beautiful system is a motivating system, and productivity has always been downstream from motivation.（美感激發動力，而生產力源於動力。）」_
 
-Omarchy 的核心定位不是「試圖相容所有人的通用 Linux」，而是一套**「零冗餘（Zero Bloat）、現代化、全鍵盤驅動且具備統一美學的專業開發者工作站」**。
+Omarchy 不打算做成適合所有人的通用 Linux，它的定位是一套**「零冗餘（Zero Bloat）、現代化、全鍵盤驅動且具備統一美學的專業開發者工作站」**。
 
 ---
 
-## 二、技術架構解密：Arch Linux、Hyprland 與 Quickshell 的三層組合
+## 二、技術架構：Arch Linux、Hyprland 與 Quickshell 的三層組合
 
-Omarchy 拋棄了傳統 Linux 發行版常見的重量級桌面環境（如 GNOME、KDE Plasma），採用了現代 Wayland 生態中極具代表性的輕量高效架構：
+Omarchy 不用傳統發行版常見的重量級桌面環境（如 GNOME、KDE Plasma），改用 Wayland 生態裡的輕量組合：
 
-| 架構層級                         | 選型技術                        | 選型原因與工程優勢                                                                                                                     |
-| :------------------------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
-| **基礎系統 (Base OS)**           | **Arch Linux**                  | 滾動更新（Rolling Release）隨時獲得最新核心與驅動；強大的 Pacman 與 AUR 生態；安裝預設啟用 **LUKS 全磁碟加密** 與 **Btrfs 系統快照**。 |
-| **視窗合成器 (Compositor)**      | **Hyprland**                    | 基於 Wayland 的動態平鋪視窗管理器，具備流暢的 GPU 硬體加速動畫、靈活的浮動／平鋪混排規則與多螢幕動態工作區。                           |
-| **桌面介面 (Desktop Shell)**     | **Quickshell**                  | 採用 QML 與 C++ 構建的現代桌面建構套件，取代傳統拼湊的 Waybar 或 Eww，提供高度整合的頂部狀態列、控制面板與流暢微互動。                 |
-| **核心終端 (Terminal & Editor)** | **Alacritty / Kitty + LazyVim** | GPU 加速終端機搭配預先最佳化的 Neovim (LazyVim) 配置，結合 Tmux 提供極致響應速度。                                                     |
-| **系統管理 (System CLI)**        | **`omarchy` CLI**               | 自製整合命令列工具，統一管理主題更換、套件升級、顯示器配置與環境診斷。                                                                 |
+| 架構層級                         | 選型技術           | 選型原因與工程優勢                                                                                                                                                                                                         |
+| :------------------------------- | :----------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **基礎系統 (Base OS)**           | **Arch Linux**     | 滾動更新（Rolling Release），隨時拿到最新核心與驅動；Pacman 與 AUR 生態；安裝預設啟用 **LUKS 全磁碟加密** 與 **Btrfs 系統快照**。                                                                                          |
+| **視窗合成器 (Compositor)**      | **Hyprland**       | 基於 Wayland 的動態平鋪視窗管理器，具備流暢的 GPU 硬體加速動畫、靈活的浮動／平鋪混排規則與多螢幕動態工作區。                                                                                                               |
+| **桌面介面 (Desktop Shell)**     | **Quickshell**     | 以 QML 與 C++ 寫成的桌面建構套件，4.0 起取代先前的 Waybar，整合頂部狀態列、控制面板與微互動。                                                                                                                              |
+| **核心終端 (Terminal & Editor)** | **Foot + LazyVim** | 4.0 起預設終端機改為輕量的 Foot（[v4.0.0 release notes](https://github.com/basecamp/omarchy/releases/tag/v4.0.0)），Alacritty 是 3.x 的預設，現在和 Ghostty、Kitty 一樣是選項；搭配預先設定好的 Neovim (LazyVim) 與 Tmux。 |
+| **系統管理 (System CLI)**        | **`omarchy` CLI**  | 自製整合命令列工具，統一管理主題更換、套件升級、顯示器設定與環境診斷。                                                                                                                                                     |
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 310" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="om-arch-title om-arch-desc">
-    <title id="om-arch-title">Omarchy OS 五層現代化系統架構圖</title>
+    <title id="om-arch-title">Omarchy OS 五層系統架構圖</title>
     <desc id="om-arch-desc">展示 Omarchy 涵蓋 AI 原生層、Quickshell 桌面互動層、Hyprland 視窗管理層、核心終端工具層與 Arch Linux 基礎系統層。</desc>
     
     <rect x="20" y="10" width="760" height="290" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
-    <text x="400" y="32" fill="#f0f6fc" font-size="13" font-weight="700" text-anchor="middle">Omarchy OS 全棧架構拓撲</text>
+    <text x="400" y="32" fill="#f0f6fc" font-size="13" font-weight="700" text-anchor="middle">Omarchy OS 架構分層</text>
 
     <rect x="35" y="42" width="730" height="46" rx="6" fill="#241b35" stroke="#bc8cff"/>
     <text x="50" y="60" fill="#d2a8ff" font-size="11" font-weight="700">1. AI-Native Layer (AI 原生整合層)</text>
-    <text x="50" y="78" fill="#c9d1d9" font-size="9">• 惰性加載 Agent 啟動器 (Claude Code / Codex) ｜ 系統級 Skills ｜ 頂部狀態列 Token 監控面板</text>
+    <text x="50" y="78" fill="#c9d1d9" font-size="9">• 延遲載入 Agent 啟動器 (Claude Code / Codex) ｜ 系統級 Skills ｜ 頂部狀態列 Token 監控面板</text>
 
 
     <rect x="35" y="94" width="730" height="46" rx="6" fill="#1f242c" stroke="#58a6ff"/>
     <text x="50" y="112" fill="#58a6ff" font-size="11" font-weight="700">2. Desktop &amp; Interaction Layer (桌面互動層)</text>
-    <text x="50" y="130" fill="#c9d1d9" font-size="9">• Quickshell QML 現代狀態列與控制中心 ｜ 全域剪貼簿歷程 ｜ 螢幕 OCR 與即時語音辨識</text>
+    <text x="50" y="130" fill="#c9d1d9" font-size="9">• Quickshell QML 現代狀態列與控制中心 ｜ 全域剪貼簿歷程 ｜ 螢幕 OCR ｜ 選裝語音聽寫</text>
 
 
     <rect x="35" y="146" width="730" height="46" rx="6" fill="#161b22" stroke="#388bfd"/>
@@ -107,129 +107,130 @@ Omarchy 拋棄了傳統 Linux 發行版常見的重量級桌面環境（如 GNOM
 
     <rect x="35" y="198" width="730" height="46" rx="6" fill="#161b22" stroke="#d29922"/>
     <text x="50" y="216" fill="#e3b341" font-size="11" font-weight="700">4. Core Tools &amp; Runtimes (核心開發工具鏈)</text>
-    <text x="50" y="234" fill="#c9d1d9" font-size="9">• Neovim (LazyVim) ＋ Alacritty / Kitty ＋ Tmux ＋ Obsidian ＋ Chromium 容器</text>
+    <text x="50" y="234" fill="#c9d1d9" font-size="9">• Neovim (LazyVim) ＋ Foot ＋ Tmux ＋ Obsidian ＋ Chromium</text>
 
 
     <rect x="35" y="250" width="730" height="42" rx="6" fill="#1b2e23" stroke="#238636"/>
     <text x="50" y="268" fill="#3fb950" font-size="11" font-weight="700">5. Base System Layer (基礎系統層)</text>
-    <text x="50" y="284" fill="#3fb950" font-size="9">• Arch Linux 滾動更新核心 ＋ LUKS 全磁碟加密 ＋ Btrfs 快照秒級回滾機制</text>
+    <text x="50" y="284" fill="#3fb950" font-size="9">• Arch Linux 滾動更新核心 ＋ LUKS 全磁碟加密 ＋ Btrfs 快照（開機選單回滾）</text>
 
   </svg>
 </div>
 
 ### 為什麼選擇 Quickshell 而非傳統 Waybar？
 
-在傳統 Hyprland dotfiles 社群中，多數使用者採用 `Waybar` 或 `Eww` 撰寫狀態列。然而，Waybar 面臨動態狀態管理困難、CSS 排版受限等問題；Eww 則採用自製 Yuck 語法，維護成本較高。
+在傳統 Hyprland dotfiles 社群中，多數使用者採用 `Waybar` 或 `Eww` 撰寫狀態列。Waybar 的動態狀態不好管理，CSS 排版也受限；Eww 用自製的 Yuck 語法，維護成本較高。
 
-Omarchy 選用 [Quickshell](https://quickshell.org/)，利用 Qt/QML 成熟的宣告式 UI 架構與事件驅動模型，讓桌面面板能像現代前端應用一樣即時響應系統事件（如音量跳動、AI Token 消耗計數、網路頻寬波形），大幅提升了介面的細緻度與擴展性。
+Omarchy 4.0 改用 [Quickshell](https://quickshell.org/) 重寫整個桌面 shell，[v4.0.0 release notes](https://github.com/basecamp/omarchy/releases/tag/v4.0.0)（2026-08-14）列出 Waybar、Walker、Mako、SwayOSD 等元件全數移除。Quickshell 利用 Qt/QML 成熟的宣告式 UI 架構與事件驅動模型，讓桌面面板像前端應用一樣即時反應系統事件（如音量變化、網路頻寬波形），介面可以做得更細，也更容易擴充。
 
 ---
 
-## 三、純鍵盤驅動的高效互動體驗
+## 三、純鍵盤操作
 
-Omarchy 的日常操作邏輯完全圍繞**「雙手不離開鍵盤」**展開，主要互動特色包含：
+Omarchy 的日常操作完全圍繞**「雙手不離開鍵盤」**設計：
 
 1. **空間化工作區（Dynamic Workspaces）**：
-   透過 `Super + 1~9` 快速在獨立工作區間穿梭。視窗自動依二元樹或螺旋結構平鋪，完全省去滑鼠拖曳、縮放與對齊視窗的認知負擔。
+   用 `Super + 1~9` 切換工作區。視窗自動依二元樹或螺旋結構平鋪，不必再用滑鼠拖曳、縮放、對齊視窗。
 2. **統一剪貼簿與搜尋歷史（Unified Clipboard & History）**：
-   全域整合剪貼簿管理器，隨時呼叫歷史紀錄搜尋文字、圖片或程式碼片段，避免 Context 切換時的資料遺失。
-3. **內建文字 OCR 與語音聽寫（Text Extraction & Dictation）**：
-   一鍵選取螢幕任意區域即時執行 OCR 辨識並複製至剪貼簿；整合本機/雲端 Whisper 模型進行全系統語音輸入。
+   剪貼簿管理整合在系統裡，隨時叫出歷史紀錄搜尋文字、圖片或程式碼片段，切換 Context 時不會弄丟剛複製的內容。
+3. **文字 OCR 與語音聽寫（Text Extraction & Dictation）**：
+   一鍵選取螢幕任意區域即時執行 OCR 辨識並複製至剪貼簿。語音聽寫不是預裝功能：[4.0.2 手冊](https://github.com/basecamp/omarchy/blob/v4.0.2/manual/11-text-extraction-dictation.md)寫的是從 _Install > AI > Dictation_ 另外安裝 Voxtype，預設載入本機的英文基礎模型。文章發布後，新版手冊改以使用雲端處理的 Superwhisper 為新安裝的預設。
 4. **全域主題同步機制（Unified Theming Engine）**：
-   內建 Tokyo Night、Catppuccin、Gruvbox、Rose Pine、Everforest、Nordic 等知名配色。透過 `omarchy theme <name>` 或圖形選擇器，能**單鍵即時同步**更新 Hyprland 邊框、Quickshell 狀態列、Alacritty 終端、Neovim 編輯器與桌面桌布，維持高度視覺一致性。
+   內建 Tokyo Night、Catppuccin、Gruvbox、Rose Pine、Everforest、Nord 等知名配色。透過 `omarchy theme set <name>` 或圖形選擇器，能**單鍵即時同步**更新 Hyprland 邊框、Quickshell 狀態列、終端機、Neovim 編輯器與桌布，整個桌面的配色保持一致。
 
 ---
 
 ## 四、AI-Native：將 AI Agent 視為作業系統「一等公民」
 
-在 4.0 "Quattro" 版本中，Omarchy 最引人注目的革新在於對 AI Coding Agent 的深度整合。
+4.0 "Quattro" 版本的主軸是用 Quickshell 重寫桌面 shell；[v4.0.0 release notes](https://github.com/basecamp/omarchy/releases/tag/v4.0.0) 的重點功能裡，另有一項是可設定預設 Coding Agent，附快捷鍵啟動與當機診斷。
 
-不同於傳統作業系統僅將 AI 工具視為「第三方安裝的 CLI 指令」，Omarchy 將 Agent 視為作業系統基礎設施的一部分：
+傳統作業系統把 AI 工具當成「第三方安裝的 CLI 指令」，Omarchy 則把 Agent 當成作業系統基礎設施的一部分：
 
 ### 1. 延遲載入啟動器（Lazy-Loaded Launchers）
 
-Omarchy 預裝了當前主流 Coding Agent（包括 Claude Code、OpenAI Codex、OpenCode、GitHub Copilot、Grok 等）的輕量啟動 Stub。系統映像檔本身不預載數百 MB 的運行時與依賴，當使用者第一次在終端輸入指令或按下快捷鍵時，才會自動拉取最新版本並完成快取。
+Omarchy 預裝了目前主流 Coding Agent（包括 Claude Code、OpenAI Codex、OpenCode、GitHub Copilot、Grok 等）的輕量啟動 Stub。系統映像檔不預載數百 MB 的執行期與相依套件，使用者第一次在終端機輸入指令或按下快捷鍵時，才自動下載最新版本並快取。
 
 ### 2. 頂部狀態列專屬 Agents 面板
 
-當系統偵測到有 AI Agent 運行時，Quickshell 狀態列會自動浮現專屬的 Agent 狀態指示燈與用量面板，即時顯示：
+依 [4.0.2 手冊](https://github.com/basecamp/omarchy/blob/v4.0.2/manual/17-ai.md)，Omarchy 第一次在機器上發現 AI coding 的使用紀錄後，頂部狀態列會多出 Agents 圖示，之後就一直留著。圖示背後的面板顯示：
 
-- 當前運行的模型（Claude 3.7 Sonnet、GPT-4.5、DeepSeek-V3 等）
-- 即時 Token 消耗量與階段成本
-- API 配額與剩餘速率限制（Rate Limits）
+- 訂閱方案，以及 5 小時與每週額度的使用百分比（預付制則顯示剩餘餘額）
+- 按日、按模型統計的 Token 用量，內建支援 Claude Code、Codex 與 Fireworks
+
+這些用量紀錄由 `omarchy agent usage-update` 每 15 分鐘重新產生一次，不是即時數字。
 
 ### 3. 作業系統級 Agent Skills
 
-Omarchy 為 AI Agent 提供了標準化的系統控制介面（Skills）。Agent 不僅能幫你寫業務程式碼，還具備操控 OS 本身的能力：
+Omarchy 為 AI Agent 提供標準化的系統控制介面（Skills），Agent 除了幫你寫業務程式碼，也能操作 OS 本身：
 
 ```bash
-# Agent 可透過系統技能自動調整工作環境
-agent "幫我把當前主題切換為 Gruvbox，並把主螢幕旋轉為垂直排列"
+# 讓預設 Agent 直接執行一段任務，搭配 Omarchy skill 調整工作環境
+omarchy agent prompt "幫我把目前主題切換為 Gruvbox，並把主螢幕旋轉為垂直排列"
 ```
 
-Agent 能夠解析並直接呼叫 `omarchy` CLI 與底層 IPC 介面，安全地調整 Hyprland 規則、螢幕配置或系統音效。
+Omarchy 內建一個調整系統用的預設 skill，可以改 Hyprland 設定、調整狀態列，甚至從頭做一套主題；`omarchy` CLI 也特別適合讓 Agent 呼叫。手冊把這個 skill 標為實驗性：建議先用 plan mode 看 Agent 打算改什麼，並準備好回復變更，必要時用 `omarchy reinstall configs` 重設設定檔。
 
 > [!NOTE]
-> **安全與隱私考量**：雖然 Agent 能控制系統環境帶來極高便利性，但由於 Agent CLI 通常具備存取終端與環境變數的權限，使用者在授予 Agent 自動執行權限（如 `--dangerously-skip-permissions`）時仍需謹慎評估機密資料外洩風險。
+> **安全與隱私考量**：Agent CLI 通常能存取終端機與環境變數，授予 Agent 自動執行權限（如 `--dangerously-skip-permissions`）前，要評估機密資料外洩的風險。
 
 ---
 
 ## 五、軟體生態：TUI 與 GUI 的平衡點
 
-許多極簡平鋪發行版傾向「極端純 TUI」，排斥所有圖形介面軟體；Omarchy 則採取務實態度，將現代 GUI 與極致 TUI 進行無縫結合：
+許多極簡平鋪發行版只走純 TUI，排斥圖形介面軟體。Omarchy 比較務實，TUI 和 GUI 都收：
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="om-stack-title om-stack-desc">
     <title id="om-stack-title">Omarchy 軟體生態：TUI 與 GUI 雙軌支援對照圖</title>
-    <desc id="om-stack-desc">展示 TUI 終端工具與 GUI 圖形介面軟體的無縫整合。</desc>
+    <desc id="om-stack-desc">展示 Omarchy 搭配的 TUI 終端工具與 GUI 圖形介面軟體。</desc>
     
     
     <rect x="20" y="15" width="370" height="200" rx="8" fill="#161b22" stroke="#388bfd" stroke-width="1.5"/>
-    <text x="205" y="42" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">💻 TUI / Terminal (極致效能)</text>
+    <text x="205" y="42" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">💻 TUI / Terminal (輕量快速)</text>
     
     <text x="40" y="75" fill="#c9d1d9" font-size="11">• Neovim (LazyVim 開發環境)</text>
-    <text x="40" y="100" fill="#c9d1d9" font-size="11">• Tmux / Zellij 多工作區多工分頁</text>
+    <text x="40" y="100" fill="#c9d1d9" font-size="11">• Tmux / Herdr 多工作區多工分頁</text>
     <text x="40" y="125" fill="#c9d1d9" font-size="11">• Lazygit / Lazydocker 鍵盤管控</text>
-    <text x="40" y="150" fill="#c9d1d9" font-size="11">• Yazi / Ranger 異步高效檔案管理</text>
-    <text x="40" y="175" fill="#c9d1d9" font-size="11">• Spotify TUI / Cmus 輕量背景音樂</text>
+    <text x="40" y="150" fill="#c9d1d9" font-size="11">• Btop / dua 資源與磁碟用量監看</text>
+    <text x="40" y="175" fill="#c9d1d9" font-size="11">• Cliamp 致敬 Winamp 的終端音樂播放器</text>
 
     <rect x="410" y="15" width="370" height="200" rx="8" fill="#241b35" stroke="#bc8cff" stroke-width="1.5"/>
     <text x="595" y="42" fill="#d2a8ff" font-size="13" font-weight="700" text-anchor="middle">🖥️ GUI (現代圖形介面)</text>
 
-    <text x="430" y="75" fill="#c9d1d9" font-size="11">• Chromium / Brave 網頁瀏覽與除錯</text>
+    <text x="430" y="75" fill="#c9d1d9" font-size="11">• Chromium / Brave（選裝）瀏覽與除錯</text>
     <text x="430" y="100" fill="#c9d1d9" font-size="11">• Obsidian 外部第二大腦與知識庫</text>
     <text x="430" y="125" fill="#c9d1d9" font-size="11">• Kdenlive / OBS Studio 錄影剪輯</text>
-    <text x="430" y="150" fill="#c9d1d9" font-size="11">• LibreOffice / PDF Editor 文件辦公</text>
-    <text x="430" y="175" fill="#c9d1d9" font-size="11">• Windows VM (QEMU/KVM GPU 直通)</text>
+    <text x="430" y="150" fill="#c9d1d9" font-size="11">• LibreOffice、Document Viewer / Xournal++</text>
+    <text x="430" y="175" fill="#c9d1d9" font-size="11">• Windows VM（Docker + KVM，無 GPU 直通）</text>
 
   </svg>
 </div>
 
-甚至為了增添黑客樂趣，Omarchy 還內建了一款致敬經典 **Winamp 風格** 的復古音樂播放器與 ASCII 藝術螢幕保護程式，展現了 DHH 對工作環境「樂趣（Joy of Computing）」的堅持。
+Omarchy 還內建一款 **Winamp 風格** 的復古音樂播放器 Cliamp，以及 ASCII 藝術螢幕保護程式。
 
 ---
 
-## 六、落地評估：誰適合採用 Omarchy？
+## 六、誰適合用 Omarchy？
 
 ### 推薦採用族群
 
-1. **重度鍵盤流與 TUI 愛好者**：已經習慣 Vim/Neovim、Tmux 與快捷鍵導向，渴望擺脫滑鼠拖曳視窗的工程師。
-2. **想體驗 Arch + Hyprland 但不想無止境踩坑的人**：省去數百小時配置 Wayland 驅動、音訊、字型渲染、狀態列與快捷鍵衝突的時間，直接獲得專業級調優成果。
-3. **AI-Assisted 開發者**：重度依賴 Coding Agent，希望在終端、編輯器與系統層面獲得一體化 AI 整合體驗。
+1. **重度鍵盤流與 TUI 愛好者**：已經習慣 Vim/Neovim、Tmux 與快捷鍵導向，想擺脫滑鼠拖曳視窗的工程師。
+2. **想體驗 Arch + Hyprland 但不想無止境踩坑的人**：省下設定 Wayland 驅動、音訊、字型渲染、狀態列與處理快捷鍵衝突的數百小時，直接拿到調好的環境。
+3. **AI-Assisted 開發者**：重度依賴 Coding Agent，希望終端機、編輯器與系統層都整合好 AI。
 
-### 需審慎評估之場景
+### 需要先評估的情況
 
 - **強烈依賴 macOS / Windows 專有軟體者**：如 Adobe 全家桶、部分特殊企業內部 VPN 或特定 CAD 工具（即便有內建 Windows VM，體驗仍不及原生）。
-- **極端白紙 DIY 玩家**：若你享受從每一個 config 檔案從零手刻、對每個軟體包有極度偏執的自定義需求，Omarchy 強烈的「主廚意志」可能會與你的習慣衝突。
+- **從零 DIY 的玩家**：如果你喜歡每個 config 檔都自己從零寫，對每個套件都有很強的自訂需求，Omarchy 強烈的「主廚意志」可能和你的習慣衝突。
 
 ---
 
 ## 七、總結
 
-Omarchy 的出現標誌著 Linux 開發者工作站的一個新里程碑：它證明了**「自由度極高的 Arch Linux」**與**「精心雕琢的開箱即用體驗」**並非水火不容。
+Omarchy 示範了**「自由度極高的 Arch Linux」**和**「精心調校的開箱即用體驗」**可以並存。
 
-透過將 **Arch Linux 的新鮮度**、**Hyprland 的流暢動態**、**Quickshell 的現代介面** 與 **AI Agent 的系統級整合** 融為一體，Omarchy 為現代軟體工程師提供了一個兼具極致效率與工藝美感的數位工作台。
+它把 **Arch Linux 的新鮮度**、**Hyprland 的流暢動態**、**Quickshell 的現代介面** 與 **AI Agent 的系統級整合** 放進同一套系統，給軟體工程師一個兼顧效率與美感的工作台。
 
-如果你正打算尋找一套能夠激發工作動力、全面擁抱鍵盤與 AI 輔助的開發環境，那麼 [Omarchy Manual](https://omarchy.org/manual/) 絕對值得你一探究竟。
+如果你在找一套能提振工作動力、以鍵盤和 AI 輔助為主的開發環境，[Omarchy Manual](https://omarchy.org/manual/) 值得一讀。
 
 想從 DHH 最近的訪談理解他如何把這套產品觀延伸到 Agent 工作流，可閱讀 [DHH 談 Agentic Engineering：當實作不再稀缺，決策如何成為工程瓶頸](/blog/dhh-agentic-engineering-podcast/)。

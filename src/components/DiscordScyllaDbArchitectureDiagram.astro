@@ -14,8 +14,8 @@
     </title>
     <desc id="discord-diag-desc">
       展示 Discord 如何透過一致性雜湊將頻道請求導流至 Rust 資料服務層，利用
-      Request Coalescing 單飛請求合併機制消解熱點，並以 C++ ScyllaDB 零 GC
-      引擎取代 Cassandra 實現超低延遲儲存。
+      Request Coalescing 單飛請求合併機制消解熱點，並以沒有 GC 的 C++ ScyllaDB
+      取代 Cassandra。
     </desc>
 
     <defs>
@@ -65,7 +65,9 @@
       <rect width="210" height="370" rx="12"></rect>
       <text class="discord-diag__badge" x="18" y="28">TRAFFIC SPIKES</text>
       <text class="discord-diag__title" x="18" y="58">客戶端與 API 叢集</text>
-      <text class="discord-diag__desc" x="18" y="86">• 數千萬在線活躍用戶</text>
+      <text class="discord-diag__desc" x="18" y="86"
+        >• 大型伺服器的讀取尖峰</text
+      >
       <text class="discord-diag__desc" x="18" y="108"
         >• @everyone 熱點廣播湧入</text
       >
@@ -82,9 +84,9 @@
         <text class="discord-diag__subdesc" x="12" y="76"
           >相同頻道的併發查詢</text
         >
-        <text class="discord-diag__subdesc" x="12" y="96">必然導向同一台</text>
+        <text class="discord-diag__subdesc" x="12" y="96">導向同一個</text>
         <text class="discord-diag__subdesc" x="12" y="116"
-          >Rust Data Service 節點</text
+          >Rust Data Service 實例</text
         >
         <text class="discord-diag__tag" x="12" y="150">消除跨節點重複讀取</text>
       </g>
@@ -104,7 +106,7 @@
       d="M 240 300 H 320"
       marker-end="url(#dsc-arrow-accent)"></path>
     <text class="discord-diag__wire-label" x="280" y="165" text-anchor="middle"
-      >100k 併發請求</text
+      >併發請求</text
     >
 
     <!-- Block 2: Rust Intermediate Data Service (The Shield) -->
@@ -127,7 +129,7 @@
         >• Tokio 非同步執行期 (Async I/O)</text
       >
       <text class="discord-diag__desc" x="18" y="108"
-        >• 記憶體安全、零 GC 停頓</text
+        >• 記憶體安全、沒有 GC</text
       >
 
       <!-- Coalescing Engine Detail -->
@@ -146,7 +148,7 @@
           >1. 檢查目標資料是否已有 In-flight 任務</text
         >
         <text class="discord-diag__subdesc" x="14" y="74"
-          >2. 新請求直接「訂閱」該工作頻道</text
+          >2. 後續請求「訂閱」該 worker task</text
         >
         <text class="discord-diag__subdesc" x="14" y="96"
           >3. 資料庫回傳時，單一結果廣播給所有人</text
@@ -154,14 +156,13 @@
 
         <path class="discord-diag__divider" d="M 14 115 H 248"></path>
 
-        <text class="discord-diag__subhead" x="14" y="140"
-          >LRU 快取與 Bucket 窗口</text
+        <text class="discord-diag__subhead" x="14" y="140">Bucket 時間窗口</text
         >
         <text class="discord-diag__subdesc" x="14" y="164"
-          >• 本地微快取 (Micro-cache)</text
+          >• 每桶約 10 天的訊息</text
         >
         <text class="discord-diag__subdesc" x="14" y="186"
-          >• 時間窗口分桶 (Bucket ID: 10 天/1k則)</text
+          >• 單一 partition 低於 100MB</text
         >
       </g>
     </g>
@@ -195,14 +196,12 @@
         y="58">ScyllaDB 儲存叢集</text
       >
       <text class="discord-diag__desc" x="18" y="86"
-        >• C++ Seastar 異步框架</text
+        >• C++ Seastar 非同步框架</text
       >
       <text class="discord-diag__desc" x="18" y="108"
         >• Thread-per-Core 無共享架構</text
       >
-      <text class="discord-diag__desc" x="18" y="130"
-        >• 徹底告別 JVM GC Pauses</text
-      >
+      <text class="discord-diag__desc" x="18" y="130">• 沒有 JVM GC 停頓</text>
 
       <!-- Data Layout Subcard -->
       <g transform="translate(14, 155)">
@@ -219,12 +218,12 @@
           >• 時間倒序排序 (DESC)</text
         >
         <text class="discord-diag__subdesc" x="12" y="116"
-          >• NVMe Super-Disk + RAID</text
+          >• Local SSD + RAID 鏡像</text
         >
         <text
           class="discord-diag__tag discord-diag__tag--emerald"
           x="12"
-          y="155">P99 延遲: 數十秒 ➔ &lt;15ms</text
+          y="155">讀取 p99: 40–125ms ➔ 15ms</text
         >
       </g>
     </g>
@@ -236,8 +235,7 @@
       <span class="discord-mobile-badge">01. 流量湧入</span>
       <h4>API 層與一致性雜湊</h4>
       <p>
-        百萬用戶與 @everyone 訊息併發，依照 channel_id 雜湊精準路由至同一 Rust
-        節點。
+        @everyone 公告引來大量讀取，依照 channel_id 雜湊路由到同一個 Rust 實例。
       </p>
     </div>
 
@@ -245,12 +243,12 @@
 
     <div class="discord-mobile-card discord-mobile-card--rust">
       <span class="discord-mobile-badge discord-mobile-badge--accent"
-        >02. 關鍵護城河</span
+        >02. 請求合併層</span
       >
       <h4>Rust Data Service (單飛合併)</h4>
       <p>
-        執行 Request Coalescing，將同頻道的數萬筆併發請求收斂為 1
-        筆資料庫查詢，消除熱點衝擊。
+        執行 Request Coalescing，同一筆資料的併發請求只查一次資料庫。這層在
+        Cassandra 時期就已上線。
       </p>
     </div>
 
@@ -258,19 +256,19 @@
 
     <div class="discord-mobile-card discord-mobile-card--scylla">
       <span class="discord-mobile-badge discord-mobile-badge--emerald"
-        >03. 零 GC 儲存引擎</span
+        >03. 無 GC 儲存引擎</span
       >
       <h4>ScyllaDB (C++ Seastar 叢集)</h4>
       <p>
-        以 (channel_id, bucket) 分區鍵切片，徹底解決 Cassandra JVM GC
-        停頓與墓碑掃描延遲，P99 降至 15ms 內。
+        以 (channel_id, bucket) 為分區鍵，沒有 JVM GC 停頓。2022 年 5
+        月切換後，歷史訊息讀取 p99 從 40–125ms 降到 15ms。
       </p>
     </div>
   </div>
 
   <figcaption id="discord-diag-caption">
-    圖 1：Discord 數兆級訊息架構：透過 Rust 服務層的 Request Coalescing
-    請求收斂與 ScyllaDB 零 GC 引擎保護底層儲存。
+    圖 1：Discord 的訊息儲存架構：Rust 資料服務以 Request Coalescing
+    合併請求，底層是沒有 GC 的 ScyllaDB。
   </figcaption>
 </figure>
 

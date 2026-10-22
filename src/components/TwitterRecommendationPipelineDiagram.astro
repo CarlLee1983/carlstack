@@ -9,14 +9,13 @@
     role="img"
     aria-labelledby="twitter-pipe-title twitter-pipe-desc"
   >
-    <title id="twitter-pipe-title">
-      Twitter (X) 為你推薦時間軸推薦管線架構
-    </title>
+    <title id="twitter-pipe-title">Twitter 2023 年開源的為你推薦管線架構</title>
     <desc id="twitter-pipe-desc">
-      展示從 5 億則推文中透過 In-Network (Earlybird) 與 Out-of-Network
-      (GraphJet/SimClusters) 檢索出 1,500 則候選推文，經由 Heavy Ranker 4800
-      萬參數類神經網路評分，再通過可見性過濾與多樣性重排，最終在 1.5
-      秒內渲染時間軸的完整管線。
+      2023 年開源版本：從每天約 5 億則推文中，透過 In-Network (Earlybird) 與
+      Out-of-Network (GraphJet/SimClusters) 取出約 1,500 則候選推文，經 Heavy
+      Ranker 約 4,800
+      萬參數的神經網路評分，再做可見性過濾與多樣性重排，整條管線平均不到 1.5
+      秒。
     </desc>
 
     <defs>
@@ -53,20 +52,19 @@
       <text class="twitter-pipe-diagram__badge" x="16" y="24"
         >STAGE 01: 500M ➔ 1.5K</text
       >
-      <text class="twitter-pipe-diagram__title" x="16" y="50"
-        >候選集檢索 (50%)</text
+      <text class="twitter-pipe-diagram__title" x="16" y="50">站內候選來源</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="74"
         >• In-Network: Earlybird</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="94"
-        >• Lucene 記憶體倒排索引</text
+        >• Lucene 搜尋索引</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="114"
-        >• 追蹤者的最新動態</text
+        >• Real Graph 等排序訊號</text
       >
       <text class="twitter-pipe-diagram__tag" x="16" y="136"
-        >~750 則關注圈內推文</text
+        >平均約占時間軸一半</text
       >
     </g>
 
@@ -75,13 +73,12 @@
       <text class="twitter-pipe-diagram__badge" x="16" y="24"
         >STAGE 01: 500M ➔ 1.5K</text
       >
-      <text class="twitter-pipe-diagram__title" x="16" y="50"
-        >網絡外檢索 (50%)</text
+      <text class="twitter-pipe-diagram__title" x="16" y="50">站外候選來源</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="74"
         >• Out-of-Network</text
       >
-      <text class="twitter-pipe-diagram__desc" x="94"
+      <text class="twitter-pipe-diagram__desc" x="16" y="94"
         >• GraphJet 即時圖遍歷</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="114"
@@ -91,7 +88,7 @@
         >• 矩陣分解與向量相似度</text
       >
       <text class="twitter-pipe-diagram__tag" x="16" y="156"
-        >~750 則探索推薦推文</text
+        >平均約占時間軸一半</text
       >
     </g>
 
@@ -128,7 +125,7 @@
         >• 匯聚 1,500 則候選池</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="122"
-        >• 特徵工程提取 (Feature Store)</text
+        >• 取得約 6,000 個特徵</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="144"
         >• 派發至 Heavy Ranker</text
@@ -136,7 +133,7 @@
       <text
         class="twitter-pipe-diagram__tag twitter-pipe-diagram__tag--accent"
         x="16"
-        y="180">端到端 SLA 嚴控 &lt;1.5s</text
+        y="180">整條管線平均 &lt;1.5s</text
       >
     </g>
 
@@ -163,30 +160,30 @@
         y="52">Heavy Ranker</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="78"
-        >• 4800 萬參數 MaskNet 網路</text
+        >• 約 4,800 萬參數 MaskNet</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="100"
-        >• 多任務學習 (Multi-Task):</text
+        >• 10 種互動機率，例如:</text
       >
       <text class="twitter-pipe-diagram__desc" x="24" y="122"
-        >▫ P(Like) × 30</text
+        >▫ P(Like) × 0.5</text
       >
       <text class="twitter-pipe-diagram__desc" x="24" y="142"
         >▫ P(Retweet) × 1</text
       >
       <text class="twitter-pipe-diagram__desc" x="24" y="162"
-        >▫ P(Reply &amp; Author Engage) × 75</text
+        >▫ P(回覆獲作者互動) × 75</text
       >
       <text class="twitter-pipe-diagram__desc" x="24" y="182"
-        >▫ P(Report / Block) × -369</text
+        >▫ P(Report) × -369</text
       >
       <text class="twitter-pipe-diagram__desc" x="16" y="208"
-        >• 綜合加權公式計算預期效用</text
+        >• 依權重加總成分數</text
       >
       <text
         class="twitter-pipe-diagram__tag twitter-pipe-diagram__tag--neural"
         x="16"
-        y="254">GPU 叢集低延遲推理 (&lt;50ms)</text
+        y="254">權重：2023-04-05 版</text
       >
     </g>
 
@@ -204,15 +201,16 @@
       >
       <text class="twitter-pipe-diagram__title" x="14" y="50">可見性過濾</text>
       <text class="twitter-pipe-diagram__desc" x="14" y="74"
-        >• 封鎖 / 靜音黑名單</text
+        >• 封鎖 / 靜音過濾</text
       >
       <text class="twitter-pipe-diagram__desc" x="14" y="94"
-        >• NSFW / 安全合規</text
+        >• NSFW / 合規過濾</text
       >
       <text class="twitter-pipe-diagram__desc" x="14" y="114"
-        >• 疲勞抑制 (Fatigue)</text
+        >• 負面回饋降分</text
       >
-      <text class="twitter-pipe-diagram__tag" x="14" y="136">過濾剔除 ~50%</text
+      <text class="twitter-pipe-diagram__tag" x="14" y="136"
+        >移除已看過的推文</text
       >
     </g>
 
@@ -231,11 +229,9 @@
         x="14"
         y="50">多樣性重排</text
       >
-      <text class="twitter-pipe-diagram__desc" x="14" y="74"
-        >• 作者多樣性交錯</text
-      >
+      <text class="twitter-pipe-diagram__desc" x="14" y="74">• 作者多樣性</text>
       <text class="twitter-pipe-diagram__desc" x="14" y="94"
-        >• 廣告 / 社交穿插</text
+        >• 廣告 / 推薦穿插</text
       >
       <text class="twitter-pipe-diagram__desc" x="14" y="114"
         >• 最終推薦時間軸</text
@@ -260,8 +256,8 @@
       <span class="twitter-pipe-mobile-badge">01. 候選檢索 (500M ➔ 1500)</span>
       <h4>雙軌候選檢索 (Candidate Sources)</h4>
       <p>
-        50% 關注圈內（Earlybird 倒排索引）+ 50% 網絡外探索（GraphJet 實時圖與
-        SimClusters 興趣嵌入）。
+        關注圈內（Earlybird 搜尋索引）+ 關注圈外（GraphJet 即時互動圖與
+        SimClusters 社群嵌入），兩者平均各占時間軸一半，因人而異。
       </p>
     </div>
 
@@ -272,22 +268,17 @@
         >02. 管線協調中心</span
       >
       <h4>Home Mixer 與特徵工程</h4>
-      <p>
-        快速聚合候選名單，提取即時用戶互動特徵，派發給深度模型進行批次推論。
-      </p>
+      <p>匯集候選推文，取得約 6,000 個排序特徵，交給 Heavy Ranker 評分。</p>
     </div>
 
-    <div class="twitter-pipe-mobile-arrow">↓ 毫秒級神經網路推論</div>
+    <div class="twitter-pipe-mobile-arrow">↓ 神經網路評分</div>
 
     <div class="twitter-pipe-mobile-card twitter-pipe-mobile-card--ranker">
       <span class="twitter-pipe-mobile-badge twitter-pipe-mobile-badge--neural"
         >03. 核心評分模型</span
       >
-      <h4>Heavy Ranker (48M 參數 MaskNet)</h4>
-      <p>
-        預測 Like, Retweet, Reply, Engage
-        等多目標機率，計算全域加權正負期望分值。
-      </p>
+      <h4>Heavy Ranker (約 48M 參數 MaskNet)</h4>
+      <p>預測按讚、轉發、回覆、檢舉等 10 種互動機率，再依權重加總成分數。</p>
     </div>
 
     <div class="twitter-pipe-mobile-arrow">↓ 業務合規與重排</div>
@@ -298,14 +289,15 @@
       >
       <h4>Visibility Filtering &amp; Heuristics</h4>
       <p>
-        扣除封鎖/NSFW，防止同作者洗版，穿插廣告與推播，1.5
-        秒內完成「為你推薦」渲染。
+        排除封鎖、靜音與 NSFW
+        內容，避免同一作者連續出現，再穿插廣告與追蹤推薦。整條管線平均不到 1.5
+        秒。
       </p>
     </div>
   </div>
 
   <figcaption id="twitter-pipe-caption">
-    圖 1：Twitter (X) 推薦演算法全景管線：雙軌候選檢索、Home Mixer 協調、Heavy
+    圖 1：Twitter 2023 年開源的推薦管線：雙軌候選檢索、Home Mixer 協調、Heavy
     Ranker 神經網路與多樣性重排。
   </figcaption>
 </figure>

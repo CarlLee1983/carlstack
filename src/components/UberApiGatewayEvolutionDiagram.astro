@@ -1,5 +1,5 @@
 ---
-// Uber API Gateway 4-Generation Evolution Architecture Diagram Component
+// Uber API Gateway 3-Generation Evolution Diagram Component
 ---
 
 <figure class="uber-gw-diagram" aria-labelledby="uber-gw-caption">
@@ -9,11 +9,13 @@
     role="img"
     aria-labelledby="uber-gw-title uber-gw-desc"
   >
-    <title id="uber-gw-title">Uber 全球 API 閘道四代架構演進</title>
+    <title id="uber-gw-title">Uber API 閘道三代演進</title>
     <desc id="uber-gw-desc">
-      展示 Uber 從單體 Node.js RTAPI (第 1 代)、去中心化自營閘道 (第 2 代)、邊緣
-      gRPC 閘道 (第 3 代)，演進至現代宣告式、多區域主動路由與自動生成 BFF 的統一
-      API 閘道 (第 4 代)。
+      依 Uber 2020 年 Edge Gateway 專文與 2021 年閘道架構文：第 1 代（2014）是
+      dispatch 與 api 兩個服務，ApiCommand 兼任入口；第 2 代（2015
+      年初起）是集中式 Node.js RTAPI；第 3 代（2018 年起）是 Go 寫成的 Edge
+      Gateway，用 Thrift IDL 與 YAML 設定、Zanzibar 生成程式碼，並把職責分成
+      edge、presentation、 product、domain 四層。
     </desc>
 
     <defs>
@@ -44,72 +46,73 @@
       </marker>
     </defs>
 
-    <!-- Gen 1: Monolith Edge -->
+    <!-- Gen 1: dispatch + api -->
     <g class="uber-gw-diagram__card" transform="translate(30, 40)">
       <rect width="200" height="170" rx="12"></rect>
       <text class="uber-gw-diagram__badge" x="16" y="24">GEN 1 (2014)</text>
-      <text class="uber-gw-diagram__title" x="16" y="52"
-        >單體 Node.js RTAPI</text
-      >
+      <text class="uber-gw-diagram__title" x="16" y="52">dispatch ＋ api</text>
       <text class="uber-gw-diagram__desc" x="16" y="78"
-        >• 單體 Node.js 處理程序</text
+        >• dispatch：媒合乘客與司機</text
       >
       <text class="uber-gw-diagram__desc" x="16" y="98"
-        >• 負責所有客戶端請求路由</text
+        >• api：使用者與行程儲存</text
       >
       <text class="uber-gw-diagram__desc" x="16" y="118"
-        >• 業務邏輯與轉發嚴重偶合</text
-      >
-      <text
-        class="uber-gw-diagram__tag uber-gw-diagram__tag--warn"
-        x="16"
-        y="152">⚠️ CPU 阻塞與部署單點故障</text
-      >
-    </g>
-
-    <!-- Gen 2: Decentralized Gateways -->
-    <g class="uber-gw-diagram__card" transform="translate(260, 40)">
-      <rect width="200" height="170" rx="12"></rect>
-      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 2 (2016)</text>
-      <text class="uber-gw-diagram__title" x="16" y="52">去中心化領域閘道</text>
-      <text class="uber-gw-diagram__desc" x="16" y="78"
-        >• 各業務線自建 Gateway</text
-      >
-      <text class="uber-gw-diagram__desc" x="16" y="98"
-        >• 鑑權、限流規則重複造輪</text
-      >
-      <text class="uber-gw-diagram__desc" x="16" y="118"
-        >• 通訊協定與監控指標分歧</text
-      >
-      <text
-        class="uber-gw-diagram__tag uber-gw-diagram__tag--warn"
-        x="16"
-        y="152">⚠️ 維運成本與安全性碎片化</text
-      >
-    </g>
-
-    <!-- Gen 3: Edge gRPC Gateway -->
-    <g class="uber-gw-diagram__card" transform="translate(490, 40)">
-      <rect width="200" height="170" rx="12"></rect>
-      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 3 (2019)</text>
-      <text class="uber-gw-diagram__title" x="16" y="52">邊緣 gRPC 閘道</text>
-      <text class="uber-gw-diagram__desc" x="16" y="78"
-        >• 引入 Envoy / Go 邊緣層</text
-      >
-      <text class="uber-gw-diagram__desc" x="16" y="98"
-        >• JSON 轉 gRPC/Thrift 轉發</text
-      >
-      <text class="uber-gw-diagram__desc" x="16" y="118"
-        >• 統一身份驗證與基礎限流</text
+        >• ApiCommand 代理請求</text
       >
       <text
         class="uber-gw-diagram__tag uber-gw-diagram__tag--info"
         x="16"
-        y="152">ℹ️ 跨區域流量排程仍受限</text
+        y="152">ApiCommand 兼任入口</text
       >
     </g>
 
-    <!-- Gen 4: Modern Unified Declarative Gateway (Large Bottom Block) -->
+    <!-- Gen 2: RTAPI -->
+    <g class="uber-gw-diagram__card" transform="translate(260, 40)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 2 (2015–)</text>
+      <text class="uber-gw-diagram__title" x="16" y="52"
+        >集中式 Node.js RTAPI</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="78"
+        >• 尖峰約 800,000 req/s</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="98"
+        >• 約 1,600 支 API、40+ 部署</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="118"
+        >• 業務邏輯滲進閘道</text
+      >
+      <text
+        class="uber-gw-diagram__tag uber-gw-diagram__tag--warn"
+        x="16"
+        y="152">⚠️ NPE 與閘道團隊瓶頸</text
+      >
+    </g>
+
+    <!-- Gen 3: Edge Gateway -->
+    <g class="uber-gw-diagram__card" transform="translate(490, 40)">
+      <rect width="200" height="170" rx="12"></rect>
+      <text class="uber-gw-diagram__badge" x="16" y="24">GEN 3 (2018–)</text>
+      <text class="uber-gw-diagram__title" x="16" y="52">Edge Gateway (Go)</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="78"
+        >• 單一 Go 服務搭配 UI</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="98"
+        >• Thrift IDL ＋ YAML 設定</text
+      >
+      <text class="uber-gw-diagram__desc" x="16" y="118"
+        >• Zanzibar 生成程式碼</text
+      >
+      <text
+        class="uber-gw-diagram__tag uber-gw-diagram__tag--info"
+        x="16"
+        y="152">ℹ️ BFF 移出閘道</text
+      >
+    </g>
+
+    <!-- Gen 3 layers (Large Bottom Block) -->
     <g
       class="uber-gw-diagram__card uber-gw-diagram__card--emerald"
       transform="translate(30, 240)"
@@ -118,56 +121,56 @@
       <text
         class="uber-gw-diagram__badge uber-gw-diagram__badge--emerald"
         x="20"
-        y="26">GEN 4 (CURRENT): UNIFIED DECLARATIVE API PLATFORM</text
+        y="26">GEN 3: SELF-SERVICE, DECENTRALIZED, AND LAYERED</text
       >
       <text
         class="uber-gw-diagram__title uber-gw-diagram__title--emerald"
         x="20"
-        y="56">現代宣告式統一 API 閘道生態系</text
+        y="56">第 3 代的四層分工</text
       >
 
-      <!-- Sub Column 1: Schema-first -->
+      <!-- Sub Column 1: Edge layer -->
       <g transform="translate(20, 75)">
         <rect width="265" height="85" rx="8" class="uber-gw-diagram__subcard"
         ></rect>
         <text class="uber-gw-diagram__subtitle" x="12" y="22"
-          >01. Schema-First 宣告定義</text
+          >01. Edge layer</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="44"
-          >• Protobuf / Thrift 統一合約</text
+          >• 驗證、限流、負載卸除</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="64"
-          >• 自動生成 BFF 與型別防護</text
+          >• 協定轉換 JSON／Thrift／Protobuf</text
         >
       </g>
 
-      <!-- Sub Column 2: Traffic Engine -->
+      <!-- Sub Column 2: Presentation + Product -->
       <g transform="translate(315, 75)">
         <rect width="270" height="85" rx="8" class="uber-gw-diagram__subcard"
         ></rect>
         <text class="uber-gw-diagram__subtitle" x="12" y="22"
-          >02. 多區域動態流量排程</text
+          >02. Presentation ＋ Product</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="44"
-          >• Multi-Region Active-Active</text
+          >• BFF 微服務負責聚合</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="64"
-          >• 跨區自動故障轉移 &amp; Sharding</text
+          >• 可重用的產品 API</text
         >
       </g>
 
-      <!-- Sub Column 3: Resilience & Security -->
+      <!-- Sub Column 3: Domain layer -->
       <g transform="translate(615, 75)">
         <rect width="265" height="85" rx="8" class="uber-gw-diagram__subcard"
         ></rect>
         <text class="uber-gw-diagram__subtitle" x="12" y="22"
-          >03. 自適應韌性與安全</text
+          >03. Domain layer</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="44"
-          >• Token Bucket + 延遲感應限流</text
+          >• 提供單一功能的末端服務</text
         >
         <text class="uber-gw-diagram__subdesc" x="12" y="64"
-          >• 全鏈路 mTLS 與分散式追蹤</text
+          >• 2019 年已有 2,200+ 微服務</text
         >
       </g>
     </g>
@@ -185,68 +188,51 @@
       class="uber-gw-diagram__arrow uber-gw-diagram__arrow--emerald"
       d="M 590 210 V 235"
       marker-end="url(#ugw-arrow-emerald)"></path>
-
-    <!-- Arrow to Gen 4 from right side -->
-    <path
-      class="uber-gw-diagram__arrow uber-gw-diagram__arrow--emerald"
-      d="M 690 125 H 780 Q 820 125 820 180 V 235"
-      marker-end="url(#ugw-arrow-emerald)"></path>
   </svg>
 
   <!-- Mobile Version -->
   <div class="uber-gw-diagram__mobile">
     <div class="uber-gw-diagram-mobile-card">
       <span class="uber-gw-diagram-mobile-badge">第 1 代 (2014)</span>
-      <h4>單體 Node.js RTAPI</h4>
+      <h4>dispatch ＋ api</h4>
       <p>
-        單一 Node 程序負責全域路由與轉發，業務邏輯強偶合，存在嚴重單點故障與 CPU
-        阻塞風險。
+        dispatch 媒合乘客與司機，api 儲存使用者與行程；請求經 dispatch 以
+        ApiCommand 代理到 api。從閘道角度看，ApiCommand 兼任進入 Uber 的入口。
       </p>
     </div>
 
-    <div class="uber-gw-diagram-mobile-arrow">↓ 拆分領域閘道</div>
+    <div class="uber-gw-diagram-mobile-arrow">↓ 2015 年初起</div>
 
     <div class="uber-gw-diagram-mobile-card">
-      <span class="uber-gw-diagram-mobile-badge">第 2 代 (2016)</span>
-      <h4>去中心化領域自建閘道</h4>
+      <span class="uber-gw-diagram-mobile-badge">第 2 代 (2015 年初起)</span>
+      <h4>集中式 Node.js RTAPI</h4>
       <p>
-        各業務團隊自建 API
-        Gateway，鑑權與限流重複造輪子，維運成本暴增且架構碎片化。
+        尖峰約每秒 800,000 個請求、約 1,600 支 API。業務邏輯滲進閘道，動態語言與
+        NPE 拖住部署，閘道團隊成為產品開發的瓶頸。
       </p>
     </div>
 
-    <div class="uber-gw-diagram-mobile-arrow">↓ 引入邊緣代理標準</div>
-
-    <div class="uber-gw-diagram-mobile-card">
-      <span class="uber-gw-diagram-mobile-badge">第 3 代 (2019)</span>
-      <h4>邊緣 gRPC 閘道 (Envoy)</h4>
-      <p>
-        集中邊緣認證、JSON/gRPC 轉發與基本限流，但跨區域流量排程與 BFF
-        生成仍未完全自動化。
-      </p>
-    </div>
-
-    <div class="uber-gw-diagram-mobile-arrow">↓ 現代宣告式架構升級</div>
+    <div class="uber-gw-diagram-mobile-arrow">↓ 2018 年起</div>
 
     <div
       class="uber-gw-diagram-mobile-card uber-gw-diagram-mobile-card--emerald"
     >
       <span
         class="uber-gw-diagram-mobile-badge uber-gw-diagram-mobile-badge--emerald"
-        >第 4 代 (現行)</span
+        >第 3 代 (2018 年起)</span
       >
-      <h4>現代宣告式統一 API 平台</h4>
+      <h4>Edge Gateway（Go）與四層分工</h4>
       <p>
-        Protobuf Schema-First 自動生成
-        BFF、多區域主動雙活路由（Active-Active）、自適應延遲感知限流與全鏈路
-        mTLS 安全防護。
+        單一 Go 服務搭配 UI，用 Thrift IDL 與 YAML 設定、Zanzibar
+        生成程式碼。BFF 移到 presentation layer，其下是 product 與 domain
+        layer。
       </p>
     </div>
   </div>
 
   <figcaption id="uber-gw-caption">
-    圖 1：Uber API 閘道架構四代演進：從單體 RTAPI、去中心化閘道、邊緣 gRPC
-    到現代宣告式多區域主動 API 平台。
+    圖 1：Uber API 閘道三代演進，依 Uber 2020 年 Edge Gateway 專文與 2021
+    年閘道架構文整理。
   </figcaption>
 </figure>
 

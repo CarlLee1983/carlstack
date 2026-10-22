@@ -1,5 +1,5 @@
 ---
-// Figma PostgreSQL 100x Scaling Architecture Diagram Component
+// Figma PostgreSQL Scaling Architecture Diagram Component (per Figma blog, 2023–2024)
 ---
 
 <figure class="figma-pg-diagram" aria-labelledby="figma-pg-caption">
@@ -9,10 +9,10 @@
     role="img"
     aria-labelledby="figma-pg-title figma-pg-desc"
   >
-    <title id="figma-pg-title">Figma PostgreSQL 100x 擴展與分片架構演進</title>
+    <title id="figma-pg-title">Figma PostgreSQL 擴展與分片架構示意</title>
     <desc id="figma-pg-desc">
-      展示 Figma 資料庫從單體 RDS 垂直擴展、業務領域垂直拆庫，到透過自研 DBProxy
-      實現水平分片（Horizontal Sharding）與零停機影子讀驗證的完整架構演進。
+      依 Figma 2023 與 2024 年的工程文章：應用層的 SQL 先經過自研 DBProxy
+      解析與路由，再送到垂直分割庫或水平分片；分片數量為示意。
     </desc>
 
     <defs>
@@ -53,7 +53,7 @@
       <text class="figma-pg-diagram__badge" x="16" y="24">CLIENT & ORM</text>
       <text class="figma-pg-diagram__title" x="16" y="52">應用服務層</text>
       <text class="figma-pg-diagram__desc" x="16" y="74"
-        >Rails / Go Services</text
+        >Ruby（ActiveRecord）</text
       >
     </g>
 
@@ -86,13 +86,13 @@
         y="54">自研 DBProxy 核心層</text
       >
       <text class="figma-pg-diagram__desc" x="18" y="78"
-        >• AST 解析提取 Shard Key (Org/File ID)</text
+        >• AST 解析，依 shard key 規劃路由</text
       >
       <text class="figma-pg-diagram__desc" x="18" y="98"
-        >• 跨分片查詢防護 / 連線池多路復用</text
+        >• 負載卸除、可觀測性、拓撲管理</text
       >
       <text class="figma-pg-diagram__desc" x="18" y="118"
-        >• 影子流量對比 (Shadow Read Validation)</text
+        >• 位於應用層與 PgBouncer 之間</text
       >
     </g>
 
@@ -106,9 +106,9 @@
     <g class="figma-pg-diagram__card" transform="translate(715, 40)">
       <rect width="205" height="90" rx="10"></rect>
       <text class="figma-pg-diagram__badge" x="16" y="24">TOPOLOGY</text>
-      <text class="figma-pg-diagram__title" x="16" y="52">邏輯分片映射表</text>
+      <text class="figma-pg-diagram__title" x="16" y="52">邏輯→實體分片</text>
       <text class="figma-pg-diagram__desc" x="16" y="74"
-        >128 Logical Shards</text
+        >邏輯分片以 view 表示</text
       >
     </g>
 
@@ -139,16 +139,16 @@
         >VERTICAL PARTITION</text
       >
       <text class="figma-pg-diagram__title" x="16" y="54"
-        >業務垂直庫 (Auth/Org)</text
+        >垂直分割庫（十幾個）</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="80"
-        >• 存放全域用戶、組織、權限</text
+        >• 依資料表群組拆分</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="102"
-        >• 讀多寫少、低頻寫入</text
+        >• 例：Organizations</text
       >
       <text class="figma-pg-diagram__tag" x="16" y="132"
-        >AWS RDS Postgres (Master/Replica)</text
+        >AWS RDS Postgres (Primary/Replica)</text
       >
     </g>
 
@@ -166,18 +166,18 @@
       <text
         class="figma-pg-diagram__title figma-pg-diagram__title--focus"
         x="16"
-        y="54">分片實例 A (Colo A)</text
+        y="54">實體分片 A</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="80"
-        >• 邏輯分片 #000 - #063</text
+        >• 邏輯分片 1、2（示意）</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="102"
-        >• 同 Shard 支援 ACID 事務與 Join</text
+        >• 同 colo、同 key 可 join 與交易</text
       >
       <text
         class="figma-pg-diagram__tag figma-pg-diagram__tag--accent"
         x="16"
-        y="132">Files, Canvas, Nodes 資料</text
+        y="132">依 UserID、FileID 等分片的表</text
       >
     </g>
 
@@ -195,18 +195,18 @@
       <text
         class="figma-pg-diagram__title figma-pg-diagram__title--focus"
         x="16"
-        y="54">分片實例 B (Colo B)</text
+        y="54">實體分片 B</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="80"
-        >• 邏輯分片 #064 - #127</text
+        >• 邏輯分片 3、4（示意）</text
       >
       <text class="figma-pg-diagram__desc" x="16" y="102"
-        >• 負載增長時可無縫分拆物理節點</text
+        >• 可再做實體分片拆分</text
       >
       <text
         class="figma-pg-diagram__tag figma-pg-diagram__tag--accent"
         x="16"
-        y="132">Files, Canvas, Nodes 資料</text
+        y="132">依 UserID、FileID 等分片的表</text
       >
     </g>
 
@@ -219,7 +219,7 @@
       class="figma-pg-diagram__wire-label"
       x="642"
       y="315"
-      text-anchor="middle">邏輯複製 / 遷移</text
+      text-anchor="middle">邏輯複製</text
     >
   </svg>
 
@@ -227,8 +227,8 @@
   <div class="figma-pg-diagram__mobile">
     <div class="figma-pg-mobile-card figma-pg-mobile-card--app">
       <span class="figma-pg-mobile-badge">01. 應用客戶端</span>
-      <h4>Rails & Go 應用層</h4>
-      <p>發送標準 SQL 查詢，無需手動改寫底層分庫邏輯。</p>
+      <h4>Ruby 應用層</h4>
+      <p>透過 ActiveRecord 發出 SQL，分片路由交給 DBProxy。</p>
     </div>
 
     <div class="figma-pg-mobile-arrow">↓ 轉發 SQL 請求</div>
@@ -237,35 +237,37 @@
       <span class="figma-pg-mobile-badge figma-pg-mobile-badge--accent"
         >02. 自研路由代理</span
       >
-      <h4>DBProxy 智慧路由層</h4>
+      <h4>DBProxy（Go）</h4>
       <p>
-        SQL AST 解析提取 Shard Key、維護 128 個邏輯分片拓撲，並執行影子讀驗證。
+        把 SQL 解析成
+        AST、找出邏輯分片並對應到實體庫，也負責負載卸除與拓撲管理；位於應用層與
+        PgBouncer 之間。
       </p>
     </div>
 
-    <div class="figma-pg-mobile-arrow">↓ 依 Key 精準分流</div>
+    <div class="figma-pg-mobile-arrow">↓ 依 shard key 路由</div>
 
     <div class="figma-pg-mobile-card">
       <span class="figma-pg-mobile-badge">03. 垂直領域庫</span>
-      <h4>Auth & Org 獨立資料庫</h4>
-      <p>儲存用戶、組織與權限資料，隔離低頻全域查詢與高頻檔案流量。</p>
+      <h4>垂直分割庫</h4>
+      <p>依資料表群組拆分，例如 Organizations；2022 年底約十幾個。</p>
     </div>
 
     <div class="figma-pg-mobile-card figma-pg-mobile-card--shard">
       <span class="figma-pg-mobile-badge figma-pg-mobile-badge--accent"
         >04. 水平分片叢集</span
       >
-      <h4>Colo 分組實體分片 (RDS 叢集)</h4>
+      <h4>水平分片（RDS）</h4>
       <p>
-        檔案與畫布節點依 Shard Key 分散於多台 RDS 實例，各分片內部維持 ACID 與
-        Join。
+        大表依 UserID、FileID 等 shard key 分散到多台 RDS；同一個 colo、同一個
+        shard key 內可以 join 與交易。
       </p>
     </div>
   </div>
 
   <figcaption id="figma-pg-caption">
-    圖 1：Figma 的 PostgreSQL 擴展架構：結合垂直拆庫、DBProxy 智慧分片路由與
-    Colo 局部一致性分組。
+    圖 1：依 Figma 2023–2024 年工程文章整理的 PostgreSQL
+    架構示意：垂直分割庫、DBProxy 路由與水平分片。分片數量為示意。
   </figcaption>
 </figure>
 

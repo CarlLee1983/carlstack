@@ -10,10 +10,11 @@
     role="img"
     aria-labelledby="spf-diag-title spf-diag-desc"
   >
-    <title id="spf-diag-title">Shopify 支付有限狀態機流轉圖</title>
+    <title id="spf-diag-title">支付有限狀態機流轉圖（作者示意）</title>
     <desc id="spf-diag-desc">
-      展示 Pending 經 Authorize 進入 Authorized，經 Capture 進入
-      Captured，最終經 Refund 進入 Refunded 的嚴格單向流轉。
+      作者自己的設計示意，不是 Shopify 的做法：Pending 經 Authorize 進入
+      Authorized，經 Capture 進入 Captured，最後經 Refund 進入
+      Refunded，只能單向流轉。
     </desc>
 
     <defs>
@@ -78,7 +79,7 @@
         text-anchor="middle">Pending</text
       >
       <text x="77" y="55" class="spf-diag__desc" text-anchor="middle"
-        >初始化待處理</text
+        >建立後待處理</text
       >
       <text
         x="77"
@@ -111,7 +112,7 @@
         text-anchor="middle">Authorized</text
       >
       <text x="82" y="55" class="spf-diag__desc" text-anchor="middle"
-        >額度凍結保留</text
+        >額度先保留</text
       >
       <text
         x="82"
@@ -147,13 +148,13 @@
         text-anchor="middle">Captured</text
       >
       <text x="82" y="55" class="spf-diag__desc" text-anchor="middle"
-        >實扣款入帳成功</text
+        >請款完成</text
       >
       <text
         x="82"
         y="72"
         class="spf-diag__tag spf-diag__tag--green"
-        text-anchor="middle">訂單履約發貨</text
+        text-anchor="middle">可以出貨</text
       >
     </g>
 
@@ -183,7 +184,7 @@
         text-anchor="middle">Refunded</text
       >
       <text x="55" y="55" class="spf-diag__desc" text-anchor="middle"
-        >款項原路退回</text
+        >款項退回</text
       >
       <text
         x="55"
@@ -201,7 +202,7 @@
         >STATE 1: PENDING</span
       >
       <h4>1. 待處理 (Pending)</h4>
-      <p>建立交易訂單與冪等鍵，準備發起授權請求。</p>
+      <p>建立交易紀錄與冪等鍵，準備送出授權請求。</p>
     </div>
 
     <div class="spf-mobile-arrow">▼ 觸發 Authorize（預授權）</div>
@@ -211,7 +212,7 @@
         >STATE 2: AUTHORIZED</span
       >
       <h4>2. 已授權 (Authorized)</h4>
-      <p>發卡行成功鎖定用戶信用額度，商戶具備請款權利（通常保留 7 天）。</p>
+      <p>發卡行保留持卡人的信用額度，商家之後可以請款。</p>
     </div>
 
     <div class="spf-mobile-arrow">▼ 觸發 Capture（扣款請款）</div>
@@ -221,9 +222,7 @@
         >STATE 3: CAPTURED</span
       >
       <h4>3. 已扣款 (Captured / Paid)</h4>
-      <p>
-        正式完成資金劃撥，商家確認收訖款項並安全觸發實體或虛擬履約物流發貨。
-      </p>
+      <p>請款完成，商家可以安排出貨。</p>
     </div>
 
     <div class="spf-mobile-arrow">▼ 觸發 Refund（退款沖正）</div>
@@ -233,15 +232,12 @@
         >STATE 4: REFUNDED</span
       >
       <h4>4. 已退款 (Refunded)</h4>
-      <p>
-        發生退貨或爭議款項時，透過原支付路徑全額或部分退還資金，終結 FSM
-        狀態生命週期。
-      </p>
+      <p>退貨或款項爭議時，經原付款方式全額或部分退款，狀態機到此結束。</p>
     </div>
   </div>
 
   <figcaption id="spf-diag-caption" class="spf-diag__caption">
-    圖一：Shopify 支付有限狀態機（FSM）單向嚴格流轉生命週期
+    圖 3：支付有限狀態機（FSM）的單向流轉（作者示意，Shopify 原文沒有這張圖）
   </figcaption>
 </figure>
 
