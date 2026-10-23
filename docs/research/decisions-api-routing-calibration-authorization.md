@@ -45,3 +45,17 @@ Use case: stylized-concept. Asset type: original engineering editorial blog cove
 - JSON 語法、本地站內連結、draft/series 基本檢查已通過
 - 兩份 Markdown 以本地 Prettier binary 完成 format 與 check；一般 pnpm exec 因環境 11.19.0 低於 repo 要求 12.1.0 失敗，未以關閉 engine 檢查繞過
 - 最終 publishDate、全站 format/check/test、content policy、build 與部署驗收交整合者統一處理
+
+## 2026-10-23 GA 實質更新
+
+- 保留原始 URL、publishDate、seriesOrder 67、封面與既有校準／退款授權論點，依同題去重規則更新本文。
+- 新主來源：https://openai.com/index/decisions-api/ （2026-10-22）。完整閱讀公告；GA、400 題上限、JSON、題內圖片、快取、GPT-Live 與 US/EU inference residency 均由公告支持。未將廠商速度自報寫成實測，也未加入易過期價格。
+- 重查官方指南 https://developers.openai.com/api/docs/guides/decisions 及 create reference https://developers.openai.com/api/reference/resources/decisions/methods/create 的 What’s new、圖片、題目與回應欄位。現行 input_image 接受公開 HTTP(S) URL 或 data URL，File ID 不支援；修正初版過時的 inline-only 說法。
+- 語音來源：https://developers.openai.com/api/docs/guides/decisions-voice 。核對原生委派、逐字稿 trigger 與 session.update / matching session.updated 的順序；未照抄完整車載範例。
+- 新增的兩階段升級驗收、快取成本分類、逐字稿版本與操作回報條件為作者建議，未執行或宣稱 API 保證。
+- trail map / trail ask 均因 CLI 不存在而無法執行，改讀指定檔案、內容指南與兩個寫作 skill；未安裝替代工具或修改設定。
+- 僅修改本文與本 research；未 stage、commit 或 push。完整發布 gates 由整合者負責。
+
+### 本批最終驗收
+
+2026-10-23本批整合已完成pnpm12 frozen install、scope format、stage後policy（3篇）、完整check、117tests及最終build，dist內更新正文/canonical/h1/既有cover/內鏈/list/RSS/sitemap/series/Pagefind均驗證。Local dev與cloud localhost preview不可用，未宣稱mobile/light-dark版面通過，環境限制詳見formal-verification-proof-scope同批紀錄。第二次獨立核對voice guide的session.update→matching session.updated，以及reference圖片public HTTP(S)/dataURL、不支援FileID，與新稿一致。
