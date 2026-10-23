@@ -1,0 +1,181 @@
+<figure
+  class="fulfillment-address-diagram"
+  aria-labelledby="fulfillment-address-caption"
+>
+  <svg
+    class="fulfillment-address-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="fulfillment-address-title fulfillment-address-desc"
+  >
+    <title id="fulfillment-address-title">
+      改址與派工共用訂單鎖，提交時凍結地址
+    </title>
+    <desc id="fulfillment-address-desc"
+      >原地址為 A、版本 7。改址先提交時，派工保存 B、版本 8；派工先提交時，保存
+      A、版本 7，後來的直接改址遭拒絕。派工快照、持久待辦及 fulfilling
+      狀態在同一交易提交，外部交付在提交後進行。</desc
+    >
+    <rect
+      class="fulfillment-address-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="fulfillment-address-diagram__heading" x="48" y="62"
+      >同一張訂單，兩種提交順序</text
+    >
+    <text class="fulfillment-address-diagram__lead" x="48" y="94"
+      >起點：paid・地址 A・版本 7；兩個入口都先取得訂單列鎖。</text
+    >
+    <rect
+      class="fulfillment-address-diagram__card"
+      x="48"
+      y="120"
+      width="864"
+      height="116"
+      rx="12"></rect>
+    <text class="fulfillment-address-diagram__label" x="72" y="154"
+      >改址先提交</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="187"
+      >訂單改為 B／8 → 派工取得鎖 → 快照固定為 B／8。</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="214"
+      >倉庫列表先前看到的 A 不參與派工決定。</text
+    >
+    <rect
+      class="fulfillment-address-diagram__card"
+      x="48"
+      y="256"
+      width="864"
+      height="116"
+      rx="12"></rect>
+    <text class="fulfillment-address-diagram__label" x="72" y="290"
+      >派工先提交</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="323"
+      >快照固定為 A／7 → 訂單為 fulfilling → 後來改址遭拒絕。</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="350"
+      >截止點是本地提交，無須等物流商受理。</text
+    >
+    <rect
+      class="fulfillment-address-diagram__card"
+      x="48"
+      y="392"
+      width="864"
+      height="116"
+      rx="12"></rect>
+    <text class="fulfillment-address-diagram__label" x="72" y="426"
+      >派工交易的共同提交範圍</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="459"
+      >不可變快照（含地址版本）＋持久交付待辦＋fulfilling 狀態。</text
+    >
+    <text class="fulfillment-address-diagram__detail" x="72" y="486"
+      >任何一步失敗，整筆回滾；外部呼叫在鎖釋放後才執行。</text
+    >
+    <text class="fulfillment-address-diagram__note" x="48" y="548"
+      >重送同一 dispatch_id，仍使用同一快照；截止後改址需要另外確認撤回或替換。</text
+    >
+  </svg>
+  <div class="fulfillment-address-diagram__mobile">
+    <p>起點：paid、地址 A、版本 7。兩個入口都先取得訂單列鎖。</p>
+    <section class="fulfillment-address-diagram__mobile-card">
+      <h3>改址先提交</h3><p>
+        訂單改為 B／8。派工取得鎖後，快照固定為 B／8。列表先前看到的 A
+        不參與決定。
+      </p>
+    </section>
+    <section class="fulfillment-address-diagram__mobile-card">
+      <h3>派工先提交</h3><p>
+        快照固定為 A／7，訂單改為
+        fulfilling。後來直接改址遭拒絕，無須等物流商受理。
+      </p>
+    </section>
+    <section class="fulfillment-address-diagram__mobile-card">
+      <h3>共同提交範圍</h3><p>
+        不可變快照（含地址版本）、持久交付待辦及 fulfilling
+        狀態共同提交。任何一步失敗，整筆回滾。外部呼叫在鎖釋放後才執行。
+      </p>
+    </section>
+    <p>同一 dispatch_id 重送相同快照。截止後改址需要另外確認撤回或替換。</p>
+  </div>
+  <figcaption id="fulfillment-address-caption">
+    訂單鎖決定誰先取得修改資格，地址版本阻擋舊頁覆寫；派工交易提交後，交付內容便固定。
+  </figcaption>
+</figure>
+<style>
+  .fulfillment-address-diagram {
+    margin-block: var(--space-xl);
+  }
+  .fulfillment-address-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .fulfillment-address-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .fulfillment-address-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .fulfillment-address-diagram__heading {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .fulfillment-address-diagram__lead {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .fulfillment-address-diagram__label {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .fulfillment-address-diagram__detail,
+  .fulfillment-address-diagram__note {
+    font-size: 14px;
+    fill: var(--dg-ink-2);
+  }
+  .fulfillment-address-diagram__mobile {
+    display: none;
+    color: var(--dg-ink-2);
+    overflow-wrap: anywhere;
+  }
+  .fulfillment-address-diagram__mobile-card {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+    background: var(--dg-surface);
+  }
+  .fulfillment-address-diagram__mobile-card h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--text-base);
+    color: var(--dg-ink);
+  }
+  .fulfillment-address-diagram__mobile-card p {
+    margin: 0;
+  }
+  .fulfillment-address-diagram figcaption {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--dg-ink-2);
+  }
+  @media (max-width: 48rem) {
+    .fulfillment-address-diagram__desktop {
+      display: none !important;
+    }
+    .fulfillment-address-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
