@@ -59,3 +59,15 @@ Use case: stylized-concept. Asset type: original engineering editorial blog cove
 ### 本批最終驗收
 
 2026-10-23本批整合已完成pnpm12 frozen install、scope format、stage後policy（3篇）、完整check、117tests及最終build，dist內更新正文/canonical/h1/既有cover/內鏈/list/RSS/sitemap/series/Pagefind均驗證。Local dev與cloud localhost preview不可用，未宣稱mobile/light-dark版面通過，環境限制詳見formal-verification-proof-scope同批紀錄。第二次獨立核對voice guide的session.update→matching session.updated，以及reference圖片public HTTP(S)/dataURL、不支援FileID，與新稿一致。
+
+## 2026-10-23 使用者回饋後的去 AI 味修訂
+
+使用者指出原標題「退款授權仍要留在程式裡」有明顯AI味。本批GA更新曾保留10月7日原標題，沒有對這個標題完成有效去AI味改寫；不能用讀過skill或checker執行紀錄代替成品判斷。
+
+整合者實際讀取紀錄：02:04UTC讀repository `humanize-writing/SKILL.md`；02:05UTC讀`references/zh-tw.md`。首批整合者只對兩篇新稿跑checker，Decisions由研究代理修改並回報checker結果，原標題仍保留。回饋後02:45UTC重新完整讀SKILL.md、zh-tw.md及敘事reference，再逐段審稿。當時main為`feb1cc19c0add420c1efd757e521704a70b4a1d8`，skill blob `ab40928dda9e2d7d6a60c2e32c3c93fa283a6ed3`。
+
+本次改為「用 Decisions API 分流客服案件：分類、覆核與退款流程」，同步改具體摘要，移除開頭格言式轉折、重複「本文」免責及空泛收尾。未改API事實、數字、來源與未知範圍。已搜尋src與docs的原始／百分比編碼anchor及標題，沒有兩個待改小標的站內反向連結。將「三種回答形狀，對應三種不同的程式責任」及「已判定損壞，仍然只能進入退款審核」改為具體的API型別用途、退款服務身分與權限檢查。新增API呼叫或實測為零。
+
+自檢：checker由11處降至4處，剩餘均為真正並列狀態／測試案例的冒號，不是鋪梗修辭。另以程式逐項確認2個code fences、29段inline code、5個外部URL與17段引號內容按原順序逐byte一致。URL檔名、publishDate、cover/coverAlt、tags、seriesOrder均保留；updatedDate記錄實質編輯時間。編輯diff先交父代理審閱，技術gates與部署驗證另接續。
+
+修訂稿發布前：完整pnpm check（0 errors/0 warnings/0 hints）、117/117 tests、final production build完成。最後正文在content sync/build前已固定，另重跑final staged policy（1篇）、scope Prettier check及protected-segment檢查；dist已確認新標題、兩個新小標與三種分類結果的完整敘述。frozen install再次確認鎖檔未變。尚未實測任何付費API。
