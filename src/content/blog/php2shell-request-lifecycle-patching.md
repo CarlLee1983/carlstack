@@ -1,7 +1,8 @@
 ---
-title: "PHP 10 月安全更新要驗收 Web worker，CLI 版本與記憶體限制都不能代替"
-description: "PHP 已發布 8.5.12、8.4.27、8.3.36 與 8.2.35，修補兩項免驗證 RCE。依 OOM 與跨請求狀態生命週期區分 mod_php、FPM 條件，把更新、暫緩措施與 worker 驗收分開處理。"
+title: "PHP 10 月安全更新：驗收 Web worker，並檢查 session handler 切換"
+description: "PHP 10 月 21 日修補兩項 RCE，23 日另公告特定 session handler 切換條件下的 CVE-2026-115560。分開確認修補版本、upload progress 設定與承接 HTTP 流量的 worker。"
 publishDate: 2026-10-22T10:02:20+08:00
+updatedDate: 2026-10-24T10:06:31+08:00
 draft: false
 featured: false
 tags:
@@ -13,12 +14,24 @@ coverAlt: "紙雕門鎖的剖面露出多組齒輪與維修人員，珊瑚色外
 repositoryUrl: https://github.com/php/php-src
 ---
 
-PHP 在 [2026 年 10 月 21 日安全公告](https://www.php.net/archive/2026.php#2026-10-21-1)正式發布 8.5.12、8.4.27、8.3.36 與 8.2.35，修補 CVE-2026-109618 與 CVE-2026-109619。兩項問題可能造成未經驗證的遠端程式碼執行，官方要求立即更新。這次已從預告進入可部署的修補階段。
+PHP 在 [2026 年 10 月 21 日安全公告](https://www.php.net/archive/2026.php#2026-10-21-1)正式發布 8.5.12、8.4.27、8.3.36 與 8.2.35，修補 CVE-2026-109618 與 CVE-2026-109619。兩項問題可能造成未經驗證的遠端程式碼執行，官方要求立即更新。這四個版本對應的是這兩項漏洞的修補。
 
-我的處理判斷是：工單必須驗收到承接 HTTP 請求的 PHP worker。只有套件安裝紀錄、CLI 的 `php -v`，或「已限制上傳大小」，都缺少服務實際執行狀態的證據。
+修補工單必須驗收到承接 HTTP 請求的 PHP worker。只有套件安裝紀錄、CLI 的 `php -v`，或「已限制上傳大小」，都缺少服務實際執行狀態的證據。
 
 > [!NOTE]
-> 10 月 22 日核對 PHP 官方公告與兩份技術 advisory，未重現漏洞、稽核實際服務或執行應用回歸測試。以下部署紀錄與驗收流程是工程建議。公告中的「已驗證利用」指研究結果，這次查核沒有據此確認在野攻擊。
+> 10 月 22 日核對 PHP 官方公告與兩份技術 advisory，24 日補查 23 日的 session upload progress 公告。未重現漏洞、稽核實際服務或執行應用回歸測試。以下部署紀錄與驗收流程是工程建議。公告中的「已驗證利用」指研究結果，這次查核沒有據此確認在野攻擊。
+
+## 10 月 23 日新增的 session handler 切換條件
+
+PHP 另以 CVE-2026-115560 追蹤一條狹窄 RCE 路徑。依[10 月 23 日官方說明](https://www.php.net/archive/2026.php#2026-10-23-1)，必須同時符合以下條件：
+
+- 設定中的 `session.serialize_handler` 是 `php_binary` 或 `php_serialize`。
+- 應用在執行時以 `ini_set()` 改成 `php`，之後呼叫 `session_start()`。
+- `session.upload_progress.enabled` 仍開啟。
+
+官方建議先設 `session.upload_progress.enabled=0`，保持到下次正常 bugfix 發布。先前已停用者維持設定即可，從不在執行時更換 handler 的應用則可保留功能。完整 advisory 預定隨下次發布公布，目前這則說明未列出新 CVE 的完整受影響與修補版本，不能將前述四個版本當作它已修好的證據。
+
+我會在原有修補工單追加一項程式檢查：搜尋 bootstrap、session 初始化與相容層中對 `session.serialize_handler` 的修改，核對設定載入後到 `session_start()` 之前的實際順序。只有設定檔的快照，可能看不到程式在執行時做的切換。需要停用 upload progress 時，沿用下方請求解析前套用設定、替換 worker 與回歸測試的驗收方式，並記下等待完整公告的負責人。
 
 ## 兩項漏洞要分開判讀 FPM 的條件
 
@@ -34,7 +47,7 @@ PHP 在 [2026 年 10 月 21 日安全公告](https://www.php.net/archive/2026.ph
 
 因此「FPM 尚未展示 exploit」只能用在前一項 OOM 公告的特定結論，不能拿來替整組漏洞背書。兩份公告的驗證範圍不同，也都不代表每個部署的可利用條件完全相同。
 
-對維運更直接的影響是：增加 worker 數量或縮短回收週期，不能代替修補，也沒有足夠依據把這些調整記為安全風險已降低。結案應回到含完整修補的 runtime，而不是猜測攻擊請求有多難碰到同一個行程。
+對維運更直接的影響是：增加 worker 數量或縮短回收週期可能降低單次請求利用成功率，但不能消除漏洞條件或代替修補，不能據此結案。結案應回到含完整修補的 runtime，而不是猜測攻擊請求有多難碰到同一個行程。
 
 ## 更新證據應跟著流量走到每一個 pool
 
