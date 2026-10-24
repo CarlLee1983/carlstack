@@ -1,0 +1,167 @@
+---
+title: "物流通知晚到時，怎麼避免訂單狀態倒退？"
+description: "用明確的配送進度轉移與獨立待核對標記，處理重複、亂序及退件通知。保留事件、鎖定同一份派工資料，讓晚到的運送中不會蓋掉已確認的送達回報。"
+publishDate: 2026-10-24T08:46:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - MySQL
+  - API 整合
+series: 系統設計每日實戰
+seriesOrder: 14
+cover: ../../assets/covers/order-system-shipping-event-order.webp
+coverAlt: "白瓷階梯頂端放著橙色束帶包裹，兩片紫色方片分開留在後方，比喻晚到的先前配送進度不覆寫已確認的較後進度。"
+---
+
+import ShippingEventOrderDiagram from "../../components/ShippingEventOrderDiagram.astro";
+
+假設商店先收到「送達」，五分鐘後才收到同一包裹的「運送中」。如果 webhook 每次都執行 `UPDATE shipments SET status = :status`，顧客重新整理就會看到進度倒退。通知都有通過驗證，資料也沒有寫壞，錯在把收到的先後順序當成配送的先後順序。
+
+[上一課](/blog/order-system-fulfillment-address/)固定了派工 ID、地址和品項。現在接回物流通知，這次替同一份派工訂出更新規則。**正向進度只接受明確允許的轉移，退件與更正另外留下待核對狀態。**
+
+> [!NOTE]
+> 商店、通知順序、資料量及效能預算都是教學假設。下方 TypeScript 函式已在本地通過 35 項斷言，交易步驟是設計草圖，尚未完成 MySQL 併發、物流沙箱或壓測驗收。官方文件查核日期為 2026-10-24。實際物流 API 的欄位與語意須由介接層轉換，不可直接套用下方事件名稱。
+
+## 配送回報和訂單完成分開存
+
+延續單倉、每張訂單一個包裹、MySQL 8.4 InnoDB 單一寫入主庫與模組化單體。每個 `dispatch_id` 對應一份不可變派工，另外建立可更新的 `shipment_progress`。訂單仍是 `fulfilling`，物流通知只更新配送資訊，暫不連動退款、庫存或訂單結案。
+
+首版需要做到：
+
+- 同一事件重送，只留下同一筆處理收據。
+- 「運送中」晚於已確認的正向送達回報抵達時，保存事件，但不把進度改回去。
+- 中間通知缺漏時，也能接受已確認的正向送達回報。
+- 退件、內容矛盾、未知狀態與送達方向不明，都能讓客服找到待核對案件。
+- 每筆有效通知要在持久保存後才回覆成功。資料庫不可用時，讓供應商知道這次未受理。
+
+非功能目標先訂為本地受理 p95 小於 200 ms，從通過驗證到 COMMIT 確認，不含網路傳輸及後續人工核對。另量測待核對案件的最老年齡，假設營運希望在工作時段 30 分鐘內開始處理。這兩個數字是待驗的服務預算，並非物流商的效能。
+
+EasyPost 的 [Tracking Guide](https://docs.easypost.com/guides/tracking-guide)指出，承運商更新偶爾會亂序，`tracking_details` 會按收到的順序追加，主要業務流程應讀 Tracker 頂層 `status`。因此，拿陣列最後一筆掃描紀錄當目前狀態，連資料來源的語意都可能讀錯。這份文件描述的是承運商資料，沒有承諾所有 webhook 都照某種順序投遞。
+
+## 「送達」還得知道送到誰那裡
+
+EasyPost 的[官方支援說明](https://support.easypost.com/hc/en-us/articles/360044353091-Understanding-Trackers)有個容易漏掉的細節：包裹退回寄件人之後，也可能標成 `delivered`。把這個字直接翻成「顧客已收貨」，就會把退貨當成履約成功。
+
+介接層先確認供應商帳號、Tracker ID 與本地 `dispatch_id` 的綁定，再解讀狀態。不要只拿物流單號找訂單。[Tracker API 文件](https://docs.easypost.com/docs/trackers)明載單號可能被回收，並非全球唯一。
+
+為了把決策縮小，這間商店只自動接受三種已正規化的正向事件：
+
+- `moving`：已確認是這份對外配送的運送回報。
+- `out_for_delivery`：已確認是這份對外配送的末段配送回報。
+- `outbound_delivered`：供應商契約或核對證據足以確認這次回報送往原收件端，且沒有退回寄件人的歧義。
+
+其餘事件統一交給 `review`，同時保留具體原因。若供應商只給一個無法辨識方向的 `delivered`，就進待核對，不能猜成 `outbound_delivered`。已有退件訊號、目的地不明或供應商明示更正時，也走這條路。
+
+畫面上的正向狀態使用「物流回報送達」，不寫「顧客確認收貨」。`needs_review` 是另一個欄位，開啟後顯示「配送資訊待核對」，並可查看上次確認的進度。這樣即使送達回報先到、退件通知後到，仍能補上需要核對的資訊，不會因為畫面曾顯示送達就把後續證據丟掉。
+
+## 允許跨過缺漏階段，不允許普通通知改寫更正結果
+
+正向進度有 `pending`、`moving`、`out_for_delivery`、`delivered_reported` 四個值。首版允許略過中間階段。從 `pending` 收到已確認的 `outbound_delivered`，可以直接到 `delivered_reported`。物流通知少一站，不代表包裹沒有經過那一站。
+
+晚到的正向事件只補事件紀錄。`moving` 不覆寫 `out_for_delivery` 或 `delivered_reported`，`out_for_delivery` 也不覆寫 `delivered_reported`。同階段回報不改進度。
+
+<ShippingEventOrderDiagram />
+
+下面是完整的純函式範例。`review` 不會清空正向進度，後到的正向通知也不會清除 `needsReview`。`manualControl` 起始為 `false`，經人工更正後設為 `true`，之後的通知只留紀錄並轉待核對。函式不負責驗簽、帳號綁定或把供應商原始狀態轉成事件。
+
+```ts
+type Progress =
+  "pending" | "moving" | "out_for_delivery" | "delivered_reported";
+type ShipmentEvent =
+  "moving" | "out_for_delivery" | "outbound_delivered" | "review";
+type ShippingState = {
+  progress: Progress;
+  needsReview: boolean;
+  manualControl: boolean;
+};
+
+function applyEvent(state: ShippingState, event: ShipmentEvent): ShippingState {
+  if (event === "review" || state.manualControl) {
+    return { ...state, needsReview: true };
+  }
+
+  const allowed: Record<Progress, readonly ShipmentEvent[]> = {
+    pending: ["moving", "out_for_delivery", "outbound_delivered"],
+    moving: ["out_for_delivery", "outbound_delivered"],
+    out_for_delivery: ["outbound_delivered"],
+    delivered_reported: [],
+  };
+  if (!allowed[state.progress].includes(event)) return state;
+
+  const progress: Progress =
+    event === "outbound_delivered" ? "delivered_reported" : event;
+  return { ...state, progress };
+}
+```
+
+沒有把 `failure`、`return_to_sender` 和送達排成同一串數字，因為退件是另一個處理方向，供應商也可能修正先前的回報。單用 `max(old_status, new_status)`，會把這些差異藏起來。
+
+核對後若證實送達誤報，可以經專門的更正入口修改進度、清除或保留待核對標記。更正必須記錄案件、證據、操作者、修改前後值，並以預期的本地版本作條件更新。同交易把 `manual_control` 設為 `true`，停止普通通知自動推進，後續回報由案件處理。首版不提供自動解除人工接管的入口。若核對期間又收到新通知，版本已變，便重新檢視案件，不能拿舊查詢結果強蓋新資料。只加版本條件還不夠，因為更正後晚到的舊送達回報，也可能再次把進度推回去，人工接管正是為了擋住這條路。
+
+## 事件收據與進度更新共用一筆交易
+
+驗簽是受理前提，依供應商官方 SDK 和原始 request body 驗證，通過後再解析。去重鍵使用供應商、帳號與穩定事件 ID 的組合，內容摘要涵蓋供應商原始業務狀態、正規化事件與待核對原因，排除每次投遞都可能不同的 header。[EasyPost Webhooks Guide](https://docs.easypost.com/guides/webhooks-guide)提供 HMAC 驗證方式，並說明失敗會重試；因此重送必須是正常路徑。[Events 文件](https://docs.easypost.com/docs/events)提供事件 ID，並建議以冪等方式處理。
+
+同一條 MySQL 連線上的受理交易依序完成：
+
+1. 插入具有唯一鍵的事件收據，保存必要的原始業務內容、摘要與收到時間。重複鍵則等待原交易結果，內容相同就回查原收據，不再套用。
+2. 依已驗證的供應商帳號及 Tracker ID 找到配送資料，以主鍵 `SELECT ... FOR UPDATE` 取得同一列鎖。
+3. 在鎖內讀取目前進度、待核對標記、人工接管狀態與 `revision`，執行轉移規則。需要核對時，同交易建立案件或合併至既有未結案件。
+4. 保存事件的處理結果，更新進度與版本，一起提交，確認後才回覆 `2xx`。
+
+[MySQL 鎖定讀文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)說明，`FOR UPDATE` 取得的鎖維持到交易提交或回滾。兩個事件同時更新同一包裹，就會依序讀取最新狀態，再決定能不能更新。鎖只能排列本地決策，仍要靠前面的規則辨識晚到資料。
+
+同 ID 不同業務內容要保存衝突證據並轉待核對，不覆寫原事件。已驗證卻找不到綁定的通知，則保存到獨立待核對紀錄，不任意挑一張單號相同的訂單。這兩種事件持久保存成功後可以回覆已受理，避免靠 webhook 重送替代案件處理。
+
+若更新進度後、提交前失敗，整筆回滾，連同收據一起撤銷。若 COMMIT 結果不明，沿用同事件 ID 核對主庫，不能用新 ID 再受理一次。這沿用[操作收據](/blog/order-system-idempotency-receipt/)的恢復方式。
+
+首版讓本地交易保持短小，不在鎖內呼叫物流查詢。受理量需要排隊時，才改成「先持久保存 inbox、回覆成功、背景處理」；此時成功只代表收下通知，還要另外驗收處理延遲和積壓。只放入記憶體就回成功，程序重啟會讓事件消失。
+
+## 每次重新查現況，也有倒序寫回的問題
+
+另一個方案是把 webhook 只當提醒，每次都向供應商查目前 Tracker。優點是少依賴舊通知中的快照，也較容易讓供應商集中處理承運商差異。代價是多一次外呼，遇到限流或物流 API 故障，更新就得等待。
+
+重新 GET 並不自動解決競爭。程序 A 先查到運送中後暫停，程序 B 查到送達並寫入，A 恢復後仍可能蓋回舊結果。供應商若有文件保證的單調物件版本，可驗證版本後條件更新；若沒有，就仍需本地更新規則、版本檢查與待核對流程。事件 ID、HTTP 抵達時間和一般時間戳都不能自行升格成可靠版本。
+
+首版採本地規則，只對待核對或長時間沒有更新的包裹查現況。假設每天 10,000 個包裹、每個 8 筆唯一事件，便是 `80,000 ÷ 86,400 ≈ 0.93` 筆事件／秒的日平均，不含重送，也不代表尖峰。若每筆保存的業務內容平均 2 KiB，約新增 `156.25 MiB／日`，尚未包含索引、案件、備份與副本。
+
+若每個事件都查一次，額外需要約 80,000 次查詢／日。假設只有 1% 的包裹需要一次核對，則是約 100 次／日。這兩組估算只用來比較呼叫策略，實際次數還要加上重試、掃描頻率與供應商限制。完整原始 payload 若含地址或簽收人，保留期限和存取權須另行規劃，不要複製到一般錯誤 log。
+
+只有在實測本地交易超過 200 ms 預算，或接收尖峰造成供應商持續重送時，才評估持久 inbox 與背景處理。若問題是大量送達方向不明，應補介接契約或核對證據，增加 worker 數量無法改善判斷。
+
+## 驗收要交換事件順序
+
+純函式先測三筆正向事件的所有排列，最後都應得到 `delivered_reported`。再測從 `pending` 直接收到送達、送達後重送運送中，以及任意位置插入 `review`。只要沒有經過更正入口，待核對標記就應一直保留。人工把進度更正回 `moving` 並接管後，再送達的普通通知也不得自動推進。
+
+資料庫驗收另外使用兩條真實連線和同步屏障，控制以下中斷點：
+
+- 同時送達與運送中。交換取鎖順序，最後進度相同，每個事件都有收據。
+- 同事件重送十次。只保留一筆收據，案件也不重複建立。
+- 收據插入後及進度更新後各注入例外。整筆回滾後，原事件重送仍能完整處理。
+- 提交後丟掉回覆。重送應讀到原結果，不重新更新版本。
+- 核對人員讀取版本 7 後，收到新事件變成版本 8。更正入口須拒絕以版本 7 覆寫。
+- 使用另一個供應商帳號、未知 Tracker、相同事件 ID 卻不同內容，以及方向不明的 `delivered`。都不能直接改成顧客已收貨。
+
+觀測每筆事件的處理分類、重複率、未綁定數、待核對最老年齡及鎖等待。測試結果應區分純函式、資料庫與物流沙箱，不能只憑函式測試通過就宣稱 webhook 整合完成。
+
+### 練習
+
+配送已是 `delivered_reported`。後來收到一筆退件通知，客服核對尚未完成，又收到另一筆正向送達回報。現在應顯示什麼？可以自動清除待核對標記，順便把訂單改為完成嗎？
+
+### 參考思路
+
+保留上次確認的 `delivered_reported`，但畫面優先提示「配送資訊待核對」。退件通知打開的標記不能被普通正向事件清除，因為重複送達回報沒有解釋退件是否成立、送往哪個目的地，也沒有取代更正審查。訂單維持既有履約狀態，等核對流程依證據決定後續處理。
+
+把現有 webhook 裡直接指定狀態的那一行找出來，列出「可以覆寫」「只補紀錄」「必須核對」三類事件，再交換送達與運送中的投遞順序跑一次。
+
+## 一手參考資料
+
+查核日期：2026-10-24。正向事件名稱、轉移規則、待核對欄位、單包裹範圍與預算均為教學設計，並非 EasyPost 的完整介接實作。
+
+- [EasyPost Tracking Guide](https://docs.easypost.com/guides/tracking-guide)：Tracking Details、頂層狀態與時間戳限制。
+- [EasyPost Tracker API](https://docs.easypost.com/docs/trackers)：Tracker 身分、狀態分支及依 ID 查詢。
+- [EasyPost Understanding Trackers](https://support.easypost.com/hc/en-us/articles/360044353091-Understanding-Trackers)：Delivery and Status Handling，退件送達的語意。
+- [EasyPost Webhooks Guide](https://docs.easypost.com/guides/webhooks-guide)：驗證、成功回覆與失敗重送。
+- [EasyPost Events](https://docs.easypost.com/docs/events)：事件 ID 與冪等處理。
+- [MySQL 8.4 §17.7.2.4：Locking Reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)：鎖定讀與鎖生命週期。

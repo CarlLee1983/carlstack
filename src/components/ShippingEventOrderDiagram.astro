@@ -1,0 +1,297 @@
+<figure class="shipping-event-diagram" aria-labelledby="shipping-event-caption">
+  <svg
+    class="shipping-event-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="shipping-event-title shipping-event-desc"
+  >
+    <title id="shipping-event-title">兩種通知順序，保留同一份正向進度</title>
+    <desc id="shipping-event-desc">
+      已確認的對外送達回報先到或後到，最後都保留物流回報送達。晚到運送中只補事件紀錄。
+      退件與更正另外打開待核對標記，普通正向通知不能清除它。
+    </desc>
+    <defs>
+      <marker
+        id="shipping-event-arrow"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path
+          class="shipping-event-diagram__arrow-head"
+          d="M 0 0 L 10 5 L 0 10 z"></path>
+      </marker>
+    </defs>
+    <rect
+      class="shipping-event-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="shipping-event-diagram__heading" x="48" y="63"
+      >通知順序改變，正向進度不倒退</text
+    >
+    <text class="shipping-event-diagram__lead" x="48" y="95"
+      >前提：同一份派工，且送達已確認是往原收件端。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="48"
+      y="120"
+      width="864"
+      height="126"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__label" x="72" y="153"
+      >送達回報先到</text
+    >
+    <text class="shipping-event-diagram__detail" x="72" y="190">送達回報</text>
+    <path
+      class="shipping-event-diagram__arrow"
+      d="M 158 185 H 220"
+      marker-end="url(#shipping-event-arrow)"></path>
+    <text class="shipping-event-diagram__detail" x="242" y="190"
+      >晚到運送中</text
+    >
+    <path
+      class="shipping-event-diagram__arrow"
+      d="M 348 185 H 410"
+      marker-end="url(#shipping-event-arrow)"></path>
+    <text class="shipping-event-diagram__result" x="432" y="190"
+      >保留「物流回報送達」</text
+    >
+    <text class="shipping-event-diagram__detail" x="72" y="222"
+      >運送中只補事件紀錄，不覆寫較後進度。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="48"
+      y="264"
+      width="864"
+      height="126"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__label" x="72" y="297">運送中先到</text>
+    <text class="shipping-event-diagram__detail" x="72" y="334">運送中</text>
+    <path
+      class="shipping-event-diagram__arrow"
+      d="M 158 329 H 220"
+      marker-end="url(#shipping-event-arrow)"></path>
+    <text class="shipping-event-diagram__detail" x="242" y="334">送達回報</text>
+    <path
+      class="shipping-event-diagram__arrow"
+      d="M 348 329 H 410"
+      marker-end="url(#shipping-event-arrow)"></path>
+    <text class="shipping-event-diagram__result" x="432" y="334"
+      >更新為「物流回報送達」</text
+    >
+    <text class="shipping-event-diagram__detail" x="72" y="366"
+      >中間通知可以缺漏，無須等每一站補齊。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="48"
+      y="408"
+      width="864"
+      height="116"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__review" x="72" y="442"
+      >獨立的待核對標記</text
+    >
+    <text class="shipping-event-diagram__detail" x="72" y="473"
+      >退件、矛盾或方向不明 → 待核對；後到正向通知不清除。</text
+    >
+    <text class="shipping-event-diagram__detail" x="72" y="500"
+      >更正核對預期版本，並停止普通通知自動推進。</text
+    >
+    <text class="shipping-event-diagram__note" x="48" y="551"
+      >配送資訊更新不直接替訂單、退款或財務結案。</text
+    >
+  </svg>
+
+  <svg
+    class="shipping-event-diagram__mobile"
+    viewBox="0 0 320 700"
+    role="img"
+    aria-labelledby="shipping-event-mobile-title shipping-event-mobile-desc"
+  >
+    <title id="shipping-event-mobile-title">通知順序與待核對標記</title>
+    <desc id="shipping-event-mobile-desc">
+      桌面圖的直向排列。送達先到或後到，都保留物流回報送達。
+      退件與更正另外打開待核對標記，普通正向通知不能清除。
+    </desc>
+    <rect
+      class="shipping-event-diagram__panel"
+      x="4"
+      y="4"
+      width="312"
+      height="692"
+      rx="16"></rect>
+    <text class="shipping-event-diagram__heading" x="20" y="36"
+      >同一份派工，兩種順序</text
+    >
+    <text class="shipping-event-diagram__detail" x="20" y="64"
+      >送達須已確認往原收件端。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="16"
+      y="88"
+      width="288"
+      height="160"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__label" x="32" y="120"
+      >送達回報先到</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="153"
+      >送達回報 → 晚到運送中</text
+    >
+    <text class="shipping-event-diagram__mobile-result" x="32" y="185"
+      >保留「物流回報送達」</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="217"
+      >運送中只補紀錄。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="16"
+      y="268"
+      width="288"
+      height="160"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__label" x="32" y="300">運送中先到</text>
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="333"
+      >運送中 → 送達回報</text
+    >
+    <text class="shipping-event-diagram__mobile-result" x="32" y="365"
+      >更新為「物流回報送達」</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="397"
+      >中間通知可以缺漏。</text
+    >
+
+    <rect
+      class="shipping-event-diagram__card"
+      x="16"
+      y="448"
+      width="288"
+      height="164"
+      rx="12"></rect>
+    <text class="shipping-event-diagram__review" x="32" y="480"
+      >獨立的待核對標記</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="512"
+      >退件、矛盾、方向不明</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="538"
+      >都開啟待核對。</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="564"
+      >正向通知不清除標記，</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="32" y="590"
+      >更正後改由人工接管。</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="20" y="647"
+      >配送更新不直接替訂單、</text
+    >
+    <text class="shipping-event-diagram__mobile-detail" x="20" y="674"
+      >退款或財務結案。</text
+    >
+  </svg>
+  <figcaption id="shipping-event-caption">
+    事件保留收到的紀錄，進度依轉移規則更新；待核對標記獨立保存，避免後到正向通知掩蓋待核對案件。
+  </figcaption>
+</figure>
+<style>
+  .shipping-event-diagram {
+    margin-block: var(--space-xl);
+  }
+  .shipping-event-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .shipping-event-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .shipping-event-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .shipping-event-diagram__heading {
+    font-size: 19px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .shipping-event-diagram__lead {
+    font-size: 14px;
+    font-weight: 700;
+    fill: var(--dg-ink);
+  }
+  .shipping-event-diagram__label {
+    font-size: 18px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .shipping-event-diagram__detail,
+  .shipping-event-diagram__note {
+    font-size: 14px;
+    fill: var(--dg-ink-2);
+  }
+  .shipping-event-diagram__result,
+  .shipping-event-diagram__mobile-result {
+    font-size: 16px;
+    font-weight: 700;
+    fill: #0f766e;
+  }
+  .shipping-event-diagram__review {
+    font-size: 18px;
+    font-weight: 800;
+    fill: #9a3412;
+  }
+  .shipping-event-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .shipping-event-diagram__arrow-head {
+    fill: var(--dg-rule-strong);
+  }
+  .shipping-event-diagram__mobile {
+    display: none !important;
+  }
+  .shipping-event-diagram__mobile-detail {
+    font-size: 15px;
+    fill: var(--dg-ink-2);
+  }
+  :global(:root[data-theme="dark"]) .shipping-event-diagram__result,
+  :global(:root[data-theme="dark"]) .shipping-event-diagram__mobile-result {
+    fill: #5eead4;
+  }
+  :global(:root[data-theme="dark"]) .shipping-event-diagram__review {
+    fill: #fdba74;
+  }
+  .shipping-event-diagram figcaption {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--dg-ink-2);
+  }
+  @media (max-width: 48rem) {
+    .shipping-event-diagram__desktop {
+      display: none !important;
+    }
+    .shipping-event-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
