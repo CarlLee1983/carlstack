@@ -1,7 +1,8 @@
 ---
 title: "eMudhra 中繼 CA 失守：瀏覽器已封鎖，後端 TLS 仍要逐一驗收"
-description: "八張 eMudhra 中繼 CA 憑證私鑰可被還原，撤銷資訊不會自動到達所有 CLI 與容器。以 Go 修補與獨立信任庫為例，建立從 runtime 盤點、重建到負向連線測試的結案證據。"
+description: "八張 eMudhra 中繼 CA 憑證私鑰可被還原，撤銷資訊不會自動到達所有 CLI 與容器。補上 CPython 10 月 24 日合併的公鑰拒絕清單，區分分支回補、修補套件交付與實際程序驗收。"
 publishDate: 2026-10-21T02:12:10+00:00
+updatedDate: 2026-10-25T10:10:00+08:00
 draft: false
 featured: false
 tags:
@@ -14,7 +15,7 @@ cover: ../../assets/covers/emudhra-client-trust-runtime-remediation.webp
 coverAlt: "帶裂痕的黃銅印章放在玻璃、金屬與布製容器旁，各容器有獨立檢查扣，呈現同一信任事件仍需逐個執行環境驗收。"
 ---
 
-瀏覽器能擋住一條不可信憑證鏈，不代表同一台機器上的 curl、Python job 或 Go 服務也會擋住。這次 eMudhra 事件，我會把「每個實際 TLS client 已拒絕受影響鏈」當成結案條件；只登記作業系統已更新，仍少了一半證據。
+瀏覽器能擋住一條不可信憑證鏈，不代表同一台機器上的 curl、Python job 或 Go 服務也會擋住。這次 eMudhra 事件，我會把「每個實際 TLS client 已拒絕受影響鏈」當成結案條件；只登記作業系統已更新，還無法確認服務正在使用哪一份信任資料。
 
 [Mozilla 事件紀錄 2083449](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449)確認八張 eMudhra 中繼 CA 憑證的私鑰遭破壞：六張用於 TLS，兩張用於程式碼簽署。Mozilla 驗證了通報者的控制證明，也獨立還原了受影響私鑰。紀錄把問題指向這批金鑰的生成方式，跟網站憑證過期無關，也沒有證據顯示橢圓曲線演算法整體失效。
 
@@ -45,6 +46,16 @@ Go 團隊在 [10 月 19 日的安全公告](https://groups.google.com/g/golang-a
 對使用受影響 Go 驗證路徑的既有服務，更新開發機工具鏈不會自動改寫已經部署的 binary。要用修補過的工具鏈重建，確認映像或執行檔已發布，並讓流量進到新程序。若服務使用自訂驗證、外部 TLS proxy 或不同 backend，光憑 `go version` 不能結案，還要另外核對實際路徑。
 
 Python 路徑則可能需要核對套件帶來的 bundle，事件整合頁列出 [certifi 2026.10.19 發行](https://github.com/certifi/python-certifi/releases/tag/2026.10.19)。curl 的 [Mozilla CA bundle 發布頁](https://curl.se/docs/caextract.html)也可查到 10 月 20 日版本，但下載了新 bundle 之後，還要證明該程序確實載入了它。這些版本只是我查核時用來定位的線索。
+
+## CPython 10 月 24 日合併公鑰拒絕清單，交付版本要另外核對
+
+Python 團隊在 [10 月 24 日安全公告](https://mail.python.org/archives/list/security-announce@python.org/message/FNAJMZV6XQYLVPABNINDMF3VF66AYLW4/)說明，`ssl` 模組加入已知受損憑證的拒絕清單，對應 CVE-2026-115557。[PR 160042](https://github.com/python/cpython/pull/160042)同日合併到 main。這是較早 eMudhra 事件的新緩解措施，事故日期沒有改變。
+
+修補比對 DER 編碼的 SubjectPublicKeyInfo（SPKI）之 SHA-256 摘要。若不同交叉簽署憑證沿用同一把公鑰，就仍能被辨識。[原始設計討論](https://github.com/python/cpython/issues/160040)說明，這是信任庫更新有落差時的補強；移除信任的責任仍在各信任庫。討論也明列在啟用憑證驗證時執行檢查，不能把這次修補理解成允許應用程式停用驗證。
+
+到 10 月 25 日查核時，主 PR 與 3.11 至 3.15 的回補紀錄已可見。原始碼分支有修補，還需要確認供應者何時交付套件、映像實際裝到哪一版，以及服務是否已重新啟動。我沒有據此核實任何穩定發行版或作業系統套件已包含修補，也沒有執行 CPython 的憑證回歸測試。
+
+因此 Python 盤點多留一欄「供應者修補依據」，連到所用發行套件或映像的公告，再用原有正負向測試驗收實際程序。只把 PR 狀態抄成已修復，會漏掉部署交付這一步。
 
 ## 負向測試要證明拒絕的是憑證鏈
 
