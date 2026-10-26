@@ -1,0 +1,174 @@
+<figure class="required-field-diagram" aria-labelledby="required-field-caption">
+  <svg
+    class="required-field-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="required-field-title required-field-desc"
+  >
+    <title id="required-field-title">新增欄位、部署相容版，再開放新選擇</title>
+    <desc id="required-field-desc"
+      >三個依序執行的階段：先加欄位保留舊資料空值，再讓所有讀寫及履約程式支援新欄位，最後開放版本二結帳。歷史未知資料不會因此變成不限時段，開放後只能回滾到能保留新值的相容版。</desc
+    >
+    <rect
+      class="required-field-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="required-field-diagram__heading" x="48" y="64"
+      >功能開放之前，先讓整條路徑看得懂新值</text
+    >
+    <text class="required-field-diagram__lead" x="48" y="96"
+      >歷史 NULL = 尚未詢問；any = 顧客明確選擇不限時段。</text
+    >
+    <rect
+      class="required-field-diagram__card"
+      x="48"
+      y="122"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="required-field-diagram__label" x="72" y="156"
+      >1 · 擴充欄位，開關關閉</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="188"
+      >舊契約仍可成立訂單。先驗舊 SQL、讀取與匯入的相容性。</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="212"
+      >沒有可靠歷史來源，就保留未知。</text
+    >
+    <rect
+      class="required-field-diagram__card"
+      x="48"
+      y="252"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="required-field-diagram__label" x="72" y="286"
+      >2 · 部署相容版，開關仍關閉</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="318"
+      >訂單、不可變派工快照與物流 adapter 都能保存偏好。</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="342"
+      >舊 worker 排空或隔離；指定能保留新值的回滾版本。</text
+    >
+    <rect
+      class="required-field-diagram__card"
+      x="48"
+      y="382"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="required-field-diagram__label" x="72" y="416"
+      >3 · 開放新契約，驗收端到端結果</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="448"
+      >新的購買操作要求合法選項；舊操作重放仍回傳原收據。</text
+    >
+    <text class="required-field-diagram__detail" x="72" y="472"
+      >關閉新功能後，已受理訂單仍須保留原偏好完成履約。</text
+    >
+    <text class="required-field-diagram__note" x="48" y="544"
+      >回滾應用不代表刪除新欄位；舊訂單也不必全部變成版本 2。</text
+    >
+  </svg>
+  <div class="required-field-diagram__mobile">
+    <p>歷史 NULL 是尚未詢問；any 是明確選擇不限時段。</p>
+    <section>
+      <h3>1 · 擴充欄位</h3><p>
+        開關關閉。驗證舊 SQL、讀取和匯入仍可使用。沒有歷史來源就保留未知。
+      </p>
+    </section>
+    <section>
+      <h3>2 · 部署相容版</h3><p>
+        開關仍關閉。訂單、快照和物流 adapter 都保存偏好。排空或隔離舊
+        worker，指定相容回滾版。
+      </p>
+    </section>
+    <section>
+      <h3>3 · 開放新契約</h3><p>
+        新的購買要求合法選項；舊操作重放原收據。關閉新入口後，已受理偏好仍須完成履約。
+      </p>
+    </section>
+  </div>
+  <figcaption id="required-field-caption">
+    開放顧客選擇的時間，晚於整條履約路徑具備保存能力的時間。
+  </figcaption>
+</figure>
+<style>
+  .required-field-diagram {
+    margin-block: var(--space-xl);
+  }
+  .required-field-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .required-field-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .required-field-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .required-field-diagram__heading {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .required-field-diagram__lead {
+    fill: var(--dg-ink);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .required-field-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .required-field-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .required-field-diagram__note {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .required-field-diagram__mobile {
+    display: none;
+  }
+  .required-field-diagram__mobile section {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+  }
+  .required-field-diagram__mobile h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .required-field-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+    overflow-wrap: anywhere;
+  }
+  .required-field-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .required-field-diagram__desktop {
+      display: none !important;
+    }
+    .required-field-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
