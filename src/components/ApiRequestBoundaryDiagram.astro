@@ -1,0 +1,193 @@
+<figure class="api-boundary" aria-labelledby="api-boundary-caption">
+  <svg
+    class="api-boundary__desktop"
+    viewBox="0 0 900 570"
+    role="img"
+    aria-labelledby="api-boundary-title api-boundary-desc"
+  >
+    <title id="api-boundary-title">網路請求與資料查詢，是不同的計數邊界</title>
+    <desc id="api-boundary-desc"
+      >同一個人頁面可使用兩個 REST 資源請求、一個 REST 聚合請求或一個 GraphQL
+      請求。每種 API 的下游資料查詢次數都取決於實作。</desc
+    >
+    <defs
+      ><marker
+        id="api-boundary-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0L8 4L0 8Z"></path></marker
+      ></defs
+    >
+    <text x="30" y="40" class="api-boundary__title"
+      >同一個畫面：姓名 + 兩篇文章標題</text
+    >
+    <text x="30" y="70">先數 HTTP 請求，再獨立觀察資料存取</text>
+    <text x="60" y="110" class="api-boundary__label">客戶端</text><text
+      x="380"
+      y="110"
+      class="api-boundary__label">API 契約</text
+    ><text x="720" y="110" class="api-boundary__label">資料來源</text>
+    <rect
+      x="30"
+      y="130"
+      width="840"
+      height="108"
+      rx="12"
+      class="api-boundary__row"></rect>
+    <text x="55" y="165" class="api-boundary__label">個人頁面</text><text
+      x="55"
+      y="193">2 次 HTTP</text
+    >
+    <path d="M190 182H285" class="api-boundary__arrow"></path>
+    <text x="310" y="165" class="api-boundary__label">REST 資源端點</text><text
+      x="310"
+      y="193">/users/42 + /users/42/posts</text
+    >
+    <path d="M610 182H700" class="api-boundary__arrow"></path><text
+      x="725"
+      y="175">使用者 / 文章</text
+    ><text x="725" y="202">查詢數看實作</text>
+    <rect
+      x="30"
+      y="256"
+      width="840"
+      height="108"
+      rx="12"
+      class="api-boundary__row"></rect>
+    <text x="55" y="291" class="api-boundary__label">個人頁面</text><text
+      x="55"
+      y="319">1 次 HTTP</text
+    >
+    <path d="M190 308H285" class="api-boundary__arrow"></path><text
+      x="310"
+      y="291"
+      class="api-boundary__label">REST 聚合端點</text
+    ><text x="310" y="319">後端約定回傳組合</text>
+    <path d="M610 308H700" class="api-boundary__arrow"></path><text
+      x="725"
+      y="301">使用者 / 文章</text
+    ><text x="725" y="328">查詢數看實作</text>
+    <rect
+      x="30"
+      y="382"
+      width="840"
+      height="108"
+      rx="12"
+      class="api-boundary__row"></rect>
+    <text x="55" y="417" class="api-boundary__label">個人頁面</text><text
+      x="55"
+      y="445">1 次 HTTP</text
+    >
+    <path d="M190 434H285" class="api-boundary__arrow"></path><text
+      x="310"
+      y="417"
+      class="api-boundary__label">GraphQL 欄位選擇</text
+    ><text x="310" y="445">schema → resolver</text>
+    <path d="M610 434H700" class="api-boundary__arrow"></path><text
+      x="725"
+      y="427">使用者 / 文章</text
+    ><text x="725" y="454">查詢數看實作</text>
+    <text x="30" y="535" class="api-boundary__label"
+      >一次送出，不等於一次 SQL；兩次送出，也不一定循序等待。</text
+    >
+  </svg>
+  <div class="api-boundary__mobile">
+    <p class="api-boundary__heading">同一畫面：姓名 + 文章標題</p>
+    <section>
+      <h4>REST 資源端點</h4><p>客戶端 → 2 次 HTTP → API</p><p>
+        API → 使用者與文章資料
+      </p>
+    </section>
+    <section>
+      <h4>REST 聚合端點</h4><p>客戶端 → 1 次 HTTP → API</p><p>
+        API → 使用者與文章資料
+      </p>
+    </section>
+    <section>
+      <h4>GraphQL 欄位選擇</h4><p>客戶端 → 1 次 HTTP → API</p><p>
+        resolver → 使用者與文章資料
+      </p>
+    </section>
+    <p>每種 API 的 SQL 次數，都要另外觀察。</p>
+  </div>
+  <figcaption id="api-boundary-caption">
+    概念比較，非效能測試。三種契約提供相同資料；下游查詢策略可以不同。
+  </figcaption>
+</figure>
+<style>
+  .api-boundary {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .api-boundary__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .api-boundary__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .api-boundary__desktop .api-boundary__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .api-boundary__desktop .api-boundary__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .api-boundary__row {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .api-boundary__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#api-boundary-arrow);
+  }
+  #api-boundary-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+  .api-boundary__mobile {
+    display: none;
+  }
+  .api-boundary__mobile section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .api-boundary__mobile h4,
+  .api-boundary__heading {
+    margin: 0 0 0.75rem;
+    font-weight: 700;
+  }
+  .api-boundary__mobile p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+  }
+  .api-boundary figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .api-boundary__desktop {
+      display: none !important;
+    }
+    .api-boundary__mobile {
+      display: block !important;
+    }
+  }
+</style>

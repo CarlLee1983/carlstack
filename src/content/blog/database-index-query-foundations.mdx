@@ -1,0 +1,98 @@
+---
+title: "查自己的收藏，索引到底幫資料庫省了哪一步？"
+description: "用文章收藏站的一個 SQL 查詢，理解索引如何縮小搜尋範圍、複合欄位為何有順序，以及查回 20 筆不代表只讀 20 筆。以 EXPLAIN 驗證候選索引，而不是猜測快幾倍。"
+publishDate: 2026-10-27T07:51:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/database-index-query-foundations.webp
+coverAlt: "木刻風格的卡片索引抽屜中，一張黃色分隔卡以藍線連到右側文章卡，象徵由索引定位資料。"
+tags: ["資料庫", "MySQL"]
+series: 後端工程基礎圖解
+seriesOrder: 3
+---
+
+import BookmarkIndexLookupDiagram from "../../components/BookmarkIndexLookupDiagram.astro";
+
+文章收藏站要顯示「我的最新 20 筆收藏」。SQL 不長，回應也很小，但資料庫可能先檢查許多不屬於你的資料，才找齊畫面需要的 20 筆。
+
+索引的入門問題可以縮成一句：**能不能讓資料庫從相關資料附近開始讀，而不用先經過大量無關資料？** 本篇只替這個查詢選一個候選索引，不比較所有儲存引擎，也不把索引數量當成效能成績。
+
+## SQL 說要什麼，執行計畫決定怎麼找
+
+沿用虛構收藏站。`bookmarks` 每列代表一次收藏，包含主鍵 `id`、收藏者 `user_id`、文章 `post_id` 與時間 `saved_at`。假設使用 MySQL 8.4、InnoDB，`id` 是主鍵；範例欄位為非空值，使用者身分已由後端驗證。
+
+```sql
+SELECT id, post_id, saved_at
+FROM bookmarks
+WHERE user_id = 42
+ORDER BY saved_at DESC, id DESC
+LIMIT 20;
+```
+
+`WHERE` 指定誰的收藏；`ORDER BY` 指定新到舊；`id` 在時間相同時提供明確的次序。`LIMIT 20` 限制的是回傳筆數，沒有承諾資料庫只檢查 20 筆。以上及後續 SQL 是設計示例，未在 MySQL 實例執行；本文不提供虛構計畫輸出或速度比較。
+
+SQL 不是逐行的操作指令。最佳化器會根據可用索引、統計資訊與成本估計，選擇取資料的方法。想往下一層看，可以讀 [SQL 從解析到執行的生命週期](/blog/sql-query-execution-lifecycle-parser-cbo-executor/)。
+
+## 像有順序的目錄，但目錄不是整本書
+
+沒有適合查詢的索引時，資料庫可能掃描表格，檢查哪些列屬於使用者 42，再處理排序。新增索引後，則多了一條可選的存取路徑：依索引鍵定位範圍，再取得所需資料。一般 InnoDB 索引使用 B-tree 家族的結構，不是替每個使用者複製一張資料表。[MySQL：索引如何被使用](https://dev.mysql.com/doc/refman/8.4/en/mysql-indexes.html)
+
+目錄比喻的重點是「預先維持可搜尋的次序」。真實索引以頁面組織，不是程式把整張表載入記憶體後用陣列排序。現在先掌握它能跳過不相關範圍即可；樹高、分頁與其他結構留給[索引底層文章](/blog/database-indexing-internals-b-plus-tree-lsm-tree-hash-bitmap/)。
+
+<BookmarkIndexLookupDiagram />
+
+候選索引如下：
+
+```sql
+CREATE INDEX idx_bookmarks_user_saved_id
+ON bookmarks (user_id, saved_at DESC, id DESC);
+```
+
+先依 `user_id` 分組，再在同一人之內按收藏時間與 ID 遞減排列。對 `user_id = 42` 的查詢，這讓「只找此人」與「按最新順序讀」有機會一起完成，而不必先把此人的全部收藏取出再排序。是否真的採用這條路徑，仍由計畫與成本決定。[MySQL：ORDER BY 最佳化](https://dev.mysql.com/doc/refman/8.4/en/order-by-optimization.html)
+
+這裡還有一步容易漏掉：索引不包含 `post_id`。InnoDB 次要索引紀錄帶有主鍵，資料庫可拿主鍵到聚簇索引取完整資料列。因此，找到索引項目不代表已拿到所有回傳欄位；常說的「回表」就是這類額外查找。[MySQL：聚簇索引與次要索引](https://dev.mysql.com/doc/refman/8.4/en/innodb-index-types.html)
+
+## 欄位順序改了，目錄的用法也會改
+
+把通訊錄排成「姓氏、名字」，適合先找某個姓氏，再找其中某個名字。若只知道名字，就不能直接套用原本按姓氏定位的方法。
+
+同理，`(user_id, saved_at, id)` 的左側前綴適合以 `user_id` 為起點的查詢。若新功能變成「所有人最近的收藏」，拿掉 `WHERE user_id = 42`，資料在這份索引裡仍先按使用者分組，並不是全站時間順序。不能因 `saved_at` 出現在索引裡，就認定它能直接提供全站最新清單。[MySQL：複合索引與左側前綴](https://dev.mysql.com/doc/refman/8.4/en/multiple-column-indexes.html)
+
+這不是「沒有第一欄條件，任何情況都完全不能碰這個索引」的口訣。最佳化器可能選擇其他掃描策略；設計時應問的是：它是否真的縮小了這個查詢的搜尋範圍、免除了所需排序？
+
+## 多建一個索引，也多一份要維護的資料
+
+只建 `user_id` 索引是較簡單的替代方案：能先排除其他人，但未必同時解決時間排序。如果每人只有少量收藏，這可能已足夠；若常讀大量歷史收藏的第一頁，複合索引更值得驗證。
+
+也可以把 `post_id` 加進候選索引，嘗試讓查詢所需欄位都在索引裡。代價是索引變寬、佔更多空間，寫入也要維護它。不應只因「覆蓋索引」聽起來完整，就替所有欄位建一份副本。
+
+新增收藏、取消收藏，以及修改被索引的欄位，都會影響索引維護。假設新增一筆收藏需要更新表格與兩個次要索引，這表示有三份結構需要處理，**不等於磁碟一定寫三次，也不等於延遲變三倍**。實際工作受頁面、快取與交易紀錄等影響。官方也提醒，多餘索引會消耗空間並增加資料異動成本。[MySQL：索引最佳化](https://dev.mysql.com/doc/refman/8.4/en/optimization-indexes.html)
+
+## 用計畫確認少做了什麼
+
+驗證時先保存原查詢與代表性資料，再比較新增候選索引前後的 `EXPLAIN`：
+
+```sql
+EXPLAIN
+SELECT id, post_id, saved_at
+FROM bookmarks
+WHERE user_id = 42
+ORDER BY saved_at DESC, id DESC
+LIMIT 20;
+```
+
+觀察實際選到的索引、存取方法、估計讀取列數，以及是否仍需要額外排序。一般 `EXPLAIN` 的列數是估計，不是已量測的讀取結果；`EXPLAIN ANALYZE` 則會真的執行受支援的陳述式，回報實際行為。不要把它當成不執行查詢的無成本預覽。[MySQL：EXPLAIN 與 EXPLAIN ANALYZE](https://dev.mysql.com/doc/refman/8.4/en/explain.html)
+
+教學驗證可以準備兩種使用者：少量收藏與大量收藏，再分別檢查計畫。這是資料分布的對照，不是宣稱某個筆數就是效能分界。若測試資料太少，資料庫選擇掃表也可能合理，沒必要立刻強制走索引。
+
+計畫合理後，再在隔離測試環境量測延遲、實際讀取工作與寫入代價。回傳筆數少，不代表掃描少；掃描減少，也不保證端到端 API 延遲按相同比例下降。網路、應用程式組裝與其他查詢仍可能占主要時間。
+
+這個收藏站先保留一個能解釋用途的候選複合索引。等到全站動態、深分頁或其他查詢真的出現，再各自驗證，而不是替尚未存在的畫面預建索引。要練習「條件如何對齊索引」的下一題，可接著看[訂單待辦掃描的索引決策](/blog/order-system-due-work-index/)。
+
+### 練習
+
+同事把查詢改成「全站最新 20 筆收藏」，只刪掉 `WHERE user_id = 42`，然後說原索引已有 `saved_at`，不必再檢查。你會要求他提出哪兩項證據？
+
+### 參考思路
+
+先看新查詢的執行計畫，確認資料庫怎麼取得全站時間順序、有沒有額外排序與大量掃描；再用接近實際分布的資料量測讀取工作與延遲。原索引先按使用者分組，不能直接當作全站時間目錄。若考慮另建時間索引，也要驗證新增索引帶來的空間與收藏寫入成本。

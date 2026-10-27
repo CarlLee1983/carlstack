@@ -1,0 +1,183 @@
+<figure class="object-collab" aria-labelledby="object-collab-caption">
+  <svg
+    class="object-collab__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="object-collab-title object-collab-desc"
+  >
+    <title id="object-collab-title">收藏站的三種物件協作</title>
+    <desc id="object-collab-desc"
+      >Strategy 讓清單呼叫可替換的排序規則；Adapter
+      將外部資料轉成站內摘要；Observer
+      在同一行程通知計數與提示兩個接收者。三者分別隔離演算法、介面與接收者的變動。</desc
+    >
+    <defs
+      ><marker
+        id="object-collab-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0L8 4L0 8Z"></path></marker
+      ></defs
+    >
+    <text x="30" y="43" class="object-collab__title"
+      >三個需求，三個替換邊界</text
+    >
+    <text x="30" y="75">箭頭代表程式內的呼叫／通知，不代表網路或背景工作。</text
+    >
+    <rect
+      x="20"
+      y="100"
+      width="920"
+      height="130"
+      rx="14"
+      class="object-collab__row"></rect>
+    <text x="42" y="133" class="object-collab__label"
+      >Strategy · 排序規則可替換</text
+    >
+    <text x="55" y="183">收藏清單</text><path
+      d="M170 178H320"
+      class="object-collab__arrow"></path>
+    <text x="350" y="169" class="object-collab__label">同一個 Compare 契約</text
+    ><text x="350" y="199">最近收藏 / 閱讀時間短到長</text>
+    <text x="700" y="183">清單不認識規則名稱</text>
+    <rect
+      x="20"
+      y="245"
+      width="920"
+      height="130"
+      rx="14"
+      class="object-collab__row"></rect>
+    <text x="42" y="278" class="object-collab__label"
+      >Adapter · 外部格式轉成站內語意</text
+    >
+    <text x="55" y="328">外部文章來源</text><path
+      d="M185 323H300"
+      class="object-collab__arrow"></path>
+    <text x="330" y="314" class="object-collab__label"
+      >驗證 + 欄位／單位轉換</text
+    ><text x="330" y="344">秒數 → 分鐘，不接受未知單位</text>
+    <path d="M590 323H690" class="object-collab__arrow"></path><text
+      x="720"
+      y="328">站內文章摘要</text
+    >
+    <rect
+      x="20"
+      y="390"
+      width="920"
+      height="150"
+      rx="14"
+      class="object-collab__row"></rect>
+    <text x="42" y="423" class="object-collab__label"
+      >Observer · 同一行程內的一對多通知</text
+    >
+    <text x="55" y="483">收藏成功</text><path
+      d="M165 478H315"
+      class="object-collab__arrow"></path>
+    <text x="345" y="483">已註冊的接收者</text>
+    <path d="M500 478H580V452H680" class="object-collab__arrow"></path><path
+      d="M580 478V508H680"
+      class="object-collab__arrow"></path>
+    <text x="710" y="457">更新計數</text><text x="710" y="513">顯示提示</text>
+    <text x="30" y="578" class="object-collab__label"
+      >新增間接層之前，先指出哪個變動應該被隔離。</text
+    >
+  </svg>
+  <div class="object-collab__mobile">
+    <section>
+      <h4>Strategy · 換排序規則</h4><p>收藏清單 → Compare</p><p>
+        可選最近收藏或閱讀時間短到長。清單不認識規則名稱。
+      </p>
+    </section>
+    <section>
+      <h4>Adapter · 轉換外部介面</h4><p>外部文章 → 驗證與轉換 → 站內摘要</p><p>
+        秒數換成分鐘；未知單位要拒絕或明確處理。
+      </p>
+    </section>
+    <section>
+      <h4>Observer · 通知接收者</h4><p>收藏成功 → 已註冊的接收者</p><ul>
+        <li>更新計數</li><li>顯示提示</li>
+      </ul><p>這裡是同一行程內通知，不含持久化交付保證。</p>
+    </section>
+  </div>
+  <figcaption id="object-collab-caption">
+    同一個收藏站可採不同的協作方式；模式名稱不會自動提供安全、重試或持久化。
+  </figcaption>
+</figure>
+<style>
+  .object-collab {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .object-collab__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .object-collab__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 15px;
+  }
+  .object-collab__desktop .object-collab__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .object-collab__desktop .object-collab__label {
+    fill: var(--dg-ink);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .object-collab__row {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .object-collab__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#object-collab-arrow);
+  }
+  #object-collab-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+  .object-collab__mobile {
+    display: none;
+  }
+  .object-collab__mobile section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .object-collab__mobile h4 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+  .object-collab__mobile p,
+  .object-collab__mobile li {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+  .object-collab figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .object-collab__desktop {
+      display: none !important;
+    }
+    .object-collab__mobile {
+      display: block !important;
+    }
+  }
+</style>

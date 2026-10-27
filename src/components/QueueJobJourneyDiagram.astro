@@ -1,0 +1,127 @@
+<figure class="queue-job-journey" aria-labelledby="queue-job-journey-caption">
+  <svg
+    class="queue-job-journey__desktop"
+    viewBox="0 0 900 510"
+    role="img"
+    aria-labelledby="queue-job-journey-title queue-job-journey-desc"
+  >
+    <title id="queue-job-journey-title">
+      一份匯出，跨過接單與執行兩個階段
+    </title><desc id="queue-job-journey-desc"
+      >job ID 連結訊息與業務狀態；API 和 Worker 可以共用程式碼庫。</desc
+    >
+    <text x="30" y="42" class="queue-job-journey__title"
+      >一份匯出，跨過接單與執行兩個階段</text
+    >
+    <rect x="30" y="75" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="109"
+      class="queue-job-journey__heading">1　API / Producer</text
+    ><text x="310" y="109" class="queue-job-journey__heading"
+      >建立 export-184 → 發布工作</text
+    ><text x="310" y="147">202 與 statusUrl 告訴客戶端如何追蹤</text>
+    <path d="M155 187v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="207" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="241"
+      class="queue-job-journey__heading">2　RabbitMQ / Queue</text
+    ><text x="310" y="241" class="queue-job-journey__heading"
+      >保存待處理訊息 → 交給 Worker</text
+    ><text x="310" y="279">publisher confirm 不代表 CSV 已完成</text>
+    <path d="M155 319v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="339" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="373"
+      class="queue-job-journey__heading">3　Worker</text
+    ><text x="310" y="373" class="queue-job-journey__heading"
+      >產生 CSV → 保存成功狀態 → ACK</text
+    ><text x="310" y="411">客戶端查 job 狀態，成功後取得下載連結</text>
+  </svg><div class="queue-job-journey__mobile">
+    <p class="queue-job-journey__heading">
+      一份匯出，跨過接單與執行兩個階段
+    </p><section>
+      <h4>1　API / Producer</h4><p>建立 export-184 → 發布工作</p><p>
+        202 與 statusUrl 告訴客戶端如何追蹤
+      </p>
+    </section><section>
+      <h4>2　RabbitMQ / Queue</h4><p>保存待處理訊息 → 交給 Worker</p><p>
+        publisher confirm 不代表 CSV 已完成
+      </p>
+    </section><section>
+      <h4>3　Worker</h4><p>產生 CSV → 保存成功狀態 → ACK</p><p>
+        客戶端查 job 狀態，成功後取得下載連結
+      </p>
+    </section>
+  </div><figcaption id="queue-job-journey-caption">
+    job ID 連結訊息與業務狀態；API 和 Worker 可以共用程式碼庫。
+  </figcaption>
+</figure>
+<style>
+  .queue-job-journey {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .queue-job-journey__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .queue-job-journey__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .queue-job-journey__desktop .queue-job-journey__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .queue-job-journey__desktop .queue-job-journey__heading {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .queue-job-journey__desktop rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .queue-job-journey__desktop path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .queue-job-journey__mobile {
+    display: none;
+  }
+  .queue-job-journey__mobile section {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .queue-job-journey__mobile h4,
+  .queue-job-journey__heading {
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+  }
+  .queue-job-journey__mobile p {
+    margin: 0.5rem 0;
+  }
+  .queue-job-journey figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .queue-job-journey__desktop {
+      display: none !important;
+    }
+    .queue-job-journey__mobile {
+      display: block !important;
+    }
+  }
+</style>

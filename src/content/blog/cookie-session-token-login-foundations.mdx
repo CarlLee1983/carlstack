@@ -1,0 +1,82 @@
+---
+title: "登入後為什麼不用每次輸入密碼？Cookie、Session 與 Token 各做什麼"
+description: "沿著文章收藏站的一次登入、後續請求與登出，分清 Cookie 的傳遞、Session 的伺服器紀錄與 JWT 的憑證格式，選出能撤銷、能驗證權限的最小登入方案。"
+publishDate: 2026-10-27T07:51:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/cookie-session-token-login-foundations.webp
+coverAlt: "赤陶色寄物格前放著鈷藍色圓牌，旁邊是帶黃銅把手的閱讀室門，象徵憑證、紀錄與存取關卡。"
+tags: ["系統設計", "資安"]
+series: 後端工程基礎圖解
+seriesOrder: 2
+---
+
+import LoginSessionLifecycleDiagram from "../../components/LoginSessionLifecycleDiagram.astro";
+
+在虛構的文章收藏站，使用者登入一次，接著按「收藏」、打開清單、取消收藏，都不必再輸入密碼。後端怎麼知道這幾次 HTTP 請求來自同一個已登入帳號？
+
+答案不在 TCP 連線是否還活著。應用程式需要讓後續請求攜帶某種憑證，再據此恢復登入身分。本篇要做的決策是：**單一網站的登入狀態，先用伺服器端 Session 配合 Cookie，還是讓客戶端持有可驗證的 Token？**
+
+## Cookie、Session、JWT 不在同一層
+
+Cookie 是瀏覽器保存並依規則附在請求上的資料。伺服器用 `Set-Cookie` 回應標頭設定它，後續符合範圍與安全規則的請求帶上 `Cookie` 標頭。Cookie 也能存偏好設定，看到 Cookie 不代表已登入。[MDN：HTTP cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies)
+
+Session 在這裡指伺服器保存的登入紀錄：某個無法猜測的 Session ID 對應哪個使用者、何時到期、是否已撤銷。瀏覽器只持有識別值，不需要知道這份紀錄的內容。
+
+Token 是更廣的「憑證」稱呼，Session ID 本身也可視為 Token。JWT 則是一種承載 claims 的格式；常見的簽章 JWT 可以讓接收方驗證內容是否被竄改，但**簽章不等於加密**，可解碼的 payload 不該放秘密。JWT 規範也包含加密表示，不能把所有 JWT 都說成明文或都說成加密。[RFC 7519：JWT](https://www.rfc-editor.org/rfc/rfc7519.html#section-3)
+
+因此「Cookie 還是 JWT」少問了一層：JWT 同樣可以放進 Cookie；也可以由客戶端程式放進 `Authorization` 標頭。要分開決定憑證怎麼送，以及後端拿到憑證後怎麼驗證。
+
+## 從登入走到登出，伺服器做了四次不同的事
+
+收藏站目前只有同站瀏覽器介面與一個後端，不開放第三方 API。需求很小：使用者能看自己的收藏；按登出後，舊登入憑證不得再讀收藏；沒有登入的人只能看公開文章。
+
+最小方案使用成熟框架的 Session 功能。第一次登入驗證帳密成功後，後端產生新的 Session ID，在伺服器保存它與使用者 42 的關聯，並透過 Cookie 交給瀏覽器。不要沿用登入前的識別值，避免攻擊者預先指定的 Session ID 在登入後取得權限。[OWASP：登入後更新 Session ID](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#renew-the-session-id-after-any-privilege-level-change)
+
+<LoginSessionLifecycleDiagram />
+
+第二次請求 `GET /me/bookmarks` 時，瀏覽器依 Cookie 規則帶回 Session ID。後端查紀錄、確認還有效，才知道目前身分是使用者 42。這一步叫身分驗證；查詢收藏時仍要限定 `user_id = 42`，才完成資源授權。
+
+即使客戶端把網址改成別人的 ID，後端也不能因為「登入成功」就放行。登入回答「你是誰」，資源授權回答「你能操作這一筆嗎」。兩者可沿著[訂單詳情的授權邊界](/blog/order-system-detail-authorization/)繼續練習。
+
+登出時，後端使該 Session 失效，並要求瀏覽器清除相同範圍的 Cookie。只把畫面切回登入頁，甚至只刪掉本機 Cookie，都不足以撤銷已被複製出去的憑證。到期也要由伺服器強制檢查，不能只相信瀏覽器會準時刪除資料。[OWASP：Session 到期與登出](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#session-expiration)
+
+## Cookie 的安全屬性各擋一件事
+
+下面是說明用途的回應標頭，不是可直接部署的登入實作；`opaque-random-value` 是佔位文字，未進行端到端登入測試。
+
+```http
+Set-Cookie: __Host-session=opaque-random-value; Path=/; Secure; HttpOnly; SameSite=Lax
+```
+
+`Secure` 限制安全傳輸；`HttpOnly` 阻止頁面 JavaScript 透過 Cookie API 讀取這個值，但腳本仍能發出帶 Cookie 的請求。`__Host-` 前綴要求 `Secure`、`Path=/` 且不設定 `Domain`，縮小 Cookie 被其他子網域設定干擾的空間。這些屬性都不能代替後端的到期與授權檢查。[MDN：Set-Cookie 屬性與前綴](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+
+Cookie 可能自動隨請求送出，因此修改資料的端點仍須處理 CSRF。`SameSite` 是其中一層限制，不是「勾上就不用防護」；本案例採用框架的 CSRF 防護，且不用 GET 修改收藏。若 JWT 放在自動附送的 Cookie 裡，也不會因格式換了就免除這項問題。[OWASP：CSRF 防護與 SameSite](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#samesite-cookie-attribute)
+
+## 換成 JWT，省下的是哪次查詢？
+
+另一個方案是簽發短效 JWT，把使用者身分與期限等 claims 放入憑證。後端依既定規則驗證簽章、演算法、發行者、接收對象與期限，便可能不必在每次請求查 Session 紀錄。只做 Base64 解碼不算驗證，也不能讓請求自己決定哪些演算法可信。[RFC 8725：JWT 驗證最佳實務](https://www.rfc-editor.org/rfc/rfc8725.html#section-3)
+
+代價會出現在登出和權限改變。假設某枚憑證仍在有效期內，而後端只檢查簽章與期限，刪掉瀏覽器的副本不會讓別處的副本失效。若要求立即撤銷，就得加入撤銷紀錄、版本檢查或其他可查核的狀態；採用短效憑證，也得接受它到期前的風險窗口。
+
+收藏站當前沒有獨立服務驗證憑證的需求，保留一份容易撤銷的 Session 紀錄較直接。這不表示單機記憶體永遠夠用：後端增加多個實例時，各實例必須能取得有效 Session，儲存失效時也不能把「查不到」當成「允許」。先把登入契約維持一致，再決定共享儲存方式。
+
+當有外部身分提供者、行動端或跨服務授權需求，再延伸到 [OAuth 2.0 與 OpenID Connect](/blog/oauth2-openid-connect-oidc-architecture/)，不必為一張收藏清單提前實作完整授權平台。
+
+## 驗收時，測舊憑證比測登入成功更有用
+
+這個最小方案至少需要三組整合測試：
+
+- 登入後讀自己的收藏成功；未帶或竄改 Session ID 時不得讀取。
+- 用甲帳號的有效憑證要求乙帳號資料，仍被拒絕或只回傳甲的資料。
+- 登出與伺服器到期後，重送原憑證都失敗；修改收藏時缺少有效 CSRF 防護資料，也不能完成操作。
+
+測試紀錄只保存判定結果，不把完整 Cookie 或 Token 寫入日誌。更多安全邊界可接著讀 [API 安全防禦](/blog/api-security-owasp-top-10-defenses/)。
+
+### 練習
+
+收藏站的登出實作只有「前端刪 Cookie，跳回首頁」。測試人員先保存登出前的 Cookie，再用它請求收藏清單，仍拿到資料。缺少哪個動作？如果改成簽章 JWT，問題會自動消失嗎？
+
+### 參考思路
+
+缺的是伺服器端撤銷。Session 方案須使舊紀錄失效，並用原憑證重送來驗收。只驗簽章與期限的 JWT 仍可能有效到到期，需要另外設計撤銷或明確接受短效窗口。憑證的格式不會替產品決定「登出」到底承諾什麼。

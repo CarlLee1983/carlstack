@@ -1,0 +1,123 @@
+<figure class="queue-ack-crash" aria-labelledby="queue-ack-crash-caption">
+  <svg
+    class="queue-ack-crash__desktop"
+    viewBox="0 0 900 510"
+    role="img"
+    aria-labelledby="queue-ack-crash-title queue-ack-crash-desc"
+  >
+    <title id="queue-ack-crash-title">業務完成，不代表 ACK 已送達</title><desc
+      id="queue-ack-crash-desc"
+      >RabbitMQ 手動確認：連線關閉後，未確認訊息可重新入列。</desc
+    >
+    <text x="30" y="42" class="queue-ack-crash__title"
+      >業務完成，不代表 ACK 已送達</text
+    >
+    <rect x="30" y="75" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="109"
+      class="queue-ack-crash__heading">第一次處理</text
+    ><text x="310" y="109" class="queue-ack-crash__heading"
+      >export-184 成功，檔案與狀態已保存</text
+    ><text x="310" y="147">Worker 在 ACK 送出前當機</text>
+    <path d="M155 187v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="207" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="241"
+      class="queue-ack-crash__heading">broker 觀察</text
+    ><text x="310" y="241" class="queue-ack-crash__heading">尚未收到 ACK</text
+    ><text x="310" y="279">偵測連線關閉後重新入列；不保證立即發生</text>
+    <path d="M155 319v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="339" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="373"
+      class="queue-ack-crash__heading">再次處理</text
+    ><text x="310" y="373" class="queue-ack-crash__heading"
+      >仍是 export-184，不換新的 ID</text
+    ><text x="310" y="411">核對成功結果 → 沿用結果 → ACK</text>
+  </svg><div class="queue-ack-crash__mobile">
+    <p class="queue-ack-crash__heading">業務完成，不代表 ACK 已送達</p><section>
+      <h4>第一次處理</h4><p>export-184 成功，檔案與狀態已保存</p><p>
+        Worker 在 ACK 送出前當機
+      </p>
+    </section><section>
+      <h4>broker 觀察</h4><p>尚未收到 ACK</p><p>
+        偵測連線關閉後重新入列；不保證立即發生
+      </p>
+    </section><section>
+      <h4>再次處理</h4><p>仍是 export-184，不換新的 ID</p><p>
+        核對成功結果 → 沿用結果 → ACK
+      </p>
+    </section>
+  </div><figcaption id="queue-ack-crash-caption">
+    RabbitMQ 手動確認：連線關閉後，未確認訊息可重新入列。
+  </figcaption>
+</figure>
+<style>
+  .queue-ack-crash {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .queue-ack-crash__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .queue-ack-crash__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .queue-ack-crash__desktop .queue-ack-crash__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .queue-ack-crash__desktop .queue-ack-crash__heading {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .queue-ack-crash__desktop rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .queue-ack-crash__desktop path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .queue-ack-crash__mobile {
+    display: none;
+  }
+  .queue-ack-crash__mobile section {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .queue-ack-crash__mobile h4,
+  .queue-ack-crash__heading {
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+  }
+  .queue-ack-crash__mobile p {
+    margin: 0.5rem 0;
+  }
+  .queue-ack-crash figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .queue-ack-crash__desktop {
+      display: none !important;
+    }
+    .queue-ack-crash__mobile {
+      display: block !important;
+    }
+  }
+</style>

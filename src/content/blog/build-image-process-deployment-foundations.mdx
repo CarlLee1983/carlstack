@@ -1,0 +1,99 @@
+---
+title: "程式已經 build 成功，為什麼網站還是舊版？"
+description: "沿著文章收藏站的一次更新，分清原始碼、建置產物、Docker image、容器裡的行程與真正接到請求的版本。學會找出更新停在哪一站，而不是看到綠燈就宣布上線。"
+publishDate: 2026-10-27T07:55:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/build-image-process-deployment-foundations.webp
+coverAlt: "陶橘色黏土印刷機印出圓點紙張，旁邊放著尚未裝入、帶三角形浮紋的替換滾筒。"
+series: 後端工程基礎圖解
+seriesOrder: 6
+tags:
+  - Docker
+  - CI/CD
+  - 系統設計
+---
+
+import BuildReleaseBoundaryDiagram from "../../components/BuildReleaseBoundaryDiagram.astro";
+
+文章收藏站新增了「匯出時附上收藏日期」。程式已合併，CI 的 build 也是綠色，使用者下載的檔案卻還是少一欄。
+
+同事說：「重啟過了，怎麼還沒更新？」
+
+先別急著再重啟。**build 成功只表示產物做出來了，不表示處理這次匯出的行程已經換成它。** 這篇是「後端工程基礎圖解」第六篇，我們沿著同一個功能走到正式服務，找出版本到底停在哪一站。
+
+以下是虛構收藏站的教學設計，版本 A、B 只是代號；未實際部署這套應用。Docker 行為依 2026 年 10 月 27 日查閱的官方文件說明。
+
+## 原始碼、產物與行程，各自回答不同的問題
+
+Git 裡的原始碼回答「我們改了什麼」。build 產物回答「準備交付什麼」。正在執行的行程，才回答「現在由誰處理工作」。
+
+以 TypeScript 後端為例，build 可以把原始碼轉成 JavaScript；前端還可能把多個檔案打包成瀏覽器會下載的資源。PHP 專案未必需要相同的編譯步驟，仍可能要整理相依套件與前端資源。**build 是專案定義的製作程序，不是所有語言共用的一個開機按鈕。**
+
+Docker image 則把要執行的程式、相依檔案與預設設定包起來。image 本身不是正在運作的伺服器；依它建立容器並啟動其中的行程，才開始執行程式。[Docker 的 image 定義](https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-an-image/)與[容器說明](https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-container/)，分別描述這份套件與隔離執行的行程。
+
+Dockerfile 裡也有這個分界：`RUN` 在建置期間執行，例如安裝相依套件；`CMD` 提供容器啟動時的預設命令。把啟動網站的命令寫在建置步驟裡，不會讓正式主機因此開始接客。[Dockerfile 官方說明](https://docs.docker.com/build/concepts/dockerfile/)
+
+<BuildReleaseBoundaryDiagram />
+
+這張圖的重點不是背完五個名詞，而是每跨一站都需要自己的證據。CI 顯示版本 B 編譯成功，只能證明前半段；仍要知道交付出去的是哪份 image、哪個行程使用它，以及請求最後走到哪裡。
+
+## image 沒變，不代表它的標籤沒變
+
+想像倉庫裡有兩份 image：A 是舊版，B 多了匯出日期的程式。`latest` 像貼在貨架上的標籤，今天可以指向 A，明天可以指向 B；它不是「正在服務使用者的最新程式」保證書。
+
+image 的內容固定，tag 卻可以重新指向別份 image。需要精確指定內容時，可以使用 digest。Docker 官方也提醒，固定 digest 之後不會自動取得後續更新，安全修補仍須安排版本替換。[依 digest 取得 image](https://docs.docker.com/reference/cli/docker/image/pull/#pull-an-image-by-digest-immutable-identifier)
+
+因此，倉庫已經有 B，不等於主機已經下載 B；主機下載 B，也不等於原本由 A 建立的容器會自動換掉。單純把同一個舊容器停下再啟動，仍是啟動那個容器，不是重新用 B 建立一個。官方將「建立並執行新容器」與「啟動已停止的容器」分成不同操作。[容器啟動生命週期](https://docs.docker.com/reference/cli/docker/container/run/)
+
+收藏站最小可行的做法，是在發布紀錄裡把 **commit、交付的 image digest、服務版本**連起來。記錄實際採用的識別值，不要只抄一個大家都叫 `latest` 的名稱；image ID 與 registry digest 也不是可以任意互換比較的欄位。
+
+## 同一份 image，可以啟動 API，也可以啟動 worker
+
+收藏站不必為了把匯出移到背景，就立刻拆成兩套程式庫。假設同一份 image 已包含 API 與匯出 worker 的入口，可以建立兩個容器，分別指定不同啟動命令：一個接 HTTP，另一個取出匯出工作。它們共用交付內容，不共用同一個執行中的行程。[Docker run 的命令與參數](https://docs.docker.com/reference/cli/docker/container/run/)
+
+這也解釋一種很常見的版本落差：API 換成 B，已經接受新的匯出要求；worker 卻仍跑 A，產出的檔案自然還是舊格式。只驗證首頁打得開，碰不到這個問題。
+
+這個方案適合兩者由同一團隊、同一份程式一起發布的初期服務。代價是 image 可能包含某個角色用不到的套件；當兩種工作的相依套件、權限或發布節奏明顯分開，再評估各自製作 image。容器化不是拆微服務的同義詞，也不要求先學完整套 Kubernetes。
+
+## 設定在哪個時刻被讀取，比放在哪個檔案更重要
+
+假設我們把收藏站的設定分成兩類：前端公開 API 位址在 build 時寫進 JavaScript；worker 的工作佇列名稱則在行程啟動時讀入。這是本例的設計選擇，不是每個框架都如此。
+
+前者已經成為產物的一部分，修改正式主機的環境變數不會倒過來改寫瀏覽器拿到的檔案，必須依設計重建並發布資源。後者不必重編譯，但要用新設定建立並啟動新的執行個體；除非程式明確支援重新載入，否則不能假設舊行程會自行察覺外部設定改動。
+
+Docker 的 `ARG` 主要供建置使用，不會只因宣告過，就自動變成容器的執行期變數；`ENV` 則能留下環境變數預設值。兩者也不適合拿來塞建置秘密，因為資訊可能留在 image 或相關中繼資料中。[Docker build variables](https://docs.docker.com/build/building/variables/)
+
+查問題時，問「這個值是誰、在什麼時候讀的？」通常比反覆修改 `.env` 有用。檢查設定只確認必要名稱與版本，不把資料庫密碼印進發布紀錄。
+
+## 換掉程式，別順手換掉使用者的收藏
+
+程式可以重建，使用者資料卻不能每次發布都從零開始。收藏站把收藏紀錄放在獨立資料庫，把產出的匯出檔放在持久儲存；不把唯一一份檔案留在隨時可能被替換的應用容器裡。
+
+Docker 容器的可寫層在容器被移除時會跟著消失；volume 的生命週期則可以獨立於容器。**停止或重啟同一個容器，與移除後重建，是不同的事。** volume 也可能被人刪除，不能把它當成備份。[Docker volumes](https://docs.docker.com/engine/storage/volumes/)
+
+新程式仍須能讀懂既有資料。即使保留了資料庫，若 B 改了資料格式，A 不一定能接手；「保留舊 image」只是回退程式的準備，不保證資料變更也能一起倒退。先讓這次新增欄位維持相容，比一次引入複雜切換策略更重要。
+
+## 驗收要走到那份匯出檔
+
+這次發布的完成條件，可以很具體：受控測試帳號送出匯出要求，背景工作完成，下載檔案含有正確的收藏日期，原有收藏仍可讀取。
+
+要追出失敗的位置，先從發布紀錄找到 B 對應的 image，再檢查 API 與 worker 實際採用的 image，以及各自行程的啟動版本紀錄。版本資訊宜留在受控管理介面或內部日誌，不必為了除錯對外公開完整環境資訊。
+
+接著用同一次工作的識別值，串起 API 收件、worker 處理與檔案產生。若 worker 確實是 B，卻仍拿到舊檔，再查下載連結是否指向舊物件、是否被快取；若首頁仍舊，則另外追瀏覽器與靜態資源的版本。**先定位哪一站拿錯版本，再決定該更新程式、設定、路由還是快取。**
+
+行程活著、健康檢查回應成功、使用者功能正確，是三個不同層次。最小方案不需要龐大部署平台，但至少要有可追溯的產物、明確的啟動方式，以及走過真正功能的一次驗收。
+
+若現在只有一台主機，用受管理的行程直接執行發布產物，也能做到這些事；Docker 提供的是一致的包裝與執行方式，不是唯一正解。等到服務不能中斷、需要同時維持多個版本，再讀[藍綠、金絲雀與滾動發布的取捨](/blog/modern-cicd-deployment-strategies-blue-green-canary-rolling/)；需要理解容器調度時，再接[從控制平面看 Kubernetes](/blog/kubernetes-core-architecture-control-plane-etcd/)。[.NET 緊急修補的部署查核](/blog/dotnet-oob-patch-deployment/)則是另一個「下載修補不等於執行環境已更新」的實例。
+
+## 練習：重啟兩次，為什麼還是 A？
+
+發布紀錄顯示 B 的 image 已推到 registry，`latest` 也已指向 B。正式 API 與 worker 都是先前用 A 建立的容器，維運人員只重啟這兩個舊容器。匯出檔仍沒有日期欄位。
+
+請說明：這次更新停在哪裡？要補哪兩類證據，才能說新版本真的生效？替換容器前，要確認哪些資料不能跟著消失？
+
+### 參考思路
+
+更新只到 registry 的產物階段，重啟原容器不會把它改成由 B 建立。需要先依既有發布流程，讓 API 與 worker 都採用指定的 B；確認實際 image 與行程版本，再走完一次匯出並核對檔案。前一類證據確認「誰在跑」，後一類確認「功能做對了」。
+
+替換前還要確認收藏資料庫與匯出檔的持久儲存位置，避免唯一資料留在舊容器可寫層，並確認 B 對既有資料的相容性。把這條路徑說清楚，下次看到 build 綠燈時，就知道還差哪一段才叫上線。

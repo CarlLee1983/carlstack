@@ -1,0 +1,121 @@
+<figure class="cache-copy-read" aria-labelledby="cache-copy-read-caption">
+  <svg
+    class="cache-copy-read__desktop"
+    viewBox="0 0 900 510"
+    role="img"
+    aria-labelledby="cache-copy-read-title cache-copy-read-desc"
+  >
+    <title id="cache-copy-read-title">同一個標題，兩條讀取路徑</title><desc
+      id="cache-copy-read-desc">命中直接使用副本；未命中才查原本並回填。</desc
+    >
+    <text x="30" y="42" class="cache-copy-read__title"
+      >同一個標題，兩條讀取路徑</text
+    >
+    <rect x="30" y="75" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="109"
+      class="cache-copy-read__heading">1　先問 Redis</text
+    ><text x="310" y="109" class="cache-copy-read__heading"
+      >key：post:17:public-title:v1</text
+    ><text x="310" y="147">應用程式要求文章 17 的公開標題</text>
+    <rect x="30" y="207" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="241"
+      class="cache-copy-read__heading">2A　命中 hit</text
+    ><text x="310" y="241" class="cache-copy-read__heading"
+      >Redis 有值 → 回傳副本</text
+    ><text x="310" y="279">不查 MySQL；仍需接受副本可能落後</text>
+    <rect x="30" y="339" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="373"
+      class="cache-copy-read__heading">2B　未命中 miss</text
+    ><text x="310" y="373" class="cache-copy-read__heading"
+      >查 MySQL → 存 Redis → 回傳</text
+    ><text x="310" y="411">MySQL 保持權威；副本可以重建</text>
+  </svg><div class="cache-copy-read__mobile">
+    <p class="cache-copy-read__heading">同一個標題，兩條讀取路徑</p><section>
+      <h4>1　先問 Redis</h4><p>key：post:17:public-title:v1</p><p>
+        應用程式要求文章 17 的公開標題
+      </p>
+    </section><section>
+      <h4>2A　命中 hit</h4><p>Redis 有值 → 回傳副本</p><p>
+        不查 MySQL；仍需接受副本可能落後
+      </p>
+    </section><section>
+      <h4>2B　未命中 miss</h4><p>查 MySQL → 存 Redis → 回傳</p><p>
+        MySQL 保持權威；副本可以重建
+      </p>
+    </section>
+  </div><figcaption id="cache-copy-read-caption">
+    命中直接使用副本；未命中才查原本並回填。
+  </figcaption>
+</figure>
+<style>
+  .cache-copy-read {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .cache-copy-read__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cache-copy-read__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .cache-copy-read__desktop .cache-copy-read__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .cache-copy-read__desktop .cache-copy-read__heading {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .cache-copy-read__desktop rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .cache-copy-read__desktop path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .cache-copy-read__mobile {
+    display: none;
+  }
+  .cache-copy-read__mobile section {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .cache-copy-read__mobile h4,
+  .cache-copy-read__heading {
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+  }
+  .cache-copy-read__mobile p {
+    margin: 0.5rem 0;
+  }
+  .cache-copy-read figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .cache-copy-read__desktop {
+      display: none !important;
+    }
+    .cache-copy-read__mobile {
+      display: block !important;
+    }
+  }
+</style>

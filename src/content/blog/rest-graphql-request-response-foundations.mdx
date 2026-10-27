@@ -1,0 +1,137 @@
+---
+title: "REST 與 GraphQL 怎麼取資料？先看懂請求，再比較來回次數"
+description: "用同一份使用者姓名與文章標題，拆開 HTTP 請求、REST 資源、GraphQL 欄位選擇與 resolver。比較的是 API 契約，而不是把一次網路請求誤認成一次資料庫查詢。"
+publishDate: 2026-10-27T07:46:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/rest-graphql-request-response-foundations.webp
+coverAlt: "米白紙面上，兩個分開裝載人物與文件卡片的信封，對照一個集中收納同類卡片的紙套。"
+series: 後端工程基礎圖解
+seriesOrder: 1
+tags:
+  - API 設計
+  - REST
+  - GraphQL
+  - 系統設計
+---
+
+import ApiRequestBoundaryDiagram from "../../components/ApiRequestBoundaryDiagram.astro";
+
+這是「後端工程基礎圖解」的第一篇。我們用一個虛構文章收藏站，逐步看懂 API、登入、資料查詢、快取、背景工作與部署的責任邊界。
+
+一個個人頁面只需要兩種資料：使用者姓名，以及他最近兩篇文章的標題。前端要問後端幾次？
+
+答案可能是兩次，也可能一次。**決定次數的是 API 如何提供資料，不是看到 REST 就一定要分開問、看到 GraphQL 就一定比較快。**
+
+Asad - Software Engineer 的[短片〈How Rest api works and how it is different from graphql〉](https://www.facebook.com/reel/2593394331167408)用動畫呈現這個差異，是很好的問題入口。但影片兩側選取的資料並不完全相同：REST 一側還有 followers。以下換成同一份資料需求，從請求本身拆解，不拿不同工作量比較效能。
+
+## 先讀懂一封 HTTP 請求
+
+以下是虛構服務的教學契約，省略完整連線細節，並非實際部署的 API 或壓測結果。使用者 `42` 的名稱是小安。
+
+```http
+GET /users/42 HTTP/1.1
+Host: api.example.com
+Accept: application/json
+```
+
+`GET` 是方法，表示取得目標資源的表示；`/users/42` 是 URL 的路徑部分；`Accept` 表達客戶端希望收到的媒體類型。伺服器可能回覆：
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"42","name":"小安"}
+```
+
+`200` 是狀態碼；`Content-Type` 說明內容格式；下方 JSON 才是資料本體。**HTTP 負責請求與回應的共同語意，JSON 是表示資料的一種格式**，兩者不是同一層。找不到資源時，契約也要定義錯誤回應，不能只寫成功範例。方法、資源與狀態碼的正式語意見 [RFC 9110](https://httpwg.org/specs/rfc9110.html#GET)。
+
+這種把資源放在 URL、使用 HTTP 方法操作的設計，是常見 REST 風格 API 的入口；不是「回傳 JSON」就足以涵蓋 REST 的完整架構約束。
+
+## REST：先看後端提供什麼資源契約
+
+假設服務提供兩個讀取端點：
+
+- `GET /users/42`：回傳姓名等使用者資料。
+- `GET /users/42/posts?limit=2`：回傳最近兩篇文章；此處契約約定按發布時間倒序。
+
+第二個端點可以回傳：
+
+```json
+{
+  "items": [
+    { "id": "p8", "title": "第一次部署" },
+    { "id": "p7", "title": "補上測試" }
+  ]
+}
+```
+
+前端拿到兩份回應後組合畫面。這是兩次 HTTP 請求，但如果一開始就知道使用者 ID，兩次請求可以並行，**不必先拿到姓名才能取文章**。只有後一個請求需要前一個回應中的資料，才形成真正的依賴鏈。
+
+後端也可以設計 `GET /users/42/profile-summary?postLimit=2`，一次回傳姓名和文章摘要；或明確支援 `include=posts`。這些是服務自行定義的契約，不是每個 REST API 都有的通用參數。若只有一個固定頁面需要這份組合，增加一個小型聚合端點，往往比引進整套新查詢介面容易管理。
+
+## GraphQL：前端選欄位，後端仍決定能提供什麼
+
+GraphQL 把資料能力描述在 schema 中。客戶端只能選擇 schema 提供的欄位，不能對資料庫任意下指令。假設 schema 提供 `user(id:)`、`name` 與 `posts(limit:)`，並約定相同排序，就能提出：
+
+```graphql
+query Profile {
+  user(id: "42") {
+    name
+    posts(limit: 2) {
+      title
+    }
+  }
+}
+```
+
+常見的 HTTP 傳送方式是對 `/graphql` 發出 POST，把查詢文字放在 JSON 的 `query` 欄位。回應的資料形狀跟著選取欄位走：
+
+```json
+{
+  "data": {
+    "user": {
+      "name": "小安",
+      "posts": [{ "title": "第一次部署" }, { "title": "補上測試" }]
+    }
+  }
+}
+```
+
+這裡的一次請求，取回的正是前面同一頁面需要的資料，沒有偷偷增加 followers，也沒有假設 REST 必須回傳整個資料庫紀錄。欄位選擇的規則見 [GraphQL Queries](https://graphql.org/learn/queries/)。
+
+**Schema 是可查詢的契約，resolver 是提供欄位值的執行邏輯。** `user` 的 resolver 可以呼叫既有 service；`posts` 可以查資料庫，也可以使用已載入的結果。GraphQL 執行器不會憑查詢文字自動替你設計 JOIN、索引或跨服務交易。[官方 execution 說明](https://graphql.org/learn/execution/)將這個責任放在欄位解析過程。
+
+## 一次 HTTP 請求，不代表一次資料庫查詢
+
+<ApiRequestBoundaryDiagram />
+
+圖中的兩條邊界要分開量測。客戶端到 API 是網路請求；API 到資料來源，則可能有多次查詢或服務呼叫。REST 聚合端點與 GraphQL 都可能在一次 HTTP 請求內執行兩次 SQL，也都可能寫出低效率的資料存取。
+
+例如列表有 20 篇文章，每篇的作者 resolver 都各自查一次資料庫，就可能出現「取文章一次，再取作者 20 次」的 N+1。這是解析與載入策略造成的，不是 GraphQL 規定每個欄位都要查 SQL。DataLoader 能收集載入鍵值、呼叫批次函式，但 **SQL 怎麼批次化仍由開發者實作**；也要注意每個請求與使用者的快取隔離。[DataLoader 文件](https://github.com/graphql/dataloader#batching)明確要求提供 batch function。
+
+因此驗證一個 API，至少分開記錄三件事：瀏覽器送幾次請求、回傳多少位元組、伺服器產生多少下游呼叫。這三個數字互有關聯，不能互相代替。
+
+## 怎麼選：先找目前真正不方便的契約
+
+**只有固定個人頁面時**，先保留現有 REST 端點；如果兩次請求確實造成瓶頸，量測後再考慮聚合。不要只為了讓 DevTools 少一列，就替整個團隊增加 schema、resolver 與查詢治理的維護工作。
+
+**多個客戶端經常需要不同欄位組合時**，GraphQL 的欄位選擇比較值得評估：前端可以在既有 schema 內改變資料形狀，代價是後端得管理欄位授權、列表上限、查詢成本與解析效能。身份驗證完成不等於所有欄位都能讀，授權仍應由共用業務邏輯執行，不能靠「前端沒有選這個欄位」保護資料。[GraphQL Authorization](https://graphql.org/learn/authorization/)說明了這個邊界。
+
+快取也不是 REST 有、GraphQL 沒有的二選一。GraphQL over HTTP 可以用 GET 傳送 query；實際支援依伺服器而定，mutation 不應用 GET 執行。適當的 HTTP 快取標頭、查詢識別與資料公開性，才決定能否安全利用共享快取。持久化查詢可以縮短查詢識別，但不會自動把所有請求變成 GET，也不會替私人資料決定 CDN 策略。參考 [Serving over HTTP](https://graphql.org/learn/serving-over-http/#methods) 與 [Performance](https://graphql.org/learn/performance/)。
+
+實際比較時，用同一使用者、同一兩篇文章、同一欄位、相同身份與冷暖快取條件，觀察端到端延遲和下游查詢。若要加入教學估算，假設每次網路往返 80 毫秒：兩次「循序」往返的網路部分約 160 毫秒；兩次「並行」則不能直接相加。這是簡化假設，不包含傳輸、排隊與伺服器時間，也不是本站實測。
+
+## 練習：首頁多了一個資料需求
+
+現在頁面還要顯示「是否追蹤這位作者」，它會因登入者不同而改變。
+
+請先不換技術，寫下：這個欄位要放進哪份契約？原本公開的姓名與文章，還能跟它共用同一份 CDN 快取嗎？你會收集哪些數據，決定是否需要聚合端點或 GraphQL？
+
+### 參考思路
+
+可以保留可公開快取的個人資料，把追蹤狀態獨立取回；也可以在聚合回應中加入它，但必須重新設計私人回應的快取政策與授權。GraphQL 同樣要在相關欄位落實登入者邊界，不會因為一次取得就自動安全。
+
+先檢查畫面是否真的受網路依賴、傳輸量或重複查詢拖慢，再選契約。**今天要學會的不是選出一個贏家，而是分辨「我想取什麼」「API 允許怎麼取」與「後端實際怎麼取」三件事。**
+
+要往架構選型延伸，可接著閱讀 [API 設計風格與通訊邊界](/blog/api-architectural-styles-rest-rpc-graphql-webhook/)；需要處理解析成本時，再進入 [GraphQL 的 DataLoader 與查詢治理](/blog/graphql-production-architecture-federation-dataloader/)。

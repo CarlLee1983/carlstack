@@ -1,0 +1,155 @@
+<figure class="bookmark-index" aria-labelledby="bookmark-index-caption">
+  <svg
+    class="bookmark-index__desktop"
+    viewBox="0 0 960 620"
+    role="img"
+    aria-labelledby="bookmark-index-title bookmark-index-desc"
+  >
+    <title id="bookmark-index-title">由使用者索引範圍找到收藏資料</title><desc
+      id="bookmark-index-desc"
+      >複合索引先按使用者分組，使用者 42 的範圍內按時間與 ID
+      遞減。查到索引紀錄後，用主鍵取得不在索引裡的文章 ID。</desc
+    >
+    <defs
+      ><marker
+        id="bookmark-index-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0L8 4L0 8Z"></path></marker
+      ></defs
+    >
+    <text x="28" y="42" class="bookmark-index__title"
+      >先定位此人的範圍，再取得需要的資料</text
+    >
+    <text x="28" y="77">索引鍵：user_id → saved_at DESC → id DESC</text>
+    <rect
+      x="28"
+      y="111"
+      width="535"
+      height="390"
+      rx="12"
+      class="bookmark-index__card"></rect>
+    <text x="50" y="148" class="bookmark-index__label"
+      >排序示意：不是實際頁面配置</text
+    >
+    <text x="50" y="194">user 41 ／ 此人的收藏範圍</text>
+    <path d="M50 220H535" stroke="var(--dg-rule)"></path>
+    <text x="50" y="258" class="bookmark-index__label"
+      >user 42 ／ 從這裡開始讀</text
+    >
+    <text x="72" y="300">10-27 09:00 ／ id 109</text>
+    <text x="72" y="340">10-27 09:00 ／ id 108</text>
+    <text x="72" y="380">10-26 20:00 ／ id 101</text>
+    <path d="M50 407H535" stroke="var(--dg-rule)"></path>
+    <text x="50" y="455">user 43 ／ 此人的收藏範圍</text>
+    <path d="M563 300H644" class="bookmark-index__arrow"></path>
+    <rect
+      x="664"
+      y="216"
+      width="268"
+      height="190"
+      rx="12"
+      class="bookmark-index__card"></rect>
+    <text x="685" y="255" class="bookmark-index__label">用主鍵找資料列</text>
+    <text x="685" y="300">id 109 → post_id 81</text>
+    <text x="685" y="342">取得索引外的欄位</text>
+    <text x="28" y="552"
+      >索引縮小候選範圍；回傳 20 筆，不保證只讀取 20 筆。</text
+    >
+    <text x="28" y="585">是否選用這條路徑，仍須由執行計畫驗證。</text>
+  </svg>
+  <div class="bookmark-index__mobile">
+    <section>
+      <h4>1 定位使用者範圍</h4><p>索引先分 user 41、42、43。</p><p>
+        查 user 42，尋找他的索引區段。
+      </p>
+    </section><section>
+      <h4>2 沿著既有次序讀取</h4><p>同一使用者內，依 saved_at 與 id 遞減。</p><p
+      >
+        09:00 / id 109 → 09:00 / id 108 → 較早收藏。
+      </p>
+    </section><section>
+      <h4>3 以主鍵取得資料列</h4><p>id 109 → 取得 post_id 81。</p><p>
+        索引沒有包含所有回傳欄位。
+      </p>
+    </section><p>回傳 20 筆不保證只讀 20 筆。是否使用索引，要檢查執行計畫。</p>
+  </div>
+  <figcaption id="bookmark-index-caption">
+    虛構資料與概念順序，非 MySQL 實測輸出，也不代表每個動作各需一次磁碟讀取。
+  </figcaption>
+</figure>
+<style>
+  .bookmark-index {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .bookmark-index__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .bookmark-index__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 16px;
+  }
+  .bookmark-index__desktop .bookmark-index__title {
+    fill: var(--dg-ink);
+    font-size: 23px;
+    font-weight: 700;
+  }
+  .bookmark-index__desktop .bookmark-index__label {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .bookmark-index__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .bookmark-index__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#bookmark-index-arrow);
+  }
+  #bookmark-index-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+  .bookmark-index__mobile {
+    display: none;
+  }
+  .bookmark-index__mobile section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .bookmark-index__mobile h4 {
+    margin: 0 0 0.75rem;
+  }
+  .bookmark-index__mobile p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+  }
+  .bookmark-index figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .bookmark-index__desktop {
+      display: none !important;
+    }
+    .bookmark-index__mobile {
+      display: block !important;
+    }
+  }
+</style>

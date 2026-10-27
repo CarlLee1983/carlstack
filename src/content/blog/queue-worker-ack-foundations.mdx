@@ -1,0 +1,84 @@
+---
+title: "按下匯出後，工作去了哪裡？Queue、Worker 與 ACK 的分工"
+description: "用匯出收藏 CSV 拆解非同步工作的完整路徑：API 接受、訊息排隊、Worker 執行與 ACK。看懂 202 不等於完成，以及當機重送為什麼需要穩定 job ID 與冪等處理。"
+publishDate: 2026-10-27T07:50:00+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/queue-worker-ack-foundations.webp
+coverAlt: "灰綠色的三個文件托盤放在灰粉色工作檯上，依序盛著紙疊、壓著黃銅紙鎮的單張紙與折角紙張。"
+series: 後端工程基礎圖解
+seriesOrder: 5
+tags:
+  - 訊息佇列
+  - 系統設計
+---
+
+import QueueJobJourneyDiagram from "../../components/QueueJobJourneyDiagram.astro";
+import QueueAckCrashDiagram from "../../components/QueueAckCrashDiagram.astro";
+
+文章收藏站多了「匯出 CSV」按鈕。使用者按下後，頁面很快顯示「已接受」，但下載連結還沒出現。這不是同一個請求已經做完兩種事：API 先接下工作，另一個程式稍後才產生檔案。
+
+**佇列把接單與執行拆開，因此你必須另外交代：工作在哪裡、做到哪裡，以及失敗後誰負責。** 回應變快，並不代表整份工作變快。
+
+以下是虛構服務的設計示意，沒有執行效能或故障測試。使用 RabbitMQ 的 AMQP 0-9-1 手動確認機制說明 ACK；其他服務的刪除、租約或可見性逾時，不能直接套用相同語義。
+
+## 一個 job ID，把畫面接到背景工作
+
+先替這份匯出建立穩定識別值，例如 `export-184`。資料庫保存擁有者、篩選條件、狀態與結果位置；訊息只帶 job ID，Worker 再依它讀取資料。API 與下載端點都要核對使用者權限，知道 ID 不等於有權取得他人的收藏。
+
+客戶端送出匯出請求後，API 可回傳以下教學契約：
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{"jobId":"export-184","statusUrl":"/exports/export-184"}
+```
+
+[`202 Accepted` 的標準語義](https://www.rfc-editor.org/rfc/rfc9110.html#section-15.3.3)是已接受處理，但尚未完成；它本身不保證最後成功。客戶端接著查狀態端點，區分 `pending`、`running`、`succeeded` 與 `failed`。只有成功狀態才提供已就緒的下載連結。
+
+<QueueJobJourneyDiagram />
+
+這條路徑有三個角色。**Producer** 是發出工作訊息的程式，這裡是 API 端的發布流程；**broker** 是接收與傳遞訊息的 RabbitMQ，裡面有保存待處理訊息的 queue；**Worker** 是取出訊息並真正產生 CSV 的程式。Worker 可以與 API 共用同一份程式碼庫，只是以另一個行程執行，不必先拆成微服務。
+
+RabbitMQ 的[工作佇列教學](https://www.rabbitmq.com/tutorials/tutorial-two-python)也是將耗時任務交給背景工作者。你的應用程式仍須自己定義「完成」：本例要求檔案可讀、結果位置已保存，不能只看 Worker 印出一行日誌。
+
+## 兩種確認，各自回答不同問題
+
+Publisher confirm 是 broker 對 Producer 的確認；consumer ACK 是 Worker 對 broker 的確認。兩者互相獨立：前者不代表 Worker 已執行，後者也不會自動更新使用者看到的業務狀態。這個界線在 [RabbitMQ 官方確認機制文件](https://www.rabbitmq.com/docs/confirms#are-publisher-confirms-related-to-consumer-delivery-acknowledgements)有明確說明。
+
+在本例的手動確認設計中，Worker 先產生檔案、保存成功狀態，再 ACK，讓 broker 可以移除這次已處理的訊息。若程式錯誤地提前 ACK，之後才發現檔案寫入失敗，broker 不會替你還原已移除的工作。
+
+因此 ACK 的可信程度，取決於你把它放在哪裡。它是協定動作，不是 broker 實地檢查 CSV 的驗收報告。
+
+還有一個更早的縫隙：資料庫已建立 job，訊息卻沒成功發布。最小方案也要讓這筆 job 保持「待派送」，由可查核的補送流程處理；不能無聲消失。若發布結果不明，補送沿用同一 job ID，並預期可能重複。當這段流程成為可靠性要求時，再把資料庫與發布的協調獨立設計，不能靠回傳 202 掩蓋它。
+
+## 完成了卻沒 ACK，會發生什麼？
+
+假設 Worker 已存好 CSV，也把 job 標為成功，卻在送出 ACK 前當機。對使用者來說，工作完成了；對 broker 來說，這份訊息還沒有收到確認。
+
+<QueueAckCrashDiagram />
+
+在 RabbitMQ 的手動確認模式中，未確認的訊息會在相關 channel 或連線關閉後重新入列，失聯偵測可能需要時間。另一個 Worker 因而可能再次收到同一份工作。這是[自動重新入列的行為](https://www.rabbitmq.com/docs/confirms#when-consumers-fail-or-lose-connection-automatic-requeueing)，也是「至少一次」處理思維要面對的重複風險，不是毫無條件的永不遺失承諾。
+
+最小防線是讓每次重送仍指向 `export-184`。Worker 開始時，若發現這個 job 已成功，且結果仍有效，就沿用既有結果並 ACK，不再產生第二份成功紀錄。這是冪等的目標：同一項工作重做，不增加一份使用者可見的副作用。
+
+這個檢查不能單靠「先查再寫」來保證並行安全。多個 Worker 可能同時查到未完成；至少要以資料庫條件更新或相應鎖定取得執行權，再以同一 job ID 保存結果。若當機留下執行中狀態，也需要可觀察的回復方式。更完整的接手與租約問題，可接著讀 [Worker 接手設計](/blog/order-system-worker-takeover/)。RabbitMQ 的[可靠性指南](https://www.rabbitmq.com/docs/reliability#data-safety-on-the-consumer-side)也提醒消費端必須準備處理重送。
+
+## 佇列容納等待，沒有增加無限產能
+
+假設一份匯出平均需要 2 秒，一個 Worker 同時只做一份，粗估產能為每秒 0.5 份。若持續每秒進來 1 份，待辦就約以每秒 0.5 份增加。這是教學用平均值估算，未包含資料量差異、失敗與重試。
+
+多開 Worker 可以提高並行度，但資料庫與檔案儲存未必承受得住。先觀察最舊工作等了多久、成功與失敗數量、重送頻率，以及下游負載，再決定擴充。一直重新入列的壞工作，也需要有限次重試與人工可查的失敗狀態，否則只會把佇列變成循環等待室。
+
+如果匯出很小，實際等待時間在 API 可接受範圍內，直接同步回傳 CSV 反而少了狀態查詢與維運成本。當工作時間變長、需要排程或限制並行時，才值得支付背景處理的複雜度；不必先做[四種訊息系統的選型](/blog/message-queue-selection-kafka-rabbitmq-rocketmq-sqs/)。
+
+驗證時，除了正常匯出，至少要在「檔案完成、狀態尚未保存」與「狀態成功、ACK 尚未送出」兩個位置中斷 Worker，再重送同一 job ID，檢查是否能恢復、是否重複產生副作用，以及畫面是否能說明結果。確認這些證據後，才有資格說這份工作完成了。
+
+## 練習：哪一個確認可以讓畫面顯示成功？
+
+API 已收到 publisher confirm。Worker 隨後產生檔案，但在更新 job 狀態前當機。此時頁面能否顯示成功？重送訊息時，應該產生新 job ID，還是沿用原 ID？
+
+### 參考思路
+
+不能只憑 publisher confirm 顯示成功，它沒有證明業務工作完成。畫面應依經驗證的 job 狀態呈現；本例仍需恢復並核對檔案，再保存成功結果。重送沿用原 job ID，才有機會辨認同一項工作，避免把重試當成新的匯出要求。要繼續比較不同傳遞保證，可閱讀[訊息傳遞語義](/blog/distributed-message-delivery-semantics/)，但始終要把「收到訊息」與「業務完成」分開看。

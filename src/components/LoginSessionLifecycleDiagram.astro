@@ -1,0 +1,168 @@
+<figure class="login-session" aria-labelledby="login-session-caption">
+  <svg
+    class="login-session__desktop"
+    viewBox="0 0 960 580"
+    role="img"
+    aria-labelledby="login-session-title login-session-desc"
+  >
+    <title id="login-session-title">Session 登入、請求與登出的生命週期</title>
+    <desc id="login-session-desc"
+      >登入成功後回傳 Cookie；後續請求帶回識別值，伺服器查 Session
+      再限制資源擁有者；登出讓伺服器紀錄失效並清除 Cookie。</desc
+    >
+    <defs
+      ><marker
+        id="login-session-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0L8 4L0 8Z"></path></marker
+      ></defs
+    >
+    <text x="28" y="42" class="login-session__title"
+      >同一份憑證，在不同階段有不同工作</text
+    >
+    <text x="28" y="76">瀏覽器保存識別值；伺服器決定它是否仍有效。</text>
+    <rect
+      x="28"
+      y="106"
+      width="904"
+      height="118"
+      rx="12"
+      class="login-session__card"></rect><text
+      x="48"
+      y="140"
+      class="login-session__label">1 登入</text
+    ><text x="48" y="177">瀏覽器送出帳密</text><path
+      d="M300 171H374"
+      class="login-session__arrow"></path><text
+      x="404"
+      y="143"
+      class="login-session__label">驗證成功 → 建立新 Session</text
+    ><text x="404" y="184">Set-Cookie 回傳識別值</text>
+    <rect
+      x="28"
+      y="246"
+      width="904"
+      height="118"
+      rx="12"
+      class="login-session__card"></rect><text
+      x="48"
+      y="280"
+      class="login-session__label">2 讀收藏</text
+    ><text x="48" y="317">Cookie 附上識別值</text><path
+      d="M300 311H374"
+      class="login-session__arrow"></path><text
+      x="404"
+      y="283"
+      class="login-session__label">查 Session → 確認使用者 42</text
+    ><text x="404" y="324">資料查詢仍限定擁有者</text>
+    <rect
+      x="28"
+      y="386"
+      width="904"
+      height="118"
+      rx="12"
+      class="login-session__card"></rect><text
+      x="48"
+      y="420"
+      class="login-session__label">3 登出</text
+    ><text x="48" y="457">送出登出請求</text><path
+      d="M300 451H374"
+      class="login-session__arrow"></path><text
+      x="404"
+      y="423"
+      class="login-session__label">使 Session 失效</text
+    ><text x="404" y="464">清 Cookie；舊憑證再送也拒絕</text>
+  </svg><div class="login-session__mobile">
+    <section>
+      <h4>1 登入</h4><p>瀏覽器送出帳密</p><p>↓ 驗證成功 → 建立新 Session</p><p>
+        Set-Cookie 回傳識別值
+      </p>
+    </section><section>
+      <h4>2 讀收藏</h4><p>Cookie 附上識別值</p><p>
+        ↓ 查 Session → 確認使用者 42
+      </p><p>資料查詢仍限定擁有者</p>
+    </section><section>
+      <h4>3 登出</h4><p>送出登出請求</p><p>↓ 使 Session 失效</p><p>
+        清 Cookie；舊憑證再送也拒絕
+      </p>
+    </section>
+  </div><figcaption id="login-session-caption">
+    概念生命週期。身分驗證後仍須資源授權；本圖省略 CSRF 驗證等請求防護細節。
+  </figcaption>
+</figure>
+<style>
+  .login-session {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .login-session__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .login-session__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 16px;
+  }
+  .login-session__desktop .login-session__title {
+    fill: var(--dg-ink);
+    font-size: 23px;
+    font-weight: 700;
+  }
+  .login-session__desktop .login-session__label {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .login-session__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .login-session__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#login-session-arrow);
+  }
+  #login-session-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+  .login-session__mobile {
+    display: none;
+  }
+  .login-session__mobile section {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .login-session__mobile h4 {
+    margin: 0 0 0.75rem;
+  }
+  .login-session__mobile p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+  }
+  .login-session figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .login-session__desktop {
+      display: none !important;
+    }
+    .login-session__mobile {
+      display: block !important;
+    }
+  }
+</style>

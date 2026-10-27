@@ -1,0 +1,167 @@
+<figure class="release-boundary" aria-labelledby="release-boundary-caption">
+  <svg
+    class="release-boundary__desktop"
+    viewBox="0 0 900 570"
+    role="img"
+    aria-labelledby="release-boundary-title release-boundary-desc"
+  >
+    <title id="release-boundary-title">
+      做出版本 B，與請求交給版本 B，是兩段不同的路
+    </title>
+    <desc id="release-boundary-desc"
+      >原始碼經過建置成為產物，再包進固定內容的 image。發布程序使用該 image 建立
+      API 與 worker 容器並啟動各自行程。使用者請求還必須實際到達新的
+      API，再由新的 worker 完成工作。</desc
+    >
+    <defs
+      ><marker
+        id="release-boundary-arrow"
+        markerWidth="8"
+        markerHeight="8"
+        refX="7"
+        refY="4"
+        orient="auto"><path d="M0 0L8 4L0 8Z"></path></marker
+      ></defs
+    >
+    <text x="30" y="40" class="release-boundary__title"
+      >build 綠燈，只證明產物完成</text
+    >
+    <text x="30" y="72">每一站都要能追到同一份發布紀錄</text>
+    <rect x="30" y="104" width="230" height="100" rx="12"></rect>
+    <text x="50" y="139" class="release-boundary__label">1 原始碼</text><text
+      x="50"
+      y="172">commit：新增匯出日期</text
+    >
+    <path d="M265 154H320" class="release-boundary__arrow"></path>
+    <rect x="335" y="104" width="230" height="100" rx="12"></rect>
+    <text x="355" y="139" class="release-boundary__label">2 建置產物</text><text
+      x="355"
+      y="172">程式與整理好的相依檔案</text
+    >
+    <path d="M570 154H625" class="release-boundary__arrow"></path>
+    <rect x="640" y="104" width="230" height="100" rx="12"></rect>
+    <text x="660" y="139" class="release-boundary__label">3 Image B</text><text
+      x="660"
+      y="172">以 digest 指定交付內容</text
+    >
+    <path d="M755 209V249H450V278" class="release-boundary__arrow"></path>
+    <text x="30" y="255" class="release-boundary__label"
+      >發布：用 B 建立容器並啟動行程</text
+    >
+    <rect x="270" y="290" width="360" height="90" rx="12"></rect>
+    <text x="290" y="323" class="release-boundary__label">4 執行個體</text><text
+      x="290"
+      y="354">同份 image → API 行程 / worker 行程</text
+    >
+    <path d="M450 385V430" class="release-boundary__arrow"></path>
+    <rect x="120" y="442" width="660" height="90" rx="12"></rect>
+    <text x="140" y="475" class="release-boundary__label"
+      >5 使用者這一次的工作</text
+    ><text x="140" y="506"
+      >請求到達 API B → worker B 處理 → 下載檔案含日期欄位</text
+    >
+  </svg>
+  <div class="release-boundary__mobile">
+    <p class="release-boundary__heading">從做出程式，到使用者拿到結果</p>
+    <ol>
+      <li><strong>原始碼</strong><span>commit 加入匯出日期欄位。</span></li>
+      <li>
+        <strong>建置產物</strong><span>做出可交付的程式與相依檔案。</span>
+      </li>
+      <li>
+        <strong>Image B</strong><span>包裝產物，以 digest 指定內容。</span>
+      </li>
+      <li>
+        <strong>執行個體</strong><span
+          >用 B 建立容器，分別啟動 API 與 worker 行程。</span
+        >
+      </li>
+      <li>
+        <strong>使用者的工作</strong><span
+          >請求到 API B、worker B 處理，下載檔案確實含日期。</span
+        >
+      </li>
+    </ol>
+    <p>build 綠燈不能替代最後一站的驗收。</p>
+  </div>
+  <figcaption id="release-boundary-caption">
+    虛構收藏站的發布路徑。箭頭代表交付與驗收關係，不表示 build
+    會自動觸發所有後續步驟。
+  </figcaption>
+</figure>
+<style>
+  .release-boundary {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .release-boundary__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .release-boundary__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: var(--font-body);
+    font-size: 15px;
+  }
+  .release-boundary__desktop .release-boundary__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .release-boundary__desktop .release-boundary__label {
+    fill: var(--dg-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .release-boundary__desktop rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .release-boundary__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#release-boundary-arrow);
+  }
+  #release-boundary-arrow path {
+    fill: var(--dg-rule-strong);
+  }
+  .release-boundary__mobile {
+    display: none;
+  }
+  .release-boundary__heading {
+    font-weight: 700;
+  }
+  .release-boundary__mobile ol {
+    padding-left: 1.5rem;
+  }
+  .release-boundary__mobile li {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .release-boundary__mobile span {
+    display: block;
+    margin-top: 0.5rem;
+  }
+  .release-boundary figcaption {
+    margin-top: 1rem;
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .release-boundary__desktop {
+      display: none !important;
+    }
+    .release-boundary__mobile {
+      display: block !important;
+    }
+  }
+</style>

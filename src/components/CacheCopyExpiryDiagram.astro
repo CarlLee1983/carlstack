@@ -1,0 +1,127 @@
+<figure class="cache-copy-expiry" aria-labelledby="cache-copy-expiry-caption">
+  <svg
+    class="cache-copy-expiry__desktop"
+    viewBox="0 0 900 510"
+    role="img"
+    aria-labelledby="cache-copy-expiry-title cache-copy-expiry-desc"
+  >
+    <title id="cache-copy-expiry-title">
+      TTL 倒數與內容更新，是不同事件
+    </title><desc id="cache-copy-expiry-desc"
+      >假設沒有刪除或回填：到期不會自動取得新標題。</desc
+    >
+    <text x="30" y="42" class="cache-copy-expiry__title"
+      >TTL 倒數與內容更新，是不同事件</text
+    >
+    <rect x="30" y="75" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="109"
+      class="cache-copy-expiry__heading">第 0 秒</text
+    ><text x="310" y="109" class="cache-copy-expiry__heading"
+      >MySQL：A　｜　Redis：A</text
+    ><text x="310" y="147">寫入副本，設定 TTL 60 秒</text>
+    <path d="M155 187v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="207" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="241"
+      class="cache-copy-expiry__heading">第 10 秒</text
+    ><text x="310" y="241" class="cache-copy-expiry__heading"
+      >MySQL：B　｜　Redis：A</text
+    ><text x="310" y="279">原本改名；副本仍命中，但內容已落後</text>
+    <path d="M155 319v13m-5-5 5 5 5-5"></path>
+    <rect x="30" y="339" width="840" height="108" rx="12"></rect><text
+      x="52"
+      y="373"
+      class="cache-copy-expiry__heading">第 61 秒</text
+    ><text x="310" y="373" class="cache-copy-expiry__heading"
+      >MySQL：B　｜　Redis：無可讀值</text
+    ><text x="310" y="411">下一次請求才 miss、讀取 B 並回填</text>
+  </svg><div class="cache-copy-expiry__mobile">
+    <p class="cache-copy-expiry__heading">
+      TTL 倒數與內容更新，是不同事件
+    </p><section>
+      <h4>第 0 秒</h4><p>MySQL：A　｜　Redis：A</p><p>
+        寫入副本，設定 TTL 60 秒
+      </p>
+    </section><section>
+      <h4>第 10 秒</h4><p>MySQL：B　｜　Redis：A</p><p>
+        原本改名；副本仍命中，但內容已落後
+      </p>
+    </section><section>
+      <h4>第 61 秒</h4><p>MySQL：B　｜　Redis：無可讀值</p><p>
+        下一次請求才 miss、讀取 B 並回填
+      </p>
+    </section>
+  </div><figcaption id="cache-copy-expiry-caption">
+    假設沒有刪除或回填：到期不會自動取得新標題。
+  </figcaption>
+</figure>
+<style>
+  .cache-copy-expiry {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 1rem;
+    background: var(--dg-surface);
+    color: var(--dg-ink);
+  }
+  .cache-copy-expiry__desktop {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cache-copy-expiry__desktop text {
+    fill: var(--dg-ink-2);
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .cache-copy-expiry__desktop .cache-copy-expiry__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .cache-copy-expiry__desktop .cache-copy-expiry__heading {
+    fill: var(--dg-ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .cache-copy-expiry__desktop rect {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .cache-copy-expiry__desktop path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .cache-copy-expiry__mobile {
+    display: none;
+  }
+  .cache-copy-expiry__mobile section {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .cache-copy-expiry__mobile h4,
+  .cache-copy-expiry__heading {
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+  }
+  .cache-copy-expiry__mobile p {
+    margin: 0.5rem 0;
+  }
+  .cache-copy-expiry figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 48rem) {
+    .cache-copy-expiry__desktop {
+      display: none !important;
+    }
+    .cache-copy-expiry__mobile {
+      display: block !important;
+    }
+  }
+</style>

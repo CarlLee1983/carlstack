@@ -1,0 +1,181 @@
+---
+title: "設計模式怎麼選？看物件如何建立、組合與互動"
+description: "用文章收藏站整理 15 個設計模式的用途與代價，再拆開 Strategy 排序、Adapter 匯入與 Observer 通知。學會辨認需要隔離的變動，也知道何時一個函式就夠。"
+publishDate: 2026-10-27T08:03:40+08:00
+draft: false
+featured: false
+cover: ../../assets/covers/design-patterns-object-collaboration-foundations.webp
+coverAlt: "深紫底色上的米白模組接頭、可替換插片與分枝吊飾，呈現替換、接合與一對多協作。"
+series: 後端工程基礎圖解
+seriesOrder: 7
+tags:
+  - 系統設計
+  - TypeScript
+  - 架構重構
+---
+
+import ObjectCollaborationDiagram from "../../components/ObjectCollaborationDiagram.astro";
+
+文章收藏站要加三個功能：收藏清單可以換排序方式、匯入另一個服務的文章，以及收藏成功後更新畫面上的計數。三件事都能直接寫進 `BookmarkService`，短期內也會動。
+
+接著，外部服務把欄位改名，排序新增一種規則，計數元件又換了。每次修改都要打開同一個服務，測試也得一起準備外部 API、排序資料和畫面通知。這時值得拆開的，是三個各自變動的部分。
+
+[Kelvorn 的原始 Reel](https://www.facebook.com/reel/2058002915601683) 列出 15 個設計模式。這份清單適合當索引；實際選擇仍要回答「哪一種變動不該牽動其他程式」。以下沿用本系列的虛構文章收藏站，先建立分類，再深入三個能一起比較的例子。案例與取捨是教學設計，沒有宣稱來自實際專案或效能實測。
+
+## 三個分類，對應三種改動
+
+GoF 的《Design Patterns》按用途區分建立型、結構型與行為型：分別處理物件建立、物件或類別的組合，以及互動與責任分配。[原書導論](https://people.csail.mit.edu/addy/pattern/chap1.htm) 也提醒，增加間接層有成本，應在確實需要那份彈性時採用。
+
+在收藏站裡，可以把問題寫得更具體：
+
+- 建立型：匯出器要怎麼組好？由誰決定建立哪一種匯出器？
+- 結構型：外部文章來源如何接進站內介面？計時功能要包在哪一層？
+- 行為型：排序由誰選？收藏成功後哪些物件需要收到通知？
+
+下面的圖比較三個實際會用到的邊界。箭頭表示呼叫或通知，不代表網路請求。
+
+<ObjectCollaborationDiagram />
+
+## Strategy：替換排序規則，不改收藏清單
+
+假設清單支援「最近收藏」和「閱讀時間短到長」。兩者讀取同一組資料，只是比較規則不同。最小做法是把比較函式當參數，清單不需要知道規則名稱。
+
+以下 TypeScript 是完整的記憶體內示例，`savedAt` 使用教學用整數時間值，`readingMinutes` 的單位是分鐘：
+
+```ts
+import assert from "node:assert/strict";
+
+type Bookmark = {
+  id: number;
+  savedAt: number;
+  readingMinutes: number;
+};
+type Compare = (a: Bookmark, b: Bookmark) => number;
+
+const newest: Compare = (a, b) => b.savedAt - a.savedAt || a.id - b.id;
+const shortest: Compare = (a, b) =>
+  a.readingMinutes - b.readingMinutes || a.id - b.id;
+
+function sorted(items: readonly Bookmark[], compare: Compare): Bookmark[] {
+  return [...items].sort(compare);
+}
+
+const bookmarks = [
+  { id: 1, savedAt: 100, readingMinutes: 8 },
+  { id: 2, savedAt: 200, readingMinutes: 3 },
+  { id: 3, savedAt: 300, readingMinutes: 3 },
+];
+assert.deepEqual(
+  sorted(bookmarks, newest).map((x) => x.id),
+  [3, 2, 1],
+);
+assert.deepEqual(
+  sorted(bookmarks, shortest).map((x) => x.id),
+  [2, 3, 1],
+);
+assert.deepEqual(
+  bookmarks.map((x) => x.id),
+  [1, 2, 3],
+);
+assert.deepEqual(sorted([], shortest), []);
+```
+
+這個完整片段已在 Node.js 24.22.1 執行，四個斷言通過，涵蓋兩種排序、同分順序、原陣列未變與空集合；沒有連接資料庫或做效能測試。
+
+這是用函式表達 Strategy 的替換點，不必為兩個比較式建立抽象基底類別。`id` 負責同分時的固定順序，複製陣列則避免排序改掉呼叫端的原始清單。Java 的 [Comparator 官方文件](https://docs.oracle.com/javase/8/docs/api/java/util/Comparator.html) 也展示了把比較規則交給排序操作的介面設計；這裡採用同樣的分工思路，沒有使用 Java API。
+
+新增第三種排序時，只增加一個符合 `Compare` 的函式，再由 API 層把允許的排序名稱對應到它。不要讓客戶端傳入任意可執行程式。若目前只有一種排序，而且只用在一處，直接保留比較式就好。
+
+測試除了檢查排序結果，還要檢查同分規則、空陣列，以及原始資料沒有被改動。若資料來自分頁查詢，則應把排序放進資料庫查詢，使用一致的游標與索引策略。把每頁各自排序，無法得到整份收藏清單的正確順序；可接著讀[索引與查詢的基礎篇](/blog/database-index-query-foundations/)。
+
+## Adapter：外部欄位可以變，站內語意保持清楚
+
+收藏站需要的文章摘要是 `url`、`title`、`readingMinutes`。外部服務卻回傳 `link`、`headline`、`duration_seconds`。如果每個呼叫端都自行換欄位，之後供應商改版就得四處修補。
+
+Adapter 把外部介面轉成呼叫端期待的介面。這與 GoF 的[公開 Adapter 節錄](https://www.informit.com/articles/article.aspx?p=1398600) 一致。收藏站的做法可以很小：只設一個匯入邊界，拿到外部資料後驗證、轉換，再交給站內流程。
+
+```text
+外部資料：link、headline、duration_seconds = 150
+    ↓ 驗證必要欄位與型別，換算單位
+站內資料：url、title、readingMinutes = 2.5
+    ↓
+收藏服務只接收站內資料
+```
+
+這段是介面示意，不是可直接執行的匯入器。此例假設外部文件明確說明 `duration_seconds` 是估計閱讀秒數；若它其實是影片長度，就不能只換欄位名稱假裝完成轉換。
+
+Adapter 的價值取決於語意契約。遇到空標題、無效 URL、未知單位時，要明確拒絕或採用約定的缺值策略。不要偷偷把缺值改成 `0`，讓「未知閱讀時間」混進「最短閱讀時間」排序。測試以固定外部回應樣本驗證正常值、缺值和格式變更，不必每次測排序都呼叫真實供應商。
+
+如果只是同一個團隊自己控制的兩個函式命名不一致，直接統一介面通常比新增 Adapter 更省。外部介面無法由你控制，或已有多個使用端需要穩定契約時，這一層才比較有價值。至於抓取 URL 的逾時、大小限制與目的地限制，仍需另外設計；有 Adapter 不會自動取得安全保障。
+
+## Observer：通知多個接收者，也要看得見失敗
+
+收藏完成後，畫面需要更新側欄計數，也可能顯示「已收藏」提示。如果收藏模型只通知已註冊的接收者，就不需要認識每個畫面元件。這是 [Observer](https://people.csail.mit.edu/addy/pattern/pat5g.htm) 的一對多關係。
+
+最小版本可以是同一個行程裡的事件發送器。收藏成功後發送 `bookmarkSaved`，計數元件和提示元件各自訂閱。元件卸載時取消訂閱，避免下一次事件還呼叫已失效的接收者。
+
+**Observer 描述依賴與通知關係，不提供持久化交付保證。** Node.js 的 [`EventEmitter` 官方文件](https://nodejs.org/docs/latest-v22.x/api/events.html#asynchronous-vs-synchronous) 明確說明，listener 預設依註冊順序同步呼叫。用了事件名稱，不代表工作已經到背景執行。
+
+這會影響失敗處理。若某個同步 listener 丟出例外，發送端如何處理？後續接收者還會不會執行？如果 listener 啟動非同步工作，誰等待結果、誰接住失敗？這些都要由具體實作定義，不能只在架構圖畫一條通知箭頭。
+
+收藏資料已經寫入，但顯示提示失敗，通常不應把資料當作沒存過。若通知改成「必須寄出的收據」，而且重新啟動後仍要補送，就已經超出這個記憶體內方案的責任。需要持久化待辦、重試與重複處理策略，接續[佇列、worker 與 ack 基礎篇](/blog/queue-worker-ack-foundations/)，不要把 Observer 改名叫 event bus 就當作完成。
+
+驗證時，讓一個接收者故意失敗，再觀察其他接收者與發送端的結果。也要確認取消訂閱後不再收到事件。若永遠只有一個必要接收者，直接呼叫函式會更容易追蹤成功與失敗。
+
+## 把其餘模式放回問題裡
+
+原影片的 15 個名稱都收在下面。每項只列一個收藏站的可能用途與代價，方便遇到問題時回來找；不是建議在同一個系統一次導入全部模式。
+
+### 建立型：控制建立方式
+
+- `Singleton`：限制單一實例並提供存取點。收藏站若共用設定物件，須說清楚實例生命週期；不同伺服器仍可各有一份，全域可變狀態也會增加測試隔離成本。
+- `Factory Method`：讓子類別決定建立哪種物件。匯出框架可以把「建立文件」留給子類別；代價是增加繼承層。只有 `switch` 後回傳不同物件的簡單工廠，不能因此就稱為 GoF 的 Factory Method。[原書章節](https://people.csail.mit.edu/addy/pattern/pat3c.htm)
+- `Builder`：分開複雜物件的組裝過程與表示。匯出文件有標題、章節與附件時可以逐步組裝；若只是三個選填欄位，一個選項物件就足夠，也少了半成品狀態。
+
+Singleton 與 Builder 的原始意圖可對照[GoF 導論的模式目錄](https://people.csail.mit.edu/addy/pattern/chap1.htm)。上述設定物件與匯出文件是這個教學案例的應用判斷。
+
+### 結構型：改變接合方式
+
+- `Adapter`：轉換不相容的介面。隔離文章來源格式，代價是維護轉換與錯誤規則。
+- `Decorator`：用相同介面的包裝層增加責任。例如在匯入器外加計時；層數與順序增加後，除錯路徑也會變長。[原書章節](https://people.csail.mit.edu/addy/pattern/pat4d.htm)
+- `Facade`：提供子系統的簡化入口。例如一次呼叫匯出收藏，內部協調讀取與序列化；代價是入口可能持續膨脹，需要限制職責。[原書章節](https://people.csail.mit.edu/addy/pattern/pat4e.htm)
+- `Proxy`：代理另一個物件的存取。例如在讀取文章前檢查授權；呼叫端仍須理解拒絕、延遲或遠端失敗等結果。[原始意圖](https://people.csail.mit.edu/addy/pattern/chap1.htm)
+- `Composite`：以一致操作處理單一物件與樹狀組合。例如一篇收藏或一整個資料夾都能列出內容；要處理循環、深度與不適用於葉節點的操作。[原書章節](https://people.csail.mit.edu/addy/pattern/pat4c.htm)
+
+Decorator、Adapter、Proxy 外觀都可能是一個包裝物件，差別在目的：增加責任、轉換介面、控制存取。TypeScript 的 `@decorator` 則是語言層級的宣告修飾機制，不能看到相同名字就認定使用了 GoF Decorator；兩者的定義層次不同。[TypeScript 官方說明](https://www.typescriptlang.org/docs/handbook/decorators.html)
+
+### 行為型：安排誰做什麼
+
+- `Observer`：一個來源通知多個接收者。適合畫面同步，代價是追蹤訂閱生命週期與失敗傳播。
+- `Strategy`：替換同一件事的演算法。適合收藏排序，代價是多一個選擇策略的地方。[原始意圖](https://people.csail.mit.edu/addy/pattern/chap1.htm)
+- `Command`：把請求封裝成物件。收藏站可把「移動收藏」保存為操作資料；撤銷仍需要原位置與衝突規則，不會因為叫 Command 就自動成立。[原始意圖](https://people.csail.mit.edu/addy/pattern/chap1.htm)
+- `Iterator`：以統一方式逐項存取集合。例如逐項讀取匯出資料；分頁來源還得定義中途新增、刪除與讀取失敗的行為。[原書章節](https://people.csail.mit.edu/addy/pattern/pat5d.htm)
+- `State`：讓行為隨內部狀態改變。例如匯入作業在等待、執行、取消狀態下接受不同操作；代價是維護狀態轉移與非法操作。[原書章節](https://people.csail.mit.edu/addy/pattern/pat5h.htm)
+- `Template Method`：固定流程骨架，讓子類別改寫部分步驟。例如共用匯出流程，替換不同格式的序列化步驟；代價是子類別依賴父類別的呼叫順序。[原書章節](https://people.csail.mit.edu/addy/pattern/pat5j.htm)
+- `Chain of Responsibility`：讓請求沿候選處理者傳遞，直到有人處理。例如依序嘗試辨識匯入格式；要定義優先順序，以及最後無人處理時的結果。[GoF 公開節錄](https://www.informit.com/articles/article.aspx?p=1398601)
+
+Strategy 與 State 都可能把工作交給另一個物件。排序規則由使用情境挑選；匯入作業能否取消則由目前狀態決定。看起來相似的類別圖，不代表它們在解決相同問題。
+
+## 一次只抽出一個已存在的變動
+
+這個收藏站最小可行的改法，是保留目前的收藏服務，讓排序接受函式，並把外部格式轉換集中到匯入邊界。畫面只有兩個直接呼叫而且責任清楚時，也可以暫時不用 Observer。
+
+抽出模式前後，至少留下同一組行為測試。新增排序不應修改匯入器；外部欄位改名不應修改排序；取消畫面訂閱不應影響收藏是否保存。這些是可觀察的改善，檔案數增加本身不是。
+
+如果抽出來的介面仍會跟每個實作一起修改，表示穩定契約還沒找對。此時可以縮小介面，甚至合回去。把簡單判斷拆成一群只互相轉呼叫的類別，維護者只會多走幾層。
+
+## 練習：需求改了，哪個邊界要跟著改？
+
+收藏站新增「外部來源 B」，回傳的閱讀時間是字串 `"3 min"`；同時新增「閱讀時間短到長」，並要求收藏成功後寄確認信，伺服器重新啟動也不能漏寄。
+
+請分別寫出這三個需求應放在哪裡、至少一個失敗案例，以及你會保留直接函式呼叫的地方。不要只填模式名稱。
+
+### 參考思路
+
+來源 B 的格式解析放在 Adapter 邊界。測試 `"3 min"`、未知單位與缺值，只有通過契約的資料能進站內模型。
+
+排序用 Strategy 的比較函式表達；同分規則要固定。若清單已分頁，改的是資料庫查詢契約，不能只排序當頁陣列。
+
+寄信需要可恢復的待辦與重試流程，記憶體內 Observer 不足以承擔。資料保存與寄信待辦如何避免一邊成功、一邊遺失，要另設計可靠交接。純粹更新同一畫面的提示仍可保留直接函式呼叫。
+
+拿現有程式裡一段最常一起修改的邏輯，寫下兩個具體的變動例子。只有能指出哪些程式應該不受影響，才值得開始抽介面。
