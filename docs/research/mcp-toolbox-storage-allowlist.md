@@ -1,6 +1,6 @@
 # MCP Toolbox cloud-storage allowlist 查核
 
-查核日期：2026-10-27。以 CVE-2026-93328、toolbox、cloud-storage、PR3454 及來源正規化 URL 搜尋 blog/research/queue，無既有核心文。新文聚焦升版後仍需明確設定資源邊界，與 Splunk 憑證目的地文章互補，不複寫其憑證綁定問題。現有 AI Agent 系列最大89，本批保留90/91/92。
+查核日期：2026-10-27。以 CVE-2026-93328、toolbox、cloud-storage、PR3454 及來源正規化 URL 搜尋 blog/research/queue，無既有核心文。新文聚焦升版後仍需明確設定資源邊界，與 Splunk 憑證目的地文章互補，不複寫其憑證綁定問題。全量核對既有 AI Agent 系列最大98，本批設定99/100/101；首次部署後的系列驗收發現原先90/91/92重複，已在本次修正，不更動舊文。
 
 ## 主張與來源
 

@@ -10,7 +10,7 @@ tags:
   - 資安
   - 系統設計
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 91
+seriesOrder: 100
 cover: ../../assets/covers/cloudflare-kv-cache-request-isolation.webp
 coverAlt: 兩張分開的紙面，一張有鮭紅圓形印記，另一張殘留同形淡印，象徵前一個請求的資料意外進入下一個回覆。
 ---

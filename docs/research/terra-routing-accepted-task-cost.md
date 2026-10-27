@@ -7,7 +7,7 @@
 - https://openai.com/index/introducing-gpt-6-1-terra/ ：OpenAI 一手發布公告，全文已讀；模型視覺推理、電腦操作定位、發票處理例子，以及最複雜 coding 仍建議 Sol/Astra。發布日期由下列系統卡核實，查核日另外標明。
 - https://developers.openai.com/api/docs/models/gpt-6.1-terra ：官方完整模型頁已讀；Responses 工具限制、effort 預設與 Standard 價目/快取/長 context 條件。`.md` 官方版本的 web tool 因 unsupported text/markdown 失敗，正常 HTML 版本成功，不使用搜尋摘要替代。
 - 以 Terra、來源 URL、accepted-task、token 成本與畫面操作搜尋 src/content/blog、docs/research、docs/article-queue.md。已有 `gpt-6-1-sol-cost-per-accepted-task.md` 與 `haiku55-subagent-accepted-task-cost.md`，所以沒有再以每個驗收任務的成本公式為主軸。新文核心決策是電腦操作依可恢復性分派模型，以及寫入結果不明時停止重新寫入；內鏈兩篇既有成本方法。
-- 系列：AI Agent 工程化與工作流實戰。編號 92 由本批整合者協調保留。
+- 系列：AI Agent 工程化與工作流實戰。編號 101 由本批整合者協調保留。
 
 - https://deploymentsafety.openai.com/gpt-6-1-terra/ ：官方系統卡 Published October 26, 2026 與首段 Today introducing 核實發布日期。正文僅引日期，不引用安全評測比例。
 

@@ -9,7 +9,7 @@ tags:
   - AI Agent Workflow
   - API 整合
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 90
+seriesOrder: 99
 cover: ../../assets/covers/mcp-toolbox-storage-allowlist.webp
 coverAlt: 深藍色布面工作墊上的兩個獨立金屬框，分別圈住檔案卡與儲存容器，表達本地路徑及雲端目的地需要各自限制。
 ---

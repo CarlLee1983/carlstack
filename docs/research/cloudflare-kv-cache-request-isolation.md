@@ -8,7 +8,7 @@
 - 穩定識別：kv-cache-exposure-remediation；事件模型 @cf/zai-org/glm-5.3。
 - 搜尋 src/content/blog、docs/research、docs/article-queue.md 的 URL、GLM-5.3、文章 slug，未有同一事故文章。
 - 既有 kv-cache-capacity-ledger 談容量／頻寬／重複，本篇聚焦跨請求頁面所有權與失敗生命週期，讀者決策不同，正文加入內鏈。
-- 系列 AI Agent 工程化與工作流實戰第 91 篇，與本批第 90、92 篇協調預留。
+- 系列 AI Agent 工程化與工作流實戰第 100 篇，與本批第 99、101 篇協調預留。
 - trail binary/cache 不存在，使用 repo 原始檔查核；沒有修改規則檔。
 
 ## 原文與段落對應

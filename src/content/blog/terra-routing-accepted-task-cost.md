@@ -9,7 +9,7 @@ tags:
   - AI Agent Workflow
   - 技術選型
 series: AI Agent 工程化與工作流實戰
-seriesOrder: 92
+seriesOrder: 101
 cover: ../../assets/covers/terra-routing-accepted-task-cost.webp
 coverAlt: 藍色陶盤中的草稿紙卡，旁邊放著尚未使用的赭黃印章，表達可修改草稿與正式送出應分開控制。
 ---
