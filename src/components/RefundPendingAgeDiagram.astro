@@ -1,0 +1,174 @@
+<figure class="refund-age-diagram" aria-labelledby="refund-age-caption">
+  <svg
+    class="refund-age-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="refund-age-title refund-age-desc"
+  >
+    <title id="refund-age-title">未決案件與觀測新鮮度分開檢查</title>
+    <desc id="refund-age-desc"
+      >從持久未決操作讀取原受理時間與筆數，產生完整快照。監控分別判斷等待太久及快照過舊；已完成耗時只作輔助分析。</desc
+    >
+    <rect
+      class="refund-age-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="refund-age-diagram__heading" x="48" y="64"
+      >未完成的退款，也必須出現在監控裡</text
+    >
+    <text class="refund-age-diagram__lead" x="48" y="96"
+      >以業務操作為單位；重試、接手與轉人工都不重設受理時間</text
+    >
+    <rect
+      class="refund-age-diagram__card"
+      x="48"
+      y="122"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="refund-age-diagram__label" x="72" y="156"
+      >1 · 主庫的持久未決紀錄</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="188"
+      >包含待執行、在途、重試、結果不明與人工核對。</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="212"
+      >每筆業務操作只算一次；保存最初受理時間。</text
+    >
+    <rect
+      class="refund-age-diagram__card"
+      x="48"
+      y="252"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="refund-age-diagram__label" x="72" y="286"
+      >2 · 獨立唯讀程序產生快照</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="318"
+      >每 30 秒讀取未決筆數、最老受理時間及超時筆數。</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="342"
+      >只有完整查詢成功，才更新成功快照時間。</text
+    >
+    <rect
+      class="refund-age-diagram__card"
+      x="48"
+      y="382"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="refund-age-diagram__label" x="72" y="416"
+      >3 · 兩個問題分開告警</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="448"
+      >等待達 10 分鐘 → 查看退款；快照超過 90 秒 → 修復觀測。</text
+    >
+    <text class="refund-age-diagram__detail" x="72" y="472"
+      >沒有新資料，不能當作沒有未決案件。</text
+    >
+    <text class="refund-age-diagram__note" x="48" y="544"
+      >時間皆為教學假設；完成耗時仍保留，但不單獨判斷卡單。</text
+    >
+  </svg>
+  <div class="refund-age-diagram__mobile">
+    <p>重試、接手與轉人工，不重設原受理時間。</p>
+    <section>
+      <h3>1 · 持久未決紀錄</h3><p>
+        待執行、在途、重試、結果不明及人工核對。每筆業務操作只算一次。
+      </p>
+    </section>
+    <section>
+      <h3>2 · 唯讀完整快照</h3><p>
+        每 30 秒取得筆數、最老受理時間與超時筆數。只有完整成功才更新快照時間。
+      </p>
+    </section>
+    <section>
+      <h3>3 · 分開告警</h3><p>
+        等待達 10 分鐘，查看退款；快照超過 90
+        秒，修復觀測。沒有新資料不等於沒有案件。
+      </p>
+    </section>
+  </div>
+  <figcaption id="refund-age-caption">
+    等待年齡與觀測新鮮度一起看；完成耗時另作效能分析。所有時間為教學假設。
+  </figcaption>
+</figure>
+<style>
+  .refund-age-diagram {
+    margin-block: var(--space-xl);
+  }
+  .refund-age-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .refund-age-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .refund-age-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .refund-age-diagram__heading {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .refund-age-diagram__lead {
+    fill: var(--dg-ink);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .refund-age-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .refund-age-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .refund-age-diagram__note {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .refund-age-diagram__mobile {
+    display: none;
+  }
+  .refund-age-diagram__mobile section {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+  }
+  .refund-age-diagram__mobile h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .refund-age-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+    overflow-wrap: anywhere;
+  }
+  .refund-age-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .refund-age-diagram__desktop {
+      display: none !important;
+    }
+    .refund-age-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
