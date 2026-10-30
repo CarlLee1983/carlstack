@@ -1,0 +1,174 @@
+<figure class="order-export-diagram" aria-labelledby="order-export-caption">
+  <svg
+    class="order-export-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="order-export-title order-export-desc"
+  >
+    <title id="order-export-title">整份訂單報表共用一個讀視圖</title>
+    <desc id="order-export-desc"
+      >先固定 InnoDB Repeatable Read
+      交易的讀視圖，再以同一連線分批讀取明細與合計。只有整份成功才提供下載，中途失敗則丟棄結果。</desc
+    >
+    <rect
+      class="order-export-diagram__panel"
+      x="24"
+      y="24"
+      width="912"
+      height="552"
+      rx="18"></rect>
+    <text class="order-export-diagram__heading" x="48" y="64"
+      >分批讀取，不代表分成多個資料時點</text
+    >
+    <text class="order-export-diagram__lead" x="48" y="96"
+      >案例限定 InnoDB 一般 SELECT；不混入鎖定讀或寫入</text
+    >
+    <rect
+      class="order-export-diagram__card"
+      x="48"
+      y="122"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="order-export-diagram__label" x="72" y="156"
+      >1 · 固定同一個讀視圖</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="188"
+      >同一專用連線開啟 RR 唯讀交易，建立一致快照。</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="212"
+      >READ ONLY 是唯讀限制，本身不保證固定快照。</text
+    >
+    <rect
+      class="order-export-diagram__card"
+      x="48"
+      y="252"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="order-export-diagram__label" x="72" y="286"
+      >2 · 分批讀明細，合計沿用相同快照</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="318"
+      >固定篩選條件與唯一排序；批次之間不 commit、不換連線。</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="342"
+      >其他交易可以更新資料，本報表仍讀自己的歷史版本。</text
+    >
+    <rect
+      class="order-export-diagram__card"
+      x="48"
+      y="382"
+      width="864"
+      height="112"
+      rx="12"></rect>
+    <text class="order-export-diagram__label" x="72" y="416"
+      >3 · 整份成功才交付</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="448"
+      >完整暫存結果通過檢查後結束交易，再開放下載。</text
+    >
+    <text class="order-export-diagram__detail" x="72" y="472"
+      >超時、斷線或換連線：丟棄整份，不拼接不同快照。</text
+    >
+    <text class="order-export-diagram__note" x="48" y="544"
+      >交易必須有時限；長時間保留讀視圖會增加舊版本保留成本。</text
+    >
+  </svg>
+  <div class="order-export-diagram__mobile">
+    <p>案例限定 InnoDB、RR 與一般 SELECT。</p>
+    <section>
+      <h3>1 · 固定讀視圖</h3><p>
+        同一專用連線開啟 RR 唯讀交易並建立一致快照。唯讀本身不保證固定快照。
+      </p>
+    </section>
+    <section>
+      <h3>2 · 同一快照分批讀</h3><p>
+        明細與合計共用讀視圖。固定篩選與唯一排序，批次之間不 commit、不換連線。
+      </p>
+    </section>
+    <section>
+      <h3>3 · 完整才交付</h3><p>
+        完整成功才開放下載；超時、斷線或換連線就丟棄整份，不拼接不同快照。
+      </p>
+    </section>
+  </div>
+  <figcaption id="order-export-caption">
+    分批控制記憶體用量；同一交易的讀視圖才控制報表時點。長交易成本仍須量測。
+  </figcaption>
+</figure>
+<style>
+  .order-export-diagram {
+    margin-block: var(--space-xl);
+  }
+  .order-export-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .order-export-diagram__panel {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .order-export-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+  }
+  .order-export-diagram__heading {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .order-export-diagram__lead {
+    fill: var(--dg-ink);
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .order-export-diagram__label {
+    fill: var(--dg-ink);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .order-export-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .order-export-diagram__note {
+    fill: var(--dg-ink-2);
+    font-size: 16px;
+  }
+  .order-export-diagram__mobile {
+    display: none;
+  }
+  .order-export-diagram__mobile section {
+    margin-block: var(--space-md);
+    padding: var(--space-md);
+    background: var(--dg-surface);
+    border: 1px solid var(--dg-rule-strong);
+    border-radius: 12px;
+  }
+  .order-export-diagram__mobile h3 {
+    margin: 0 0 var(--space-sm);
+    color: var(--dg-ink);
+    font-size: var(--text-base);
+  }
+  .order-export-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+    overflow-wrap: anywhere;
+  }
+  .order-export-diagram figcaption {
+    margin-top: var(--space-md);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .order-export-diagram__desktop {
+      display: none !important;
+    }
+    .order-export-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
