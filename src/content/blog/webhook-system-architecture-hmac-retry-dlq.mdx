@@ -142,3 +142,5 @@ def calculate_backoff(attempt: int, base_delay: int = 10, max_delay: int = 86400
 1. **永遠維持非同步解耦**：核心業務只寫入 Outbox 表或 Kafka，由獨立 Worker 叢集負責網路 I/O。
 2. **強制簽名與防重放**：HMAC-SHA256 + 時間戳標頭是 Webhook 安全的底線。
 3. **提供開發者自助工作台**：記錄每筆 Webhook 的 Request Header、Payload、Response Code 與耗時，並提供「手動一鍵重發（Manual Redeliver）」功能，極大降低技術支援成本。
+
+GitHub 接收端還需維護來源 IP 清單；可接著看 [Webhook allowlist 更新與漏收補送驗收](/blog/github-webhook-allowlist-update-boundary/)，區分入口放行、驗簽及業務完成。

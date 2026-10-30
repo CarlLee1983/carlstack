@@ -75,3 +75,5 @@ Octopus 的 [Other Issuers 文件](https://octopus.com/docs/api/authentication/o
 日誌應留下選用的信任規則、帳號與拒絕原因，不記完整 bearer token。結案時分開保留修補版本、身分設定摘要與正反案例結果，讓下一次加 issuer 或放寬 subject 模式時能重跑比較。
 
 今天可以從最高權限的部署服務帳號開始，把每筆 OIDC identity 的 issuer、subject、audience 與可執行動作列在同一張工作單上。只要其中一項說不清楚，就暫緩擴大該帳號的信任來源；既有漏洞則照官方分支路徑升級。
+
+若簽發流程涉及 Kubernetes 憑證，另一個驗收面向是[修補後的合法續期與憑證載入](/blog/aws-privateca-renewal-validation/)，需要把資源 kind 與 scope 一起確認。
