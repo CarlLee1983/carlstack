@@ -1,0 +1,125 @@
+---
+title: "程式典範可以混用：用一張訂單看流程、狀態與事件"
+description: "以同一張訂單的計價、付款狀態、通知及查詢，理解程序式、物件導向、函數式、事件驅動和宣告式寫法，不把典範當成互斥語言陣營。"
+publishDate: 2026-10-31T18:01:51+08:00
+draft: false
+featured: false
+series: 程式設計與演算法基礎
+seriesOrder: 4
+cover: ../../assets/programming-paradigms-same-order-workflow.webp
+coverAlt: "粉紅輸送帶、綠色節點與米白齒輪連向同一個紙箱，呈現不同程式典範處理同一流程。"
+tags:
+  - 系統設計
+  - TypeScript
+  - 架構重構
+---
+
+建立一張訂單，至少會碰到四件事：算金額、檢查能否付款、通知其他功能，以及查出待出貨清單。把這些工作都寫成類別，程式不會自動變清楚；全改成純函式，也不能讓資料庫寫入消失。
+
+[UCFYX 的程式典範 Reel](https://www.facebook.com/reel/1444851567820521) 列出多種分類。學習時可以先把典範理解成「用什麼方式組織計算」。分類有交集，同一種語言通常支援多種寫法。[Python 官方的函數式導讀](https://docs.python.org/3/howto/functional.html#introduction) 就以程序式、宣告式、物件導向與函數式說明不同分解方式，也指出同一程式可以混用。
+
+以下訂單都是教學案例，金額使用整數元，暫不處理稅、折扣與小數貨幣。目的在於看清每種寫法把責任放在哪裡。
+
+## 程序式：把步驟與執行順序寫清楚
+
+「驗證商品、算總額、儲存訂單、回傳結果」是一段有順序的流程。程序式寫法會明確描述這些步驟，以及中間資料如何更新。
+
+假設只是計算兩項商品總額，可以從 0 開始，用迴圈把每項的單價乘數量加上去。這種寫法直觀，尤其適合需要看清前後順序的流程；問題出在流程膨脹後，把計價規則、資料庫操作、通知條件全塞進同一段，任何變更都可能牽動整段測試。
+
+最小改善通常是先抽出有名字的小函式，讓流程讀起來仍接近業務步驟。不需要為了採用另一個典範就先建立一串抽象類別。
+
+## 函數式：把可計算的結果與外部副作用分開
+
+計價只需要商品單價和數量。若相同輸入總是得到相同輸出，也不修改外部狀態，就能單獨測試，不必準備資料庫或假付款服務。這就是純函式適合發揮的地方。
+
+下面兩個函式計算相同結果，一個明確累加，另一個以 `reduce` 組合結果。`reduce` 本身不保證程式是純函式，回呼仍可能偷偷修改外部資料。
+
+```js
+import assert from "node:assert/strict";
+
+const items = [
+  { unitPrice: 120, quantity: 2 },
+  { unitPrice: 80, quantity: 1 },
+];
+
+function totalWithLoop(lines) {
+  let total = 0;
+  for (const line of lines) {
+    total += line.unitPrice * line.quantity;
+  }
+  return total;
+}
+
+function totalWithReduce(lines) {
+  return lines.reduce(
+    (total, line) => total + line.unitPrice * line.quantity,
+    0,
+  );
+}
+
+const before = JSON.stringify(items);
+assert.equal(totalWithLoop(items), 320);
+assert.equal(totalWithReduce(items), 320);
+assert.equal(totalWithReduce([]), 0);
+assert.equal(JSON.stringify(items), before);
+```
+
+可存成 `totals.mjs`，以 `node totals.mjs` 執行。這段已在 Node.js 24.22.1 通過斷言，驗證的是自訂資料的計算結果與輸入未變動，沒有驗證貨幣邊界或效能。
+
+區域變數 `total` 的更新不等於修改外部狀態；第一個函式同樣可以保持輸入與輸出清楚。函數式設計值得保留的是可組合、可單獨驗證的計算，不必把每個迴圈改寫成一長串方法呼叫。[Python 函數式導讀](https://docs.python.org/3/howto/functional.html) 也說明了純函式、副作用與實務混用方式。
+
+## 物件導向：把狀態與合法操作放在一起
+
+訂單有 `pending`、`paid`、`cancelled` 等狀態。如果任何地方都能任意改狀態，就很難保證「取消的訂單不能再付款」。可以把付款行為放進訂單物件，集中檢查允許的轉換。
+
+這段縮寫只展示狀態檢查，尚未包含完整付款流程：
+
+```js
+class Order {
+  #status = "pending";
+
+  markPaid() {
+    if (this.#status !== "pending") {
+      throw new Error("Only pending orders can become paid");
+    }
+    this.#status = "paid";
+  }
+}
+```
+
+這個類別把記憶體內的狀態與行為放在一起，卻不能阻止兩個伺服器同時更新同一筆資料。持久化、交易與重複付款仍要另外設計。物件封裝解決的是程式責任，不會自動提供跨程序一致性。
+
+想再看物件之間如何配合，可以接著讀 [設計模式與物件協作](https://carlstack.gravito.dev/blog/design-patterns-object-collaboration-foundations/)。先能指出哪個狀態或變動需要保護，再選模式。
+
+## 事件驅動：某件事發生後，誰要反應？
+
+訂單已付款，通知功能要寄信，出貨功能要準備工作。事件驅動會讓發生的事以事件表示，再由監聽者處理，例如 `order.paid`。
+
+事件可以只在同一個程序內傳遞，不必先上訊息中介軟體。Node.js 的 `EventEmitter` 預設會依註冊順序同步呼叫監聽者；看到事件名稱，不能就推論背景執行、平行處理或持久化重試。[Node.js 官方 Events 文件](https://nodejs.org/api/events.html#asynchronous-vs-synchronous) 清楚區分同步監聽與另行安排非同步工作的做法。
+
+拆出反應者後，要追查一次付款觸發哪些動作，通常得多看幾個地方。若通知不能遺失，就需要進一步處理寫入成功、事件送出與失敗恢復的關係。這是後續學習課題，先從 [Queue、Worker 與 ACK](https://carlstack.gravito.dev/blog/queue-worker-ack-foundations/) 建立基本概念。
+
+## 宣告式：描述想要什麼結果
+
+查出待出貨訂單時，可以寫出條件和排序，不必自己描述資料庫要如何掃描每個儲存頁。這段 SQL 是概念片段，假設 `orders` 有對應欄位，未在資料庫執行：
+
+```sql
+SELECT id, created_at
+FROM orders
+WHERE status = 'paid'
+ORDER BY created_at, id;
+```
+
+這裡指定了結果欄位、條件與順序；資料庫會決定執行方式。[PostgreSQL 查詢教材](https://www.postgresql.org/docs/current/tutorial-select.html) 介紹這些構成。宣告式讓程式離儲存細節更遠，但查詢很慢時，仍要理解索引與執行計畫，不能把選擇交給引擎後就不驗證成本。
+
+邏輯式與剖面導向也有各自用途，但沒有需要它們的規則推導或橫切需求時，這個訂單例子不用硬湊。先學會判斷眼前的工作是計算、狀態管理、順序控制，還是事件反應，就能開始整理程式。
+
+## 練習：哪一段值得先抽出去？
+
+目前 `checkout()` 同時算總額、讀取當下時間、更新訂單、寄送 Email。若只想讓金額規則更好測試，第一步應該新增事件系統、建立繼承架構，還是抽出計價函式？請說明它應接受哪些輸入，回傳什麼。
+
+### 參考思路
+
+先抽出接受商品明細與明確折扣規則、回傳金額結果的函式。若規則受時間影響，把需要的日期當輸入，別在函式裡自行讀取時鐘。資料庫更新和寄信仍由外層流程處理。這個改動小，也能立刻寫測試；之後只有出現獨立通知或狀態封裝需求，才增加對應結構。
+
+更多閱讀順序見[程式設計與演算法基礎導讀](/blog/programming-foundations-reading-path/)。

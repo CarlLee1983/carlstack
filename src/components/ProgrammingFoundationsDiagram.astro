@@ -1,0 +1,124 @@
+---
+const steps = [
+  ["排序：資料的次序", "同價規則、輸入規模、記憶體"],
+  ["排程：資源先交給誰", "抵達、等待、完成與公平"],
+  ["典範：規則如何表達", "資料變動、狀態持有與通知"],
+];
+---
+
+<figure
+  class="programming-foundations-diagram"
+  aria-labelledby="programming-foundations-caption"
+>
+  <svg
+    class="programming-foundations-diagram__desktop"
+    viewBox="0 0 480 560"
+    role="img"
+    aria-labelledby="programming-foundations-title programming-foundations-desc"
+  >
+    <title id="programming-foundations-title">三種基礎問題的學習順序</title>
+    <desc id="programming-foundations-desc"
+      >先練資料排序，再比較工作等待，最後看程式如何表達規則。三者相關，但解決不同問題。</desc
+    >
+    {
+      steps.map(([title, detail], i) => (
+        <g>
+          <rect x="8" y={16 + i * 184} width="464" height="152" rx="12" />
+          <text
+            class="programming-foundations-diagram__title"
+            x="24"
+            y={72 + i * 184}
+          >
+            {title}
+          </text>
+          <text
+            class="programming-foundations-diagram__detail"
+            x="24"
+            y={114 + i * 184}
+          >
+            {detail}
+          </text>
+          {i < 2 && <path d={`M240 ${168 + i * 184} V${200 + i * 184}`} />}
+        </g>
+      ))
+    }
+  </svg>
+  <div class="programming-foundations-diagram__mobile">
+    {
+      steps.map(([title, detail]) => (
+        <section>
+          <>
+            <h3>{title}</h3>
+            <p>{detail}</p>
+          </>
+        </section>
+      ))
+    }
+  </div>
+  <figcaption id="programming-foundations-caption">
+    展示順序、執行順序與程式組織，各自需要明確的規則。
+  </figcaption>
+</figure>
+<style>
+  .programming-foundations-diagram {
+    margin: 2rem 0;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    max-width: 40rem;
+    height: auto;
+    margin: auto;
+  }
+  rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .programming-foundations-diagram__title {
+    fill: var(--dg-ink);
+    font: 700 24px var(--font-body);
+  }
+  .programming-foundations-diagram__detail {
+    fill: var(--dg-ink-2);
+    font: 18px var(--font-body);
+  }
+  path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: 0.9rem;
+  }
+  .programming-foundations-diagram__mobile {
+    display: none;
+  }
+  .programming-foundations-diagram__mobile section {
+    padding: 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface);
+  }
+  .programming-foundations-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    color: var(--dg-ink);
+    font-size: 1rem;
+  }
+  .programming-foundations-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+    font-size: 0.95rem;
+  }
+  @media (max-width: 48rem) {
+    .programming-foundations-diagram__desktop {
+      display: none !important;
+    }
+    .programming-foundations-diagram__mobile {
+      display: block;
+    }
+  }
+</style>

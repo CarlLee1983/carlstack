@@ -2,6 +2,7 @@
 title: "API 安全防禦實戰：OWASP API Security Top 10、BOLA 越權防護與 JWT 簽名混淆攻防"
 description: "深度剖析現代 Web 與微服務 API 面臨的致命安全威脅：OWASP API Security Top 10 核心漏洞防護、BOLA（失效物件級授權）防禦架構、Mass Assignment 批量賦值漏洞修補與 JWT 簽名混淆（alg:none / RS256 降級 HS256）攻防實務。"
 publishDate: 2026-09-02T15:55:00+08:00
+updatedDate: 2026-10-31T17:57:55+08:00
 draft: false
 featured: false
 cover: ../../assets/covers/api-security-owasp-top-10-defenses.png
@@ -19,7 +20,7 @@ import BolaAttackDefenseDiagram from "../../components/BolaAttackDefenseDiagram.
 import JwtAlgorithmConfusionDiagram from "../../components/JwtAlgorithmConfusionDiagram.astro";
 import JwtStructureDiagram from "../../components/JwtStructureDiagram.astro";
 
-在雲原生與前後端分離的架構下，**API（Application Programming Interface）** 承載了企業 90% 以上的業務流量與敏感數據。
+前後端分離的應用會透過 **API（Application Programming Interface）** 交換業務資料，因此每個端點都需要明確的存取控制。
 
 然而，許多工程師往往只注重邊界防火牆（WAF）與身份認證（Authentication），卻忽略了應用層更為致命的邏輯漏洞。攻擊者不需要攻破伺服器操作系統，只需透過惡意構造的 API 請求，就能直接掏空用戶數據庫！
 
@@ -99,16 +100,18 @@ JWT 是現代分散式系統最常用的無狀態憑證，但其底層如果實�
 
 ## 4. OWASP API Security Top 10 全景防禦矩陣
 
-| 漏洞編號      | 威脅名稱                               | 核心防禦實踐                                                         |
-| :------------ | :------------------------------------- | :------------------------------------------------------------------- |
-| **API1:2023** | **BOLA (物件級授權失效)**              | 查詢強制夾帶 `tenant_id`，採用 RLS（行級安全策略）。                 |
-| **API2:2023** | **Broken Authentication (認證失效)**   | 強制 MFA、防弱密碼、嚴格 Token 輪換與過期時間。                      |
-| **API3:2023** | **BOPLA (物件屬性級授權失效)**         | 採用 DTO 白名單驗證，阻斷 Mass Assignment 注入。                     |
-| **API4:2023** | **Unrestricted Resource Consumption**  | API 閘道層實作 Token Bucket 限流、分頁限制與 Payload 大小上限。      |
-| **API5:2023** | **BFLA (功能級授權失效)**              | 區分使用者與管理員端點，Controller 嚴格註解 RBAC 權限校驗。          |
-| **API6:2023** | **Server Side Request Forgery (SSRF)** | 對外發起請求時，嚴格過濾私有 IP（`10.0.0.0/8`, `169.254.169.254`）。 |
+| 漏洞編號      | 威脅名稱                               | 核心防禦實踐                                                                   |
+| :------------ | :------------------------------------- | :----------------------------------------------------------------------------- |
+| **API1:2023** | **BOLA (物件級授權失效)**              | 查詢強制夾帶 `tenant_id`，採用 RLS（行級安全策略）。                           |
+| **API2:2023** | **Broken Authentication (認證失效)**   | 強制 MFA、防弱密碼、嚴格 Token 輪換與過期時間。                                |
+| **API3:2023** | **BOPLA (物件屬性級授權失效)**         | 採用 DTO 白名單驗證，阻斷 Mass Assignment 注入。                               |
+| **API4:2023** | **Unrestricted Resource Consumption**  | API 閘道層實作 Token Bucket 限流、分頁限制與 Payload 大小上限。                |
+| **API5:2023** | **BFLA (功能級授權失效)**              | 區分使用者與管理員端點，Controller 嚴格註解 RBAC 權限校驗。                    |
+| **API7:2023** | **Server Side Request Forgery (SSRF)** | 限制可存取的目的地、協定與連接埠，停用 HTTP 重新導向，隔離不應存取的內部資源。 |
 
 ---
+
+2026-10-31 更正：SSRF 在 OWASP API Security Top 10 2023 中是 [API7](https://api-security.owasp.org/editions/2023/en/0xa7-server-side-request-forgery/)；[API6](https://api-security.owasp.org/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/) 指敏感業務流程未受限制的存取。上方只列出部分項目，並非完整十項清單。
 
 ## 5. 總結
 

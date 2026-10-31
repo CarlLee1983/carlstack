@@ -1,0 +1,66 @@
+---
+title: "程式設計與演算法導讀：排序、排程與典範各在解什麼問題"
+description: "用訂單清單、背景工作與計價流程，分開理解排序、排程和程式典範。按三篇基礎教學練習輸入、規則與結果，再銜接設計模式和佇列。"
+publishDate: 2026-10-31T18:01:51+08:00
+draft: false
+featured: false
+tags: [軟體開發, TypeScript, 系統設計]
+series: 程式設計與演算法基礎
+seriesOrder: 1
+cover: ../../assets/programming-foundations-reading-path.webp
+coverAlt: "森林模型中的木製分岔軌道與四色方塊，呈現程式基礎的不同學習路線。"
+---
+
+import ProgrammingFoundationsDiagram from "../../components/ProgrammingFoundationsDiagram.astro";
+
+把訂單按金額排列、決定背景工作先做哪一件、把計價程式拆成函式或物件，會遇到三種不同問題。排序關心資料的次序，排程關心有限資源先交給誰，程式典範則影響我們怎麼描述計算、狀態和互動。
+
+這份導讀假設你能讀懂變數、條件、迴圈與函式，但還不熟悉這些名詞背後的差別。先用小資料手算，再看程式如何表達規則；不需要先背完八種排序或七種典範。下列訂單與工作都是教學情境，沒有公司規模或實際效能量測。
+
+<ProgrammingFoundationsDiagram />
+
+## 第一站：資料要排成什麼樣子
+
+讀[排序演算法的輸入與取捨](/blog/sorting-algorithms-input-and-tradeoffs/)。假設訂單只有編號、金額與建立時間，「按金額排序」仍有未說完的規則：金額相同時，維持原順序，還是再比建立時間？原始清單要保留嗎？資料能一次放進記憶體嗎？
+
+演算法是一組可重複執行的解題步驟，[MDN 的定義](https://developer.mozilla.org/en-US/docs/Glossary/Algorithm)也以此區分問題與解法。同一個排序要求可以有多種解法，但若相同值的規則沒有定義好，跑得快也不代表結果符合需求。
+
+這一站先看少量數字如何比較、搬移與分組，再理解輸入規模增加時工作量怎麼變化。Big O 描述成長趨勢，不是測得的毫秒數。語言內建排序通常是實務起點；手寫小例子的用途，是看清條件與成本。
+
+[Python 的排序文件](https://docs.python.org/3/howto/sorting.html)清楚分開會修改原清單的 `list.sort()` 與建立新清單的 `sorted()`，也說明穩定排序保留相同鍵值的相對順序。讀其他語言文件時，同樣核對這兩件事，不能把某個語言的保證直接套到全部工具。
+
+讀完可以拿三張訂單試問：兩張同價時，誰應排前面？排序後原清單是否改變？用同一批輸入重新執行，預期結果是什麼？
+
+## 第二站：下一個工作應該輪到誰
+
+接著讀[排程的等待時間與公平性](/blog/scheduling-wait-time-and-fairness/)。已經知道如何把數字排好，不表示系統就應把最短的工作永遠放前面。工作還有抵達時間、截止時間、是否能中斷，以及長工作會不會持續被插隊的問題。
+
+三個報表同時等待一個 worker，是容易手算的起點。把每件工作的開始與完成時間畫出來，再算等待時間，比只看「全部做完要多久」更能看出策略差異。下一步才加入陸續抵達的工作，觀察平均等待改善時，有沒有某一件一直得不到服務。
+
+這一站的最低學習成果，是分清等待、執行與完成時間，並說明你想改善哪一個。咖啡店動畫可以幫忙看順序，卻省略了真實工作的估時誤差與中斷成本，不能直接變成正式排程策略。
+
+想接回後端工作，可再讀[佇列、worker 與確認訊息](/blog/queue-worker-ack-foundations/)。它補的是工作交付與失敗處理。至於[分散式佇列模式](/blog/distributed-queue-patterns-fifo-priority-delay-dlq/)屬於延伸，等你能說明單一 worker 的等待問題後再讀。
+
+## 第三站：同一套規則可以怎麼寫
+
+讀[用同一張訂單理解程式典範](/blog/programming-paradigms-same-order-workflow/)。依步驟計算金額、把訂單狀態放進物件、用不修改輸入的函式算折扣、付款完成後通知其他處理器，可以出現在同一個程式裡。典範並非互斥的產品選單，也沒有要求一個專案只能挑一種。
+
+比較寫法時，追蹤三件具體的事：資料在哪裡變動、規則由誰持有、錯誤會傳到哪裡。事件驅動尤其需要分開「收到事件就呼叫處理器」與「可靠地把工作送到另一個程序」。例如 [Node.js EventEmitter](https://nodejs.org/api/events.html#asynchronous-vs-synchronous)會同步呼叫已註冊的 listener；使用事件名稱不會自動產生背景佇列或失敗重送。
+
+讀完再接[設計模式如何安排物件協作](/blog/design-patterns-object-collaboration-foundations/)。這是延伸到具體組織方式，無須在每個小函式裡都放一個模式。若只有一條計價規則，一個有測試的函式就能先說清楚需求。
+
+## 用一個小功能串起三站
+
+練習設計「待處理訂單匯出」，只寫規則，不必先接資料庫：
+
+1. 顯示清單按金額由低到高，同價保持輸入順序。準備含同價訂單的測試資料。
+2. 匯出工作由單一 worker 處理。比較先到先做和短工作優先，說明你怎麼避免長工作一直等。
+3. 把計價與通知分開描述，指出哪些函式只回傳結果、哪些動作會改變狀態或呼叫外部服務。
+
+參考思路：清單的展示順序與 worker 的執行順序可以不同，兩者應各有規則。計價不需要發信才能驗證；通知失敗也不應讓你誤以為金額算錯。先讓這三個判斷分得開，再談更複雜的框架與架構。
+
+## 其他基礎分類
+
+需要先理解程式如何交換資料，可讀 [API 與網路導讀](/blog/api-network-foundations-reading-path/)；想補主機操作，則從 [Linux 維運導讀](/blog/linux-operations-reading-path/)的練習目錄開始。[安全基礎](/blog/security-foundations-reading-path/)與 [AI 開發基礎](/blog/ai-development-foundations-reading-path/)分別處理存取邊界和模型功能，不是完成演算法練習的前置條件。
+
+選題線索來自 Code Crack 的[排序展示](https://www.facebook.com/reel/1395782485411974)、[工作排程展示](https://www.facebook.com/reel/1604584384052031)，以及 UCFYX 的[程式典範整理](https://www.facebook.com/reel/1444851567820521)。各篇用一手文件補足條件和限制，沒有將短片展示當成跨系統的效能證據。

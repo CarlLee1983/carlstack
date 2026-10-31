@@ -1,0 +1,78 @@
+---
+title: "安全基礎導讀：從登入、資料權限到一次請求的成本"
+description: "用訂單查詢與備註欄位，理解認證、授權、Session、輸入與輸出處理、HTTPS 和資源限制。安排可逐步驗證的閱讀順序，不靠背攻擊名稱判斷服務安全。"
+publishDate: 2026-10-31T18:01:51+08:00
+draft: false
+featured: false
+series: Web 安全基礎
+seriesOrder: 1
+cover: ../../assets/security-foundations-reading-path.webp
+coverAlt: "深色布面上的黃銅鎖芯、鑰匙與半透明感應卡，呈現身分與存取控制的概念。"
+tags: [資訊安全, API 安全, OWASP, 系統設計]
+---
+
+使用者登入後能查自己的訂單。把網址裡的訂單編號換成別人的，畫面卻仍然顯示資料。登入流程可能完全正常，漏洞出在系統沒有檢查這次存取是否被允許。
+
+這個虛構例子是安全基礎的起點。先看一個功能保護了哪些資料、誰能操作、每次操作要檢查什麼，再去認識攻擊名稱。這條閱讀路徑用於學習與自有測試環境，沒有對第三方站台執行掃描，也不代表完成一次正式安全稽核。
+
+## 第一站：分清認證與授權
+
+認證（authentication）確認目前的使用者身分。授權（authorization）決定這個身分可否對特定資源做特定操作。知道「這是小安」，還不能直接推出「小安可以讀所有訂單」。
+
+先讀 [Cookie、Session 與 Token 基礎](/blog/cookie-session-token-login-foundations/)。Cookie 是瀏覽器保存並依規則傳送資料的機制，常用來攜帶 Session ID；伺服器端 Session 則保存登入狀態等資料。把這兩個詞分清楚，才容易理解登出究竟使哪一份狀態失效。
+
+接著替訂單功能寫三個授權案例：本人讀取允許、另一位使用者讀取拒絕、未登入讀取拒絕。若客服有額外權限，要明確說明適用範圍，不讓「已登入」成為通用許可。
+
+OWASP 建議預設拒絕，並在每個請求檢查權限。隱藏前端按鈕只能改變介面，伺服器仍須驗證資源與操作。[OWASP 授權指南](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)
+
+## 第二站：先理解登入憑證如何被保護
+
+拿到有效的 Session ID 可能代表能冒用該工作階段。因此憑證的傳輸、保存、更新與撤銷都需要處理。`Secure` 限制 Cookie 在安全連線上傳送，`HttpOnly` 限制 JavaScript 讀取該 Cookie，`SameSite` 則影響跨站請求是否附帶 Cookie。這些屬性處理不同風險，沒有一個屬性能保證整個登入功能安全。
+
+登入或權限變更時應更新 Session ID，登出則在伺服器端使相關 Session 失效。學習時可以先在自己的測試帳號驗證這兩個行為，別把真實憑證貼進截圖或筆記。[OWASP Session 管理指南](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+
+如果網站靠瀏覽器自動附帶 Cookie 辨識使用者，還要理解 CSRF。其他網站可能誘使瀏覽器送出改變狀態的請求。依框架使用合適的 CSRF 防護，核對來源與 Token 等機制；不能只因設了 CORS，就認為所有跨站操作都被阻止。[OWASP CSRF 防護指南](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+
+OAuth 與 OpenID Connect 留到需要串接外部登入時再讀 [OAuth 2.0 與 OIDC 架構](/blog/oauth2-openid-connect-oidc-architecture/)。這是進階延伸，理解自己的 Session 生命週期不需要先實作一套身分平台。
+
+## 第三站：資料進來與顯示出去，需要不同處理
+
+訂單備註是一段使用者輸入。可以限制長度、允許的格式與可修改欄位，但「通過輸入驗證」不表示後續任何使用方式都安全。
+
+把輸入拼進 SQL 字串，可能讓資料被當成查詢語法。應優先使用參數化查詢，將查詢結構與值分開。資料庫帳號也應只取得功能需要的權限。[OWASP SQL Injection 防護指南](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
+
+同一段備註顯示到網頁時，又遇到不同問題。不可信文字可能被當成 HTML 或可執行內容。依輸出位置做正確編碼，使用框架預設的安全呈現方式；如果功能確實允許富文字，則需要適合的 HTML 清理策略。SQL 參數化不會替頁面防 XSS。[OWASP XSS 防護指南](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
+
+可以用普通的 `<b>備註</b>` 字串做自有環境練習。若功能只允許純文字，畫面應顯示這段文字，而不是把它變成粗體標籤。這只是確認一個輸出路徑，不能據此宣稱網站已通過 XSS 測試。
+
+## 第四站：限制一次請求能花掉多少資源
+
+訂單列表若接受任意大的 `limit`，合法登入也可能一次要求大量資料。速率限制回答「一段時間能呼叫幾次」，單次上限回答「每次能做多少工作」，兩者需要分開考慮。
+
+教學上可以先假設每頁預設 20 筆、最多 100 筆。這是練習契約，不是安全標準：缺少參數採預設值，合法範圍照規則處理，負數、非整數和超過上限的值明確拒絕。實際數字要依回應大小、查詢成本與產品需求決定。
+
+OWASP 的資源消耗風險涵蓋分頁筆數、上傳大小、執行時間、批次操作數與第三方費用等限制。只有限制每秒請求數，仍可能留下單次昂貴操作。[OWASP API4:2023](https://api-security.owasp.org/editions/2023/en/0xa4-unrestricted-resource-consumption/)
+
+理解上限之後，再讀 [Offset 與 Keyset 分頁](/blog/api-pagination-offset-vs-keyset-cursor-architecture/) 的查詢設計，以及 [Token Bucket 與 Sliding Window 限流](/blog/distributed-rate-limiting-token-bucket-sliding-window/) 的演算法。這兩篇是延伸，不需要一開始就部署分散式限流服務。
+
+## 第五站：HTTPS 與依賴更新是另外兩件日常工作
+
+HTTPS 保護傳輸中的資料，並支援端點身分驗證；不能因此推論登入、訂單權限與輸出處理已經正確。[TLS 1.3 規範](https://www.rfc-editor.org/rfc/rfc8446.html#section-1)
+
+需要檢查憑證時，讀 [TLS 憑證驗證排障](/blog/tls-certificate-verification-debugging/)。先在自己有權管理的服務核對主機名稱、有效期與信任鏈，不任意掃描外部系統，也不把關閉驗證當作解法。
+
+依賴則先盤點專案實際使用的版本，包括間接依賴，再比對安全公告的影響條件。GitHub Dependency Graph 可根據支援的 manifest、lockfile 與提交資料整理相依關係。[GitHub 依賴圖文件](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-graph)
+
+工程上的下一步是把公告、受影響版本、修補選項與回歸測試記在一起。掃描器沒有警報，只能說這次工具與資料涵蓋範圍內沒有報告，不能當作整個服務安全的證明。
+
+## 練習：只選一個端點，寫出拒絕條件
+
+以自己管理的測試服務為範圍，替「讀取訂單列表」列四個案例：未登入、登入但要求其他人的資料、分頁超過上限、正常讀取。先寫預期結果，再執行測試，記下實際狀態碼與是否洩漏資料。
+
+參考思路是把驗證分開：身分、資源權限、輸入上限各自要有失敗案例。即使前三種請求都被拒絕，也只證明這些條件受測，尚未涵蓋所有資料欄位、角色與其他端點。
+
+## 選題來源與閱讀範圍
+
+本篇整理 Code Crack 的 [API 安全概念](https://www.facebook.com/reel/1408041200674501)、[分層防護](https://www.facebook.com/reel/3345043192463827)、[分頁上限](https://www.facebook.com/reel/1463074449065595)、[攻擊類型](https://www.facebook.com/reel/39531143093195808)、[HTTPS 檢查](https://www.facebook.com/reel/4523349764619784)，以及 FutureStacks 的 [Cookie 與 Session](https://www.facebook.com/reel/2640041773133462) 圖卡線索。技術說明以各節官方文件查核，日期為 2026-10-31。
+
+這份導讀先處理 Web 應用可逐項驗證的基礎。釣魚、勒索軟體與事件應變有不同的操作情境，這裡沒有把它們濃縮成幾個防護名詞就當成完整教學。下一步先完成一個端點的測試紀錄，再從實際遇到的問題挑選延伸文章。

@@ -1,0 +1,76 @@
+---
+title: "API 與網路基礎導讀：先追完一個請求，再選通訊方式"
+description: "用訂單查詢分清 DNS、連線、HTTPS、HTTP 與 JSON，接著理解 REST、GraphQL、Webhook、WebSocket 和 CORS。按學習順序串起既有基礎文，進階協定與架構另列延伸。"
+publishDate: 2026-10-31T18:01:51+08:00
+draft: false
+featured: false
+series: API 與網路基礎
+seriesOrder: 1
+cover: ../../assets/api-network-foundations-reading-path.webp
+coverAlt: "青綠與橘色紙雕路徑連接三個伺服器方塊，呈現網路節點之間的往返連線。"
+tags: [API 設計, 網路協定, Webhook, 系統設計]
+---
+
+在訂單頁按下「重新整理」，畫面沒有變。原因可能是找不到主機、連線失敗、登入失效，也可能是伺服器已回傳新資料，前端卻沒有更新。先分清請求停在哪一步，比先背六種 API 風格有用。
+
+這份目錄先補足讀文需要的基本概念，再安排站內文章的閱讀順序。場景是虛構訂單服務，沒有部署或壓測結果。可以從第一節開始，也可以直接回到自己分不清楚的那一層。
+
+## 第一站：把網址、HTTP 與資料內容分開
+
+假設瀏覽器要查詢 `https://api.example.com/orders/42`。主機名稱是 `api.example.com`，路徑是 `/orders/42`。DNS 可將主機名稱解析成可用的 IP 位址；實際連線還可能經過快取、代理與負載平衡器。DNS 的工作不包含判斷你能不能看第 42 筆訂單。[MDN 網域名稱說明](https://developer.mozilla.org/en-US/docs/Learn_web_development/Howto/Web_mechanics/What_is_a_domain_name)
+
+HTTP 定義請求與回應的語意。方法說明要做什麼，標頭帶著內容格式、快取或驗證等資訊，狀態碼表達處理結果。JSON 則是資料的表示格式。[MDN HTTP 概觀](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview)
+
+下列是省略連線細節的概念片段，並非可直接呼叫的服務：
+
+```http
+GET /orders/42 HTTP/1.1
+Host: api.example.com
+Accept: application/json
+```
+
+先讀 [REST 與 GraphQL 怎麼取資料？先看懂請求，再比較來回次數](/blog/rest-graphql-request-response-foundations/)。讀完的目標是能指認方法、路徑、標頭、回應狀態與資料本體，不要求立即選定 GraphQL。若還想追 DNS、傳輸與瀏覽器處理，可接著讀 [從 URL 到頁面呈現的網路路徑](/blog/url-to-page-render-network-deep-dive/)，這是延伸章，第一次可以略過協定細節。
+
+## 第二站：辨認是主動查詢，還是接收事件
+
+訂單頁向 API 問「現在的狀態是什麼」，是一組請求與回應。物流商在出貨後主動通知你的伺服器，則適合用 Webhook。兩者可以同時存在：事件通知讓系統知道有變化，查詢 API 提供需要重新核對時的入口。
+
+GitHub 的 Webhook 文件說明，訂閱事件後，由發送方在事件發生時向指定 URL 發送 HTTP 請求，不必持續輪詢有沒有新資料。[GitHub Webhook 說明](https://docs.github.com/en/webhooks/about-webhooks)
+
+Webhook 仍然是一種 API 整合方式。它不保證通知只送一次、一定依序送達或永不遺失，這些條件要看供應商契約。基礎練習先寫下「誰發送、誰接收、什麼事件、收到後做什麼」，再讀 [Webhook 簽名、重試與死信處理](/blog/webhook-system-architecture-hmac-retry-dlq/) 的進階設計。
+
+如果需求是聊天室雙方持續傳送訊息，才進一步考慮 WebSocket。它提供雙向通訊，讓連線上的兩端交換訊息；應用仍要處理斷線後如何恢復狀態。[MDN WebSocket API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
+
+REST 的資源操作、GraphQL 的欄位查詢、RPC 的遠端操作呼叫，回答的是介面如何表達。Webhook 回答事件如何通知，WebSocket 回答持續雙向通訊如何建立。這些詞不全在同一層，不必把它們排成一份互斥的效能排行榜。需要比較契約時再讀 [API 通訊風格的選型延伸](/blog/api-architectural-styles-rest-rpc-graphql-webhook/)。
+
+## 第三站：瀏覽器的跨來源限制，和伺服器授權分開查
+
+前端在 `https://shop.example.com`，API 在 `https://api.example.com`，兩者是不同 origin。Origin 由協定、主機名稱與連接埠組成，不只看網址是否屬於同一家公司。
+
+CORS 是瀏覽器依回應標頭執行的跨來源存取機制。部分請求會先發 `OPTIONS` 預檢，再決定是否送出正式請求；另一些請求可直接送出，但回應未獲允許時，瀏覽器不讓呼叫端腳本讀取。不能看到 CORS 錯誤就推論伺服器完全沒收到請求。[MDN CORS 指南](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS)
+
+因此「指令列呼叫成功，瀏覽器失敗」可以先比較 Origin、預檢及回應標頭。**CORS 不能取代登入與授權檢查。**其他 HTTP 客戶端不會因為你的 CORS 設定就自動失去呼叫能力。
+
+登入狀態請接 [Cookie、Session 與 Token 的基礎圖解](/blog/cookie-session-token-login-foundations/)。如果能解釋「瀏覽器帶了哪個值，伺服器用它找到了什麼狀態」，再進到 [安全基礎導讀](/blog/security-foundations-reading-path/) 的授權與資源限制。
+
+## 第四站：需要排障時，才深入傳輸與 TLS
+
+HTTPS 透過 TLS 保護通訊的機密性、完整性與端點身分驗證。它不會替應用判斷一筆訂單屬於誰，也不會讓錯誤的資料自動變正確。[TLS 1.3 規範的協定目標](https://www.rfc-editor.org/rfc/rfc8446.html#section-1)
+
+接下來依問題選讀，不需要一次讀完：
+
+- 看不懂傳輸差異時，讀 [TCP、UDP 與 QUIC](/blog/tcp-vs-udp-vs-quic-transport-protocols/)。這是協定延伸，不是換協定就一定變快的建議。
+- 遇到憑證錯誤時，讀 [TLS 憑證驗證排障](/blog/tls-certificate-verification-debugging/)。核對主機名稱、有效期與信任鏈，不把停用驗證當作修復。
+- 想理解請求如何進入後端時，讀 [反向代理、API Gateway 與負載平衡器](/blog/reverse-proxy-api-gateway-load-balancer/)。先理解職責，再決定現有系統是否需要獨立部署這些元件。
+
+## 練習：替一個訂單頁留下可查證的紀錄
+
+在自己有權操作的開發環境打開瀏覽器 Network 面板，選一筆讀取請求。只記錄方法、路徑、狀態碼、內容格式、是否預檢與耗時，不複製 Cookie 或 Token。
+
+接著回答：如果這筆查詢改為由物流商通知出貨，誰會變成 HTTP 請求的發送方？如果瀏覽器禁止讀取回應，你會先查 CORS 還是直接換資料庫？
+
+參考思路是把證據分層：Webhook 由物流商向接收端發請求；瀏覽器錯誤先核對網路紀錄、Origin 和 CORS 標頭。只有找到應用查詢的證據，才有理由往資料庫追。
+
+## 選題來源
+
+這條閱讀路徑整理自 Code H 的 [CORS 圖卡](https://www.facebook.com/reel/1492919562607014)、Sundar Sundar 的 [API 與 Webhook 圖卡](https://www.facebook.com/reel/1451518400272436)，以及 UCFYX 的 [API 通訊方式圖卡](https://www.facebook.com/reel/895836580186189)。圖卡是選題線索；技術說明以各節官方文件為準，查核日期為 2026-10-31。
