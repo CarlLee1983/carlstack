@@ -1,0 +1,118 @@
+---
+const steps = [
+  ["對齊症狀與範圍", "請求、時間、宿主機或容器"],
+  ["CPU 與工作狀態", "load、r／b、CPU 使用與閒置"],
+  ["記憶體與限制", "available、si／so、群組額度"],
+  ["儲存容量與等待", "區塊、inode、await、IO PSI"],
+  ["一次處置一項", "比較延遲、錯誤與完成量"],
+];
+---
+
+<figure
+  class="linux-diagnosis-diagram"
+  aria-labelledby="linux-diagnosis-caption"
+>
+  <svg
+    class="linux-diagnosis-diagram__desktop"
+    viewBox="0 0 320 560"
+    role="img"
+    aria-labelledby="linux-diagnosis-title linux-diagnosis-desc"
+  >
+    <title id="linux-diagnosis-title">主機變慢的觀察順序</title>
+    <desc id="linux-diagnosis-desc"
+      >先確認症狀與範圍，再分開看 CPU、記憶體和儲存，最後以服務指標驗證處置。</desc
+    >
+    {
+      steps.map(([title, detail], i) => (
+        <g>
+          <rect x="8" y={8 + i * 112} width="304" height="96" rx="12" />
+          <text class="linux-diagnosis-diagram__title" x="24" y={43 + i * 112}>
+            {title}
+          </text>
+          <text class="linux-diagnosis-diagram__detail" x="24" y={75 + i * 112}>
+            {detail}
+          </text>
+          {i < 4 && <path d={`M160 ${104 + i * 112} V${120 + i * 112}`} />}
+        </g>
+      ))
+    }
+  </svg>
+  <div class="linux-diagnosis-diagram__mobile">
+    {
+      steps.map(([title, detail]) => (
+        <section>
+          <>
+            <h3>{title}</h3>
+            <p>{detail}</p>
+          </>
+        </section>
+      ))
+    }
+  </div>
+  <figcaption id="linux-diagnosis-caption">
+    各項觀察對齊同一時段；這是縮小問題的路線，不是固定根因或通用警報門檻。
+  </figcaption>
+</figure>
+<style>
+  .linux-diagnosis-diagram {
+    margin: 2rem 0;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    max-width: 26rem;
+    height: auto;
+    margin: auto;
+  }
+  rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .linux-diagnosis-diagram__title {
+    fill: var(--dg-ink);
+    font: 700 18px var(--font-body);
+  }
+  .linux-diagnosis-diagram__detail {
+    fill: var(--dg-ink-2);
+    font: 14px var(--font-body);
+  }
+  path {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: 0.9rem;
+  }
+  .linux-diagnosis-diagram__mobile {
+    display: none;
+  }
+  .linux-diagnosis-diagram__mobile section {
+    padding: 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface);
+  }
+  .linux-diagnosis-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    color: var(--dg-ink);
+    font-size: 1rem;
+  }
+  .linux-diagnosis-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+    font-size: 0.95rem;
+  }
+  @media (max-width: 48rem) {
+    .linux-diagnosis-diagram__desktop {
+      display: none !important;
+    }
+    .linux-diagnosis-diagram__mobile {
+      display: block;
+    }
+  }
+</style>
