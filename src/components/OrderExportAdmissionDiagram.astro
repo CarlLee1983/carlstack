@@ -1,0 +1,189 @@
+<figure
+  class="export-admission-diagram"
+  aria-labelledby="export-admission-caption"
+>
+  <svg
+    class="export-admission-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="export-admission-title export-admission-desc"
+  >
+    <title id="export-admission-title">匯出同時限制接單與執行</title>
+    <desc id="export-admission-desc"
+      >接單控制列在短交易內限制十二份等待，一個匯出程序最多執行兩份工作。等待不持有查詢連線，取消中的工作仍占執行名額。下單使用獨立連線池，但共用資料庫資源。</desc
+    >
+    <defs
+      ><marker
+        id="export-admission-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text x="40" y="42" class="export-admission-diagram__title"
+      >背景工作也要有全站資源預算</text
+    >
+    <rect
+      x="40"
+      y="72"
+      width="880"
+      height="112"
+      rx="14"
+      class="export-admission-diagram__card"></rect>
+    <text x="64" y="106" class="export-admission-diagram__heading"
+      >接單：短交易鎖住控制列</text
+    >
+    <text x="64" y="135">清理過期待辦 → 檢查等待數 → 插入工作 → 提交</text>
+    <text x="64" y="161" class="export-admission-diagram__detail"
+      >等待已達 12 份就拒收；所有接單路徑共用此規則</text
+    >
+    <path d="M 480 184 V 220" class="export-admission-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="230"
+      width="420"
+      height="130"
+      rx="14"
+      class="export-admission-diagram__card"></rect>
+    <text x="64" y="265" class="export-admission-diagram__heading"
+      >持久待辦：最多 12 份等待</text
+    >
+    <text x="64" y="296">等待超過 3 分鐘 → 過期</text>
+    <text x="64" y="328" class="export-admission-diagram__detail"
+      >等待期間不持有匯出查詢連線</text
+    >
+    <rect
+      x="500"
+      y="230"
+      width="420"
+      height="130"
+      rx="14"
+      class="export-admission-diagram__card"></rect>
+    <text x="524" y="265" class="export-admission-diagram__heading"
+      >單一程序：全站最多 2 份執行</text
+    >
+    <text x="524" y="296">有名額才領取，再借查詢連線</text>
+    <text x="524" y="328" class="export-admission-diagram__detail"
+      >逾時開始取消，確認停止後才釋放</text
+    >
+    <path d="M 460 295 H 490" class="export-admission-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="405"
+      width="880"
+      height="142"
+      rx="14"
+      class="export-admission-diagram__card"></rect>
+    <text x="64" y="440" class="export-admission-diagram__heading"
+      >匯出連線池 ≠ 資料庫運算隔離</text
+    >
+    <text x="64" y="474">下單另有連線額度；CPU、I/O 與 buffer pool 仍共用</text>
+    <text x="64" y="511" class="export-admission-diagram__detail"
+      >下單超過驗收門檻 → 停領新匯出，既有工作受控收尾</text
+    >
+    <path d="M 710 360 V 395" class="export-admission-diagram__arrow"></path>
+    <text x="40" y="582" class="export-admission-diagram__detail"
+      >教學假設：12 份、2 份與時間限制都須經負載驗證，不是預設安全值。</text
+    >
+  </svg>
+  <div class="export-admission-diagram__mobile">
+    <section>
+      <h3>1. 接單短交易</h3><p>
+        鎖住控制列，清理過期工作。等待已滿 12 份就拒收。
+      </p>
+    </section>
+    <section>
+      <h3>2. 等待不占查詢連線</h3><p>
+        持久保存工作，超過 3 分鐘轉過期，不再開始匯出。
+      </p>
+    </section>
+    <section>
+      <h3>3. 全站最多兩份執行</h3><p>
+        一個程序、有名額才領取。取消中仍占名額，確認停止後才釋放。
+      </p>
+    </section>
+    <section>
+      <h3>4. 仍須保留下單資源</h3><p>
+        分開連線池仍共用 DB CPU 與 I/O。下單超標就停領新匯出。
+      </p>
+    </section>
+  </div>
+  <figcaption id="export-admission-caption">
+    等待上限控制接受的工作量，執行上限控制同時消耗資源的工作。數字是待驗證的教學設定。
+  </figcaption>
+</figure>
+<style>
+  .export-admission-diagram {
+    margin: 2rem 0;
+  }
+  .export-admission-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .export-admission-diagram text {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 18px;
+  }
+  .export-admission-diagram__title {
+    font-size: 25px !important;
+    font-weight: 750;
+  }
+  .export-admission-diagram__heading {
+    font-size: 20px !important;
+    font-weight: 700;
+  }
+  .export-admission-diagram__detail {
+    fill: var(--dg-ink-2) !important;
+    font-size: 16px !important;
+  }
+  .export-admission-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 2;
+  }
+  .export-admission-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#export-admission-arrow);
+  }
+  .export-admission-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .export-admission-diagram__mobile {
+    display: none;
+  }
+  .export-admission-diagram__mobile section {
+    padding: 1rem;
+    margin: 0 0 0.75rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .export-admission-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    color: var(--dg-ink);
+    font-size: 1rem;
+  }
+  .export-admission-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .export-admission-diagram figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .export-admission-diagram__desktop {
+      display: none !important;
+    }
+    .export-admission-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
