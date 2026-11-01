@@ -1,0 +1,215 @@
+<figure
+  class="export-download-diagram"
+  aria-labelledby="export-download-caption"
+>
+  <svg
+    class="export-download-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="export-download-title export-download-desc"
+  >
+    <title id="export-download-title">報表資料固定，下載資格重新檢查</title>
+    <desc id="export-download-desc"
+      >建立報表時通過的授權，只允許受理工作。完整檔案留在私有儲存。每次下載重新核對目前權限與工作範圍，通過後才開始串流，撤權不會追回已經傳出的資料。</desc
+    >
+    <defs
+      ><marker
+        id="export-download-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text x="40" y="42" class="export-download-diagram__title"
+      >檔案完成 ≠ 下載已獲准</text
+    >
+    <rect
+      x="40"
+      y="76"
+      width="880"
+      height="110"
+      rx="14"
+      class="export-download-diagram__card"></rect>
+    <text x="64" y="112" class="export-download-diagram__heading"
+      >1. 工作受理與完整成品</text
+    >
+    <text x="64" y="149"
+      >固定報表資料版本；成品保留在私有儲存，通知不含直取網址。</text
+    >
+    <path d="M 480 186 V 222" class="export-download-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="232"
+      width="880"
+      height="130"
+      rx="14"
+      class="export-download-diagram__card"></rect>
+    <text x="64" y="268" class="export-download-diagram__heading"
+      >2. 每次下載從主庫重新授權</text
+    >
+    <text x="64" y="304"
+      >帳號啟用 ＋ 目前權限 ＋ 提出者與商店範圍 ＋ 成品未過期</text
+    >
+    <text x="64" y="337" class="export-download-diagram__detail"
+      >任何條件不符或無法查核 → 不開啟檔案、不開始傳輸</text
+    >
+    <path d="M 480 362 V 398" class="export-download-diagram__arrow"></path>
+    <rect
+      x="40"
+      y="408"
+      width="880"
+      height="110"
+      rx="14"
+      class="export-download-diagram__card"></rect>
+    <text x="64" y="445" class="export-download-diagram__heading"
+      >3. 通過後才串流</text
+    >
+    <text x="64" y="482"
+      >釋放查詢連線，再讀取私有成品；下一次下載仍重新檢查。</text
+    >
+    <text x="40" y="565" class="export-download-diagram__detail"
+      >撤權阻止之後的新授權，不會追回已傳出資料或自動中斷既有串流。</text
+    >
+  </svg>
+  <svg
+    class="export-download-diagram__mobile"
+    viewBox="0 0 320 700"
+    role="img"
+    aria-labelledby="export-download-mobile-title export-download-mobile-desc"
+  >
+    <title id="export-download-mobile-title">每次下載重新取得許可</title>
+    <desc id="export-download-mobile-desc"
+      >桌面流程的直向排列：成品保留私有，重新核對目前權限，通過後串流。撤權不追回既有傳輸。</desc
+    >
+    <defs
+      ><marker
+        id="export-download-mobile-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <rect
+      x="8"
+      y="16"
+      width="304"
+      height="145"
+      rx="12"
+      class="export-download-diagram__card"></rect>
+    <text x="26" y="49" class="export-download-diagram__heading"
+      >1. 成品保留私有</text
+    >
+    <text x="26" y="84">報表資料版本固定</text>
+    <text x="26" y="112">通知只連到下載入口</text>
+    <text x="26" y="140">不附可直取物件的網址</text>
+    <path d="M 160 161 V 197" class="export-download-diagram__arrow"></path>
+    <rect
+      x="8"
+      y="207"
+      width="304"
+      height="220"
+      rx="12"
+      class="export-download-diagram__card"></rect>
+    <text x="26" y="241" class="export-download-diagram__heading"
+      >2. 主庫重新授權</text
+    >
+    <text x="26" y="278">帳號與目前匯出權限</text>
+    <text x="26" y="306">提出者與商店範圍</text>
+    <text x="26" y="334">完整成品且未到期</text>
+    <text x="26" y="372">不符或查核失敗</text>
+    <text x="26" y="400">→ 拒絕，不開啟檔案</text>
+    <path d="M 160 427 V 463" class="export-download-diagram__arrow"></path>
+    <rect
+      x="8"
+      y="473"
+      width="304"
+      height="130"
+      rx="12"
+      class="export-download-diagram__card"></rect>
+    <text x="26" y="507" class="export-download-diagram__heading"
+      >3. 通過後串流</text
+    >
+    <text x="26" y="542">釋放授權查詢的連線</text>
+    <text x="26" y="575">下次下載仍重新檢查</text>
+    <text x="16" y="645" class="export-download-diagram__detail"
+      >撤權不追回已傳出的資料，</text
+    >
+    <text x="16" y="675" class="export-download-diagram__detail"
+      >也不自動中斷既有串流。</text
+    >
+  </svg>
+  <figcaption id="export-download-caption">
+    下載入口決定這次能否開始傳輸，報表的舊資料快照不保存永久讀取資格。
+  </figcaption>
+</figure>
+<style>
+  .export-download-diagram {
+    margin: 2rem 0;
+  }
+  .export-download-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .export-download-diagram text {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 19px;
+  }
+  .export-download-diagram__title {
+    font-size: 25px !important;
+    font-weight: 750;
+  }
+  .export-download-diagram__heading {
+    font-size: 21px !important;
+    font-weight: 700;
+  }
+  .export-download-diagram__detail {
+    fill: var(--dg-ink-2) !important;
+    font-size: 17px !important;
+  }
+  .export-download-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 2;
+  }
+  .export-download-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+    marker-end: url(#export-download-arrow);
+  }
+  .export-download-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .export-download-diagram__mobile {
+    display: none;
+  }
+  .export-download-diagram__mobile text {
+    font-size: 17px;
+  }
+  .export-download-diagram__mobile .export-download-diagram__heading {
+    font-size: 19px !important;
+  }
+  .export-download-diagram__mobile .export-download-diagram__arrow {
+    marker-end: url(#export-download-mobile-arrow);
+  }
+  .export-download-diagram figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .export-download-diagram__desktop {
+      display: none !important;
+    }
+    .export-download-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
