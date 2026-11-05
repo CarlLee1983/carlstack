@@ -1,0 +1,182 @@
+<figure class="cold-cache-diagram" aria-labelledby="cold-cache-caption">
+  <svg
+    class="cold-cache-diagram__desktop"
+    viewBox="0 0 960 610"
+    role="img"
+    aria-labelledby="cold-cache-title cold-cache-desc"
+  >
+    <title id="cold-cache-title">冷快取恢復時的讀取預算</title>
+    <desc id="cold-cache-desc"
+      >單一應用程序把每秒六十次資料庫讀取額度分成明細二十次、清單三十次與暖機十次。在途名額分別為四、四、二。快取命中不占回源額度，暖機停止且退出一秒計數窗口後，才可將十次重新分給清單。</desc
+    >
+    <text x="40" y="45" class="cold-cache-diagram__title"
+      >空快取恢復：先保留明細，再分配回源量</text
+    >
+    <rect
+      x="40"
+      y="75"
+      width="880"
+      height="90"
+      rx="14"
+      class="cold-cache-diagram__card"></rect>
+    <text x="64" y="110" class="cold-cache-diagram__heading"
+      >單一應用程序，共用一份讀取預算</text
+    >
+    <text x="64" y="142"
+      >每秒最多送出 60 次，最多 10 次在途；其他工作已另留容量</text
+    >
+    <g transform="translate(40,195)">
+      <rect width="280" height="210" rx="14" class="cold-cache-diagram__card"
+      ></rect>
+      <text x="24" y="38" class="cold-cache-diagram__heading">退款明細</text>
+      <text x="24" y="89" class="cold-cache-diagram__number">20 次／秒</text>
+      <text x="24" y="126">4 個在途名額</text>
+      <text x="24" y="162" class="cold-cache-diagram__detail">主庫新快照</text>
+      <text x="24" y="187" class="cold-cache-diagram__detail"
+        >額度保留，不借給其他類別</text
+      >
+    </g>
+    <g transform="translate(340,195)">
+      <rect width="280" height="210" rx="14" class="cold-cache-diagram__card"
+      ></rect>
+      <text x="24" y="38" class="cold-cache-diagram__heading"
+        >清單 cache miss</text
+      >
+      <text x="24" y="89" class="cold-cache-diagram__number">30 次／秒</text>
+      <text x="24" y="126">4 個在途名額</text>
+      <text x="24" y="162" class="cold-cache-diagram__detail"
+        >先合併同鍵，再取名額</text
+      >
+      <text x="24" y="187" class="cold-cache-diagram__detail"
+        >超額拒絕，保留摘要時間</text
+      >
+    </g>
+    <g transform="translate(640,195)">
+      <rect width="280" height="210" rx="14" class="cold-cache-diagram__card"
+      ></rect>
+      <text x="24" y="38" class="cold-cache-diagram__heading">背景暖機</text>
+      <text x="24" y="89" class="cold-cache-diagram__number">10 次／秒</text>
+      <text x="24" y="126">2 個在途名額</text>
+      <text x="24" y="162" class="cold-cache-diagram__detail"
+        >只補有需求的有限鍵集合</text
+      >
+      <text x="24" y="187" class="cold-cache-diagram__detail"
+        >延遲超標就停領新工作</text
+      >
+    </g>
+    <rect
+      x="40"
+      y="440"
+      width="880"
+      height="112"
+      rx="14"
+      class="cold-cache-diagram__card"></rect>
+    <text x="64" y="478" class="cold-cache-diagram__heading"
+      >取消中仍占名額；增加程序必須重算總額</text
+    >
+    <text x="64" y="515"
+      >暖機停止且退出一秒計數窗口後，清單可調至每秒 40 次。</text
+    >
+    <text x="40" y="589" class="cold-cache-diagram__detail"
+      >教學設定，未做真實負載測試。額度與延遲目標必須一起驗證。</text
+    >
+  </svg>
+  <div class="cold-cache-diagram__mobile">
+    <section>
+      <h3>一份全站讀取預算</h3><p>
+        單一程序，每秒最多送出 60 次，最多 10 次在途。其他工作已另留容量。
+      </p>
+    </section>
+    <section>
+      <h3>明細：20 次／秒</h3><p>
+        4 個在途名額，讀主庫新快照，額度不借給清單或暖機。
+      </p>
+    </section>
+    <section>
+      <h3>清單 miss：30 次／秒</h3><p>
+        4 個在途名額。合併同鍵後才取名額，超額拒絕。
+      </p>
+    </section>
+    <section>
+      <h3>暖機：10 次／秒</h3><p>
+        2 個在途名額。只補有限的常用鍵，延遲超標就停領。
+      </p>
+    </section>
+    <section>
+      <h3>調整額度要重算</h3><p>
+        暖機停止且退出一秒計數窗口後，清單可調至每秒 40
+        次。取消中仍占名額，增加程序也要重算全站總額。
+      </p>
+    </section>
+  </div>
+  <figcaption id="cold-cache-caption">
+    圖中是待測的恢復設定。速率控制送出次數，在途名額限制尚未結束的查詢；兩者同時成立才可執行。
+  </figcaption>
+</figure>
+<style>
+  .cold-cache-diagram {
+    margin: 2rem 0;
+  }
+  .cold-cache-diagram svg {
+    width: 100%;
+    height: auto;
+  }
+  .cold-cache-diagram text {
+    fill: var(--dg-ink);
+    font-family: var(--font-body);
+    font-size: 18px;
+  }
+  .cold-cache-diagram__title {
+    font-size: 25px !important;
+    font-weight: 750;
+  }
+  .cold-cache-diagram__heading {
+    font-size: 20px !important;
+    font-weight: 700;
+  }
+  .cold-cache-diagram__number {
+    font-size: 28px !important;
+    font-weight: 750;
+  }
+  .cold-cache-diagram__detail {
+    fill: var(--dg-ink-2) !important;
+    font-size: 16px !important;
+  }
+  .cold-cache-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+    stroke-width: 2;
+  }
+  .cold-cache-diagram__mobile {
+    display: none;
+  }
+  .cold-cache-diagram__mobile section {
+    padding: 1rem;
+    margin: 0 0 0.75rem;
+    border: 1px solid var(--dg-rule);
+    border-radius: 0.75rem;
+    background: var(--dg-surface-2);
+  }
+  .cold-cache-diagram__mobile h3 {
+    margin: 0 0 0.5rem;
+    color: var(--dg-ink);
+    font-size: 1rem;
+  }
+  .cold-cache-diagram__mobile p {
+    margin: 0;
+    color: var(--dg-ink-2);
+  }
+  .cold-cache-diagram figcaption {
+    color: var(--dg-muted);
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+  @media (max-width: 48rem) {
+    .cold-cache-diagram__desktop {
+      display: none !important;
+    }
+    .cold-cache-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
