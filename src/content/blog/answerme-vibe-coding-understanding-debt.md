@@ -1,5 +1,5 @@
 ---
-title: "我為什麼做 AnswerMe：把 Vibe Coding 累積的理解債放回工作流程"
+title: "我為什麼做 AnswerMe：讓 Vibe Coding 的程式解說附上來源與驗證"
 description: "從用 show me 生成本地暫存 HTML 的習慣，談我為何把理解債整理成 AnswerMe skill，以及來源依據、交付格式與解說驗證各自要負責什麼。"
 publishDate: 2026-10-05T08:49:08+08:00
 draft: false

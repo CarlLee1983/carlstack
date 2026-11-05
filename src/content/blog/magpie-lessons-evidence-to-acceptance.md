@@ -1,5 +1,5 @@
 ---
-title: "Magpie 的錯題本：讓 Agent 復盤改變下一次驗收"
+title: "Magpie 如何把 Agent 的返工經驗寫進下一次驗收"
 description: "查核 Magpie 的 LESSONS.md、code standards 與 PR #1339，拆解教訓升級、回退測試、未驗證項目和合併版本紀錄，並說明文件規則如何接上真正會阻擋錯誤的檢查。"
 publishDate: 2026-10-13T16:38:53+08:00
 draft: false

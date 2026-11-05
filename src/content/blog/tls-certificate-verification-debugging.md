@@ -1,5 +1,5 @@
 ---
-title: "TLS 憑證驗證不是黑盒：用一次握手看懂 HTTPS 信任鏈與排錯"
+title: "用一次 TLS 握手檢查 HTTPS 信任鏈與憑證錯誤"
 description: "從 TLS 1.3 的身分驗證、完整性與機密性三個目標出發，拆解憑證、ECDHE 與 AEAD 各自的責任；附上可直接執行的 OpenSSL 檢查流程，讓 SSL 憑證錯誤能被定位而非繞過。"
 publishDate: 2026-09-08T10:05:07+08:00
 draft: false

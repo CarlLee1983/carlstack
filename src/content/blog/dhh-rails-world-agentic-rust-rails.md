@@ -1,5 +1,5 @@
 ---
-title: "DHH 在 Rails World 宣告停止手寫：Rails 還在，工程判斷換了位置"
+title: "DHH 在 Rails World 宣告停止手寫程式：Rails 的角色與 HEY 重建計畫"
 description: "從 Rails World 2026 keynote 拆解 37signals 將 Agent 設為實作預設、HEY 新版重建計畫採用原生 App 與 Rust 郵件後端的說法，區分自述效能數字與可驗證結論，整理 Rails 的適用邊界和團隊驗收責任。"
 publishDate: 2026-09-25T22:22:50+08:00
 updatedDate: 2026-09-30T00:00:15+08:00

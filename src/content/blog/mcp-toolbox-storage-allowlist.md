@@ -1,5 +1,5 @@
 ---
-title: MCP Toolbox 升級了，檔案與 Bucket 邊界仍要自己關上
+title: MCP Toolbox 升級後，仍要設定檔案路徑與 Bucket 的 allowlist
 description: CVE-2026-93328 揭露 cloud-storage 工具的檔案存取風險。從官方修補的預設允許行為，拆解版本、明確 allowlist 與執行身分如何共同決定工具能碰到哪些資料。
 publishDate: 2026-10-27T10:11:03+08:00
 draft: false

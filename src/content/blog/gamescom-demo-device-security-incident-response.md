@@ -1,5 +1,5 @@
 ---
-title: "Gamescom 失竊風波提醒開發團隊：Demo 設備也要按生產資產管理"
+title: "Gamescom 展示裝置失竊後，開發團隊如何隔離資料與撤銷憑證"
 description: "Gamescom 2026 多家獨立團隊的展示設備遭竊，未完成 build 與公司資料也面臨曝光風險。本文把事件轉成工程檢查：隔離展示環境、撤銷憑證，並在出發前演練設備失竊應變。"
 publishDate: 2026-09-26T23:30:55+08:00
 draft: false

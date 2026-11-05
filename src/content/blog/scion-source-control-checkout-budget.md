@@ -1,5 +1,5 @@
 ---
-title: "Scion 給一般團隊的功課：先算 checkout 成本，再談換掉 Git"
+title: "從 Scion 看 CI 的原始碼準備成本：每項工作需要多少檔案"
 description: "Anthropic 公開 Scion 的內部架構。以 CI 的檔案需求、歷史查詢與驗證佇列拆解 Agent 產碼增加後的瓶頸，說明何時保留 Git、何時值得做服務端卸載。"
 publishDate: 2026-10-14T11:24:00+08:00
 draft: false

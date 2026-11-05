@@ -1,5 +1,5 @@
 ---
-title: "產品經理 Agent 不等於 21 個 Skill：把產出接成可驗收工作流"
+title: "用 Codex 串起產品調研、原型與 PRD，逐步驗收交付結果"
 description: "從一則以 Codex 串接調研、原型、PRD、預審與埋點的實作出發，整理產品工作如何用 artifact、驗收 gate 與明確 handoff 形成可檢查流程。"
 publishDate: 2026-09-01T22:15:00+08:00
 draft: false

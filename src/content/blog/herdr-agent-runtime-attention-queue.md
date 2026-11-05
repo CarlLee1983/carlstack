@@ -1,5 +1,5 @@
 ---
-title: "Herdr 解決的不是終端分頁：當 Agent 開始等你時，才需要 Runtime"
+title: "Herdr 如何整理等待核准、審查與接手的 Agent 工作"
 description: "從 Herdr 的近期實測與社群回饋出發，判斷何時 agent-aware terminal runtime 能降低等待與交接成本，何時 tmux 或 Zellij 已經足夠。"
 publishDate: 2026-09-08T10:00:00+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "AI FDE 不只是聊天機器人：從 Palantir 架構中心看企業 AI 的落地邊界"
+title: "Palantir AI FDE 如何在既有權限下操作資料與工作流"
 description: "以 Palantir Architecture Center 與 AI FDE 文件為例，拆解 Ontology、AIP、Foundry、Apollo 如何把資料、邏輯、動作與治理接到可執行的企業流程。"
 publishDate: 2026-09-04T12:00:00+08:00
 draft: false

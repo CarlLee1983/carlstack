@@ -1,5 +1,5 @@
 ---
-title: "Claude 工作環境別一次裝滿：先把可重用的 context 與核准邊界排好"
+title: "Claude 自動化的採用順序：重用 context，依操作風險設定核准"
 description: "從 Claude 的 memory、projects、skills、connectors 到排程與瀏覽器操作，建立一條由低副作用到可驗收自動化的採用順序，避免把「少重複貼 context」誤當成「可以自動代表你行動」。"
 publishDate: 2026-09-08T09:38:26+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "長任務不要從聊天紀錄續命：用驗收證據讓 Agent 接著交付"
+title: "Agent 長任務如何接續：保存進度與可重跑的驗收證據"
 description: "以 Microsoft Argus 與一個公開效能 PR 為例，拆解長時間 Agent 工作真正需要保存的狀態、獨立審查與停止規則；用最小任務契約判斷何時值得增加一層 runtime。"
 publishDate: 2026-09-07T09:30:00+08:00
 updatedDate: 2026-09-29

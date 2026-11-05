@@ -1,5 +1,5 @@
 ---
-title: "500 行 Harness 跑出 CIFAR-10 成績後，還需要一份可驗收的執行收據"
+title: "不到 500 行的 Harness 完成 CIFAR-10 任務後，如何核對權重、人工介入與成本"
 description: "從 NotesByLex 的 CIFAR-10 範例，核對測試資料接觸、checkpoint 交付、人工介入與未入帳費用。用一份執行收據，分開判定產物完成、需人工與成本未知。"
 publishDate: 2026-10-12T10:16:35+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "Skill 不會死：把 Agent 指令縮成可驗證的方法，而不是更短的咒語"
+title: "Agent Skill 的指令可以精簡，方法與驗證條件要留下"
 description: "從「Skill 將死，方法論永生」的八個工程方法出發，建立 Agent 任務的最小契約：問題、方法、證據與停止規則，淘汰重複的通用說明，保留模型外的可驗證邊界。"
 publishDate: 2026-09-06T20:18:00+08:00
 draft: false

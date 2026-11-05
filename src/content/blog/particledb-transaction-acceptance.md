@@ -1,5 +1,5 @@
 ---
-title: "ParticleDB 的 Jepsen 報告，把資料庫驗收拉回一筆提交與一次回讀"
+title: "從 ParticleDB 的 Jepsen 報告看資料庫驗收：核對提交、回滾與修復版本"
 description: "從 Jepsen 對 ParticleDB 的 96 項問題與廠商修復聲明，設計單節點、回滾、併發更新及版本固定的採用驗收，分開看待協定相容、交易保證與修復證據。"
 publishDate: 2026-11-01T10:07:09+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "Siemens 實際利用警訊：簽章合法，旁邊的 DLL 卻是惡意的"
+title: "Siemens 漏洞已遭利用：簽章有效的 EXE 仍可能載入惡意 DLL"
 description: "Siemens Software Center 的 DLL 側載漏洞已遭利用，4.0.9.8 修復。從合法 EXE 搭配惡意 DLL 的散布方式，拆解版本更新、端點調查與 Windows 程式載入路徑的驗收。"
 publishDate: 2026-10-20T10:04:00+08:00
 draft: false

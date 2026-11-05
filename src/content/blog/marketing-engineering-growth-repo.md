@@ -1,5 +1,5 @@
 ---
-title: "行銷工程不是多裝 AI 工具：把客戶證據做成可驗證的 Growth Repo"
+title: "用 Growth Repo 保存客戶資料、行銷實驗與核准紀錄"
 description: "從 Marketing Engineer 的角色提案出發，說明如何用最小的 Growth Repo 將客戶訊號、實驗、人工核准與結果回寫接成可驗證的行銷工作流。"
 publishDate: 2026-09-01T16:05:56+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "KV Cache 不是一個優化項：先分清楚你要減少的是容量、頻寬還是重複"
+title: "KV Cache 的容量、頻寬與前綴重用，要分開評估"
 description: "從 Avi Chawla 的 KV cache 分類出發，將模型架構、token 保留、位元精度、配置重用與 offloading 變成一張 production capacity ledger，避免把不同代價誤當成同一個開關。"
 publishDate: 2026-09-07T11:12:11+08:00
 updatedDate: 2026-09-07T22:00:32+08:00

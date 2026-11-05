@@ -1,5 +1,5 @@
 ---
-title: "當程式碼不再是瓶頸：AI Native SDLC 真正要重構什麼"
+title: "AI Native SDLC：實作加快後，需求、審查與部署如何接上？"
 description: "交叉比較 Google、OpenAI、Anthropic 與 LangChain 的軟體開發方法，拆解意圖、驗證、治理與生產回饋如何接手程式碼生成後的新瓶頸。"
 publishDate: 2026-08-31
 updatedDate: 2026-09-27T17:34:17+08:00

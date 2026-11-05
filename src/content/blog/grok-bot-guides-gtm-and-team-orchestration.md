@@ -1,5 +1,5 @@
 ---
-title: "Grok Bot Guides 協同篇：一專案一頻道一看板的多 Agent 組織範式"
+title: "Grok Bot Guides 團隊篇：用專案頻道與看板協調多個 Agent"
 description: "從 Eric Zakariasson 的多團隊治理模式，到產品經理、創辦人業務與法務運營的自動化流水線：如何將 AI Teammates 組裝進現代組織架構。"
 publishDate: 2026-10-08T17:40:00+08:00
 draft: false

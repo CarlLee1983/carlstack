@@ -1,5 +1,5 @@
 ---
-title: "Grok Bot Guides 總覽：持久雲端電腦與多 Agent 協同的架構底座"
+title: "Grok Bot Guides：持久雲端電腦、多 Agent 分工與共享登入風險"
 description: "全面拆解 xAI 官方 17 篇手冊的核心心法：Outer Loop 與 Inner Loop 解耦、雲端電腦共享登入的信任邊界，以及從自然語言 Reviewer 到可分享 Template 的工程模式。"
 publishDate: 2026-10-08T17:30:00+08:00
 draft: false

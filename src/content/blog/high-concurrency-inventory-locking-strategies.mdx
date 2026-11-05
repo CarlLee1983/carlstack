@@ -1,5 +1,5 @@
 ---
-title: "高併發秒殺庫存扣減架構：樂觀鎖、悲觀鎖、Redis 分散式鎖爭議與分段加鎖實踐"
+title: "搶購時如何避免庫存超賣：悲觀鎖、樂觀鎖、Redis 分散式鎖與分段庫存"
 description: "深入剖析電商秒殺與高頻交易場景下的庫存扣減架構：對比 SELECT FOR UPDATE 悲觀鎖、CAS 版本號樂觀鎖與 Redis Lua 分散式鎖；復盤 Martin Kleppmann 對 Redlock 的批判（GC 停頓、時鐘漂移與 Fencing Token 解法）；詳解 10 萬 QPS 分段庫存（Inventory Segment Sharding）與非同步削峰落地策略。"
 publishDate: 2026-09-02T10:31:00+08:00
 draft: false

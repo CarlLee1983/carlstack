@@ -1,5 +1,5 @@
 ---
-title: "Magnitude 本機推論引擎：用裝置端 Kernel 調校與 Radix Attention 釋放記憶體頻寬"
+title: "Magnitude 本機推論引擎：Kernel 調校、量化與 Radix Attention 如何減少記憶體讀取"
 description: "開源推論引擎 Magnitude 登上 Launch HN。剖析其 On-Device Kernel Autotuning、TurboQuant 非對稱量化（8b K / 4b V）與 Radix 共享前綴快取機制，說明 Apple Silicon 解碼速度提升 92% 的工程底層。"
 publishDate: 2026-10-01T12:15:00+08:00
 draft: false

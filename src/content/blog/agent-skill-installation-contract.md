@@ -1,5 +1,5 @@
 ---
-title: "別先裝 19 個 Skill：把 Agent 能力當成有權限的工作契約"
+title: "採用 Agent Skill，要確認用途、權限、驗收與移除條件"
 description: "從一份 Hermes Skill 清單出發，建立 Agent 能力的最小採用門檻：明確痛點、最小權限、可觀察證據與移除規則。用這個門檻逐步加能力，避免把可用的 Agent 變成無法審計的工具抽屜。"
 publishDate: 2026-09-07T14:18:00+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "Claude 寫出影片程式後，先驗收每一幀的時間契約"
+title: "Claude 產生影片程式後，如何驗證逐幀畫面與旁白時間？"
 description: "從寶玉的 Claude 程式影片拆解出發，建立 Canvas 逐幀繪製、旁白時間對齊與 MP4 驗收流程，釐清可重播的程式為何仍需要渲染環境與人工審片。"
 publishDate: 2026-10-01T15:05:00+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "Postiz 修補憑證外洩：刪除權限不能順便取得整筆秘密欄位"
+title: "Postiz 修補憑證外洩：刪除 channel 不該回傳平台憑證"
 description: "Postiz 2.25.1 修正 channel 刪除與組織清單的秘密欄位外洩。從修補原始碼拆開租戶、操作與回應欄位權限，建立 DTO 白名單、角色驗收和暴露調查的結案條件。"
 publishDate: 2026-10-12T10:16:33+08:00
 draft: false

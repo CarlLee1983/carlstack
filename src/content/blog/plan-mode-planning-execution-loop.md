@@ -1,5 +1,5 @@
 ---
-title: "Plan Mode 退場，規劃仍在：把決策放回 AI 執行迴圈"
+title: "Plan Mode 要用到什麼程度？依任務風險調整規劃與執行"
 description: "Ayman Nadeem 從 Nuanced 的產品復盤指出，規劃與完整計畫文件不是同一件事。本文對照 Claude Code 與 Codex 官方建議，整理如何依風險決定前置規劃，並用可中途修正的執行迴圈保留工程師的系統理解。"
 publishDate: 2026-09-27T11:32:13+08:00
 draft: false

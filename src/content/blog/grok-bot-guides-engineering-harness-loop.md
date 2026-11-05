@@ -1,5 +1,5 @@
 ---
-title: "Grok Bot Guides 工程篇：從單兵 Coding 到艦隊級研發 Harness 閉環"
+title: "Grok Bot Guides 工程篇：多 Agent 分工、行動遊戲開發與設計協作"
 description: "深度拆解 Grok Bot 官方工程手冊：管理 200 個 Cloud Agents 的專職編隊、一人獨立運營六 Bot 手機遊戲工作室，以及設計師如何讓 Agent 落地真實產品資產。"
 publishDate: 2026-10-08T17:35:00+08:00
 draft: false

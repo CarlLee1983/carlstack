@@ -1,5 +1,5 @@
 ---
-title: "TorchTPU 打通 PyTorch 路徑，遷移驗收要量 shape 與 KV 搬運"
+title: "用 TorchTPU 遷移 PyTorch 模型，如何量測 shape、編譯快取與 KV 傳輸成本"
 description: "Google 開源 TorchTPU，SGLang 同步推出原生 PyTorch TPU plugin。從 shape buckets、編譯快取與 KV 傳輸拆解採用成本，建立冷啟動、長尾延遲與正確性的遷移實驗。"
 publishDate: 2026-10-21T02:12:10+00:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: HackerBooks 的資料產品功課：提及次數必須能追回來源、去重與修正
+title: 從 HackerBooks 看書籍索引：提及次數如何保留來源、去重與修正
 description: 從 HackerBooks 的 HN 書籍索引，拆解提及與推薦的統計邊界、書名錯配的修正流程，以及靜態 JSON 發布時如何保留可追溯的來源與版本。
 publishDate: 2026-11-02T10:05:25+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: "AI Coding 入門不是做出網頁：用三個可驗收專案學會交付"
+title: "AI Coding 入門：用三個可驗收專案學會交付"
 description: "把 AI Coding 的學習順序收斂為三個可驗收專案：先看懂改動，再處理狀態，最後交付有資料與權限的產品；每一步都留下可以重跑的證據。"
 publishDate: 2026-09-07T09:34:34+08:00
 draft: false

@@ -1,5 +1,5 @@
 ---
-title: Octopus 的 OIDC 修補提醒：同名 Subject 不能跨 Issuer 認親
+title: Octopus OIDC 修補：不同 Issuer 的同名 Subject 不能視為同一身分
 description: CVE-2026-116870 揭露 Octopus Server 的 OIDC issuer 驗證不一致。整理受影響版本與修補分支，並用 CI 部署案例說明服務帳號如何綁定簽發者、subject、audience 與權限。
 publishDate: 2026-10-28T10:08:08+08:00
 draft: false
