@@ -14,12 +14,10 @@
     aria-labelledby="ddd-wardley-diagram-title ddd-wardley-diagram-desc"
   >
     <title id="ddd-wardley-diagram-title">
-      Wardley Mapping 價值鏈演化與 DDD 核心域錨定全景
+      Wardley Mapping：演化位置與子域判斷
     </title>
     <desc id="ddd-wardley-diagram-desc">
-      頂部展示雙軸維度（縱軸：使用者可見度價值鏈；橫軸：四階段演化成熟度）。主體四列展示
-      Genesis 概念創生、Custom 自研深耕、Product 採購整合、Commodity
-      雲端公用設施。底部展示資本錯配陷阱與系統分析架構防線。
+      四欄展示活動演化階段。子域分類需另依業務差異化判斷，不能由演化位置直接決定。
     </desc>
 
     <!-- 頂部：戰略維度導覽欄 (高 52px) -->
@@ -38,7 +36,7 @@
       >
       <text x="595" y="32" class="ddd-wardley-diagram__banner-divider">|</text>
       <text x="615" y="32" class="ddd-wardley-diagram__banner-dim"
-        >【橫軸】成熟演化階度（氣候規律推進）</text
+        >【橫軸】市場演化位置（依證據判斷）</text
       >
     </g>
 
@@ -87,13 +85,13 @@
           rx="6"
           class="ddd-wardley-diagram__meta-box"></rect>
         <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
-          >DDD 子域對應</text
+          >子域判斷提示</text
         >
         <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
-          >潛在核心域（孵化期）</text
+          >差異化仍待驗證</text
         >
         <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
-          >市場不確定性極高，隨時 pivots</text
+          >需求與解法尚待探索</text
         >
       </g>
 
@@ -106,10 +104,10 @@
           >• 市場極度未知，缺乏成熟標準</text
         >
         <text y="40" class="ddd-wardley-diagram__bullet"
-          >• 追求最快交付回饋與驗證</text
+          >• 取得需求與解法的回饋</text
         >
         <text y="60" class="ddd-wardley-diagram__bullet"
-          >• 容忍技術債，拒絕過度設計</text
+          >• 原型範圍依風險決定</text
         >
         <text y="80" class="ddd-wardley-diagram__bullet"
           >• 典型：未經驗證的 AI 商業模式</text
@@ -155,7 +153,7 @@
       <g transform="translate(16, 24)">
         <text
           class="ddd-wardley-diagram__phase-tag ddd-wardley-diagram__phase-tag--gold"
-          >PHASE 2 · 核心戰場</text
+          >PHASE 2 · 特定解法</text
         >
         <text
           y="25"
@@ -163,7 +161,7 @@
           >自建期 Custom</text
         >
         <text y="46" class="ddd-wardley-diagram__col-subtitle"
-          >商業壁壘 · 差異化護城河</text
+          >特定需求 · 自建解法</text
         >
       </g>
 
@@ -183,16 +181,16 @@
           class="ddd-wardley-diagram__meta-box ddd-wardley-diagram__meta-box--gold"
         ></rect>
         <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
-          >DDD 子域對應</text
+          >子域判斷提示</text
         >
         <text
           x="12"
           y="42"
           class="ddd-wardley-diagram__meta-val ddd-wardley-diagram__meta-val--gold"
-          >核心域（Core Domain）</text
+          >可能核心，也可能支撐</text
         >
         <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
-          >開源即倒閉，不可替代壁壘</text
+          >需另確認業務差異化</text
         >
       </g>
 
@@ -202,16 +200,16 @@
           >系統分析特徵與原則</text
         >
         <text y="20" class="ddd-wardley-diagram__bullet"
-          >• 業務價值最高，市場無直接競品</text
+          >• 自建不必然代表核心</text
         >
         <text y="40" class="ddd-wardley-diagram__bullet"
-          >• 傾斜全公司最頂尖工程資源</text
+          >• 依差異化與風險投入</text
         >
         <text y="60" class="ddd-wardley-diagram__bullet"
-          >• 建立深模組與純淨通用語言</text
+          >• 明確記錄規則與語言</text
         >
         <text y="80" class="ddd-wardley-diagram__bullet"
-          >• 典型：專利定價演算法、風控引擎</text
+          >• 例：特殊流程的規則</text
         >
       </g>
 
@@ -230,7 +228,7 @@
           >戰略工程姿態</text
         >
         <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
-          >自主研發 · 100% 業務主權</text
+          >自研前驗證需求與成本</text
         >
       </g>
     </g>
@@ -259,7 +257,7 @@
         <text y="25" class="ddd-wardley-diagram__col-title">產品期 Product</text
         >
         <text y="46" class="ddd-wardley-diagram__col-subtitle"
-          >市場充斥成熟 SaaS 與開源庫</text
+          >可比較產品與開源方案</text
         >
       </g>
 
@@ -278,13 +276,13 @@
           rx="6"
           class="ddd-wardley-diagram__meta-box"></rect>
         <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
-          >DDD 子域對應</text
+          >子域判斷提示</text
         >
         <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
-          >支撐域 / 現成通用域</text
+          >可能支撐或通用</text
         >
         <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
-          >市場有標準，自己做不具優勢</text
+          >須驗證產品是否適配</text
         >
       </g>
 
@@ -297,10 +295,10 @@
           >• 現成產品繁多，競爭激烈</text
         >
         <text y="40" class="ddd-wardley-diagram__bullet"
-          >• 優先「採購/整合」勝於自建</text
+          >• 比較採購、整合與自建</text
         >
         <text y="60" class="ddd-wardley-diagram__bullet"
-          >• 構建防腐層（ACL）隔離外部合約</text
+          >• 需要時建構轉換介面</text
         >
         <text y="80" class="ddd-wardley-diagram__bullet"
           >• 典型：CRM、工單系統、CMS</text
@@ -319,7 +317,7 @@
           >戰略工程姿態</text
         >
         <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
-          >採購整合 · 嚴禁盲目自幹</text
+          >評估整合與退出成本</text
         >
       </g>
     </g>
@@ -344,11 +342,11 @@
 
       <!-- Header -->
       <g transform="translate(16, 24)">
-        <text class="ddd-wardley-diagram__phase-tag">PHASE 4 · 演化終局</text>
+        <text class="ddd-wardley-diagram__phase-tag">PHASE 4 · 標準化能力</text>
         <text y="25" class="ddd-wardley-diagram__col-title">商品期 Utility</text
         >
         <text y="46" class="ddd-wardley-diagram__col-subtitle"
-          >水電公用化 · 高度標准化協議</text
+          >普及與標準化的能力</text
         >
       </g>
 
@@ -367,13 +365,13 @@
           rx="6"
           class="ddd-wardley-diagram__meta-box"></rect>
         <text x="12" y="22" class="ddd-wardley-diagram__meta-label"
-          >DDD 子域對應</text
+          >子域判斷提示</text
         >
         <text x="12" y="42" class="ddd-wardley-diagram__meta-val"
-          >通用子域（Generic Domain）</text
+          >子域仍依業務判斷</text
         >
         <text x="12" y="58" class="ddd-wardley-diagram__meta-sub"
-          >高度同質化，自建即浪費資本</text
+          >比較託管與自建限制</text
         >
       </g>
 
@@ -383,16 +381,16 @@
           >系統分析特徵與原則</text
         >
         <text y="20" class="ddd-wardley-diagram__bullet"
-          >• 按用量計費，極致可靠與標準</text
+          >• 檢查服務條款與限制</text
         >
         <text y="40" class="ddd-wardley-diagram__bullet"
-          >• 自建任何一行代碼都是負資產</text
+          >• 仍可能需要整合程式</text
         >
         <text y="60" class="ddd-wardley-diagram__bullet"
-          >• 隨插即用，直接呼叫雲端服務</text
+          >• 評估資料與法遵要求</text
         >
         <text y="80" class="ddd-wardley-diagram__bullet"
-          >• 典型：AWS S3、Stripe、Auth0</text
+          >• 例：標準運算與儲存</text
         >
       </g>
 
@@ -408,7 +406,7 @@
           >戰略工程姿態</text
         >
         <text x="12" y="38" class="ddd-wardley-diagram__action-desc"
-          >公用設施 · 堅決直接訂閱</text
+          >評估託管與退出方式</text
         >
       </g>
     </g>
@@ -437,17 +435,16 @@
         fill="#ef4444">!</text
       >
       <text x="62" y="40" class="ddd-wardley-diagram__warning-title"
-        >瓦德利演化氣候規律（Climatic Patterns）與系統分析資本防禦線</text
+        >演化位置是策略討論的輸入，不能代替子域判斷</text
       >
 
       <!-- 警示內文兩欄排版 -->
       <g transform="translate(62, 54)">
         <text class="ddd-wardley-diagram__warning-bullet" x="0" y="16">
-          <tspan font-weight="700">演化不可逆性：</tspan> 所有組件都會受競爭壓力向右（Commodity）推移；當底層商品化時，高價值核心域必然向上層躍遷。
+          <tspan font-weight="700">供需競爭：</tspan> 市場競爭推動演化；位置與速度需依證據判斷，不提供固定時程。
         </text>
         <text class="ddd-wardley-diagram__warning-bullet" x="0" y="36">
-          <tspan font-weight="700">工程資本錯配：</tspan> 致命反模式是在 Commodity（如
-          Auth、Message Queue）上自建專案，卻在 Custom（核心壁壘）上草率拼湊外包。
+          <tspan font-weight="700">採購與自建：</tspan> 比較業務差異化、法遵、資料需求、整合與退出成本，再決定投入。
         </text>
       </g>
     </g>
@@ -461,10 +458,10 @@
     aria-labelledby="ddd-wardley-diagram-mobile-title ddd-wardley-diagram-mobile-desc"
   >
     <title id="ddd-wardley-diagram-mobile-title">
-      Wardley Mapping 價值鏈演化與 DDD 核心域錨定全景（行動版）
+      Wardley Mapping：演化位置與子域判斷（行動版）
     </title>
     <desc id="ddd-wardley-diagram-mobile-desc">
-      瓦德利地圖演化四階段縱向卡片版：創生期原型、自建期核心域、產品期採購整合、商品期公用設施。
+      桌面版四個演化階段的直向排列。子域類型與自建決策需要另外驗證。
     </desc>
 
     <!-- 頂部：標題卡片 (高 70px) -->
@@ -478,7 +475,7 @@
         >瓦德利地圖 × DDD 系統分析</text
       >
       <text x="16" y="48" class="ddd-wardley-diagram__mobile-subtitle"
-        >從價值鏈成熟度錨定不可替代核心域</text
+        >子域類型與演化位置分開判斷</text
       >
     </g>
 
@@ -503,13 +500,13 @@
         >創生期 Genesis（探索驗證）</text
       >
       <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
-        >對應：潛在核心域（孵化中）</text
+        >判斷：差異化仍待驗證</text
       >
       <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
-        >• 特徵：市場不確定性極高，隨時 pivots</text
+        >• 特徵：需求與解法仍待探索</text
       >
       <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
-        >• 姿態：拋棄式原型，容忍技術債，快速驗證</text
+        >• 做法：依風險決定原型與驗證範圍</text
       >
       <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
         >• 典型：未經驗證之新創商業模式、AI 原型</text
@@ -523,7 +520,7 @@
         class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--genesis"
       ></rect>
       <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
-        >工程姿態：快速 Proof-of-Concept，拒過度設計</text
+        >工程做法：用原型取得具體回饋</text
       >
     </g>
 
@@ -545,25 +542,25 @@
         x="16"
         y="28"
         class="ddd-wardley-diagram__phase-tag ddd-wardley-diagram__phase-tag--gold"
-        >PHASE 2 · 核心戰場（最高優先）</text
+        >PHASE 2 · 特定解法</text
       >
       <text
         x="16"
         y="52"
         class="ddd-wardley-diagram__col-title ddd-wardley-diagram__col-title--gold"
-        >自建期 Custom（商業壁壘）</text
+        >自建期 Custom（特定需求）</text
       >
       <text
         x="16"
         y="74"
         class="ddd-wardley-diagram__mobile-domain ddd-wardley-diagram__mobile-domain--gold"
-        >對應：DDD 核心域（Core Domain）</text
+        >判斷：可能核心，也可能支撐</text
       >
       <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
-        >• 特徵：開源即倒閉，全公司唯一競爭護城河</text
+        >• 特徵：自建不必然提供競爭差異</text
       >
       <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
-        >• 姿態：投入頂尖菁英，精心封裝深模組與通用語言</text
+        >• 做法：釐清規則、語言與驗證方式</text
       >
       <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
         >• 典型：專利動態定價模型、即時撮合排程</text
@@ -580,7 +577,7 @@
         x="24"
         y="180"
         class="ddd-wardley-diagram__mobile-action ddd-wardley-diagram__action-title--gold"
-        >工程姿態：自主深度研發 · 100% 業務主權</text
+        >工程做法：先驗證需求與投入理由</text
       >
     </g>
 
@@ -605,13 +602,13 @@
         >產品期 Product（採購整合）</text
       >
       <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
-        >對應：支撐域 / 現成通用域</text
+        >判斷：可能支撐或通用</text
       >
       <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
-        >• 特徵：市場成熟方案眾多，自研缺乏優勢</text
+        >• 特徵：已有方案可供比較</text
       >
       <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
-        >• 姿態：優先採購/開源整合，建構 ACL 防腐隔離</text
+        >• 做法：驗證適配，必要時設轉換介面</text
       >
       <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
         >• 典型：CRM、通用工單、CMS、搜尋引擎</text
@@ -625,7 +622,7 @@
         class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--product"
       ></rect>
       <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
-        >工程姿態：成熟產品採購整合 · 拒絕自幹</text
+        >工程做法：比較採購、整合與自建</text
       >
     </g>
 
@@ -644,22 +641,22 @@
         class="ddd-wardley-diagram__col-strip ddd-wardley-diagram__col-strip--commodity"
       ></rect>
       <text x="16" y="28" class="ddd-wardley-diagram__phase-tag"
-        >PHASE 4 · 演化終局</text
+        >PHASE 4 · 標準化能力</text
       >
       <text x="16" y="52" class="ddd-wardley-diagram__col-title"
         >商品期 Utility（公用設施）</text
       >
       <text x="16" y="74" class="ddd-wardley-diagram__mobile-domain"
-        >對應：通用子域（Generic Subdomain）</text
+        >判斷：仍需核對本企業的用途</text
       >
       <text x="16" y="102" class="ddd-wardley-diagram__mobile-text"
-        >• 特徵：水電級公用基礎設施，極致標準化</text
+        >• 特徵：較普及、標準化的能力</text
       >
       <text x="16" y="124" class="ddd-wardley-diagram__mobile-text"
-        >• 姿態：隨插即用，按用量計費，堅決不寫基礎設施代碼</text
+        >• 做法：檢查法遵、資料與服務限制</text
       >
       <text x="16" y="146" class="ddd-wardley-diagram__mobile-text"
-        >• 典型：AWS S3、Stripe 金流、Auth0 認證</text
+        >• 例如：標準運算與儲存服務</text
       >
       <rect
         x="16"
@@ -670,7 +667,7 @@
         class="ddd-wardley-diagram__action-box ddd-wardley-diagram__action-box--commodity"
       ></rect>
       <text x="24" y="177" class="ddd-wardley-diagram__mobile-action"
-        >工程姿態：雲端公共服務 · 堅決直接訂閱</text
+        >工程做法：比較託管與退出成本</text
       >
     </g>
 
@@ -682,10 +679,10 @@
         rx="8"
         class="ddd-wardley-diagram__warning-bg"></rect>
       <text x="16" y="24" class="ddd-wardley-diagram__mobile-warning-title"
-        >⚠️ 系統分析資本防禦線：</text
+        >決策檢查：</text
       >
       <text x="16" y="42" class="ddd-wardley-diagram__mobile-warning-desc"
-        >堅決杜絕在 Utility 上自建輪子，而在 Core 上草率外包。</text
+        >演化位置不直接決定核心域，也不禁止所有自建。</text
       >
     </g>
   </svg>
@@ -694,9 +691,7 @@
     id="ddd-wardley-diagram-caption"
     class="ddd-wardley-diagram__caption"
   >
-    圖解：Wardley Mapping（瓦德利地圖）價值鏈演化矩陣與 DDD
-    子域對齊。系統分析端必須依據組件演化成熟度，精準錨定 Core Domain
-    並阻斷過度自研。
+    圖解：以市場演化位置輔助比較解法，再依業務差異化與限制判斷子域及自建範圍。
   </figcaption>
 </figure>
 

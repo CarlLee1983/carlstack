@@ -1,6 +1,6 @@
 ---
 title: "系統容量怎麼估：請求量、儲存、頻寬與 SLA/SLO"
-description: "深度剖析系統架構師的底層數學工具箱：每個工程師都該知道的硬體延遲數字（Numbers Every Engineer Should Know）、日活躍用戶（DAU）到 QPS/TPS 峰值估算公式、5 年儲存容量與網路頻寬精算模型，以及 99.99%（4個9）高可用性 SLA 停機時間計算實務。"
+description: "用明列假設估算 QPS、儲存、快取與頻寬，統一延遲換算尺度，並區分 SLO 錯誤預算與架構選擇。"
 publishDate: 2026-09-02T16:45:00+08:00
 draft: false
 featured: false
@@ -17,74 +17,80 @@ series: 系統設計面試與架構方法論
 seriesOrder: 2
 ---
 
-在設計一個分散式系統或進行架構評審（Architecture Review）時，工程師最常被問到的問題就是：
+import ResponsiveArticleDiagram from "../../components/ResponsiveArticleDiagram.astro";
 
-- 「這套系統需要幾台伺服器？」
-- 「我們的 Redis 快取需要買多大記憶體？」
-- 「資料庫一年會產生多少 TB 資料，需要預先分庫分表嗎？」
+容量估算先回答量級：每天有多少請求、每筆資料多大、保留多久，再把結果交給壓測確認。流量分布、快取命中率與複寫策略一變，需要的機器數也會改變。
 
-如果給不出量化的數據依據，任何架構方案都只是空中樓閣。
-
-**容量估算（Capacity Estimation / Back-of-the-Envelope Estimation）** 是系統架構師的核心必備技能。它不要求精確到個位數，而是旨在用 2 分鐘的心算，快速判定系統所處的「數量級（Order of Magnitude）」，從而做出正確的技術選型。
-
-本文將為你梳理底層關鍵硬體常數與最常用的容量估算數學模型。
+以下社交平台數字都是教學假設，容量採十進位單位（KB = 1,000 B、GB = 10⁹ B）。延遲圖只比較指定數值的比例，並非現代硬體實測。
 
 ---
 
 ## 1. 每個工程師都必須銘記的硬體延遲數字（Latency Numbers）
 
-由 Google 傳奇工程師 Jeff Dean 總結的經典延遲常數：
+延遲會隨硬體、資料大小、佇列深度與網路路徑變動。這張圖用一組示意數值，把 0.5 ns 固定放大為 1 秒；放大時間 = 延遲 ÷ 0.5 ns 秒。
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+<ResponsiveArticleDiagram>
+<div slot="wide">
   <svg viewBox="0 0 800 290" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lat-pyr-title lat-pyr-desc">
     <title id="lat-pyr-title">電腦硬體延遲金字塔與人類感知尺度放大對照圖</title>
-    <desc id="lat-pyr-desc">展示 L1 快取 0.5ns 等同人類 1 秒，主記憶體 100ns 等同 1.5 分鐘，NVMe SSD 等同 3.5 天，跨國網路等同 4.7 年。</desc>
+    <desc id="lat-pyr-desc">以 0.5 ns 對應 1 秒：RAM 100 ns 對應 200 秒，SSD 10 至 50 μs 對應 5.6 至 27.8 小時，同機房 500 μs 對應 11.6 天，HDD 10 ms 對應 231.5 天，150 ms 網路對應 9.5 年。</desc>
     
     
     <rect x="20" y="15" width="760" height="34" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
     <text x="35" y="37" fill="#3fb950" font-size="12" font-family="monospace">L1 快取讀取 (L1 Cache Hit)</text>
-    <text x="450" y="37" fill="#c9d1d9" font-size="12" font-family="monospace">0.5 ~ 1 ns</text>
+    <text x="450" y="37" fill="#c9d1d9" font-size="12" font-family="monospace">0.5 ns</text>
     <text x="650" y="37" fill="#3fb950" font-size="12" font-weight="700">1 秒 (基準)</text>
 
     <rect x="20" y="53" width="760" height="34" rx="4" fill="#1b2e23" stroke="#238636" stroke-width="1"/>
     <text x="35" y="75" fill="#3fb950" font-size="12" font-family="monospace">L2 快取讀取 (L2 Cache Hit)</text>
     <text x="450" y="75" fill="#c9d1d9" font-size="12" font-family="monospace">3 ~ 4 ns</text>
-    <text x="650" y="75" fill="#3fb950" font-size="12" font-weight="700">4 秒</text>
+    <text x="650" y="75" fill="#3fb950" font-size="12" font-weight="700">6 ~ 8 秒</text>
 
 
     <rect x="20" y="91" width="760" height="34" rx="4" fill="#161b22" stroke="#388bfd" stroke-width="1"/>
     <text x="35" y="113" fill="#58a6ff" font-size="12" font-family="monospace">主記憶體存取 (RAM Access)</text>
     <text x="450" y="113" fill="#c9d1d9" font-size="12" font-family="monospace">100 ns</text>
-    <text x="650" y="113" fill="#58a6ff" font-size="12" font-weight="700">1.5 分鐘</text>
+    <text x="650" y="113" fill="#58a6ff" font-size="12" font-weight="700">200 秒</text>
 
 
     <rect x="20" y="129" width="760" height="34" rx="4" fill="#161b22" stroke="#d29922" stroke-width="1"/>
     <text x="35" y="151" fill="#e3b341" font-size="12" font-family="monospace">NVMe SSD 隨機讀取</text>
     <text x="450" y="151" fill="#c9d1d9" font-size="12" font-family="monospace">10 ~ 50 &mu;s</text>
-    <text x="650" y="151" fill="#e3b341" font-size="12" font-weight="700">3.5 天</text>
+    <text x="650" y="151" fill="#e3b341" font-size="12" font-weight="700">5.6 ~ 27.8 小時</text>
 
 
     <rect x="20" y="167" width="760" height="34" rx="4" fill="#161b22" stroke="#bc8cff" stroke-width="1"/>
     <text x="35" y="189" fill="#d2a8ff" font-size="12" font-family="monospace">同機房網路往返 (Intra-DC)</text>
     <text x="450" y="189" fill="#c9d1d9" font-size="12" font-family="monospace">500 &mu;s</text>
-    <text x="650" y="189" fill="#d2a8ff" font-size="12" font-weight="700">5.5 個月</text>
+    <text x="650" y="189" fill="#d2a8ff" font-size="12" font-weight="700">11.6 天</text>
 
 
     <rect x="20" y="205" width="760" height="34" rx="4" fill="#161b22" stroke="#da3633" stroke-width="1"/>
     <text x="35" y="227" fill="#f85149" font-size="12" font-family="monospace">傳統 HDD 磁頭尋道 (Seek)</text>
     <text x="450" y="227" fill="#c9d1d9" font-size="12" font-family="monospace">10 ms</text>
-    <text x="650" y="227" fill="#f85149" font-size="12" font-weight="700">3 個月</text>
+    <text x="650" y="227" fill="#f85149" font-size="12" font-weight="700">231.5 天</text>
 
 
     <rect x="20" y="243" width="760" height="34" rx="4" fill="#2d1d24" stroke="#da3633" stroke-width="1.5"/>
     <text x="35" y="265" fill="#f85149" font-size="12" font-family="monospace">跨大西洋海底光纜 (NY ➔ London)</text>
     <text x="450" y="265" fill="#c9d1d9" font-size="12" font-family="monospace">150 ms</text>
-    <text x="650" y="265" fill="#f85149" font-size="12" font-weight="700">4.7 年！</text>
+    <text x="650" y="265" fill="#f85149" font-size="12" font-weight="700">9.5 年</text>
 
   </svg>
 </div>
+<div slot="narrow" role="group" aria-label="延遲比例文字版">
+  <p>固定把 0.5 ns 放大為 1 秒，以下皆為示意比例。</p>
+  <p><strong>L1 快取：</strong>0.5 ns → 1 秒。</p>
+  <p><strong>L2 快取：</strong>3～4 ns → 6～8 秒。</p>
+  <p><strong>主記憶體：</strong>100 ns → 200 秒。</p>
+  <p><strong>NVMe SSD 隨機讀取：</strong>10～50 μs → 5.6～27.8 小時。</p>
+  <p><strong>同機房網路往返：</strong>500 μs → 11.6 天。</p>
+  <p><strong>HDD 尋道：</strong>10 ms → 231.5 天。</p>
+  <p><strong>跨大西洋網路：</strong>150 ms → 9.5 年。</p>
+</div>
+</ResponsiveArticleDiagram>
 
-- **核心啟發**：記憶體比 SSD 快 1000 倍，SSD 比跨國網路快 1000 倍。架構設計的第一準則就是**盡可能在記憶體中解決運算，並透過 CDN 將數據推到離用戶最近的邊緣！**
+快取能減少慢速 I/O，但要一起評估命中率、失效策略與一致性成本。圖中的比例不足以替任何硬體選型作保。
 
 ---
 
@@ -95,11 +101,11 @@ seriesOrder: 2
 一天有 `24 * 3600 = 86,400 秒`。
 
 - **速算近似值**：`1 天 ≈ 100,000 秒 (10^5 秒)`。
-- **威力**：如果系統每天有 1,000 萬次請求（10M/day），平均 QPS = `10,000,000 / 100,000 = 100 QPS`！
+- 以 1,000 萬次請求／天為例，速算約 100 QPS；用 86,400 秒計算則約 116 QPS。近似值適合抓量級，容量預算應保留這個誤差。
 
 ### 2.2 流量與 QPS 估算
 
-假設某社交平台有 **1 億（100M）DAU**，平均每人每天發布 2 則貼文，瀏覽 50 則貼文：
+假設某社交平台有 1 億（100M）DAU，平均每人每天發布 2 則貼文、瀏覽 50 則貼文，且每次瀏覽對應一次讀取請求。峰值係數暫取 2.5，之後用流量紀錄校正：
 
 1. **寫入 QPS（Write QPS）**：
    - 每日寫入總量 = `100M * 2 = 200M 則/天`
@@ -121,15 +127,18 @@ seriesOrder: 2
 - 單則貼文平均體積 = `500 B + (0.2 * 200 KB) = 500 B + 40 KB ≈ 40.5 KB`。
 - 每日新增儲存 = `200M 則 * 40.5 KB = 8.1 TB / 天`。
 - 5 年總儲存量 = `8.1 TB/天 * 365天 * 5年 ≈ 14.8 PB`。
-- **結論**：純文字與元數據存入分庫分表的 MySQL / Cassandra，圖片二進位檔案直接存入 AWS S3 等物件儲存。
+- 14.8 PB 是固定流量、無刪除下的原始內容量。複本、索引、備份、壓縮與成長率另計。圖片可放物件儲存；文字是否需要分庫分表，要看查詢模式及單庫壓測。
+- 假設每天讀取的 50 億則貼文也平均傳輸 40.5 KB，平均出口為 `5 × 10⁹ × 40,500 × 8 / 86,400 ≈ 18.75 Gbit/s`，2.5 倍峰值約 46.9 Gbit/s。這是內容流量，還需考慮協定開銷、CDN 命中與快取重驗證。
 
 ### 3.2 20/80 法則與 Redis 快取記憶體估算
 
-- 根據帕累托法則（80/20 Rule），**20% 的熱門貼文貢獻了 80% 的每日讀取流量**。
-- 每日讀取熱點貼文數量 = `200M * 20% = 4,000 萬則`。
-- 記憶體快取僅快取純文字與元數據（每則 1KB）：
-  - 所需 Redis 記憶體 = `40,000,000 * 1 KB = 40 GB`
-- 預留 25% 緩衝空間 = `40 GB * 1.25 = 50 GB RAM`（單台 64GB 記憶體伺服器或 3 節點 Redis 叢集即可完美搞定！）。
+假設快取只保留最近一天新增貼文，其中 20% 是熱資料；這是容量情境，不是由 80/20 法則推導的事實。舊貼文若仍熱門，也要納入工作集。
+
+- 熱資料數量 = `200M × 20% = 4,000 萬則`。
+- 假設每則快取值為 1 KB，純值資料 = `40,000,000 × 1 KB = 40 GB`。
+- 乘 1.25 緩衝後是 50 GB，尚未包含 key、Redis 物件與 allocator 開銷、複本、持久化緩衝及重寫時的額外記憶體。
+
+用代表性資料載入測試 Redis，量測 `MEMORY USAGE` 與節點 RSS，再估分片及複本數。50 GB 的純資料預算不能直接換成一台 64 GB 機器。
 
 ---
 
@@ -137,25 +146,21 @@ seriesOrder: 2
 
 在架構設計中，高可用性通常以「幾個 9」來衡量：
 
-| 可用性等級  | 術語簡稱                         | 每年允許的不可用時間（Downtime） | 每天允許的不可用時間 |
-| :---------- | :------------------------------- | :------------------------------- | :------------------- |
-| **99%**     | 2 個 9                           | 3.65 天                          | 14.4 分鐘            |
-| **99.9%**   | 3 個 9                           | 8.76 小時                        | 1.44 分鐘            |
-| **99.99%**  | **4 個 9（現代雲架構黃金標準）** | **52.6 分鐘**                    | **8.64 秒**          |
-| **99.999%** | 5 個 9（電信與核心金融級）       | 5.26 分鐘                        | 0.86 秒              |
+| 可用性等級  | 術語簡稱   | 每年允許的不可用時間（Downtime） | 每天允許的不可用時間 |
+| :---------- | :--------- | :------------------------------- | :------------------- |
+| **99%**     | 2 個 9     | 3.65 天                          | 14.4 分鐘            |
+| **99.9%**   | 3 個 9     | 8.76 小時                        | 1.44 分鐘            |
+| **99.99%**  | **4 個 9** | **52.6 分鐘**                    | **8.64 秒**          |
+| **99.999%** | 5 個 9     | 5.26 分鐘                        | 0.86 秒              |
 
-要達到 **99.99%（4個9）**：
+上表按時間比例計算，年度以 365 天計。每天一欄是獨立的一日窗口換算，年度目標不代表每天都有 8.64 秒可用額度。
 
-- 系統必須全面消除單點故障（No SPOF）；
-- 必須實施跨可用區（Multi-AZ）多活部署；
-- 故障轉移（Failover）必須在 10 秒內全自動完成，禁止依賴人工操作。
+[SRE 的 SLO 定義](https://sre.google/sre-book/service-level-objectives/)要求先定義 SLI、目標與窗口。若 SLI 是成功請求數／有效請求數，錯誤預算應按請求計算，不能直接換成停機秒數。SLA 則還涉及對外承諾與違約處理。
+
+99.99% 並不指定唯一架構或 10 秒故障轉移。根據故障頻率、偵測時間、修復時間與依賴服務，選擇多可用區、備援或降級策略，再以演練驗證能否守住預算。
 
 ---
 
 ## 5. 總結
 
-容量估算不是為了追求絕對精準，而是為了：
-
-1. **確定系統量級**：決定是否需要分庫分表、引入 Redis 還是直接走單體架構；
-2. **評估硬體成本**：估算每年雲端頻寬、S3 儲存與機器實例的真實預算；
-3. **指導容量極限測試**：為壓測（Stress Testing）與容量報警閥值提供理論基準線。
+把上述假設填進自己的容量表：流量、每筆大小、保留期、峰值係數、複本數與 SLO 窗口。壓測時同時記錄吞吐、尾端延遲、CPU、記憶體與錯誤率，再修正最敏感的假設。

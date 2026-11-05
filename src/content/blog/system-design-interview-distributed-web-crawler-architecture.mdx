@@ -1,6 +1,6 @@
 ---
 title: "設計分散式網頁爬蟲：URL Frontier、抓取頻率與去重"
-description: "深度剖析搜尋引擎核心子系統設計：如何設計每秒抓取數千網頁的大規模分散式爬蟲？URL 邊界佇列 (URL Frontier) 優先級與禮貌策略 (Politeness Policy)、DNS 快取優化、SimHash / MD5 內容去重、Robots.txt 合規緩存與 Bloom Filter 億級網址過濾全解。"
+description: "設計 URL Frontier 與每個網站的抓取配額，計算 Bloom Filter 容量，說明 SimHash 去重與誤報漏抓的取捨。"
 publishDate: 2026-09-02T14:50:00+08:00
 draft: false
 featured: false
@@ -111,14 +111,14 @@ URL Frontier 是爬蟲的心臟，它必須同時解決兩大矛盾：
 ### 4.1 URL 去重：布隆過濾器（Bloom Filter）
 
 - 如果將 10 億個 URL（平均長度 100 Bytes）全部存入記憶體 HashSet，需要超過 100 GB 記憶體。
-- **布隆過濾器**：利用多個雜湊函數與點陣圖（BitMap），將 10 億個 URL 的判重記憶體壓縮至 **僅需 1~2 GB RAM**，在容忍 0.01% 極微誤報率的前提下實現 `O(1)` 的極速判重！
+- **布隆過濾器**：以 `n = 10^9`、目標誤報率 `p = 0.0001` 估算，位元數 `m = -n × ln(p) / (ln(2))^2 ≈ 19.17 × 10^9 bits`，約 2.40 GB（2.23 GiB），尚未包含實作與備援開銷。最佳雜湊次數約為 `k = (m/n) × ln(2) ≈ 13`。誤報會把未抓過的網址判為已存在；不能容忍漏抓時，對「可能存在」的結果再查精確集合。
 
 ### 4.2 網頁內容相似度去重：SimHash（局部敏感雜湊）
 
 很多網站存在大量鏡像網頁（內容 99% 相同，僅版權年份或廣告 Banner 不同）：
 
 - 傳統 MD5 只要改動 1 個字元，Hash 值完全劇變。
-- **SimHash（Locality Sensitive Hashing）**：將網頁關鍵詞權重轉換為 64-bit 指紋。如果兩個網頁內容高度相似，其 SimHash 的**漢明距離（Hamming Distance `≤ 3`）** 極小，可在微秒級內識別並剔除重複內容，節省海量儲存。
+- **SimHash（Locality Sensitive Hashing）**：將網頁關鍵詞權重轉換為 64-bit 指紋。如果兩個網頁內容高度相似，可用 SimHash 的漢明距離篩選候選，例如以 `≤ 3` 作初始門檻，再用實際語料校準。耗時取決於特徵抽取、候選索引與查詢規模，不能只由 64-bit 指紋推定。
 
 ---
 
@@ -126,5 +126,7 @@ URL Frontier 是爬蟲的心臟，它必須同時解決兩大矛盾：
 
 - [x] **URL Frontier 雙重調度**：清楚區分 Priority Queues（抓取價值）與 Politeness Queues（依 Host 分流與限速）。
 - [x] **去重體系完備**：URL 層級採用 **布隆過濾器**，內容層級採用 **SimHash**。
-- [x] **效能防禦健全**：內建 DNS 本地快取、Robots.txt 快取、HTML Parser 逾時中斷與 Spider Trap 深度限制（Max Depth = 10）。
+- [x] **效能防禦健全**：內建 DNS 本地快取、Robots.txt 快取、HTML Parser 逾時中斷與 Spider Trap 深度限制（例如 Max Depth = 10，依覆蓋需求調整）。
 - [x] **分散式可擴展性**：Kafka 管理 URL Frontier 隊列，無狀態 Fetcher Worker 水平擴展。
+
+Robots.txt 需按 [RFC 9309](https://www.rfc-editor.org/rfc/rfc9309.html) 處理抓取與快取狀態。它表達爬蟲偏好，不授予存取權；抓取還須遵守網站條款、授權與速率限制。

@@ -11,7 +11,7 @@
     <desc id="k8s-diag-desc">
       展示由外而內、由控制面到主機核心的 5 步診斷迴圈：Step 1 Pod
       事件與排程、Step 2 退出碼與歷史日誌、Step 3 探針合約與網路鏈路、Step 4
-      節點與 kubelet CRI、Step 5 核心與 cgroups 實體收割。
+      節點與 kubelet CRI、Step 5 核心與 cgroups 記憶體限制。
     </desc>
     <defs>
       <marker
@@ -123,7 +123,7 @@
         rx="10"></rect>
       <text class="k8s-diag__step-num" x="12" y="24">STEP 02</text>
       <text class="k8s-diag__step-title" x="12" y="58">退出碼與崩潰日誌</text>
-      <text class="k8s-diag__step-sub" x="12" y="76">容器自毀現場重建</text>
+      <text class="k8s-diag__step-sub" x="12" y="76">保存終止前狀態</text>
 
       <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
 
@@ -148,10 +148,10 @@
         >• Exit 1/2：配置/應用異常</text
       >
       <text class="k8s-diag__bullet" x="12" y="242"
-        >• Exit 137：SIGKILL (OOM)</text
+        >• Exit 137：SIGKILL（需查原因）</text
       >
       <text class="k8s-diag__bullet" x="12" y="260"
-        >• Exit 143：SIGTERM 超時</text
+        >• Exit 143：SIGTERM 終止</text
       >
 
       <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
@@ -162,9 +162,8 @@
       <text class="k8s-diag__gate-text" x="12" y="322"
         >若為 Exit 137 且日誌</text
       >
-      <text class="k8s-diag__gate-text" x="12" y="338">無 OOM 堆疊，屬</text>
-      <text class="k8s-diag__gate-text" x="12" y="354">cgroup 外部物理收割</text
-      >
+      <text class="k8s-diag__gate-text" x="12" y="338">無 OOM 堆疊，需查</text>
+      <text class="k8s-diag__gate-text" x="12" y="354">cgroup 與終止事件</text>
       <text class="k8s-diag__gate-highlight" x="12" y="380"
         >↳ 跳躍至 Step 05 核驗</text
       >
@@ -210,7 +209,9 @@
         >• Readiness 抖動踢出 EP</text
       >
       <text class="k8s-diag__bullet" x="12" y="242">• 缺少 StartupProbe</text>
-      <text class="k8s-diag__bullet" x="12" y="260">• CoreDNS 5s 解析逾時</text>
+      <text class="k8s-diag__bullet" x="12" y="260"
+        >• Service selector 匹配</text
+      >
 
       <line class="k8s-diag__divider" x1="12" y1="280" x2="160" y2="280"></line>
 
@@ -221,11 +222,9 @@
       <text class="k8s-diag__gate-text" x="12" y="338"
         >卻持續遭 Liveness 重啟</text
       >
-      <text class="k8s-diag__gate-text" x="12" y="354"
-        >屬探針閥值苛刻反模式</text
-      >
+      <text class="k8s-diag__gate-text" x="12" y="354">核對探針與應用狀態</text>
       <text class="k8s-diag__gate-highlight" x="12" y="380"
-        >↳ 修正探針，禁止改業務</text
+        >↳ 核對失敗原因再調整</text
       >
     </g>
 
@@ -280,9 +279,8 @@
       <text class="k8s-diag__gate-text" x="12" y="322"
         >若節點處於 DiskPressure</text
       >
-      <text class="k8s-diag__gate-text" x="12" y="338">或 PIDs 耗盡，所有</text>
-      <text class="k8s-diag__gate-text" x="12" y="354">同節點 Pod 均會驅逐</text
-      >
+      <text class="k8s-diag__gate-text" x="12" y="338">或 PIDs 不足，檢查</text>
+      <text class="k8s-diag__gate-text" x="12" y="354">Pod 驅逐及事件</text>
       <text class="k8s-diag__gate-highlight" x="12" y="380"
         >↳ 隔離節點 (cordon)</text
       >
@@ -306,9 +304,9 @@
         rx="10"></rect>
       <text class="k8s-diag__step-num" x="12" y="24">STEP 05</text>
       <text class="k8s-diag__step-title" x="12" y="58"
-        >核心日誌與 cgroup 收割</text
+        >核心日誌與 cgroup 限制</text
       >
-      <text class="k8s-diag__step-sub" x="12" y="76">實體層級終極收斂</text>
+      <text class="k8s-diag__step-sub" x="12" y="76">核對主機與容器用量</text>
 
       <line class="k8s-diag__divider" x1="12" y1="90" x2="160" y2="90"></line>
 
@@ -358,7 +356,7 @@
         kubectl describe pod &lt;pod-name&gt;
       </div>
       <p class="k8s-diag__mobile-desc">
-        <strong>檢查焦點：</strong> 透過 Events 確認是否卡在調度 Pending、映像檔拉取（ImagePullBackOff）、儲存卷掛載（VolumeMount）超時或
+        <strong>檢查焦點：</strong> 透過 Events 確認是否卡在排程 Pending、映像檔拉取（ImagePullBackOff）、儲存卷掛載（VolumeMount）超時或
         Admission Webhook 攔截。
       </p>
       <div class="k8s-diag__mobile-gate">
@@ -374,14 +372,14 @@
         kubectl logs &lt;pod&gt; --previous -c &lt;app&gt;
       </div>
       <p class="k8s-diag__mobile-desc">
-        <strong>檢查焦點：</strong> 區分 Exit 0（主進程正常結束）、Exit 1/2（應用錯誤）、Exit
-        137（SIGKILL/OOM）與 Exit 143（SIGTERM 正常優雅停機逾時）。務必加 <code
+        <strong>檢查焦點：</strong> 區分 Exit 0（主行程正常結束）、Exit 1/2（應用錯誤）、Exit
+        137（SIGKILL，需查原因）與 Exit 143（SIGTERM 終止）。務必加 <code
           >--previous</code
         > 撈取死前日誌。
       </p>
       <div class="k8s-diag__mobile-gate">
-        <strong>停止規則：</strong> 若 Exit Code 為 137 且應用無 OOM 堆疊，代表進程非自行自毀，直接切往
-        Step 05 驗證 cgroup 物理收割。
+        <strong>停止規則：</strong> 若 Exit Code 為 137，核對 OOMKilled、停機與人工終止事件，再到
+        Step 05 查核心日誌。
       </div>
     </div>
 
@@ -392,13 +390,13 @@
         kubectl get ep,svc --selector=&lt;app-label&gt;
       </div>
       <p class="k8s-diag__mobile-desc">
-        <strong>檢查焦點：</strong> 釐清是進程卡死還是探針設定過苛。排查 Liveness
+        <strong>檢查焦點：</strong> 釐清是行程卡死還是探針設定過苛。排查 Liveness
         是否過早觸發誤殺冷啟動、Readiness 是否因單次網路延遲將 Pod 踢出 Endpoints
         導致上游 502/503。
       </p>
       <div class="k8s-diag__mobile-gate">
-        <strong>停止規則：</strong> 嚴禁在 Readiness/Liveness Probe 中呼叫下游資料庫；慢啟動應用必須配置
-        StartupProbe，不能單純放大 Liveness 寬限期。
+        <strong>停止規則：</strong> Liveness 避免綁定共用下游；Readiness 依降級策略判斷依賴。慢啟動可用
+        StartupProbe 保護。
       </div>
     </div>
 
@@ -415,19 +413,20 @@
       <div class="k8s-diag__mobile-gate">
         <strong>停止規則：</strong> 一旦節點爆發資源壓力或 CRI 假死，立刻執行 <code
           >kubectl cordon</code
-        > 隔離節點，防止調度器將更多流量灌入故障節點。
+        > 隔離節點，阻止一般新 Pod 排程；既有 Pod 與流量不會因此移除。
       </div>
     </div>
 
     <div class="k8s-diag__mobile-card k8s-diag__mobile-card--step5">
       <div class="k8s-diag__mobile-badge">STEP 05</div>
-      <h3>核心日誌與 cgroup 收割（Kernel &amp; Cgroups）</h3>
+      <h3>核心日誌與 cgroup 限制（Kernel &amp; Cgroups）</h3>
       <div class="k8s-diag__mobile-code">
         dmesg -T | grep -E "oom-killer|invoked"
       </div>
       <p class="k8s-diag__mobile-desc">
         <strong>檢查焦點：</strong> 檢查 Linux Kernel 的 OOM Killer 記錄。區分是 Pod
-        踩到自身 <code>limits.memory</code> 的 cgroup 限制，還是 Node 整體實體記憶體不足導致的宿主連鎖收割。
+        踩到自身 <code>limits.memory</code> 的 cgroup 限制，還是 Node 整體實體記憶體不足導致的節點
+        OOM。
       </p>
       <div class="k8s-diag__mobile-gate">
         <strong>停止規則：</strong> 確定為 cgroup OOM 後，檢視 Runtime 的記憶體分配策略（如

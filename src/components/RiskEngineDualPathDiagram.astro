@@ -14,7 +14,7 @@
       現代即時風控引擎同步決策與非同步特徵沉澱雙鏈路架構圖
     </title>
     <desc id="redp-diag-desc">
-      展示支付請求發起經 50ms 內同步鏈路執行設備指紋、Redis
+      展示支付請求發起經目標 50ms 的同步鏈路執行設備指紋、Redis
       滑動視窗、規則引擎與輕量 ML 評分進行放行、挑戰或阻斷；同時非同步發送 Kafka
       由 Flink 與圖資料庫沉澱社群特徵。
     </desc>
@@ -109,7 +109,7 @@
       rx="4"
       class="redp-diag__badge-rect"></rect>
     <text x="520" y="93" class="redp-diag__badge-text" text-anchor="middle"
-      >⚡ &lt; 50ms 同步約束</text
+      >同步預算示例：50ms</text
     >
 
     <!-- Step 2: Risk Decision Center Core (x: 50, y: 110, width: 780) -->
@@ -242,7 +242,7 @@
       >
       <h4>1. 支付請求進入 API 閘道</h4>
       <p>
-        交易發起，API 閘道必須在 <strong>50ms 內</strong> 同步完成全流程風控，絕不拖垮線上支付轉化率。
+        交易發起，以 <strong>50ms</strong> 作為同步決策預算示例，實際延遲與逾時處置需測試。
       </p>
     </div>
 

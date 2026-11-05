@@ -92,10 +92,10 @@
           y="38"
           class="ent-text--red"
           font-size="12"
-          font-weight="bold">AI 時代的大泥球陷阱</text
+          font-weight="bold">模組審查起點</text
         >
         <text x="20" y="70" class="ent-text--muted" font-size="12"
-          >Vibe Coding 加速累積的淺層傳遞代碼</text
+          >檢查包裝層替呼叫端省下哪些細節</text
         >
 
         <!-- Shallow Pass-through Cluster -->
@@ -111,13 +111,13 @@
             y="24"
             class="ent-text--red-title"
             font-size="12"
-            font-weight="bold">淺層模組 (Shallow Pass-through)</text
+            font-weight="bold">待檢查的轉發模組</text
           >
           <text x="16" y="44" class="ent-text--muted" font-size="11.5"
-            >只轉發參數的冗餘 Wrapper / Service</text
+            >參數轉發與 SDK 初始化</text
           >
           <text x="16" y="60" class="ent-text--red" font-size="11"
-            >表面積龐大，無封裝價值（Interface ≈ Body）</text
+            >檢查介面與實作的責任差異</text
           >
         </g>
 
@@ -140,10 +140,10 @@
             y="24"
             class="ent-text--red-title"
             font-size="12"
-            font-weight="bold">刪除測試失敗 (Deletion Test Fails)</text
+            font-weight="bold">執行刪除測試</text
           >
           <text x="16" y="46" class="ent-text--muted" font-size="11.5"
-            >「刪除此模組，複雜度直接消失，呼叫端無痛」</text
+            >移除後，複雜度消失還是分散？</text
           >
         </g>
 
@@ -166,13 +166,13 @@
             y="24"
             class="ent-text--red"
             font-size="12.5"
-            font-weight="bold">熵增終局：認知超載</text
+            font-weight="bold">檢查遺漏的契約</text
           >
           <text x="16" y="48" class="ent-text--body" font-size="11.5"
-            >✕ 程式碼行數暴增 10 倍，實質功能零提升</text
+            >相容性、授權、記錄與監測</text
           >
           <text x="16" y="68" class="ent-text--body" font-size="11.5"
-            >✕ 下一個 Agent 迷失在空洞包裝中無從下手</text
+            >列出呼叫端與回歸測試範圍</text
           >
         </g>
       </g>
@@ -200,10 +200,10 @@
           y="38"
           class="ent-text--sky"
           font-size="12"
-          font-weight="bold">架構除熵迴圈 (Entropy Loop)</text
+          font-weight="bold">模組加深與驗證</text
         >
         <text x="20" y="70" class="ent-text--muted" font-size="12"
-          >架構師作為邊界審查者與模組加深引導</text
+          >依審查結果決定保留、合併或內聯</text
         >
 
         <!-- Step 1: Automated Deletion Test -->
@@ -219,10 +219,10 @@
             y="24"
             class="ent-text--sky"
             font-size="12"
-            font-weight="bold">1. 刪除測試審查 (The Deletion Test)</text
+            font-weight="bold">1. 釐清模組責任</text
           >
           <text x="16" y="46" class="ent-text--muted" font-size="11.5"
-            >主動辨識零槓桿模組，無情拔除或合併</text
+            >契約未釐清時停止自動刪除</text
           >
         </g>
 
@@ -245,13 +245,13 @@
             y="24"
             class="ent-text--purple"
             font-size="12"
-            font-weight="bold">2. 模組加深工作流 (Deepening Loop)</text
+            font-weight="bold">2. 調整介面</text
           >
           <text x="16" y="46" class="ent-text--body" font-size="11.5"
-            >• 簡化外層參數，隱藏內部私有狀態</text
+            >• 簡化參數，集中必要的順序</text
           >
           <text x="16" y="66" class="ent-text--body" font-size="11.5"
-            >• 單一深模組向 N 個呼叫端提供極高槓桿</text
+            >• 只在實際需要處設計 seam</text
           >
         </g>
 
@@ -274,10 +274,10 @@
             y="24"
             class="ent-text--green"
             font-size="12"
-            font-weight="bold">3. 恆常精準的代碼基底 (Evergreen Core)</text
+            font-weight="bold">3. 執行回歸測試</text
           >
           <text x="16" y="46" class="ent-text--body" font-size="11.5"
-            >✓ 小表面積、高內聚、隨時歡迎下一個 Agent</text
+            >驗證成功、失敗與重試的行為</text
           >
         </g>
       </g>
@@ -287,32 +287,30 @@
   <!-- Mobile View -->
   <div class="ent-loop__mobile">
     <div class="ent-m-group ent-m-group--red">
-      <div class="ent-m-badge ent-m-badge--red">大泥球陷阱</div>
-      <p class="ent-m-lead">AI 產出大量空洞包裝與轉發層</p>
+      <div class="ent-m-badge ent-m-badge--red">模組審查起點</div>
+      <p class="ent-m-lead">先列呼叫端，再檢查包裝責任</p>
       <div class="ent-m-items">
         <div class="ent-m-item ent-m-item--red">
-          <strong class="ent-m-key--red">淺層模組：</strong>包裝多但沒有實質邏輯
+          <strong class="ent-m-key--red">轉發模組：</strong>確認初始化與其他契約
         </div>
         <div class="ent-m-item ent-m-item--red-solid">
-          ✕ 刪除測試不過，專案因無效抽象而窒息
+          移除後，複雜度消失還是分散？
         </div>
       </div>
     </div>
 
     <div class="ent-m-group ent-m-group--sky">
-      <div class="ent-m-badge ent-m-badge--sky">架構除熵迴圈</div>
-      <p class="ent-m-lead">定期修剪與加深模組</p>
+      <div class="ent-m-badge ent-m-badge--sky">模組加深與驗證</div>
+      <p class="ent-m-lead">依審查結果調整模組</p>
       <div class="ent-m-items">
         <div class="ent-m-item ent-m-item--sky">
-          <strong class="ent-m-key--sky">刪除測試：</strong>砍掉無意義 Wrapper
+          <strong class="ent-m-key--sky">刪除測試：</strong>契約未明時停止刪除
         </div>
         <div class="ent-m-item ent-m-item--purple">
           <strong class="ent-m-key--purple">模組加深：</strong
-          >收斂介面，隱藏複雜度
+          >簡化介面，集中必要規則
         </div>
-        <div class="ent-m-item ent-m-item--green">
-          ✓ 高槓桿、小表面積，對抗代碼庫熵增
-        </div>
+        <div class="ent-m-item ent-m-item--green">驗證成功、失敗與重試行為</div>
       </div>
     </div>
   </div>
