@@ -36,7 +36,7 @@ TLS 不是 HTTPS 底下的一個黑箱。它把兩端的身分、協商出的金
 
 ## TLS 1.3：憑證驗身分，ECDHE 生金鑰，AEAD 保資料
 
-現代 TLS 1.3 的流程可縮成四個責任明確的階段：
+以下限定以憑證驗證伺服器身分、使用 (EC)DHE 的 TLS 1.3 完整握手；PSK 與恢復連線的路徑不同：
 
 1. ClientHello 帶著支援的版本、演算法與 key share 發起協商。
 2. ServerHello 選定參數；伺服器送出憑證與 CertificateVerify，證明它持有憑證公鑰配對的私鑰。
@@ -45,7 +45,7 @@ TLS 不是 HTTPS 底下的一個黑箱。它把兩端的身分、協商出的金
 
 RFC 8446 將握手定義為驗證通訊端、協商參數並建立 shared keying material 的協定；record protocol 才使用這些參數保護後續流量。[握手與 record protocol 的分工](https://www.rfc-editor.org/rfc/rfc8446.html#section-1) 是理解 TLS 的核心。
 
-這也修正一個常見說法：TLS 1.3 不是「client 產生 session key，再用伺服器公鑰加密送過去」。TLS 1.3 已移除靜態 RSA key exchange；雙方用 `(EC)DHE` 協商共享秘密並由 HKDF 派生金鑰。[RFC 8446 的 key schedule](https://www.rfc-editor.org/rfc/rfc8446.html#section-7) 是精確的依據。
+這也修正一個常見說法：TLS 1.3 不是「client 產生 session key，再用伺服器公鑰加密送過去」。TLS 1.3 已移除靜態 RSA key exchange；在上述路徑中，雙方用 `(EC)DHE` 協商共享秘密並由 HKDF 派生金鑰。TLS 1.3 也支援 PSK，以及 PSK 結合 (EC)DHE 的模式。[RFC 8446 的 key schedule](https://www.rfc-editor.org/rfc/rfc8446.html#section-7) 是精確的依據。
 
 同樣地，單純把 `SHA-256(data)` 和資料一起傳送，不能證明來源：能替換資料的攻擊者也能重算 hash。TLS 1.3 使用 AEAD 與握手 transcript 的驗證，將完整性和持有秘密金鑰的端點綁在一起；裸 hash 只適合偵測非對抗性的意外改動。
 
@@ -62,14 +62,14 @@ X.509 的路徑驗證以 trust anchor、目標憑證與認證路徑為輸入；�
 
 ## 一條命令先把問題拆開
 
-當應用程式拋出 TLS 錯誤時，先在同一個執行環境跑下列命令，保留完整輸出到 incident 或部署紀錄：
+下列選項以 OpenSSL 3.x 為例。先用 `openssl version` 記錄版本，將 `api.example.com` 換成有權檢查的目標主機，再於應用的同一執行環境執行並保留輸出：
 
 ```bash
-openssl s_client \\
-  -connect api.example.com:443 \\
-  -servername api.example.com \\
-  -verify_hostname api.example.com \\
-  -verify_return_error \\
+openssl s_client \
+  -connect api.example.com:443 \
+  -servername api.example.com \
+  -verify_hostname api.example.com \
+  -verify_return_error \
   -showcerts </dev/null
 ```
 
@@ -78,7 +78,7 @@ openssl s_client \\
 接著，將輸出的 leaf certificate 存成 `certificate.pem`，再只讀你要判斷的欄位：
 
 ```bash
-openssl x509 -in certificate.pem -noout \\
+openssl x509 -in certificate.pem -noout \
   -subject -issuer -dates -ext subjectAltName
 ```
 

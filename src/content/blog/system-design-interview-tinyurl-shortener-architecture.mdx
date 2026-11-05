@@ -1,6 +1,6 @@
 ---
 title: "設計 TinyURL 類短網址服務：Base62、雜湊碰撞與 301/302 重新導向"
-description: "深度拆解頂級系統設計面試必考題：如何設計一個支援百億級短網址服務？Base62 編碼數學模型、雜湊截斷碰撞 vs. 分散式唯一 ID 轉換、301 永久重新導向 vs. 302 臨時重新導向（埋點分析）選型、NoSQL/KV 儲存架構與 Redis 多層快取防穿透實戰。"
+description: "以 120 億筆短網址估算 Base62 空間，說明發號範圍、碰撞處理，以及重新導向快取對點擊統計的影響。"
 publishDate: 2026-09-02T14:40:00+08:00
 draft: false
 featured: false
@@ -17,16 +17,16 @@ series: 系統設計面試與架構方法論
 seriesOrder: 3
 ---
 
-「如何設計一個短網址系統（TinyURL / Bitly）？」是全矽谷與全球頂級科技公司在系統設計面試中最高頻出現的經典題目。
+短網址服務將長 URL 映射為較短的識別碼，讀取時再回傳重新導向。
 
-這個題目看似簡單（將一個長長個 URL `https://example.com/very/long/path?id=123` 縮短為 `https://tiny.url/aB3x9Z`），但背後卻涵蓋了：
+這個題目看似簡單（將一個長 URL `https://example.com/very/long/path?id=123` 縮短為 `https://tiny.url/aB3x9Z`），但背後卻涵蓋了：
 
 - **容量估算與數學建模**；
 - **字串編碼（Base62）與哈希碰撞（Hash Collisions）解法**；
 - **HTTP 重新導向狀態碼（301 vs. 302）的業務權衡**；
 - **高併發讀取快取與防穿透防禦**。
 
-本文將依照系統設計面試的黃金標準流程，為你提供一份滿分級別的架構設計方案。
+以下以每月新增 1 億筆為容量假設，分別評估編碼空間、唯一性與重新導向快取。
 
 ---
 
@@ -35,11 +35,11 @@ seriesOrder: 3
 ### 1.1 功能與非功能性需求
 
 - **核心功能**：
-  1. 輸入原始長網址，生成一個全域唯一的 7 位元短網址。
+  1. 輸入原始長網址，生成一個全域唯一的 7 字元短網址。
   2. 點擊短網址，毫秒級重新導向至原始長網址。
   3. 支援自定義短網址別名（Custom Alias）與到期時間（TTL）。
 - **非功能性需求**：
-  - **極致高可用（99.99%）** 與 **極低延遲（`< 10ms`）**。
+  - 目標示例：可用性 99.99%、服務端讀取延遲 `< 10ms`；需另定量測區域與分位數。
   - 短網址不能被輕易猜測遍歷（安全防爬蟲）。
 
 ### 1.2 容量估算
@@ -52,19 +52,19 @@ seriesOrder: 3
   - 10 年累積短網址數：`100M * 12 * 10 = 120 億 (12 Billion)`。
   - 短網址字元集採用 `[0-9], [a-z], [A-Z]` 共 62 個字元（Base62）。
   - 設短網址長度為 `L`：
-    - `62^6 ≈ 568 億`（6 位數已足夠，但 7 位數可提供 `62^7 ≈ 3.5 兆` 種不重複組合，極大增強安全性與抗碰撞能力）。
-    - **結論：短網址固定採用 7 位元字串（例如 `aB3x9Z1`）。**
+    - `62^6 ≈ 568 億`（6 位數已足夠，但 7 位數可提供 `62^7 ≈ 3.5 兆` 種不重複組合，增加容量餘裕；安全性仍取決於生成方式與存取控制）。
+    - 6 字元已能容納這個數量；以下選 7 字元（例如 `aB3x9Z1`）作為容量餘裕，並將發號範圍限制為 `0 ≤ ID < 62^7`。
 
 ---
 
 ## 2. 核心編碼演算法：哈希截斷 vs. 分散式 ID + Base62
 
-生成 7 位元短網址主要有兩大設計流派：
+生成 7 字元短網址主要有兩大設計流派：
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 230" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tiny-enc-title tiny-enc-desc">
     <title id="tiny-enc-title">短網址編碼演算法：雜湊截斷法 vs 分散式 ID 發號器 + Base62 對比圖</title>
-    <desc id="tiny-enc-desc">展示方案 A 雜湊截斷高碰撞需重算，與方案 B 分散式 ID 發號器生成 64-bit 整數轉 Base62 嚴格一對一零碰撞。</desc>
+    <desc id="tiny-enc-desc">比較雜湊映射至 Base62 後的唯一鍵檢查，與受限範圍唯一 ID 的可逆 Base62 編碼。任意 64-bit 整數最多需要 11 個 Base62 字元。</desc>
     
     <defs>
       <marker id="url-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -74,39 +74,35 @@ seriesOrder: 3
 
     <rect x="20" y="15" width="760" height="85" rx="8" fill="#161b22" stroke="#da3633" stroke-width="1.2"/>
     <text x="40" y="38" fill="#f85149" font-size="13" font-family="system-ui, sans-serif" font-weight="700">❌ 方案 A：雜湊截斷法 (Hash + Truncation)</text>
-    <text x="40" y="62" fill="#c9d1d9" font-size="11" font-family="monospace">Long URL ──► SHA256 / MD5 ──► 取前 7 個字元 ──► 檢查 DB 是否碰撞 (碰撞則加 Salt 重算)</text>
-    <text x="40" y="84" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">缺點：資料量累積後碰撞率急劇上升，DB 查詢次數不可預測！</text>
+    <text x="40" y="62" fill="#c9d1d9" font-size="11" font-family="monospace">Long URL ──► 雜湊 ──► 映射為 7 字元 Base62 ──► 檢查 DB 是否碰撞 (碰撞則加 Salt 重算)</text>
+    <text x="40" y="84" fill="#8b949e" font-size="10" font-family="system-ui, sans-serif">須以唯一鍵原子寫入；衝突時加 Salt 重算，監測重試率。</text>
 
 
     <rect x="20" y="115" width="760" height="95" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
-    <text x="40" y="138" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 方案 B：分散式 ID 發號器 ＋ Base62 編碼 (最優解法！)</text>
-    <text x="40" y="162" fill="#3fb950" font-size="11" font-family="monospace">Long URL ──► [ 分散式發號器 (Snowflake / Leaf) ] ──► 生成唯一 64-bit 整數 (如 20092143047)</text>
-    <text x="40" y="186" fill="#56d364" font-size="11" font-family="monospace">                     └──► [ 10進位轉 62進位 Base62 ] ──► 生成絕對唯一 7 位短碼: "7bK9zX" (零碰撞！)</text>
+    <text x="40" y="138" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700">✅ 方案 B：分散式 ID 發號器 ＋ Base62 編碼 (需管理發號範圍)</text>
+    <text x="40" y="162" fill="#3fb950" font-size="11" font-family="monospace">Long URL ──► [ 受限範圍發號器 ] ──► 唯一 ID，範圍小於 62 的 7 次方</text>
+    <text x="40" y="186" fill="#56d364" font-size="11" font-family="monospace">                     └──► [ 10進位轉 62進位 Base62 ] ──► 編為 7 字元短碼，不足補零</text>
 
   </svg>
 </div>
 
-### 2.1 為什麼「分散式 ID + Base62」全面優於「哈希截斷」？
+### 2.1 兩種方案的唯一性與容量限制
 
-- **雜湊截斷法**：因為取了前 7 個字元，必然會發生雜湊碰撞（Hash Collision）。當資料庫達到數十億筆時，碰撞率急劇上升，每次碰撞都必須查詢一次資料庫並加 Salt 重算，寫入延遲不可控。
-- **分散式 ID + Base62**：發號器保證生成的 64-bit 整數在全域內**絕對單調唯一**，10 進位轉 62 進位是一個可逆且嚴格一一對應的數學轉換，**根本不需要進行任何碰撞檢測，時間複雜度恆定為 O(1)！**
+- **雜湊或隨機短碼**：將輸出映射至 Base62 空間，靠資料庫唯一約束原子插入，衝突時重試。不能把十六進位雜湊的前 7 個字元當成 7 字元 Base62；兩者容量不同。
+- **唯一 ID + Base62**：進位轉換是一對一映射，但前提是 ID 本身唯一且未截斷。固定 7 字元只容納 `0` 到 `62^7 - 1 = 3,521,614,606,207`；任意 unsigned 64-bit ID 最多要 11 字元。Snowflake 類 ID 的跨節點順序不等於嚴格全域單調，還要處理時鐘回退與 worker ID 衝突。
+- 遞增 ID 轉成 Base62 後仍可枚舉。增加一個字元不能代替授權；私人資源需獨立存取控制，公開短網址則要評估隨機生成、限速與濫用偵測。
 
 ---
 
 ## 3. HTTP 重新導向狀態碼深度抉擇：301 vs. 302 / 307
 
-當使用者訪問 `https://tiny.url/7bK9zX` 時，伺服器應返回哪種 HTTP 狀態碼？
+當使用者訪問 `https://tiny.url/aB3x9Z1` 時，伺服器應返回哪種 HTTP 狀態碼？
 
-| 狀態碼          | 瀏覽器行為                           | 業務優缺點                           |
-| :-------------- | :----------------------------------- | :----------------------------------- |
-| 301 Moved       | 瀏覽器會【永久快取】該重新導向關係   | 伺服器負載極低 (後續訪問不打服務器)  |
-| Permanently     | 下次直接本地跳轉，不再請求短網址服務 | 缺點：無法精確統計點擊次數與用戶分析 |
-| 302 Found /     | 瀏覽器【不快取】重新導向關係         | 每次點擊均會訪問短網址伺服器，       |
-| 307 Temporary   | 每次點擊都會發起一次請求             | 業務可精確記錄點擊量、來源 IP、地理  |
-| Redirect (推薦) |                                      | 位置與使用者畫像！                   |
+- **301** 表示永久重新導向，允許啟發式快取；不代表永久存於每個瀏覽器。`Cache-Control` 等標頭仍影響快取行為。
+- **302 / 307** 表示暫時重新導向，設定明確的快取期限時仍可被快取。307 保留原始方法與 body；302 在部分情況可將 POST 改為 GET。
+- 若每次點擊都要進入服務端計數，可對重新導向回應使用 `Cache-Control: no-store`，並確認 CDN 不覆寫策略。若允許 CDN 快取，就要從邊緣收集點擊紀錄，不能只算回源請求；阻擋器、機器人與重試也會影響統計。
 
-> [!IMPORTANT]
-> **面試加分項**：向面試官說明——若業務重視**點擊數據統計與廣告歸因分析**，必須選擇 **302 / 307**；若業務純粹追求極限降低伺服器頻寬成本且不關心分析數據，才選擇 **301**。
+以下圖解採可快取的 302 路徑：CDN 命中時在邊緣記錄事件，未命中才回源。快取期限須配合短網址到期、撤銷與失效機制。HTTP 語義與快取規則可查 [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html) 與 [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html)。
 
 ---
 
@@ -118,12 +114,12 @@ seriesOrder: 3
     <desc id="url-redir-desc">展示客戶端請求短網址經 CDN 邊緣快取、API 閘道、布隆過濾器、Redis 快取與 DynamoDB 分散式 NoSQL 資料庫的完整查詢與回填流程。</desc>
     
     <rect x="20" y="15" width="220" height="40" rx="6" fill="#1f242c" stroke="#58a6ff"/>
-    <text x="130" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">客戶端請求: GET /7bK9zX</text>
+    <text x="130" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">客戶端請求: GET /aB3x9Z1</text>
 
     <path d="M 240 35 L 290 35" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#url-arrow)"/>
 
     <rect x="290" y="15" width="220" height="40" rx="6" fill="#161b22" stroke="#388bfd"/>
-    <text x="400" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">CDN 邊緣 (命中直接回傳 302)</text>
+    <text x="400" y="40" fill="#58a6ff" font-size="11" font-weight="700" text-anchor="middle">CDN 命中：記錄點擊並回 302</text>
 
     <path d="M 510 35 L 560 35" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#url-arrow)"/>
 
@@ -152,7 +148,7 @@ seriesOrder: 3
     <text x="645" y="145" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle">3. DynamoDB KV 儲存</text>
     <text x="645" y="160" fill="#8b949e" font-size="9" text-anchor="middle">回源查詢並回寫 Redis</text>
 
-    <text x="400" y="198" fill="#8b949e" font-size="10" text-anchor="middle">讀取延遲 &lt; 5ms，百萬 QPS 毫秒級流暢跳轉！</text>
+    <text x="400" y="198" fill="#8b949e" font-size="10" text-anchor="middle">依流量與區域量測延遲；快取須支援到期與撤銷</text>
 
   </svg>
 </div>
@@ -167,7 +163,7 @@ seriesOrder: 3
 
 ## 5. 系統設計面試檢查清單
 
-- [x] **容量估算清晰**：明確推導 10 年 120 億短網址需要 7 位元 Base62 字元。
-- [x] **核心演算法嚴謹**：選擇「分散式 ID 發號器 + Base62」徹底消滅雜湊碰撞。
+- [x] **容量估算清晰**：120 億筆可放入 6 字元 Base62；選 7 字元需說明 ID 範圍。
+- [x] **核心演算法嚴謹**：選擇「分散式 ID 發號器 + Base62」維持一對一映射，驗證發號器唯一性與範圍。
 - [x] **狀態碼權衡到位**：清楚闡述 301 與 302 在點擊統計上的架構差異。
-- [x] **全鏈路高併發防禦**：Redis 快取 + 布隆過濾器徹底防禦快取穿透。
+- [x] **全鏈路高併發防禦**：Redis 快取 + 布隆過濾器減少不存在短碼的查詢，並處理誤報與同步延遲。

@@ -1,6 +1,6 @@
 ---
 title: "輸入 URL 後發生什麼事：DNS、TCP、TLS 與 HTTP 請求流程"
-description: "深度拆解軟體工程史上最經典的面試神題：當你在瀏覽器網址列輸入一個 URL 並按下 Enter，底層究竟發生了什麼？從瀏覽器 HSTS、DNS 多層遞迴解析、TCP 三向交握、TLS 1.3 協商、核心 Socket 緩衝區到瀏覽器 CRP 渲染管線全景實戰。"
+description: "追蹤一次新建 HTTP/2 HTTPS 連線的 DNS、TCP、TLS 與渲染流程，並區分連線重用、快取命中與 HTTP/3 的 QUIC 路徑。"
 publishDate: 2026-09-02T16:00:00+08:00
 draft: false
 featured: false
@@ -17,11 +17,7 @@ series: 現代網路協定與 API 平台架構
 seriesOrder: 1
 ---
 
-「當你在瀏覽器輸入 URL 並按下 Enter 到頁面渲染出來，這中間發生了什麼事？」
-
-這是全球軟體工程師、SRE 與架構師面試中出現頻率最高、涵蓋領域最廣的「面試神題」。許多人只能背出零散的名詞（DNS、TCP、HTTP、DOM），卻無法將作業系統內核、網路協定棧與瀏覽器渲染引擎串聯成一條條理清晰的完整鏈路。
-
-本文將帶你沿著資料封包的真實流轉軌跡，由淺入深、毫秒級拆解這場跨越微秒、公網與矽晶片的傳輸全景之旅。
+以下以沒有可用快取、需要新建 HTTP/2 HTTPS 連線為主線，追蹤 DNS、TCP、TLS 與頁面渲染。連線重用會跳過部分步驟；HTTP/3 則透過 UDP 上的 QUIC 建立連線，將 TLS 1.3 握手整合進 QUIC，走不同的傳輸路徑。
 
 ---
 
@@ -29,7 +25,7 @@ seriesOrder: 1
 
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="url-flow-title url-flow-desc">
-    <title id="url-flow-title">從 URL 輸入到網頁呈現 6 大核心階段全鏈路圖</title>
+    <title id="url-flow-title">新建 HTTP/2 HTTPS 連線的請求流程</title>
     <desc id="url-flow-desc">展示 1. URL 解析與快取 ➔ 2. DNS 階層解析 ➔ 3. TCP 三向交握 ➔ 4. TLS 1.3 握手 ➔ 5. HTTP 請求回應 ➔ 6. 瀏覽器 CRP 渲染管線。</desc>
     
     <defs>
@@ -64,7 +60,7 @@ seriesOrder: 1
     <path d="M 560 180 L 510 180" stroke="#3fb950" stroke-width="2" marker-end="url(#url-arrow)"/>
 
     <rect x="290" y="145" width="220" height="70" rx="8" fill="#1b2e23" stroke="#238636" stroke-width="1.5"/>
-    <text x="400" y="173" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">5. HTTP/2 / HTTP/3 傳輸</text>
+    <text x="400" y="173" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">5. HTTP/2 傳輸</text>
     <text x="400" y="195" fill="#3fb950" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">二進位分幀 / 網關反代</text>
 
     <path d="M 290 180 L 240 180" stroke="#3fb950" stroke-width="2" marker-end="url(#url-arrow)"/>
@@ -84,7 +80,7 @@ seriesOrder: 1
 2. **HSTS（HTTP Strict Transport Security）檢查**：
    - 瀏覽器檢查內建的 HSTS Preload 列表。若域名在列表中，瀏覽器會直接在內部將 `http://` 強制重寫為 `https://`，從源頭避免明文跳轉遭受 SSL-Stripping 中間人攻擊。
 3. **階層式快取檢查**：
-   - 檢查 **Service Worker 快取 ➔ Memory Cache ➔ Disk Cache ➔ Push Cache**。若命中強快取（`Cache-Control: max-age=...` 且未過期），直接從本機硬碟/記憶體讀取並結束網路傳輸！
+   - Service Worker 可攔截請求並採用自己的 Cache Storage 策略；瀏覽器另有 HTTP 記憶體與磁碟快取。可直接使用的快取回應能省去網路請求，需要再驗證時則仍會連線。這些機制不是固定順序的四層管線。
 
 ---
 
@@ -160,7 +156,7 @@ seriesOrder: 1
   </svg>
 </div>
 
-- **為什麼必須是三次？** 兩次無法確認雙向的發送與接收能力，四次則冗餘浪費。三次是通訊雙方在不可靠網路上達成「初始序列號（ISN）同步」的理論最小次數。
+- **為什麼必須是三次？** 伺服器需要收到對其 SYN 的確認，才能確認對方取得自己的初始序列號。一般 TCP 建連用這三個步驟同步初始序列號並確認對方收到 SYN；這是 TCP 的協定流程，不是所有可靠通訊協定的通用最小次數。
 - **MSS（Maximum Segment Size）協商**：在 SYN 階段同步雙方最大報文段大小（通常為 1460 字節，對應 1500 字節的乙太網 MTU）。
 
 ---
@@ -169,16 +165,18 @@ seriesOrder: 1
 
 在 TCP 管道之上，進行 1-RTT 的 TLS 1.3 握手（協商 AES-GCM 對稱密鑰與校驗 X.509 證書鏈）。
 
-連線就緒後，客戶端發送二進位 HTTP 幀：
+連線就緒後，HTTP/2 以二進位幀傳輸。以下是解碼後的標頭示意，不是線上的 HTTP/1.1 文字請求：
 
 ```http
-GET /posts/system-design HTTP/2
-Host: carlstack.dev
-User-Agent: Mozilla/5.0 ...
-Accept: text/html,application/xhtml+xml
+:method: GET
+:scheme: https
+:authority: carlstack.dev
+:path: /posts/system-design
+user-agent: Mozilla/5.0 ...
+accept: text/html,application/xhtml+xml
 ```
 
-伺服器網關（如 Envoy / Nginx）接收請求，透過反向代理將其轉發至後端微服務處理，並返回 HTML 響應流（`HTTP/2 200 OK`，帶有 `Content-Type: text/html; charset=utf-8`）。
+伺服器網關（如 Envoy / Nginx）接收請求，透過反向代理將其轉發至後端微服務處理，並返回 HTML 響應流（`:status: 200`，帶有 `Content-Type: text/html; charset=utf-8`）。
 
 ---
 
@@ -271,8 +269,10 @@ Accept: text/html,application/xhtml+xml
 
 ## 7. 總結
 
-從輸入 URL 到網頁呈現，是計算機科學各層級協同運作的極致藝術：
+排查頁面載入時間時，可沿三個範圍定位：
 
 - **應用層**：URL 解析、快取匹配與 HTTP 語義封裝；
 - **系統與傳輸層**：DNS 樹狀查詢、TCP 滑動視窗可靠保證與 TLS 密碼學加密；
 - **前端核心**：瀏覽器多進程架構與 GPU 硬體加速渲染管線。
+
+HTTP/2 的 pseudo-header 定義見 [RFC 9113 §8.3](https://www.rfc-editor.org/rfc/rfc9113.html#section-8.3)。HTTP/3 的 QUIC 傳輸路徑見 [RFC 9114](https://www.rfc-editor.org/rfc/rfc9114.html)。

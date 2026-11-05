@@ -75,7 +75,7 @@
           >• 內部碎片 (未用完) + 外部碎片 (不連續)</text
         >
         <text class="llm-diagram__subdesc" x="12" y="82"
-          >• 浪費 60% ~ 80% 昂貴 GPU 顯存！</text
+          >• KV 預留與碎片減少可用批次</text
         >
       </g>
 
@@ -182,16 +182,16 @@
           y="22">Continuous Batching</text
         >
         <text class="llm-diagram__subdesc" x="12" y="44"
-          >• Iteration-level 動態調度</text
+          >• Iteration-level 動態排程</text
         >
         <text class="llm-diagram__subdesc" x="12" y="64"
           >• 請求隨到隨入，結束即退出釋放</text
         >
         <text class="llm-diagram__subdesc" x="12" y="84"
-          >• 徹底消除靜態 Padding 浪費</text
+          >• 減少靜態批次的空置槽位</text
         >
         <text class="llm-diagram__subdesc" x="12" y="102"
-          >• GPU 算力飽和度逼近 100%</text
+          >• 實際利用率依工作負載量測</text
         >
       </g>
 
@@ -213,7 +213,7 @@
           >• Target 大模型 1 次 Forward 驗證全批次</text
         >
         <text class="llm-diagram__subdesc" x="12" y="88"
-          >• 數學嚴格保證輸出分佈完全一致</text
+          >• 正確拒絕採樣維持目標分布</text
         >
         <text class="llm-diagram__subdesc" x="12" y="110"
           >• 解碼延遲降低 2x ~ 3x！</text
@@ -241,7 +241,7 @@
       <h4>Prefill 與 Decode 階段</h4>
       <p>
         Prefill 屬於計算密集型，Decode 屬於記憶體頻寬受限。傳統靜態分配 KV Cache
-        造成 60%~80% 顯存碎片浪費。
+        產生 KV Cache 預留與碎片，比例依負載而變。
       </p>
     </div>
 
@@ -267,7 +267,7 @@
       <h4>Continuous Batching 與推測解碼</h4>
       <p>
         Iteration-level 動態批處理消除 Padding，搭配 Draft
-        小模型推測驗證，系統吞吐量暴增 4~5 倍。
+        小模型推測驗證，效益取決於接受率與模型成本。
       </p>
     </div>
   </div>

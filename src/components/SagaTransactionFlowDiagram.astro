@@ -265,7 +265,7 @@
           x="512"
           y="42"
           class="saga-diag__step-sub saga-diag__step-sub--red"
-          text-anchor="middle">卡片餘額不足 / 銀行逾時</text
+          text-anchor="middle">已確認支付拒絕</text
         >
 
         <!-- Step 4: Final State -->
@@ -286,13 +286,13 @@
           x="712"
           y="44"
           class="saga-diag__step-sub saga-diag__step-sub--green"
-          text-anchor="middle">無懸掛孤立資料</text
+          text-anchor="middle">補償完成後結案</text
         >
       </g>
 
       <text class="saga-diag__summary saga-diag__summary--red" x="20" y="156">
         鐵律：補償不是底層
-        ROLLBACK，而是全新補償交易（須具備冪等性、重試不允許失敗、可補償步驟置於樞紐之前）。
+        ROLLBACK，而是全新補償交易（須具備冪等性、失敗需告警對帳、可補償步驟置於樞紐之前）。
       </text>
     </g>
   </svg>
@@ -321,7 +321,7 @@
       <p>2. <strong>C2 補償</strong>：呼叫庫存服務釋放已凍結之庫存（沖正）。</p>
       <p>3. <strong>C1 補償</strong>：呼叫訂單服務更新狀態為已取消。</p>
       <p class="saga-mobile-note">
-        補償交易須遵循冪等性與重試必定成功原則，達成全鏈路最終一致性。
+        補償交易需冪等並持久化重試；永久失敗轉人工對帳。
       </p>
     </div>
   </div>

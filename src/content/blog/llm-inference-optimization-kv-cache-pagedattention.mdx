@@ -1,6 +1,6 @@
 ---
 title: "LLM 推論的記憶體與速度取捨：KV Cache、vLLM PagedAttention 與推測解碼"
-description: "深度拆解 LLM 大語言模型推理加速與顯存優化核心技術：剖析 Prefill 與 Decode 階段的計算與記憶體瓶頸；詳解 KV Cache 為何浪費 60%~80% 顯存；深入 vLLM PagedAttention 虛擬分頁區塊映射與零拷貝分叉；解析 Continuous Batching（持續批處理）與 Speculative Decoding（推測解碼）的吞吐翻倍實踐。"
+description: "估算 Llama 3 70B 的 KV Cache 容量，說明分頁、持續批次與推測解碼如何影響顯存、吞吐和延遲，以及各自需要量測的條件。"
 publishDate: 2026-09-02T10:40:00+08:00
 draft: false
 featured: false
@@ -17,17 +17,13 @@ series: AI Agent 工程化與工作流實戰
 seriesOrder: 2
 ---
 
+import ResponsiveArticleDiagram from "../../components/ResponsiveArticleDiagram.astro";
+
 import LlmInferenceOptimizationDiagram from "../../components/LlmInferenceOptimizationDiagram.astro";
 
-在生成式 AI 與大語言模型（LLM）落地生產環境的過程中，**「推理效能與 GPU 顯存成本」** 是決定業務能否盈利的生死線。
+LLM 推論服務的併發上限，除了模型權重，也受 KV Cache、執行期緩衝與請求長度影響。增加批次可能改善吞吐，同時拉長等待時間。
 
-許多工程師初次部署開源大模型（如 Llama 3 70B 或 Qwen 2.5）時，常會發現：即使配備了昂貴的 8x H100 GPU 伺服器，當併發請求數（Concurrent Requests）稍一上升，系統就會因為顯存溢出（OOM, Out of Memory）而崩潰，或是每秒處理 Token 數（Tokens/sec）低得令人無法接受。
-
-LLM 的自迴歸（Autoregressive）生成特性，決定了其推理過程包含兩個特性完全相反的階段：**Prefill 階段**與 **Decode 階段**。其中產生的 **KV Cache** 更是吞噬 GPU 記憶體的頭號元兇。
-
-加州大學柏克萊分校發表的經典論文 [vLLM: Efficient Memory Management with PagedAttention (SOSP 2023)](https://arxiv.org/abs/2309.06180) 透過作業系統虛擬記憶體的分頁思想，徹底顛覆了 LLM 推理架構。
-
-本文基於 vLLM 論文、Hugging Face TGI 與 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)，深度剖析大模型推理優化的核心演算法與工程實踐。
+[vLLM 的 SOSP 2023 論文](https://arxiv.org/abs/2309.06180)用分頁管理減少 KV Cache 的碎片與重複配置。以下容量是公式試算，效能數字只引用論文受測條件，沒有在此重跑 GPU benchmark。相關概念也可參考 [ByteByteGo System Design 101](https://github.com/ByteByteGoHq/system-design-101)。
 
 <LlmInferenceOptimizationDiagram />
 
@@ -40,18 +36,18 @@ Transformer 模型在生成文本時，每個 Request 都必須經歷兩個截�
 ### 1. Prefill 階段（首字生成階段 / Prompt Processing）
 
 - **任務**：接收使用者輸入的完整 Prompt（例如 2,000 字），計算所有輸入 Token 的 Self-Attention 矩陣，並生成第一個 Output Token。
-- **瓶頸特徵**：**計算密集型（Compute-Bound）**。所有輸入 Token 可以透過 GEMM（矩陣乘法）完全平行並發計算，GPU 運算核心（Tensor Cores）利用率接近飽和。
+- **瓶頸特徵**：**計算密集型（Compute-Bound）**。Prompt 的 token 可批次計算，較容易提高矩陣運算利用率；短 Prompt、小批次或通訊開銷仍可能讓 GPU 無法飽和。
 - **核心指標**：**TTFT（Time-to-First-Token，首字延遲）**。
 
 ### 2. Decode 階段（自迴歸逐字生成階段 / Token Generation）
 
 - **任務**：每次將新生成的 1 個 Token 與過去所有的歷史 Token 結合，預測下 1 個 Token。
-- **瓶頸特徵**：**記憶體頻寬受限（Memory-Bound）**。每生成僅僅 1 個 Token，GPU 都必須從顯存（HBM）中完整載入數十 GB 的模型權重矩陣與全量歷史 KV Cache！
+- **瓶頸特徵**：**記憶體頻寬受限（Memory-Bound）**。小批次解碼常受權重與 KV 的讀取頻寬限制。實際讀取量取決於模型、注意力機制、量化、批次大小與快取；大批次也可能轉為計算受限。
 - **核心指標**：**ITL（Inter-Token Latency，詞間生成延遲）** 與每秒整體吞吐量。
 
 ---
 
-## 二、KV Cache 為何浪費 60% ~ 80% 的 GPU 顯存？
+## 二、KV Cache 容量與配置浪費
 
 在 Attention 計算中：
 
@@ -59,38 +55,38 @@ Transformer 模型在生成文本時，每個 Request 都必須經歷兩個截�
 Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V
 ```
 
-在自回歸解碼（Autoregressive Decoding）過程中，每生成一個新 Token，模型需要與歷史上所有的 Token 計算注意力。為了避免重複計算歷史 Token 的 Key 和 Value 向量，系統會將歷史各層的 `K` 與 `V` 矩陣快取在顯存中——這就是 **KV Cache**。
+在自迴歸解碼（Autoregressive Decoding）過程中，每生成一個新 Token，模型需要與歷史上所有的 Token 計算注意力。為了避免重複計算歷史 Token 的 Key 和 Value 向量，系統會將歷史各層的 `K` 與 `V` 矩陣快取在顯存中，稱為 **KV Cache**。
 
 ### 1.2 KV Cache 顯存容量估算公式
 
 每個 Token 所需的 KV Cache 顯存大小計算公式為：
 
 ```text
-KV_Size_Per_Token = 2 * n_layers * n_heads * d_head * precision_bytes
+KV_Size_Per_Token = 2 * n_layers * n_kv_heads * d_head * precision_bytes
 ```
 
 以 **Llama 3 70B**（80 層、8 個 KV Heads、Head Dim 128、FP16 2 Bytes）為例：
 
-- 單一 Token 的 KV Cache = `2 * 80 * 8 * 128 * 2 Bytes = 327,680 Bytes ≈ 320 KB`。
-- 若 Context 長度達到 8,192（8K），**單一併發請求就需要佔用 2.56 GB 顯存**！
-- 若同時有 100 個併發請求，僅 KV Cache 就需要 **256 GB 顯存**，遠遠超過模型權重本身！
+- 單一 Token 的 KV Cache = `2 * 80 * 8 * 128 * 2 Bytes = 327,680 Bytes = 320 KiB`。
+- 若 Context 長度達到 8,192（8K），單一請求的 KV Cache 為 `327,680 × 8,192 = 2,684,354,560 B = 2.5 GiB`（約 2.684 GB）。
+- 若同時有 100 個併發請求，僅 KV Cache 就需要 250 GiB（約 268.4 GB），尚未加上權重與執行期緩衝。這是未共享、未量化、所有請求皆達 8,192 tokens 的合計，並非每張 GPU 的用量。
 
 ### 2. 傳統推理框架的碎片化危機（Fragmentation）
 
-在 vLLM 出現前，傳統系統（如 Hugging Face Transformers / FasterTransformer）採用靜態連續記憶體分配：
+原論文討論的連續配置方式可能產生以下浪費；現代框架可有不同快取實作：
 
-1. **內部碎片（Internal Fragmentation）**：由於無法預知用戶請求會生成多少字，系統必須預先為每個請求分配最大長度（如 Max-Seq-Len = 8K）。若用戶只生成了 200 字就結束，剩餘 7.8K 的顯存空間全部被白白浪費！
+1. **內部碎片（Internal Fragmentation）**：若系統替每個請求預留 8,192 tokens，但 Prompt 加輸出只用到 200 tokens，則剩下 7,992 個 token 槽位未被使用。
 2. **外部碎片（External Fragmentation）**：請求長短不一，不同長度的動態分配在顯存中產生大量無法利用的離散空洞。
 3. **保留碎片（Reservation Fragmentation）**：為未來可能生成的 Token 提前鎖定顯存配額。
 
 > [!WARNING]
-> 實測表明：傳統推理引擎中，**只有 20% ~ 40% 的顯存真正存放有效 Token，高達 60% ~ 80% 的昂貴 HBM 顯存完全處於浪費狀態**！
+> 原論文的 20%～40% 有效使用量是特定工作負載下分配給 KV Cache 的記憶體利用率。其餘包含預留及碎片，不能把這個比例套到全部 HBM，因為權重與其他緩衝也佔顯存。
 
 ---
 
-## 三、vLLM 革命：PagedAttention 虛擬分頁區塊架構
+## 三、PagedAttention 的分頁區塊架構
 
-vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）的機制引入了 GPU 顯存管理**。
+PagedAttention 以固定大小區塊管理 KV Cache，讓序列不必佔據連續顯存。
 
 ### 1. Logical Block Table 映射機制
 
@@ -98,7 +94,8 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
 - 物理顯存不再要求連續存放，而是劃分為一個個不連續的物理塊池（Physical Block Pool）。
 - 透過 **Block Table** 記錄邏輯塊到物理塊的動態映射（類似 OS 的 Page Table）：
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+<ResponsiveArticleDiagram>
+<div slot="wide">
   <svg viewBox="0 0 800 180" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="paged-att-title paged-att-desc">
     <title id="paged-att-title">PagedAttention 邏輯分塊到不連續物理顯存塊映射圖</title>
     <desc id="paged-att-desc">展示 Request 1 的邏輯塊 0 映射至物理塊 7、邏輯塊 1 映射至物理塊 2、邏輯塊 2 按需映射至物理塊 9。</desc>
@@ -135,6 +132,14 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
 
   </svg>
 </div>
+<div slot="narrow" role="group" aria-label="PagedAttention 區塊映射文字版">
+  <p><strong>Request 1：</strong>邏輯序列以每塊 16 個 tokens 切分。</p>
+  <p>邏輯塊 0（Token 0～15）→ 實體塊 7。</p>
+  <p>邏輯塊 1（Token 16～31）→ 實體塊 2。</p>
+  <p>邏輯塊 2（Token 32～47）→ 按需配置實體塊 9。</p>
+  <p>Block Table 保存映射，實體塊不必連續。</p>
+</div>
+</ResponsiveArticleDiagram>
 
 ### 2. 零拷貝分叉與共享（Copy-on-Write）
 
@@ -142,7 +147,7 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
 
 - 傳統做法：必須複製多份完整的 Prompt KV Cache。
 - PagedAttention：多個邏輯序列直接指向**相同的物理 Block**，引用計數（Reference Count）加 1。
-- 只有當某個分支開始生成不同的新 Token 時，才觸發 **Copy-on-Write（寫時複製）**，節省高達 55% 以上的顯存！
+- 共用且尚未填滿的區塊若要寫入，會使用 Copy-on-Write；新的完整區塊可另行配置。節省量取決於共用前綴長度與分支數，沒有固定比例。
 
 ---
 
@@ -150,12 +155,13 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
 
 傳統批處理（Static Batching）必須等待批次中最長的請求生成完畢才能結束，導致短請求結束後 GPU 計算單元大量空轉等待（Padding Waste）。
 
-**Continuous Batching（迭代級動態調度）** 徹底改變了調度粒度：
+Continuous Batching 把排程邊界縮到每次迭代。
 
-<div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
+<ResponsiveArticleDiagram>
+<div slot="wide">
   <svg viewBox="0 0 800 240" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cb-batch-title cb-batch-desc">
     <title id="cb-batch-title">Continuous Batching 持續動態批處理 vs 傳統 Static Batching 對比圖</title>
-    <desc id="cb-batch-desc">展示 Static Batching 短請求結束後需 Padding 等待長請求浪費算力，而 Continuous Batching 在 Iteration 級別立即插隊新請求提升利用率至 95%。</desc>
+    <desc id="cb-batch-desc">展示 Static Batching 短請求結束後需 Padding 等待長請求浪費算力，而 Continuous Batching 在 Iteration 級別立即插隊新請求減少空置批次槽位。</desc>
     
     
     <text x="30" y="25" fill="#f85149" font-size="12" font-family="system-ui, sans-serif" font-weight="700">❌ Static Batching (傳統靜態批次：存在大量 Padding 空轉浪費)</text>
@@ -168,7 +174,7 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
     <text x="330" y="81" fill="#58a6ff" font-size="9" text-anchor="middle">Req B (200 tokens 長請求)</text>
 
 
-    <text x="30" y="125" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">✅ Continuous Batching (vLLM 迭代級動態插隊：95% 算力飽和)</text>
+    <text x="30" y="125" fill="#3fb950" font-size="12" font-family="system-ui, sans-serif" font-weight="700">✅ Continuous Batching (vLLM 迭代級動態插隊：依負載提升利用率)</text>
     <rect x="30" y="135" width="150" height="24" rx="4" fill="#1b2e23" stroke="#238636"/>
     <text x="105" y="151" fill="#3fb950" font-size="9" text-anchor="middle">Req A (50t 完成)</text>
     <rect x="180" y="135" width="390" height="24" rx="4" fill="#241b35" stroke="#bc8cff"/>
@@ -178,32 +184,40 @@ vLLM 的核心突破在於：**將作業系統管理記憶體分頁（Paging）�
     <text x="330" y="181" fill="#58a6ff" font-size="9" text-anchor="middle">Req B (200 tokens 持續並行生成)</text>
 
     <rect x="30" y="200" width="740" height="30" rx="4" fill="#161b22" stroke="#238636"/>
-    <text x="400" y="220" fill="#3fb950" font-size="10" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">吞吐量提升 3 ~ 4 倍，GPU HBM / Tensor Core 全程無空轉！</text>
+    <text x="400" y="220" fill="#3fb950" font-size="10" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">在迭代邊界補入新請求；吞吐與延遲需一起量測</text>
 
   </svg>
 </div>
+<div slot="narrow" role="group" aria-label="批次排程比較文字版">
+  <p><strong>Static Batching：</strong>同一批次中，A 產生 50 tokens 後完成；B 要產生 200 tokens。固定批次若保留 A 的槽位，就有 150 輪未用於新請求。</p>
+  <p><strong>Continuous Batching：</strong>A 完成後，可在下一輪迭代補入 D。B 繼續生成，D 在自己的槽位產生 130 tokens。</p>
+  <p>這是排程示意，不是固定利用率或加速倍數的保證。吞吐與延遲需一起量測。</p>
+</div>
+</ResponsiveArticleDiagram>
 
 - 在每一次 Token 迭代（Iteration-Level）結束時，檢查是否有已完成的請求；
 - 一旦請求完成，立即釋放其物理 Block，並在下一輪迭代中**無縫插入新的請求**。
-- GPU 算力利用率達到 95% 以上，吞吐量提升 3 ~ 4 倍。
+- 原 vLLM 論文在其模型與工作負載上，報告相近延遲下相對 FasterTransformer、Orca 約 2～4 倍吞吐。這是整體系統結果，不能歸因於 Continuous Batching 單一功能，也不保證固定 GPU 利用率。
 
 ---
 
 ## 五、Speculative Decoding（推測解碼）：打破自迴歸速度極限
 
-Decode 階段每次 Forward 只能產生 1 個 Token。**推測解碼（Speculative Decoding）** 利用「大模型驗證比生成快」的數學特性打破這一瓶頸：
+一般自迴歸解碼每個序列每輪產生一個 token。[Speculative Decoding 論文](https://arxiv.org/abs/2211.17192)用便宜的草稿模型提出候選，再由目標模型批次驗證。
 
-1. **Draft 小模型高速生成**：使用輕量級模型（如 Llama-3-8B 作為 70B 的 Draft）快速推測生成 K 個 Token（例如 K = 5）。
-2. **Target 大模型單次驗證**：大模型在**僅僅 1 次 Forward Pass** 中同時評估這 5 個候選 Token 的條件機率分佈。
-3. **拒絕採樣（Rejection Sampling）**：
-   - 若前 3 個 Token 命中分佈，則全部接受；第 4 個若偏離則拒絕並即時修正。
-   - **數學嚴格證明**：最終輸出文本的機率分佈與大模型單獨生成完全等價（Lossless Quality）。
-4. **效果**：每次大模型前向傳播平均可產生 2 ~ 3 個 Token，**端到端推理延遲降低 50% ~ 70%**。
+1. 草稿模型依序提出 K 個候選 token，例如 K = 5。兩個模型需使用相容的 token 表示。
+2. 目標模型在一次前向計算中評估候選前綴的條件分布。
+3. 對候選 x，以 `min(1, p(x)/q(x))` 的機率接受，其中 p 是目標分布、q 是草稿分布。第一個拒絕位置改從正規化的 `max(0, p-q)` 抽樣，捨棄後續草稿。全數接受時還可從目標分布取得一個額外 token。
+4. 在論文演算法及採樣前提下，可保持目標分布。這不表示每次輸出文字相同，也不涵蓋任意近似驗證或實作誤差。
+
+實際收益取決於接受率、草稿模型成本、額外 KV 記憶體與驗證批次。接受率低或服務已高併發時可能變慢；量測每請求延遲與整體吞吐後再決定是否啟用。
 
 ---
 
 ## 六、生產環境落地最佳實踐
 
 1. **量化加速（Quantization）**：採用 **AWQ（Activation-aware Weight Quantization）** 或 **FP8** 格式，將模型權重由 16 位元壓縮至 4/8 位元，大幅降低記憶體頻寬壓力。
-2. **Chunked Prefill**：將超長 Prompt 切片與 Decode 請求混合批處理，避免超長 Prompt 霸佔 GPU 導致短請求產生嚴重的 TTFT 尖刺。
+2. **Chunked Prefill**：將超長 Prompt 切片與 Decode 請求混合批處理，限制單輪 prefill 工作量，平衡 TTFT 與 ITL；切片也會增加排程開銷。
 3. **前綴快取（Prefix Caching）**：在 Agent 或 RAG 場景中開啟 `enable_prefix_caching=true`，自動複用多輪對話中相同的 System Prompt 與知識庫檢索上下文。
+
+驗收時固定模型版本、GPU、量化格式、Prompt／輸出長度與到達率，同時記錄 TTFT、ITL、吞吐、接受率與峰值顯存。

@@ -14,10 +14,10 @@
     aria-labelledby="ddd-storming-diagram-title ddd-storming-diagram-desc"
   >
     <title id="ddd-storming-diagram-title">
-      Big Picture EventStorming 全景事件風暴與上下文邊界識別全景
+      Big Picture EventStorming：事件與候選邊界
     </title>
     <desc id="ddd-storming-diagram-desc">
-      頂部展示事件風暴色彩語言與時間軸流動方向。主體四欄展示全景風暴推進三階段與上下文邊界切分：混沌發散領域事件、結構化時間軸與觸發源、衝突熱點收斂、邊界接縫自然浮現。底部展示系統分析師控場原則與常見反模式警示。
+      四個可調整的工作坊步驟：收集事件、整理時序、記錄衝突及驗證候選邊界。時間與角色變化只提供線索。
     </desc>
 
     <!-- 頂部：便籤語義導覽列 (高 52px) -->
@@ -80,7 +80,7 @@
         >
         <text y="25" class="ddd-storming-diagram__col-title">全景領域事件</text>
         <text y="46" class="ddd-storming-diagram__col-subtitle"
-          >業務事實 · 徹底打破沉默</text
+          >業務事實 · 共同探索</text
         >
       </g>
 
@@ -108,7 +108,7 @@
           >橘色便籤（Domain Event）</text
         >
         <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
-          >必須使用業務過去式動態</text
+          >描述已發生的業務事實</text
         >
       </g>
 
@@ -116,13 +116,13 @@
       <g transform="translate(16, 180)">
         <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
         <text y="20" class="ddd-storming-diagram__bullet"
-          >• 邀請所有跨職能關係人到場</text
+          >• 邀請熟悉流程與例外的人</text
         >
         <text y="40" class="ddd-storming-diagram__bullet"
-          >• 嚴禁技術人員討論資料表與 API</text
+          >• 先記錄技術選型問題</text
         >
         <text y="60" class="ddd-storming-diagram__bullet"
-          >• 貼滿「OrderPlaced、Paid」</text
+          >• 例如 OrderPlaced、Paid</text
         >
         <text y="80" class="ddd-storming-diagram__bullet"
           >• 允許重複與亂序，重在廣度</text
@@ -140,7 +140,7 @@
           >分析師職責</text
         >
         <text x="12" y="38" class="ddd-storming-diagram__action-desc"
-          >激發表達 · 杜絕批判審查</text
+          >鼓勵表達 · 保留不同說法</text
         >
       </g>
     </g>
@@ -194,7 +194,7 @@
           x="12"
           y="42"
           class="ddd-storming-diagram__meta-val ddd-storming-diagram__meta-val--blue"
-          >藍色 Command + 紫色 Policy</text
+          >依問題補充 Command / Policy</text
         >
         <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
           >人/系統觸發與業務策略規則</text
@@ -214,7 +214,7 @@
           >• 識別「每當 X 發生時，執行 Y」</text
         >
         <text y="80" class="ddd-storming-diagram__bullet"
-          >• 補齊讀取模型與決策上下文</text
+          >• 需要時補充決策資訊</text
         >
       </g>
 
@@ -256,7 +256,7 @@
         >
         <text y="25" class="ddd-storming-diagram__col-title">捕捉衝突熱點</text>
         <text y="46" class="ddd-storming-diagram__col-subtitle"
-          >紅色便籤 · 暴露真實分歧</text
+          >紅色便籤 · 記錄分歧</text
         >
       </g>
 
@@ -293,16 +293,16 @@
       <g transform="translate(16, 180)">
         <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
         <text y="20" class="ddd-storming-diagram__bullet"
-          >• 只要有爭執，立刻貼上紅便籤</text
+          >• 記下尚未解決的爭議</text
         >
         <text y="40" class="ddd-storming-diagram__bullet"
-          >• 拒絕在白板前現場無休止爭吵</text
+          >• 約定時間盒與後續查證</text
         >
         <text y="60" class="ddd-storming-diagram__bullet"
           >• 標記「誰負責退款審核賠償？」</text
         >
         <text y="80" class="ddd-storming-diagram__bullet"
-          >• 衝突點往往預示核心語義邊界</text
+          >• 衝突可提示待驗證的邊界</text
         >
       </g>
 
@@ -317,7 +317,7 @@
           >分析師職責</text
         >
         <text x="12" y="38" class="ddd-storming-diagram__action-desc"
-          >凍結爭吵 · 記錄分歧熱點</text
+          >記錄問題 · 指定查證責任</text
         >
       </g>
     </g>
@@ -341,15 +341,15 @@
       <g transform="translate(16, 24)">
         <text
           class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--gold"
-          >STEP 4 · 架構收斂</text
+          >STEP 4 · 邊界假設</text
         >
         <text
           y="25"
           class="ddd-storming-diagram__col-title ddd-storming-diagram__col-title--gold"
-          >識別上下文邊界</text
+          >識別候選邊界</text
         >
         <text y="46" class="ddd-storming-diagram__col-subtitle"
-          >語義圈地 · 確立系統邊界</text
+          >提出假設 · 核對規則</text
         >
       </g>
 
@@ -369,7 +369,7 @@
           class="ddd-storming-diagram__meta-box ddd-storming-diagram__meta-box--gold"
         ></rect>
         <text x="12" y="22" class="ddd-storming-diagram__meta-label"
-          >架構交付物</text
+          >待驗證產出</text
         >
         <text
           x="12"
@@ -378,7 +378,7 @@
           >候選限界上下文清單</text
         >
         <text x="12" y="58" class="ddd-storming-diagram__meta-sub"
-          >時間停頓、權責移轉處劃下接縫</text
+          >時間與權責變化僅是線索</text
         >
       </g>
 
@@ -386,16 +386,16 @@
       <g transform="translate(16, 180)">
         <text class="ddd-storming-diagram__section-label">工作坊推進要點</text>
         <text y="20" class="ddd-storming-diagram__bullet"
-          >• 尋找時序停頓（異步處理點）</text
+          >• 檢查等待與平行流程</text
         >
         <text y="40" class="ddd-storming-diagram__bullet"
-          >• 捕捉角色與權責轉移樞紐</text
+          >• 記錄角色與責任變化</text
         >
         <text y="60" class="ddd-storming-diagram__bullet"
           >• 識別名詞含義的根本性轉變</text
         >
         <text y="80" class="ddd-storming-diagram__bullet"
-          >• 用膠帶圈出 Bounded Context</text
+          >• 圈出候選區塊再驗證</text
         >
       </g>
 
@@ -414,7 +414,7 @@
           >分析師職責</text
         >
         <text x="12" y="38" class="ddd-storming-diagram__action-desc"
-          >確立邊界 · 輸出戰略架構</text
+          >核對語言 · 規則與責任</text
         >
       </g>
     </g>
@@ -442,17 +442,15 @@
         fill="#d97706">!</text
       >
       <text x="62" y="40" class="ddd-storming-diagram__warning-title"
-        >系統分析師主導 EventStorming 的兩大防禦原則</text
+        >工作坊安排依範圍、人數與風險調整</text
       >
 
       <g transform="translate(62, 54)">
         <text class="ddd-storming-diagram__warning-bullet" x="0" y="16">
-          <tspan font-weight="700">禁絕 CRUD 思維污染：</tspan> 嚴禁出現「CreateOrder、UpdateUser」等資料庫動作便籤；必須使用真實業務語義（如
-          OrderPlaced、AccountLocked）。
+          <tspan font-weight="700">釐清事件含義：</tspan> 確認名稱描述的是意圖或已發生的事，對含糊的狀態更新追問業務原因。
         </text>
         <text class="ddd-storming-diagram__warning-bullet" x="0" y="36">
-          <tspan font-weight="700">現場爭執即時凍結：</tspan> 當兩個部門對名詞定義爭辯超過
-          2 分鐘，強制貼上紅便籤並立刻推進，將爭議轉為探索限界上下文的絕佳切縫。
+          <tspan font-weight="700">留下查證紀錄：</tspan> 時間盒可依情況調整；尚未解決的爭議要記錄依據、負責人與下一步。
         </text>
       </g>
     </g>
@@ -466,10 +464,10 @@
     aria-labelledby="ddd-storming-diagram-mobile-title ddd-storming-diagram-mobile-desc"
   >
     <title id="ddd-storming-diagram-mobile-title">
-      Big Picture EventStorming 全景事件風暴工作流（行動版）
+      Big Picture EventStorming 工作坊安排（行動版）
     </title>
     <desc id="ddd-storming-diagram-mobile-desc">
-      全景事件風暴四步驟縱向卡片版：混沌發散領域事件、結構化時間軸、衝突熱點收斂、自然浮現上下文邊界。
+      桌面版四個步驟的直向排列。產出是事件、待查問題與候選邊界。
     </desc>
 
     <!-- 頂部標題 (高 66px) -->
@@ -483,7 +481,7 @@
         >EventStorming 全景事件風暴</text
       >
       <text x="16" y="48" class="ddd-storming-diagram__mobile-subtitle"
-        >從業務事實探索到限界上下文自然切分</text
+        >事件、待查問題與候選邊界</text
       >
     </g>
 
@@ -504,7 +502,7 @@
         x="16"
         y="28"
         class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--orange"
-        >STEP 1 · 混沌發散（打破沉默）</text
+        >STEP 1 · 收集事件</text
       >
       <text x="16" y="52" class="ddd-storming-diagram__col-title"
         >全景領域事件（Domain Events）</text
@@ -513,13 +511,13 @@
         >便籤：橘色便籤 · 業務過去式</text
       >
       <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
-        >• 特徵：全員無邊界張貼業務事實，允許重複亂序</text
+        >• 各自記錄業務事實，允許重複與亂序</text
       >
       <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
-        >• 姿態：嚴禁工程師過早討論資料庫表結構與 API</text
+        >• 先記錄技術選型問題，保留探索範圍</text
       >
       <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
-        >• 典型：OrderPlaced, PaymentReceived, ParcelDispatched</text
+        >• 例如 OrderPlaced、PaymentReceived</text
       >
       <rect
         x="16"
@@ -529,7 +527,7 @@
         rx="4"
         class="ddd-storming-diagram__action-box"></rect>
       <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
-        >分析師姿態：鼓勵廣泛發散，不做價值評判</text
+        >主持安排：先書寫，再共同校對</text
       >
     </g>
 
@@ -559,13 +557,13 @@
         >便籤：藍色 Command + 紫色 Policy</text
       >
       <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
-        >• 特徵：自左向右排列時序，追溯每項事件之觸發因</text
+        >• 排列時序，保留平行與不確定區段</text
       >
       <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
-        >• 姿態：梳理「每當 A 發生時，執行策略 B」</text
+        >• 需要時補充指令與業務政策</text
       >
       <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
-        >• 典型：用戶點擊提交、定時任務觸發、自動風控驗證</text
+        >• 檢查使用者操作與排程觸發的差異</text
       >
       <rect
         x="16"
@@ -575,7 +573,7 @@
         rx="4"
         class="ddd-storming-diagram__action-box"></rect>
       <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
-        >分析師姿態：溯源業務因果鏈，理清決策上下文</text
+        >主持安排：詳細設計可另開工作坊</text
       >
     </g>
 
@@ -596,7 +594,7 @@
         x="16"
         y="28"
         class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--red"
-        >STEP 3 · 爭議捕捉（暴露痛點）</text
+        >STEP 3 · 記錄衝突</text
       >
       <text x="16" y="52" class="ddd-storming-diagram__col-title"
         >捕捉衝突熱點（Hotspots）</text
@@ -605,13 +603,13 @@
         >便籤：紅色便籤 · 爭議與盲點</text
       >
       <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
-        >• 特徵：凡是部門爭執超 2 分鐘，強制貼紅便籤</text
+        >• 約定可調整的討論時間盒</text
       >
       <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
-        >• 姿態：現場不浪費時間辯論，凍結爭議持續推進</text
+        >• 記錄分歧、各方依據及查證責任</text
       >
       <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
-        >• 典型：名詞語義分歧、責任真空、缺失不變量約束</text
+        >• 例如退款確認時機與例外規則</text
       >
       <rect
         x="16"
@@ -621,7 +619,7 @@
         rx="4"
         class="ddd-storming-diagram__action-box"></rect>
       <text x="24" y="179" class="ddd-storming-diagram__mobile-action"
-        >分析師姿態：將爭吵轉化為探索邊界的關鍵契機</text
+        >主持安排：排定尚未解決問題的查證</text
       >
     </g>
 
@@ -643,13 +641,13 @@
         x="16"
         y="28"
         class="ddd-storming-diagram__phase-tag ddd-storming-diagram__phase-tag--gold"
-        >STEP 4 · 架構收斂（確立邊界）</text
+        >STEP 4 · 邊界假設</text
       >
       <text
         x="16"
         y="52"
         class="ddd-storming-diagram__col-title ddd-storming-diagram__col-title--gold"
-        >識別上下文邊界（Bounded Contexts）</text
+        >識別候選上下文</text
       >
       <text
         x="16"
@@ -658,13 +656,13 @@
         >交付：候選限界上下文清單</text
       >
       <text x="16" y="102" class="ddd-storming-diagram__mobile-text"
-        >• 特徵：從時間軸停頓與權責轉移處畫下分界線</text
+        >• 時間等待與角色轉移僅提供線索</text
       >
       <text x="16" y="124" class="ddd-storming-diagram__mobile-text"
-        >• 姿態：以業務邊界取代微服務拆分盲目熱情</text
+        >• 核對語言、責任與一致性需求</text
       >
       <text x="16" y="146" class="ddd-storming-diagram__mobile-text"
-        >• 典型：訂單成立、履約倉儲、開票結算自然解耦</text
+        >• 同一上下文也可能有長時間等待</text
       >
       <rect
         x="16"
@@ -678,7 +676,7 @@
         x="24"
         y="180"
         class="ddd-storming-diagram__mobile-action ddd-storming-diagram__action-title--gold"
-        >分析師姿態：膠帶圈出邊界，正式輸出系統架構接縫</text
+        >主持安排：記錄支持與反對切分的理由</text
       >
     </g>
 
@@ -690,10 +688,10 @@
         rx="8"
         class="ddd-storming-diagram__warning-bg"></rect>
       <text x="16" y="24" class="ddd-storming-diagram__mobile-warning-title"
-        >⚠️ EventStorming 控場底線：</text
+        >工作坊驗收：</text
       >
       <text x="16" y="42" class="ddd-storming-diagram__mobile-warning-desc"
-        >杜絕 CRUD 技術名詞，以真實業務過去式驅動時序鏈。</text
+        >保留事件、Hotspots、候選邊界與待訪談名單。</text
       >
     </g>
   </svg>
@@ -702,8 +700,7 @@
     id="ddd-storming-diagram-caption"
     class="ddd-storming-diagram__caption"
   >
-    圖解：Big Picture
-    EventStorming（全景事件風暴）四步推進架構。透過跨職能探索、時間軸因果溯源與衝突熱點凍結，讓系統限界上下文在白板上自然浮現。
+    圖解：可調整的四步工作坊安排。候選邊界仍需以業務規則、語言與責任驗證。
   </figcaption>
 </figure>
 

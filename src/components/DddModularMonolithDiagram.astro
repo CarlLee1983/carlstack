@@ -10,15 +10,10 @@
     role="img"
     aria-labelledby="ddd-mm-diagram-title ddd-mm-diagram-desc"
   >
-    <title id="ddd-mm-diagram-title">
-      模組化單體（Modular Monolith）與 AI Agent 語義隔離防禦體系
-    </title>
+    <title id="ddd-mm-diagram-title">模組化單體的依賴檢查與 Agent 指引</title>
     <desc id="ddd-mm-diagram-desc">
-      頂部展示微服務迷思破除與架構收斂核心維度（進程內零網路開銷 vs 100%
-      硬隔離邊界）。中間三列由靜至動展示進程內隔離三大支柱：編譯期物理隔絕（TS
-      Project References / Go internal）、語義圍欄規範（BOUNDARY.md
-      架構契約）、CI 自動化執法（Dependency-Cruiser 阻斷非法跨模組
-      Import）。底部為防禦鐵律。
+      三欄區分建置與語言限制、Agent 文件指引及外部 CI
+      檢查。每一項都需以正反例確認範圍，文件不能代替權限控制。
     </desc>
 
     <!-- 頂部：收斂維度導覽橫幅 (寬 900, 高 54) -->
@@ -27,7 +22,7 @@
       ></rect>
       <circle cx="28" cy="27" r="7" fill="#0284c7"></circle>
       <text x="46" y="33" class="ddd-mm-diagram__banner-title"
-        >後微服務收斂核心準則：</text
+        >模組邊界與部署分開決定：</text
       >
 
       <text x="220" y="33" class="ddd-mm-diagram__banner-dim"
@@ -35,11 +30,11 @@
       >
       <text x="440" y="33" class="ddd-mm-diagram__banner-divider">|</text>
       <text x="455" y="33" class="ddd-mm-diagram__banner-dim"
-        >② 單進程內零網路跳躍開銷</text
+        >② 同行程呼叫可省網路傳輸</text
       >
       <text x="670" y="33" class="ddd-mm-diagram__banner-divider">|</text>
       <text x="685" y="33" class="ddd-mm-diagram__banner-dim"
-        >③ 硬體級編譯與 CI 隔離執法</text
+        >③ 檢查覆蓋範圍需實測</text
       >
     </g>
 
@@ -75,13 +70,13 @@
           y="16"
           text-anchor="middle"
           class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--compile"
-          >編譯期防禦</text
+          >建置與匯入</text
         >
         <text x="86" y="18" class="ddd-mm-diagram__col-title"
           >Compile Boundary</text
         >
         <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
-          >工程級進程內硬隔離</text
+          >建置依賴與公開入口</text
         >
       </g>
 
@@ -90,38 +85,38 @@
         <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
         ></rect>
         <text x="12" y="24" class="ddd-mm-diagram__prop-header"
-          >【語言內核物理防線】</text
+          >【語言與工具的責任】</text
         >
         <text x="12" y="52" class="ddd-mm-diagram__prop-item"
-          >• TS Project References 隔離</text
+          >• TS References 管理建置</text
         >
         <text x="12" y="78" class="ddd-mm-diagram__prop-item"
           >• Go internal package 限制</text
         >
         <text x="12" y="104" class="ddd-mm-diagram__prop-item"
-          >• 僅暴露 index.ts 公開介面</text
+          >• 公開入口需額外規則</text
         >
         <text x="12" y="130" class="ddd-mm-diagram__prop-item"
-          >• 禁止跨目錄相對路徑穿透</text
+          >• 測試別名與相對路徑</text
         >
         <text x="12" y="156" class="ddd-mm-diagram__prop-item"
-          >• 模組單元測試 100% 獨立運行</text
+          >• 保留同模組合法引用</text
         >
       </g>
 
       <!-- 職責總結 -->
       <g transform="translate(18, 288)">
-        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">檢查位置：</text>
         <text x="75" y="16" class="ddd-mm-diagram__tag-val"
-          >編譯器與語言 AST 層</text
+          >編譯器與依賴分析工具</text
         >
-        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">驗收方式：</text>
         <text x="75" y="40" class="ddd-mm-diagram__tag-val"
-          >tsc / go build 直接失敗</text
+          >合法通過，越界失敗</text
         >
-        <text x="0" y="64" class="ddd-mm-diagram__tag-label">運行效能：</text>
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">呼叫成本：</text>
         <text x="75" y="64" class="ddd-mm-diagram__tag-val"
-          >0ms 記憶體指針直接調用</text
+          >仍須計入資料庫與外部 I/O</text
         >
       </g>
     </g>
@@ -156,13 +151,13 @@
           y="16"
           text-anchor="middle"
           class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--prompt"
-          >語義圍欄</text
+          >文件指引</text
         >
         <text x="86" y="18" class="ddd-mm-diagram__col-title"
           >Prompt Boundary</text
         >
         <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
-          >AI Agent 語義沙盒</text
+          >Agent 設計背景與約定</text
         >
       </g>
 
@@ -171,38 +166,38 @@
         <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
         ></rect>
         <text x="12" y="24" class="ddd-mm-diagram__prop-header"
-          >【架構即 Prompt 規範】</text
+          >【明示載入與修改範圍】</text
         >
         <text x="12" y="52" class="ddd-mm-diagram__prop-item"
           >• 模組專屬 BOUNDARY.md 宣告</text
         >
         <text x="12" y="78" class="ddd-mm-diagram__prop-item"
-          >• 明確禁止跨域依賴清單</text
+          >• 列出允許與禁止的依賴</text
         >
         <text x="12" y="104" class="ddd-mm-diagram__prop-item"
-          >• 規定 Agent 修改範圍受限度</text
+          >• 說明預期修改範圍</text
         >
         <text x="12" y="130" class="ddd-mm-diagram__prop-item"
-          >• 阻斷未授權檔案讀寫權限</text
+          >• 讀寫權限由工具層控制</text
         >
         <text x="12" y="156" class="ddd-mm-diagram__prop-item"
-          >• 強制採用純 ID 與領域事件</text
+          >• 記錄跨模組溝通契約</text
         >
       </g>
 
       <!-- 職責總結 -->
       <g transform="translate(18, 288)">
-        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">作用位置：</text>
         <text x="75" y="16" class="ddd-mm-diagram__tag-val"
-          >Agent 上下文心智模型層</text
+          >已載入的 Agent context</text
         >
-        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">驗收方式：</text>
         <text x="75" y="40" class="ddd-mm-diagram__tag-val"
-          >Agent 生成期自律避免越界</text
+          >確認實際載入與輸出</text
         >
-        <text x="0" y="64" class="ddd-mm-diagram__tag-label">核心價值：</text>
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">提供內容：</text>
         <text x="75" y="64" class="ddd-mm-diagram__tag-val"
-          >杜絕幻覺導入其他模組內部</text
+          >設計背景，不保證不越界</text
         >
       </g>
     </g>
@@ -235,13 +230,13 @@
           y="16"
           text-anchor="middle"
           class="ddd-mm-diagram__badge-text ddd-mm-diagram__badge-text--ci"
-          >CI 執法防線</text
+          >CI 檢查</text
         >
         <text x="86" y="18" class="ddd-mm-diagram__col-title"
           >CI Enforcement</text
         >
         <text x="0" y="42" class="ddd-mm-diagram__col-subtitle"
-          >零信任架構硬性阻斷</text
+          >外部檢查與合併條件</text
         >
       </g>
 
@@ -250,38 +245,38 @@
         <rect width="250" height="178" rx="8" class="ddd-mm-diagram__prop-box"
         ></rect>
         <text x="12" y="24" class="ddd-mm-diagram__prop-header"
-          >【自動化架構守門人】</text
+          >【以 fixture 驗證規則】</text
         >
         <text x="12" y="52" class="ddd-mm-diagram__prop-item"
           >• Dependency-Cruiser 拓撲驗證</text
         >
         <text x="12" y="78" class="ddd-mm-diagram__prop-item"
-          >• 嚴禁環狀依賴 (Circular Dep)</text
+          >• 明訂要禁止的循環</text
         >
         <text x="12" y="104" class="ddd-mm-diagram__prop-item"
-          >• 禁止私自 import 內部非導出檔</text
+          >• 檢查選定 internal 路徑</text
         >
         <text x="12" y="130" class="ddd-mm-diagram__prop-item"
-          >• PR 閘門自動拒絕違規 Commit</text
+          >• 設為必要檢查並審查繞過權</text
         >
         <text x="12" y="156" class="ddd-mm-diagram__prop-item"
-          >• 生成即時架構拓撲依存圖</text
+          >• 保存工具版本與測試輸出</text
         >
       </g>
 
       <!-- 職責總結 -->
       <g transform="translate(18, 288)">
-        <text x="0" y="16" class="ddd-mm-diagram__tag-label">隔離層級：</text>
+        <text x="0" y="16" class="ddd-mm-diagram__tag-label">檢查位置：</text>
         <text x="75" y="16" class="ddd-mm-diagram__tag-val"
           >Git Pre-push / GitHub Action</text
         >
-        <text x="0" y="40" class="ddd-mm-diagram__tag-label">破防代價：</text>
+        <text x="0" y="40" class="ddd-mm-diagram__tag-label">驗收方式：</text>
         <text x="75" y="40" class="ddd-mm-diagram__tag-val"
-          >CI 亮紅燈，嚴禁合併入主線</text
+          >違規 fixture 使檢查失敗</text
         >
-        <text x="0" y="64" class="ddd-mm-diagram__tag-label">核心價值：</text>
+        <text x="0" y="64" class="ddd-mm-diagram__tag-label">已知限制：</text>
         <text x="75" y="64" class="ddd-mm-diagram__tag-val"
-          >終結軟體架構不可逆熵增</text
+          >執行期依賴需另行檢查</text
         >
       </g>
     </g>
@@ -296,17 +291,16 @@
       <g transform="translate(24, 20)">
         <circle cx="8" cy="8" r="8" fill="#0284c7"></circle>
         <text x="24" y="13" class="ddd-mm-diagram__footer-title">
-          【架構收斂終極鐵律】用單體的部署極簡度與零網路成本，換取微服務同等級的限界自治
+          【採用前驗收】固定工具版本，確認合法與非法引用的測試結果
         </text>
         <text x="0" y="40" class="ddd-mm-diagram__footer-desc">
-          • <tspan class="ddd-mm-diagram__highlight-bad"
-            >拒絕微服務拆過頭的分散式大泥球：</tspan
-          > 網路延遲、RPC 序列化開銷與分散式兩階段提交（2PC）是過度拆分的沉重代價。
+          • <tspan class="ddd-mm-diagram__highlight-bad">部署方式的選擇：</tspan
+          > 同行程呼叫可減少網路協調，但外部 I/O 與資料一致性仍需設計。
         </text>
         <text x="0" y="64" class="ddd-mm-diagram__footer-desc">
           • <tspan class="ddd-mm-diagram__highlight-good"
-            >模組化單體是現代團隊的最佳平衡點：</tspan
-          > 程式碼在同一個 Repo 與單一進程內運作，但透過編譯器、Prompt 邊界與 CI 規則建立物理隔絕，進可拆微服務、退可保最高開發吞吐率。
+            >檢查範圍的限制：</tspan
+          > 文件提供指引，CI 驗證已編碼的規則；檔案權限、資料庫存取與執行期動態依賴另行處理。
         </text>
       </g>
     </g>
@@ -325,13 +319,13 @@
       ></rect>
       <circle cx="20" cy="24" r="6" fill="#0284c7"></circle>
       <text x="34" y="28" class="ddd-mm-diagram__m-title"
-        >後微服務時代收斂準則</text
+        >模組邊界與部署選擇</text
       >
       <text x="20" y="52" class="ddd-mm-diagram__m-desc"
-        >① Bounded Context ≠ 微服務 (單體收斂)</text
+        >① 上下文不等於獨立部署服務</text
       >
       <text x="20" y="74" class="ddd-mm-diagram__m-desc"
-        >② 單進程 0ms 記憶體調用 ③ 編譯與 CI 硬隔離</text
+        >② 文件提供指引 ③ CI 驗證已定規則</text
       >
     </g>
 
@@ -350,7 +344,7 @@
         class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--compile"
       ></rect>
       <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
-        >支柱 1：編譯期物理隔絕</text
+        >檢查 1：建置與匯入</text
       >
       <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
         >TypeScript Project References / Go internal</text
@@ -363,22 +357,22 @@
         rx="6"
         class="ddd-mm-diagram__prop-box"></rect>
       <text x="26" y="88" class="ddd-mm-diagram__m-prop"
-        >• 嚴格規範各模組公開 index.ts 介面</text
+        >• References 管理專案建置依賴</text
       >
       <text x="26" y="110" class="ddd-mm-diagram__m-prop"
-        >• 封鎖深層內部檔案相對路徑引用</text
+        >• 公開入口另設規則並測試</text
       >
       <text x="26" y="132" class="ddd-mm-diagram__m-prop"
-        >• 單元測試完全在子模組內獨立運行</text
+        >• 同模組 internal 引用應通過</text
       >
       <text x="26" y="152" class="ddd-mm-diagram__m-prop"
-        >• 0ms 記憶體調用，零網路傳輸延遲</text
+        >• 跨模組深層引用應由檢查攔下</text
       >
       <text x="16" y="186" class="ddd-mm-diagram__m-feature"
-        >隔離層級：語言編譯器 AST 硬性約束</text
+        >位置：編譯器與依賴分析工具</text
       >
       <text x="16" y="208" class="ddd-mm-diagram__m-feature"
-        >防線價值：違規 import 直接編譯中斷</text
+        >驗收：相對路徑、別名與建置輸出</text
       >
     </g>
 
@@ -397,10 +391,10 @@
         class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--prompt"
       ></rect>
       <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
-        >支柱 2：AI 語義圍欄 (BOUNDARY.md)</text
+        >指引 2：BOUNDARY.md</text
       >
       <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
-        >AI Coding Agent 語義契約與行動沙盒</text
+        >Agent 設計背景與修改約定</text
       >
       <rect
         x="16"
@@ -413,19 +407,19 @@
         >• 模組級 BOUNDARY.md 規範權責範圍</text
       >
       <text x="26" y="110" class="ddd-mm-diagram__m-prop"
-        >• 明確標註禁止引用的外部上下文</text
+        >• 列出可用入口與禁止依賴</text
       >
       <text x="26" y="132" class="ddd-mm-diagram__m-prop"
-        >• 強制 Agent 僅透過純 ID 與事件交互</text
+        >• 說明跨上下文溝通方式</text
       >
       <text x="26" y="152" class="ddd-mm-diagram__m-prop"
-        >• 避免 Agent 產生幻覺式架構大泥球</text
+        >• 在 Agent 設定中明示載入</text
       >
       <text x="16" y="186" class="ddd-mm-diagram__m-feature"
-        >隔離層級：LLM 上下文 Prompt 認知圍欄</text
+        >作用：提供已載入的設計背景</text
       >
       <text x="16" y="208" class="ddd-mm-diagram__m-feature"
-        >防線價值：從生成源頭杜絕無序跨域呼叫</text
+        >限制：檔案權限需由工具層控制</text
       >
     </g>
 
@@ -442,10 +436,10 @@
         rx="2"
         class="ddd-mm-diagram__col-strip ddd-mm-diagram__col-strip--ci"></rect>
       <text x="16" y="32" class="ddd-mm-diagram__m-card-title"
-        >支柱 3：CI 自動化執法防線</text
+        >檢查 3：CI 必要檢查</text
       >
       <text x="16" y="54" class="ddd-mm-diagram__m-card-sub"
-        >Dependency-Cruiser 拓撲自動化驗證</text
+        >Dependency-Cruiser 依賴驗證</text
       >
       <rect
         x="16"
@@ -455,22 +449,22 @@
         rx="6"
         class="ddd-mm-diagram__prop-box"></rect>
       <text x="26" y="88" class="ddd-mm-diagram__m-prop"
-        >• 阻斷任何未宣告的跨模組依賴</text
+        >• 對選定路徑寫出明確規則</text
       >
       <text x="26" y="110" class="ddd-mm-diagram__m-prop"
-        >• 嚴禁環狀依賴 (Circular Dependencies)</text
+        >• 合法與非法引用都要測試</text
       >
       <text x="26" y="132" class="ddd-mm-diagram__m-prop"
-        >• Git Pre-push 與 PR Gate 自動執法</text
+        >• 設為 required check，審查繞過權</text
       >
       <text x="26" y="152" class="ddd-mm-diagram__m-prop"
-        >• 零信任防禦，不依賴工程師自律</text
+        >• 固定工具版本與解析設定</text
       >
       <text x="16" y="186" class="ddd-mm-diagram__m-feature"
-        >隔離層級：Git Hook / GitHub Actions 自動化</text
+        >位置：GitHub Actions 等外部 CI</text
       >
       <text x="16" y="208" class="ddd-mm-diagram__m-feature"
-        >防線價值：違規 PR 100% 阻斷，終結代碼腐化</text
+        >限制：未解析的動態依賴需另查</text
       >
     </g>
 
@@ -482,25 +476,25 @@
       ></rect>
       <circle cx="16" cy="22" r="5" fill="#0284c7"></circle>
       <text x="28" y="26" class="ddd-mm-diagram__m-footer-title"
-        >架構收斂鐵律：進程內完全隔離</text
+        >採用前先驗證一組模組邊界</text
       >
       <text x="16" y="52" class="ddd-mm-diagram__m-footer-p"
-        >• 破除微服務迷思：模組化單體兼具兩者優勢。</text
+        >• 保存合法入口與非法深層引用的 fixture。</text
       >
       <text x="16" y="76" class="ddd-mm-diagram__m-footer-p"
-        >• 零網路延遲、零跨節點分散式交易痛苦。</text
+        >• 確認失敗案例會讓必要檢查失敗。</text
       >
       <text x="16" y="100" class="ddd-mm-diagram__m-footer-p"
-        >• 以 CI 規則捍衛邊界，不給 AI Agent 添亂空間。</text
+        >• 檢查工作流能否跳過或被修改。</text
       >
       <text x="16" y="124" class="ddd-mm-diagram__m-footer-p"
-        >• 維持高吞吐開發速度與長期系統演進力。</text
+        >• 驗收後再擴展到其他上下文。</text
       >
     </g>
   </svg>
 
   <figcaption id="ddd-mm-diagram-caption" class="ddd-mm-diagram__caption">
-    圖解：模組化單體（Modular Monolith）與 AI Agent 的三道語義隔離護欄
+    圖解：建置與匯入限制、Agent 指引及 CI 檢查各有不同責任。
   </figcaption>
 </figure>
 

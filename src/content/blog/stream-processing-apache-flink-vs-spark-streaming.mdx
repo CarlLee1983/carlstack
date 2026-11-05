@@ -1,6 +1,6 @@
 ---
 title: "Apache Flink 與 Spark Streaming：事件處理、狀態管理與時間語義的差異"
-description: "深度剖析現代即時大數據計算雙雄：原生事件驅動（Event-driven）的 Apache Flink 與微批次（Micro-batching）的 Spark Structured Streaming 核心對決。事件時間（Event Time）、水位線（Watermark）、分散式狀態管理（RocksDB StateBackend）與 Exactly-Once 語義檢查點機制全解。"
+description: "比較 Flink 與 Spark Structured Streaming 的處理模式，說明事件時間、水位線、狀態後端與端到端 exactly-once 的條件。"
 publishDate: 2026-09-02T16:30:00+08:00
 draft: false
 featured: false
@@ -15,13 +15,9 @@ tags:
 repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 ---
 
-在即時風控、大促銷即時大屏、金融高頻交易與物聯網告警等高時效業務場景中，「資料一到達就必須在毫秒級完成計算」已成為現代企業的剛性需求。
+串流處理的選型取決於延遲預算、狀態規模、時間語義與既有資料平台。
 
-在開源即時計算領域，**Apache Flink** 與 **Apache Spark（Spark Streaming / Structured Streaming）** 是佔據統治地位的兩大巨頭。
-
-儘管兩者在現代版本中功能日益趨同，但在**底層計算模型、狀態儲存架構與時間語義處理**上，兩者存在著根本性的哲學分歧。
-
-本文將帶你深入兩大引擎的底層核心，全面對比兩者的架構機制與選型維度。
+以下比較 Apache Flink 與 Spark Structured Streaming 的預設微批次模式；舊的 Spark Streaming DStream API 屬於不同介面。
 
 ---
 
@@ -32,32 +28,32 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 210" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stream-comp-title stream-comp-desc">
     <title id="stream-comp-title">Apache Flink 原生事件驅動 vs Spark 微批次架構對比圖</title>
-    <desc id="stream-comp-desc">展示 Flink 每到一筆 Event 立即觸發計算達亞毫秒級延遲，而 Spark 收集時間視窗微批次打包計算延遲約數百毫秒。</desc>
+    <desc id="stream-comp-desc">比較 Flink 的逐事件處理與 Spark Structured Streaming 預設微批次模式；端到端延遲須依工作負載量測。</desc>
     
     <rect x="20" y="15" width="360" height="180" rx="10" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
     <text x="200" y="42" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">✅ Apache Flink (原生事件驅動)</text>
     <rect x="40" y="60" width="320" height="42" rx="4" fill="#1b2e23" stroke="#238636"/>
     <text x="200" y="86" fill="#3fb950" font-size="11" font-family="monospace" text-anchor="middle">每到 1 筆 Event ➔ 立即觸發計算 ➔ 更新 State</text>
     <text x="200" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">立即向下游發送 (Stream-native)</text>
-    <text x="200" y="150" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">極致亞毫秒級延遲 (&lt; 10ms)</text>
+    <text x="200" y="150" fill="#3fb950" font-size="12" font-weight="700" text-anchor="middle">逐事件處理；延遲依工作負載量測</text>
 
     <rect x="420" y="15" width="360" height="180" rx="10" fill="#161b22" stroke="#388bfd" stroke-width="1.2"/>
     <text x="600" y="42" fill="#58a6ff" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">Spark Structured Streaming (微批次)</text>
     <rect x="440" y="60" width="320" height="42" rx="4" fill="#1f242c" stroke="#388bfd"/>
     <text x="600" y="86" fill="#58a6ff" font-size="11" font-family="monospace" text-anchor="middle">時間視窗 (如 500ms) ➔ 收集 Events 打包 RDD</text>
     <text x="600" y="125" fill="#c9d1d9" font-size="11" text-anchor="middle">啟動微批次排程計算 (Batch-native)</text>
-    <text x="600" y="150" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">延遲約 100ms ~ 500ms</text>
+    <text x="600" y="150" fill="#58a6ff" font-size="12" font-weight="700" text-anchor="middle">微批次間隔與工作負載影響延遲</text>
 
   </svg>
 </div>
 
-| 評估維度                 | Apache Flink                                      | Spark Structured Streaming                                                 |
-| :----------------------- | :------------------------------------------------ | :------------------------------------------------------------------------- |
-| **計算本質**             | **事件驅動（Stream-native，批次被視為流的特例）** | **微批次（Batch-native，流被視為連續的小批次）**                           |
-| **端到端延遲**           | **極致低延遲（亞毫秒 ~ 數毫秒級）**               | 較低延遲（通常為 100ms ~ 500ms，Continuous Processing 模式有諸多算子限制） |
-| **吞吐量（Throughput）** | 極高（透過 Credit-based Flow Control 優化）       | **極致吞吐（批次向量化計算在超大數據量下極具優勢）**                       |
-| **狀態維護（Stateful）** | **原生有狀態運算（支援 TB 級 RocksDB 狀態後端）** | 基於 Checkpoint 與 DeltaState 維護                                         |
-| **生態整合**             | 與 Kafka、Pulsar、即時資料湖（Iceberg）深度整合   | 與 Spark 離線批次、MLlib 機器學習、GraphX 完美統一                         |
+| 評估維度                 | Apache Flink                                      | Spark Structured Streaming                                       |
+| :----------------------- | :------------------------------------------------ | :--------------------------------------------------------------- |
+| **計算本質**             | **事件驅動（Stream-native，批次被視為流的特例）** | **微批次（Batch-native，流被視為連續的小批次）**                 |
+| **端到端延遲**           | 逐事件處理，需量測端到端延遲                      | 預設微批次，延遲依批次間隔與負載；Continuous Processing 另有限制 |
+| **吞吐量（Throughput）** | 極高（透過 Credit-based Flow Control 優化）       | **極致吞吐（批次向量化計算在超大數據量下極具優勢）**             |
+| **狀態維護（Stateful）** | **原生有狀態運算（支援 TB 級 RocksDB 狀態後端）** | 由 State Store 維護，配合 Checkpoint 復原                        |
+| **生態整合**             | 與 Kafka、Pulsar、即時資料湖（Iceberg）深度整合   | 與 Spark 離線批次、MLlib 機器學習、GraphX 完美統一               |
 
 ---
 
@@ -68,13 +64,13 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 <div class="my-8 overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-6">
   <svg viewBox="0 0 800 130" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="wm-disorder-title wm-disorder-desc">
     <title id="wm-disorder-title">事件時間 (Event Time) 與處理時間 (Processing Time) 亂序對比圖</title>
-    <desc id="wm-disorder-desc">展示事件按 12:00:01, 12:00:02, 12:00:03 產生，但引擎因延遲以 12:00:01, 12:00:05, 12:00:03 亂序接收。</desc>
+    <desc id="wm-disorder-desc">按接收順序排列的事件時間為 12:00:01、12:00:03、12:00:02，對應處理時間依序為 12:00:04、12:00:05、12:00:06。第二秒的事件較晚抵達。</desc>
     
     <rect x="20" y="15" width="760" height="42" rx="6" fill="#1b2e23" stroke="#238636" stroke-width="1.2"/>
-    <text x="40" y="41" fill="#3fb950" font-size="12" font-family="monospace">事件發生時間 (Event Time):      12:00:01 ──► 12:00:02 ──► 12:00:03 (物理真實時序)</text>
+    <text x="40" y="41" fill="#3fb950" font-size="12" font-family="monospace">事件發生時間 (Event Time):      12:00:01 ──► 12:00:03 ──► 12:00:02 (按抵達順序)</text>
 
     <rect x="20" y="68" width="760" height="42" rx="6" fill="#2d1d24" stroke="#da3633" stroke-width="1.2"/>
-    <text x="40" y="94" fill="#f85149" font-size="12" font-family="monospace">引擎接收時間 (Processing Time): 12:00:01 ──► 12:00:05 ──► 12:00:03 (網路延遲引發亂序！)</text>
+    <text x="40" y="94" fill="#f85149" font-size="12" font-family="monospace">引擎接收時間 (Processing Time): 12:00:04 ──► 12:00:05 ──► 12:00:06 (時鐘遞增)</text>
 
   </svg>
 </div>
@@ -84,8 +80,8 @@ repositoryUrl: https://github.com/ByteByteGoHq/system-design-101
 Flink 引入了 **Watermark（水位線）** 機制：
 
 - 水位線是一種特殊的控制事件，攜帶時間戳 `t`。
-- 當 Watermark(`t`) 到達時，代表引擎判定：**所有 Event Time `≤ t` 的資料均已被接收完畢，可以安全觸發視窗計算！**
-- **延遲容忍（Allowed Lateness）**：若在 Watermark 推進後仍有極端遲到的資料到達，Flink 支援透過側輸出流（Side Output）將其捕獲至死信隊列，避免資料丟失。
+- 當 Watermark(`t`) 到達時，代表引擎判定：依設定的亂序容忍策略，預期不再收到 Event Time `≤ t` 的事件，據此推進事件時間計時器與視窗。這是進度判斷，較早的事件仍可能遲到。
+- **延遲容忍（Allowed Lateness）**：視窗可設定允許遲到時間，在狀態尚未清除時接收遲到事件並更新結果；超過期限的事件可另設 Side Output。若未配置對應處理，遲到資料可能被丟棄，不能假設會自動送入 DLQ。
 
 ---
 
@@ -93,17 +89,19 @@ Flink 引入了 **Watermark（水位線）** 機制：
 
 在高階即時運算中（如滑動視窗聚合、雙流 JOIN、用戶連鎖行為識別），引擎必須在記憶體中維護龐大的中間狀態（State）：
 
-- **MemoryStateBackend**：純 JVM 堆記憶體，適合輕量除錯。
-- **FsStateBackend**：狀態在記憶體，Checkpoint 存 S3/HDFS。
-- **EmbeddedRocksDBStateBackend**：狀態溢出至本地 NVMe SSD，突破 JVM GC 瓶頸！
+以下採 Flink 1.20 的命名，將執行中狀態與 Checkpoint 儲存位置分開設定：
 
-- **RocksDB StateBackend 的威力**：Flink 將狀態儲存在進程外的嵌入式 RocksDB（C++ 撰寫）中。當單節點狀態高達數百 GB 時，**完全不受 Java GC 停頓影響**，是支撐超大規模狀態運算的定海神針。
+- `HashMapStateBackend`：執行中狀態位於 JVM heap。
+- `EmbeddedRocksDBStateBackend`：RocksDB 以 JNI 嵌入 TaskManager 行程，使用 native memory 與本地磁碟。off-heap 不等於行程外，Java 物件與其他運算仍會受到 GC 影響。
+- Checkpoint Storage 另設於可靠的持久儲存，如 S3 或 HDFS；本地 RocksDB 檔案不能代替故障復原快照。
+
+舊版的 `MemoryStateBackend`、`FsStateBackend` 將這些責任綁在一起，遷移時應對照所用版本。參考 [Flink 1.20 狀態後端](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/ops/state/state_backends/)。
 
 ---
 
 ## 4. Exactly-Once 端到端精確一次語義保證
 
-分散式節點可能隨時宕機崩潰，引擎如何保證「不重複計算、不遺漏計算」？
+故障復原可能重播事件、再次執行算子。Exactly-once 關注的是恢復後狀態與可見輸出的一致效果，不是每段程式只執行一次。
 
 ### Flink 非同步屏障快照（Chandy-Lamport 演算法變體）
 
@@ -144,7 +142,7 @@ Flink 引入了 **Watermark（水位線）** 機制：
     <rect x="50" y="140" width="700" height="75" rx="8" fill="#161b22" stroke="#238636" stroke-width="1.5"/>
     <text x="400" y="165" fill="#3fb950" font-size="13" font-family="system-ui, sans-serif" font-weight="700" text-anchor="middle">分散式持久化儲存 (AWS S3 / HDFS)</text>
     <text x="400" y="188" fill="#c9d1d9" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">快照 1: Kafka Offset ＋ 算子 State ＋ 2PC 預提交事務 ➔ 全員成功即標記 Checkpoint 成功！</text>
-    <text x="400" y="205" fill="#56d364" font-size="11" font-weight="700" text-anchor="middle">實現端到端 Exactly-Once 精確一次計算！</text>
+    <text x="400" y="205" fill="#56d364" font-size="11" font-weight="700" text-anchor="middle">可重播 Source ＋ 一致快照 ＋ 相容 Sink</text>
 
   </svg>
 </div>
@@ -152,7 +150,7 @@ Flink 引入了 **Watermark（水位線）** 機制：
 1. Flink JobManager 定期向資料流注入 **Checkpoint Barrier（屏障）**；
 2. 每個算子收到 Barrier 後，非同步將自身當前狀態寫入持久化儲存（S3 / HDFS）；
 3. 當所有算子均回報快照完成，該 Checkpoint 被標記為成功。
-4. **配合 2PC（兩階段提交）Sink**：下游輸出端（如 Kafka Producer 或 Iceberg）在 Checkpoint 成功時執行最終 Commit，實現真正的 **端到端 Exactly-Once**！
+4. **配合 2PC（兩階段提交）Sink**：下游輸出端（如 Kafka Producer 或 Iceberg）在 Checkpoint 成功時執行最終 Commit，在來源可重播、Checkpoint 正確配置且 Sink 支援相容交易提交的前提下，達成端到端 exactly-once 效果。外部 HTTP 呼叫等副作用需另做冪等或交易整合。
 
 ---
 

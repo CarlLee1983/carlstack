@@ -141,7 +141,7 @@
       >
 
       <text x="16" y="142" class="hr-diag__bullet"
-        >✅ 無鎖讀取，正常低爭搶情境極快</text
+        >✅ 無鎖讀取，仍需量測衝突與重試</text
       >
       <text x="16" y="162" class="hr-diag__bullet hr-diag__bullet--warn"
         >⚠️ 熱門旺季大量重試（Retry Storm）</text
@@ -183,18 +183,14 @@
         >UPDATE ... SET reserved = reserved + N</text
       >
       <text x="26" y="110" class="hr-diag__code-text"
-        >WHERE reserved + N &lt;= 1.1 * inventory;</text
+        >WHERE reserved + N &lt;= sell_limit;</text
       >
 
       <text x="16" y="142" class="hr-diag__bullet"
-        >✅ 單一 SQL 原子遞增，消除應用層加鎖</text
+        >交易內條件更新，仍有行鎖</text
       >
-      <text x="16" y="162" class="hr-diag__bullet"
-        >✅ 支援 10% 超賣額度（Overbooking Buffer）</text
-      >
-      <text x="16" y="182" class="hr-diag__bullet"
-        >✅ 檢查 rows_affected 即可判定成功與否</text
-      >
+      <text x="16" y="162" class="hr-diag__bullet">可售上限需經營運核准</text>
+      <text x="16" y="182" class="hr-diag__bullet">列數不足則回滾整筆交易</text>
     </g>
 
     <!-- Bottom Section: End-to-End Two-Phase Reservation Flow (Y: 250 to 460) -->
@@ -325,7 +321,7 @@
           >✅ 付款成功：PAID</text
         >
         <text x="12" y="95" class="hr-diag__node-desc"
-          >• 鎖定訂單與正式房號</text
+          >• 鎖定訂單後判定狀態</text
         >
         <text x="12" y="118" class="hr-diag__node-desc-fail"
           >❌ 逾時/失敗：CANCELLED</text
@@ -375,13 +371,13 @@
       <h4>3. 原子條件更新約束（推薦實踐）</h4>
       <p>
         <strong>原理</strong>：利用單一 SQL 語句原子更新：<code
-          >UPDATE ... SET reserved = reserved + N WHERE reserved + N &lt;= 1.1 *
-          inventory</code
+          >UPDATE ... SET reserved = reserved + N WHERE reserved + N &lt;=
+          sell_limit</code
         >。
       </p>
       <p>
-        <strong>優勢</strong>：消除複雜鎖機制，將超賣容錯（110%
-        Overbooking）直接內嵌至資料庫約束條件中。
+        <strong>優勢</strong
+        >：把可售上限放入條件。須在交易內檢查所有住宿夜數，失敗時完整回滾。
       </p>
     </div>
 
@@ -393,15 +389,16 @@
         <strong>步驟 1</strong>：客戶端攜帶全域唯一 <code>reservation_id</code> 發起請求（防重複提交）。
       </div>
       <div class="hr-mobile-step">
-        <strong>步驟 2</strong>：原子預扣房態庫存，建立 <code>PENDING</code> 訂單並註冊
-        15 分鐘超時回滾任務。
+        <strong>步驟 2</strong>：同一交易預扣房態、建立 <code>PENDING</code> 訂單與
+        outbox，再派送 15 分鐘超時回滾任務。
       </div>
       <div class="hr-mobile-step">
         <strong>步驟 3</strong>：導向第三方支付閘道處理扣款。
       </div>
       <div class="hr-mobile-step">
         <strong>步驟 4</strong>：支付成功則轉為 <code>PAID</code
-        >；超時未付則自動釋放預扣庫存並轉為 <code>CANCELLED</code>。
+        >；付款與逾時都先鎖定訂單。仍為 PENDING 才能改狀態；釋放庫存與 CANCELLED
+        必須同一交易提交。
       </div>
     </div>
   </div>

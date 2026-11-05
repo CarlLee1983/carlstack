@@ -1,6 +1,6 @@
 ---
 title: "模組化單體（Modular Monolith）如何用編譯檢查與 CI 限制 AI Agent 的跨模組改動"
-description: "破除 Bounded Context 等同微服務的工程迷思。探討過度拆分引發的分散式單體災難，透過 TypeScript Project References 與 Go internal 建立進程內硬隔離，並運用模組級 BOUNDARY.md 與 CI Dependency-Cruiser 構築抵禦 AI Coding Agent 語義污染的架構圍欄。"
+description: "分開 TypeScript 建置依賴、公開入口、Agent 指引與 CI 檢查的責任，用越界引用測試驗證模組化單體的限制範圍。"
 publishDate: 2026-09-23T10:22:00+08:00
 updatedDate: 2026-09-26T09:30:05+08:00
 draft: false
@@ -19,195 +19,124 @@ coverAlt: "高科技石墨黑單體堡壘內部呈現規整發光的藍色與青
 
 import DddModularMonolithDiagram from "../../components/DddModularMonolithDiagram.astro";
 
-過去十年軟體工程界最昂貴的集體狂熱，莫過於對「微服務架構（Microservices Architecture）」的盲目崇拜：
+把同一個業務修改分散到多個服務後，團隊需要處理部署協調、網路失敗與資料一致性。若模組仍高度耦合，單純增加服務數量不會消除這些依賴。
 
-無數團隊在業務規模只有百萬級流量、研發人員只有十幾個人的情況下，僅僅讀了幾篇 Netflix 或 Uber 的高併發分享，就急匆匆地把原本健康的單體應用，硬生生切成了二十幾個獨立的微服務。
-
-幾年下來，團隊迎來的不是彈性與高吞吐，而是一場全方位的工程災難：
-
-- 本地開發時，工程師必須在筆電上跑 20 個 Docker 容器，風扇狂轉、記憶體爆滿，啟動一次要花 15 分鐘；
-- 簡單的業務修改，需要跨四個不同的 Git Repository 同時發 PR，部署時因順序錯誤導致線上一再報錯；
-- 原本在單體內只需要 1 毫秒的記憶體指針調用，變成了經過 API Gateway、服務發現、JSON 序列化與 TCP 握手的 30 毫秒 RPC 網路請求；
-- 為了解決跨服務的一致性，團隊不得不引入難以維護的 Saga 分散式交易或兩階段提交（2PC），最後在排查對帳單時流乾眼淚。
-
-業界給這種畸形怪物起了一個貼切的名字：**分散式單體（Distributed Monolith）**——既承受了單體時代所有緊耦合的痛苦，又背負了分散式系統的所有運維代價。
-
-這個災難的起點，本質上源於對領域驅動設計（DDD）核心概念的重大誤讀：**很多人誤以為「一個限界上下文（Bounded Context），就必須是一個獨立部署的微服務」。**
+模組化單體保留集中部署，同時限制模組間的依賴。下列設定是概念片段，尚未形成固定工具版本的完整驗收專案。採用時要跑同模組與跨模組的正反例，才能確認編譯器和 CI 實際攔下哪些引用。
 
 <DddModularMonolithDiagram />
 
----
+## 限界上下文與部署單元分開決定
 
-## 觀念糾偏：限界上下文 ≠ 微服務
+限界上下文描述模型與語言的適用範圍。不同上下文可以位於同一個應用程式，也可以分開部署。模組之間仍可透過約定的介面合作，沒有必要宣稱邊界之間零依賴。
 
-Eric Evans 在提出 DDD 時，從未將「限界上下文」與「實體網路進程」畫上等號。
+[Shopify 2019 年的架構文章](https://shopify.engineering/deconstructing-monolith-designing-software-maximizes-developer-productivity)描述把既有單體演進為模組化單體，保留同一個程式庫並明確管理元件邊界。這個案例不能推論為大型公司都從微服務回遷。
 
-- **限界上下文（Bounded Context）是「語義邊界」：** 它是領域模型的生命週期與語言契約的範圍，決定的是代碼的心理模型與認知邊界。
-- **微服務（Microservice）是「實體部署單元」：** 它決定的是伺服器進程、網路拓撲與獨立發布管線。
+同一行程內的模組呼叫不需要跨服務網路傳輸，但操作仍可能包含資料庫或外部 I/O。集中建置能減少部分協調成本，啟動與測試時間則取決於規模和依賴。日後拆分服務時，資料搬遷、交易一致性與部署仍需要設計，清楚的介面不等於固定天數內就能完成遷移。
 
-你完全可以在**同一個單體應用（Monolith）、同一個作業系統進程、甚至同一個資料庫實例**中，切分出四個壁壘分明、內部高內聚、邊界零依賴的限界上下文。
+## 分清編譯器檢查與公開入口規則
 
-這就是近年來頂級架構圈（如 Shopify、GitHub、Basecamp）全面回歸的架構範式：**模組化單體（Modular Monolith）**。
+### TypeScript Project References 管理專案依賴
 
-在模組化單體中：
+[TypeScript 官方文件](https://www.typescriptlang.org/docs/handbook/project-references.html)說明，Project References 使用被引用專案的 declaration 輸出，並由 `tsc --build` 管理建置順序。（來源查閱：2026-11-05。）以下 JSONC 片段展示建置依賴：
 
-1. **零網路傳輸開銷：** 上下文之間的協同透過進程內的記憶體直接調用，呼叫延遲是納秒級（nanoseconds），徹底告別網路連線超時與重試風暴。
-2. **極致的開發體驗（DX）：** 一個 `git clone`、一條指令即可在本機跑起整套系統，單元測試在幾秒鐘內執行完畢。
-3. **保留演進主動權：** 如果某個子域（如高併發動態定價）未來真的面臨極端吞吐瓶頸，因為它的邊界早已具備 100% 的自治純度，抽離成獨立微服務只需花費三天，而不是進行傷筋動骨的半年度重構。
-
-但此時工程師會問：**如果大家都在同一個代碼庫裡，如何保證菜鳥工程師或 AI Coding Agent 不會私自隨手跨目錄 `import` 破壞邊界？**
-
-答案不是靠道德自律，而是靠**三層鋼鐵護欄**。
-
----
-
-## 護欄一：編譯期物理隔絕（Compile-Time Isolation）
-
-進程內隔離的第一道防線，是利用語言編譯器本身的特性，在靜態分析階段將私有代碼鎖死在模組內部。
-
-### 1. TypeScript Project References（專案參照硬邊界）
-
-在 Node.js / TypeScript 生態中，絕大多數團隊只用目錄分類（如 `src/modules/billing`），這給了代碼隨意穿透的機會。
-正確的做法是將每個限界上下文視為一個獨立的 TS 專案：
-
-```json
+```jsonc
 // packages/billing/tsconfig.json
 {
   "compilerOptions": {
     "composite": true,
     "declaration": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
   },
-  "references": [
-    // 嚴格限定只能引用身份模組暴露的型別，不能引用倉儲模組
-    { "path": "../identity" }
-  ]
+  "references": [{ "path": "../identity" }],
 }
 ```
 
-### 2. 嚴格暴露公開介面（Public Seam）
+`references` 不會自動把 identity 專案限制成只能經由 `index.ts` 存取。公開入口還需要配合套件 `exports`、模組解析設定與依賴檢查。必須測試相對路徑、別名及建置輸出，確認沒有繞過原先規則。
 
-每個上下文目錄下，只有根目錄的 `index.ts` 是合法的對外窗口，所有內部實體（如 `CustomerInternalState.ts`）嚴禁直接被外部引用：
+### 公開入口是要驗證的設計規則
 
-```
+可以約定下列結構，再用工具檢查引用是否符合約定：
+
+```text
 src/contexts/billing/
-├── index.ts                 <-- ✅ 唯一公開 API (Facade / Public DTO)
+├── index.ts                 # 對外入口
 ├── internal/
-│   ├── Customer.ts          <-- ❌ 外部嚴禁直接引用
-│   ├── BillingRepository.ts <-- ❌ 外部嚴禁直接引用
+│   ├── Customer.ts
+│   ├── BillingRepository.ts
 │   └── TaxEngine.ts
 └── tsconfig.json
 ```
 
-在 Go 語言中，這項機制更加天然——直接將私有邏輯置於 `internal/` 目錄下，Go 編譯器會在語法層面直接阻斷任何跨模組的非法訪問。
+同模組使用自己的 `internal` 應被允許，其他模組則透過公開入口。Go 的 `internal` 另有語言工具鏈的匯入限制：可匯入者須位於 `internal` 父目錄所涵蓋的目錄樹內，不能把它概括成所有跨模組引用都禁止。可參考 [Go command 的 Internal Directories 說明](https://pkg.go.dev/cmd/go#hdr-Internal_Directories)。
 
----
+## BOUNDARY.md 提供指引，檔案權限另行控制
 
-## 護欄二：架構即 Prompt（AI Coding Agent 語義圍欄）
-
-進入 2026 年，軟體開發最大的新變數是 AI Coding Agent（如 Claude Code、Gemini CLI 等）。
-
-AI Agent 具備驚人的代碼生成速度，但它們本能地傾向於走「阻力最小的路徑」：當 Agent 發現當前函式缺少一個使用者名稱時，它會毫不猶豫地在檔案頂端加上：
+下面這種深層引用可能繞過團隊約定的公開入口，不論它由人或 Agent 寫出，都應納入測試：
 
 ```typescript
-// ❌ AI Agent 的本能衝動：隨意跨模組深層引用私有實體
 import { UserEntity } from "../../identity/internal/UserEntity";
 ```
 
-在一夜之間，AI 能幫你寫出幾千行代碼，但同時也把你的架構降級成了無法挽回的「大泥球（Big Ball of Mud）」。
-
-為了約束 Agent 的行為，我們必須將戰略架構轉譯為 Agent 能理解的圍欄規範——在每個限界上下文目錄下放置專屬的 `BOUNDARY.md`：
+模組文件可以說明可修改範圍與允許的依賴。以下為 Billing 的假設規則範例，資料庫與跨上下文溝通策略仍需依專案決定：
 
 ```markdown
-<!-- src/contexts/billing/BOUNDARY.md -->
+# Billing Context 邊界
 
-# Billing Context 邊界隔離憲章
+## 責任
 
-## 1. 模組自治範圍
+管理帳務與發票資料，對外透過 BillingFacade 提供操作。
 
-本模組負責所有帳務、發票統編與支付授權邏輯。核心實體為 `Customer`。
+## 依賴約定
 
-## 2. 絕對禁止的跨模組依賴 (Anti-Patterns)
-
-- ❌ 嚴禁 import `../identity/internal/*` 或 `../fulfillment/*` 下的任何代碼。
-- ❌ 嚴禁在資料庫中對 `identity_accounts` 建立物理外鍵 (Foreign Key)。
-- ❌ 嚴禁直接調用其他上下文的 Repository 或 Service。
-
-## 3. 合法的外部溝通途徑
-
-- ✅ 外部僅能透過 `src/contexts/billing/index.ts` 暴露的 `BillingFacade` 進行調用。
-- ✅ 引用其他上下文實體時，只能使用強型別純 ID（例如 `AccountId`）。
-- ✅ 跨上下文狀態同步必須透過非同步領域事件 (`DomainEvent`) 訂閱。
+- 外部只能使用 billing/index.ts 提供的入口。
+- 不直接匯入 identity/internal 的型別或儲存實作。
+- 以 AccountId 識別帳號，所需資料經已約定介面取得。
+- 新增跨模組依賴前，記錄理由並更新依賴測試。
 ```
 
-這份文件就是 AI Agent 的**認知圍欄**。當 Agent 在該模組執行任務時，系統會強制將其載入 Context，從生成源頭消滅跨界引用的念頭。
+團隊需要在實際使用的 Agent 設定中指定如何讀取這份文件，不能假設 `BOUNDARY.md` 會自動載入。文件能提供設計背景，阻止檔案讀寫則需要工具權限或沙箱；拒絕違規合併需要外部檢查。
 
----
+## 用正反例驗證 CI 的攔截範圍
 
-## 護欄三：CI 自動化執法（零信任架構門面）
+dependency-cruiser 可以依路徑與依賴關係設定規則，語法以[專案的 rules reference](https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md)及鎖定版本為準。不要讓尚未驗證的跨欄位正規表示式反向參照承擔核心限制。
 
-「防君子不防小人，防人類不防幻覺。」無論文檔寫得多麼詳盡，沒有自動化檢查的邊界都是紙老虎。
-
-我們必須在 CI/CD Pipeline 與 Git Pre-push Hook 中引入架構守門人工具，例如 **Dependency-Cruiser**：
-
-### 1. 宣告架構拓撲規則（.dependency-cruiser.cjs）
+先以單一目標模組寫出容易核對的規則概念：
 
 ```javascript
-// .dependency-cruiser.cjs
+// 概念配置：正式採用前需在鎖定版本中跑 fixture。
 module.exports = {
   forbidden: [
     {
-      name: "no-cross-context-internal-imports",
-      comment: "嚴禁任何模組跨越界線引用其他上下文的 internal 私有檔案",
+      name: "no-external-billing-internals",
       severity: "error",
-      from: { path: "^src/contexts/([^/]+)/" },
-      to: {
-        path: "^src/contexts/(?<otherContext>[^/]+)/internal/",
-        pathNot: "^src/contexts/\\1/", // 允許自己引用自己的 internal
-      },
-    },
-    {
-      name: "no-circular-context-dependencies",
-      comment: "嚴禁上下文之間存在任何形式的循環依賴",
-      severity: "error",
-      from: { path: "^src/contexts/([^/]+)/" },
-      to: {
-        path: "^src/contexts/[^/]+/",
-        circular: true,
-      },
-    },
-    {
-      name: "core-domain-must-not-depend-on-infrastructure",
-      comment: "核心領域層嚴禁依賴基礎設施層",
-      severity: "error",
-      from: { path: "^src/contexts/([^/]+)/domain/" },
-      to: { path: "^src/contexts/([^/]+)/infrastructure/" },
+      from: { pathNot: "^src/contexts/billing/" },
+      to: { path: "^src/contexts/billing/internal/" },
     },
   ],
 };
 ```
 
-### 2. CI 阻斷閘門（GitHub Actions）
+這條規則只針對 billing 的內部路徑。若要保護其他上下文，需逐一新增規則或由已測試的配置生成流程建立。它也沒有檢查資料庫存取、執行期組合出的路徑或跨模組交易。
 
-在 CI 工作流中，這項檢查擁有「一票否決權」：
+固定 dependency-cruiser 版本及 TypeScript 解析設定後，建立下列 fixture：
+
+- billing 引用自己的 internal：應通過。
+- identity 引用 billing/internal：應失敗。
+- identity 引用 billing/index.ts：應通過。
+- 同一越界引用改用別名或可解析的動態 import：依工具支援確認結果。
+- 檢查範圍漏掉檔案、修改配置或跳過工作流：確認 repository 的保護設定能否攔下。
+
+命令本身只是 CI 中的一個步驟：
 
 ```bash
-# 只要有任何工程師或 AI Agent 違規跨模組引用，立即以 Exit Code 1 阻斷 PR
 pnpm depcruise --config .dependency-cruiser.cjs src
 ```
 
-當 AI Agent 提交了一個自作聰明跨目錄引用的 PR，CI 會在 10 秒內報錯並精確標出違規行數。這種**機械級的冷酷執法**，才是確保模組化單體在三年後依然井然有序的終極保證。
+要限制合併，還需把工作流設定為 required check，並檢查允許繞過的人員與規則。Git pre-push hook 可提供早期回饋，但本機 hook 可以被略過。
 
----
+## 先保護一組已知的模組邊界
 
-## 前四篇工具文建立的邊界
+挑 billing 與 identity 這組依賴，建立合法入口與非法深層引用的 fixture，保存工具版本、命令與輸出。只有當失敗案例確實讓必要檢查失敗，才把同一套規則擴展到其他模組。
 
-《DDD 戰略設計實戰：從業務邊界到系統架構》前四篇工具文先建立了從領域到系統邊界的判斷順序，之後再由案例篇檢驗這些工具：
-
-1. **子域劃分（Subdomains）：** 用「開源即倒閉測試」找出核心業務護城河，將 70% 的工程預算鎖死在刀刃上；
-2. **限界上下文（Bounded Context）：** 用四大工程訊號（語義、步調、團隊、交易）揮動手術刀，將臃腫危險的 God Object 解構為純淨的多維模型；
-3. **上下文映射與防腐層（ACL）：** 認清組織權力拓撲，在外部不可靠上游前築起「Facade → Adapter → Translator」三道海關，絕不被動順從；
-4. **模組化單體（Modular Monolith）：** 破除微服務迷思，用進程內硬隔離、Prompt 圍欄與 CI 拓撲執法，在享受單體極致開發速度的同時，具備微服務等級的自治能力。
-
-**架構的選擇不應由服務數量決定，而應由邊界要解決的問題決定。** 若你的問題是 AI 變更太大、設計審查跟不上，可以接著讀[《AI 寫碼變快，微服務能隔離故障，不能替你審查程式》](/blog/ai-era-microservices-change-containment/)；它把合併前的變更品質和上線後的故障隔離拆成兩項獨立決策。
+變更審查與執行期故障隔離可以分開評估，延伸閱讀[《AI 寫碼變快，微服務能隔離故障，不能替你審查程式》](/blog/ai-era-microservices-change-containment/)。

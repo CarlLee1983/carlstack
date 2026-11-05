@@ -1,0 +1,40 @@
+<div class="article-diagram">
+  <div class="article-diagram__wide">
+    <slot name="wide" />
+  </div>
+  <div class="article-diagram__narrow">
+    <slot name="narrow" />
+  </div>
+</div>
+
+<style>
+  .article-diagram {
+    margin-block: 2rem;
+    min-width: 0;
+  }
+
+  .article-diagram__wide {
+    display: none;
+  }
+
+  .article-diagram__narrow {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .article-diagram__wide :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (min-width: 64rem) {
+    .article-diagram__wide {
+      display: block;
+    }
+
+    .article-diagram__narrow {
+      display: none;
+    }
+  }
+</style>
