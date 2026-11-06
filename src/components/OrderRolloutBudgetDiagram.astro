@@ -1,0 +1,232 @@
+<figure class="rollout-budget-diagram" aria-labelledby="rollout-budget-caption">
+  <svg
+    class="rollout-budget-diagram__desktop"
+    viewBox="0 0 960 600"
+    role="img"
+    aria-labelledby="rollout-budget-title rollout-budget-desc"
+  >
+    <title id="rollout-budget-title">
+      同一槽位交接前，先停止、收尾，再等待
+    </title>
+    <desc id="rollout-budget-desc"
+      >四個固定槽位各有每秒十五次與兩個在途名額。舊持有者永久停止送出，確認資料庫操作結束，再等待完整一秒，才把同一槽位交給新的程序啟動實例。任一步驟不明，槽位保持占用。</desc
+    >
+    <defs
+      ><marker
+        id="rollout-budget-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text x="24" y="34" class="rollout-budget-diagram__heading"
+      >同一槽位交接：未知就保持占用</text
+    >
+    <text x="24" y="66" class="rollout-budget-diagram__lead"
+      >四槽合計最多 60 次／秒、8 個在途；每槽同時只有一個持有者</text
+    >
+    <g class="rollout-budget-diagram__card"
+      ><rect x="24" y="90" width="912" height="94" rx="16"></rect><text
+        x="48"
+        y="125"
+        class="rollout-budget-diagram__title">1　舊程序永久停止送出</text
+      ><text x="48" y="159" class="rollout-budget-diagram__detail"
+        >HTTP、排隊工作、重試與暖機，全都經過不可逆的退休入口</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 480 187 V 207"
+      marker-end="url(#rollout-budget-arrow)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="24" y="216" width="912" height="94" rx="16"></rect><text
+        x="48"
+        y="251"
+        class="rollout-budget-diagram__title">2　資料庫操作確認結束</text
+      ><text x="48" y="285" class="rollout-budget-diagram__detail"
+        >仍在執行或取消清理的操作繼續占位，不以 HTTP 逾時歸還</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 480 313 V 333"
+      marker-end="url(#rollout-budget-arrow)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="24" y="342" width="912" height="94" rx="16"></rect><text
+        x="48"
+        y="377"
+        class="rollout-budget-diagram__title">3　再等完整的一秒空窗</text
+      ><text x="48" y="411" class="rollout-budget-diagram__detail"
+        >先滿足前兩項，再開始計時；控制程序重啟就重新等待</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 480 439 V 459"
+      marker-end="url(#rollout-budget-arrow)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="24" y="468" width="912" height="94" rx="16"></rect><text
+        x="48"
+        y="503"
+        class="rollout-budget-diagram__title">4　原子指派給新的啟動實例</text
+      ><text x="48" y="537" class="rollout-budget-diagram__detail"
+        >綁定新的程序啟動 ID；Pod 名稱相同也不能沿用舊指派</text
+      ></g
+    >
+  </svg>
+  <svg
+    class="rollout-budget-diagram__mobile"
+    viewBox="0 0 320 760"
+    role="img"
+    aria-labelledby="rollout-budget-mobile-title rollout-budget-mobile-desc"
+  >
+    <title id="rollout-budget-mobile-title">槽位交接的四個步驟</title>
+    <desc id="rollout-budget-mobile-desc"
+      >桌面圖的窄螢幕直向版本。先永久停止送出，再確認資料庫收尾，等完整一秒，最後指派給新啟動實例。任何未知狀態都不能交接。</desc
+    >
+    <defs
+      ><marker
+        id="rollout-budget-arrow-mobile"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker
+      ></defs
+    >
+    <text x="12" y="30" class="rollout-budget-diagram__title"
+      >未知就保持占用</text
+    >
+    <text x="12" y="59" class="rollout-budget-diagram__detail"
+      >四槽：60 次／秒、8 個在途</text
+    >
+    <g class="rollout-budget-diagram__card"
+      ><rect x="12" y="82" width="296" height="132" rx="14"></rect><text
+        x="28"
+        y="115"
+        class="rollout-budget-diagram__title">1　永久停止送出</text
+      ><text x="28" y="149" class="rollout-budget-diagram__detail"
+        >請求、重試與暖機都停用</text
+      ><text x="28" y="179" class="rollout-budget-diagram__detail"
+        >同次啟動不能重新開啟</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 160 220 V 244"
+      marker-end="url(#rollout-budget-arrow-mobile)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="12" y="254" width="296" height="132" rx="14"></rect><text
+        x="28"
+        y="287"
+        class="rollout-budget-diagram__title">2　確認資料庫收尾</text
+      ><text x="28" y="321" class="rollout-budget-diagram__detail"
+        >取消尚未完成，繼續占位</text
+      ><text x="28" y="351" class="rollout-budget-diagram__detail"
+        >HTTP 逾時不算結束</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 160 392 V 416"
+      marker-end="url(#rollout-budget-arrow-mobile)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="12" y="426" width="296" height="132" rx="14"></rect><text
+        x="28"
+        y="459"
+        class="rollout-budget-diagram__title">3　再等完整一秒</text
+      ><text x="28" y="493" class="rollout-budget-diagram__detail"
+        >前兩項確認後才開始計時</text
+      ><text x="28" y="523" class="rollout-budget-diagram__detail"
+        >控制程序重啟，重新等待</text
+      ></g
+    >
+    <path
+      class="rollout-budget-diagram__arrow"
+      d="M 160 564 V 588"
+      marker-end="url(#rollout-budget-arrow-mobile)"></path>
+    <g class="rollout-budget-diagram__card"
+      ><rect x="12" y="598" width="296" height="132" rx="14"></rect><text
+        x="28"
+        y="631"
+        class="rollout-budget-diagram__title">4　指派給新啟動實例</text
+      ><text x="28" y="665" class="rollout-budget-diagram__detail"
+        >每槽同時只有一個持有者</text
+      ><text x="28" y="695" class="rollout-budget-diagram__detail"
+        >同名 Pod 不能重用指派</text
+      ></g
+    >
+  </svg>
+  <figcaption id="rollout-budget-caption">
+    這是一個槽位的交接順序。其他槽位維持原配額，不因舊程序失聯就分走它的額度。
+  </figcaption>
+</figure>
+<style>
+  .rollout-budget-diagram {
+    margin: var(--space-8) 0;
+  }
+  .rollout-budget-diagram svg {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-body);
+  }
+  .rollout-budget-diagram__mobile {
+    display: none;
+  }
+  .rollout-budget-diagram__card rect {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .rollout-budget-diagram__heading {
+    fill: var(--dg-ink);
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .rollout-budget-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .rollout-budget-diagram__lead {
+    fill: var(--dg-ink);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .rollout-budget-diagram__detail {
+    fill: var(--dg-ink-2);
+    font-size: 21px;
+  }
+  .rollout-budget-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .rollout-budget-diagram marker path {
+    fill: var(--dg-rule-strong);
+  }
+  .rollout-budget-diagram__mobile .rollout-budget-diagram__title {
+    font-size: 18px;
+  }
+  .rollout-budget-diagram__mobile .rollout-budget-diagram__detail {
+    font-size: 16px;
+  }
+  .rollout-budget-diagram figcaption {
+    margin-top: var(--space-3);
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  @media (max-width: 48rem) {
+    .rollout-budget-diagram__desktop {
+      display: none !important;
+    }
+    .rollout-budget-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
