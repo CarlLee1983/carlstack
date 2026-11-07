@@ -1,7 +1,8 @@
 ---
-title: "GitHub HydraFusion 多模型編排：讓異質模型唯讀審查，終結同源盲點"
-description: "GitHub 將 HydraFusion 擴展至 VS Code 與 Copilot App。拆解 Single、Cascade 階梯升級與跨家族 Critique 唯讀審查機制，說明如何以 TerminalBench 2.1 驗證並建立多模型派工的品質門檻。"
+title: "HydraFusion 多模型編排：把品質與成本放在同一組任務驗證"
+description: "區分 HydraFusion 的 Single、Cascade 與 Critique，正確解讀三組離線評測，並補上 Copilot Fusion 後續產品變更與自建工作流的驗收方法。"
 publishDate: 2026-10-01T12:05:00+08:00
+updatedDate: 2026-11-05T19:16:00+00:00
 draft: false
 featured: false
 tags:
@@ -15,61 +16,55 @@ cover: ../../assets/covers/github-hydrafusion-multi-model-orchestration.jpg
 coverAlt: "鐘錶工坊中，左側工匠快速繪製齒輪草圖，中央獨立玻璃鐘罩內的透鏡唯讀審查機件，右側重型黃銅鐵砧準備進行單次微調，象徵草稿、異質唯讀審查與有界修訂的分工架構。"
 ---
 
-在 AI 輔助開發的日常中，開發者最常面臨的煩躁操作之一，是在模型選單中手動切換：寫簡單的 HTML 樣式時覺得呼叫旗艦大模型太慢太貴，而在面對棘手的並發 Bug 時，便宜的輕量模型又頻繁給出語法正確但邏輯崩潰的廢料。
+多模型工作流的價值，應用相同任務的成功率、總成本與等待時間判斷。多一個審查模型可以增加觀察角度，也可能增加延遲、錯誤建議與工具執行費用；「跨模型」本身不是品質保證。
 
-[GitHub 於 2026 年秋季將 HydraFusion 正式從 CLI 擴展至 VS Code (1.140+) 與 Copilot App 原生介面](https://github.blog/)。這項 Research Preview 代表了從「使用者手動挑選單一模型」轉向「**執行時多模型動態編排（Runtime Multi-Model Orchestration）**」的關鍵躍進。
+[GitHub 於 2026 年 9 月 30 日的更新](https://github.blog/changelog/2026-09-30-hydrafusion-in-vs-code-and-the-github-copilot-app/)把 HydraFusion 研究預覽擴展到 VS Code 1.140 以上與 Copilot app。這是當時的產品狀態，不應當成永久的啟用指南。
 
-我的判斷是：**HydraFusion 對工程團隊最重要的啟發，不在於它串接了多少家供應商的 API，而在於它用「跨模型家族唯讀審查（Cross-Family Read-Only Critique）」打破了同源模型的相關性盲點，並透過嚴格的有界修訂（Bounded Revision）防止 Agent 陷入意見分歧的無窮迴圈。**
+> [!NOTE]
+> 2026 年 11 月 5 日更新：GitHub 已於 [10 月 28 日宣布 Copilot Fusion 正式推出](https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/)，整合 HydraFusion 與 Auto 的能力，並提供 Standard、High、Max 等級。以下保留對 HydraFusion 研究設計的分析；舊評測不是新版所有模式的效能保證。
 
-## 執行時動態分流的三大架構模式
+## 三種模式解決不同的派工問題
 
-HydraFusion 將軟體工程的程式碼產生、重構與終端機任務視為一個在**延遲（Latency）**、**成本（Cost）**與**驗證品質（Verified Quality）**之間的動態最佳化問題。底層透過三大模式進行分流：
+依[原始研究介紹](https://github.blog/ai-and-ml/github-copilot/project-hydrafusion-frontier-quality-via-multi-model-orchestration/)，當時的三種執行模式是：
 
-### 1. Single Pattern（直接單模求解）
+- Single：由選定的一個模型直接完成。
+- Cascade：較有效率的模型先產生結果，再由品質門檻決定接受或升級。
+- Critique：一個模型起草，不同模型家族的唯讀審查員檢查，再由原模型修訂一次。
 
-- **觸發情境**：針對語意明確、上下文單純、低風險的常規任務（例如語法轉換、簡單正規表達式、常見 Boilerplate 生成）。
-- **架構優勢**：零額外的編排排程 Overhead，維持最短的首字響應時間（TTFT）與最低系統延遲。
+這些描述沒有公開完整的路由閾值，不能自行補成「70% 日常任務第一輪過關」。Single 省去額外審查步驟，也不等於完全沒有排程成本或必然有最低首字延遲。
 
-### 2. Cascade Pattern（階梯式升級與品質閘門）
+對自建系統，我會把路由條件放在可觀察的失敗上：測試失敗、型別錯誤、工具權限不足、超時或缺少必要資料。模型自評信心可以是訊號，但不宜單獨決定是否放行。
 
-- **運作流程**：
-  1. 首先由推論極速、成本低廉的高效模型（Efficient Model）產生初版草稿（Draft）。
-  2. 接著由 **Quality Gate（品質門檻）** 評估該草稿。
-  3. **升級機制**：若草稿通過驗證，直接交付使用者；若未通過（如語法解析失敗、無法滿足 Prompt 約束或自評信心不足），則觸發階梯升級（Escalation），將上下文與失敗日誌交由更高階的前沿模型接手重算。
-- **架構優勢**：在真實世界中，超過 70% 的日常編程問題在第一階段即可順利過關，避免無謂消耗昂貴前沿模型的算力。
+## 唯讀審查限制寫入，不能消除共同錯誤
 
-### 3. Critique Pattern（跨模型家族唯讀 Reviewer 審查）
+跨家族審查可作為減少相同推理偏差的設計假設，仍須實測。兩個模型可能共享訓練資料、接受相同錯誤前提，或共同漏看測試未涵蓋的情境。因此「終結同源盲點」過強。
 
-- **運作流程**：
-  1. **起草階段（Drafting Phase）**：生成模型提出初始程式碼解決方案。
-  2. **唯讀審查階段（Read-Only Critique Phase）**：調度來自**不同模型家族（Different Model Family，例如不同架構或不同供應商）**的獨立模型擔任唯讀審查員（Critic）。
-  3. **單次修訂階段（Single Revision Phase）**：原生成模型根據審查員提出的邊界漏洞與反例進行**單次修正（Single Revision）**，產出最終結果。
+唯讀也應由工具權限落實，而不是只在提示詞說「不要修改」。我建議審查員輸出具體位置、失敗條件與可重現案例，交由有寫入權限的工作者處理。
 
-## 為什麼審查員必須「跨家族」且「唯讀」？
+一次修訂可以限制回合數，不能保證固定完成時間。單輪工具呼叫仍可能卡住；完整工作流需要時間上限、最大工具次數、重試預算與取消機制。**達到預算仍未通過驗證，就保留失敗證據並停止自動交付。**
 
-許多多代理（Multi-Agent）架構的設計者常犯兩個致命錯誤：要麼讓同一個模型「自己檢查自己」，要麼讓多個具備寫入權限的 Agent 在同一個檔案上來回修改。HydraFusion 在架構設計上嚴格迴避了這兩個坑：
+## 評測要逐組讀，不能合成「全面更好」
 
-- **終結相關性盲點（Correlated Blindspots）**：同一家族的模型往往共享相似的預訓練語料偏差與歸納偏好。當同一模型或其衍生版本進行自查時，常會以極度自信的語氣忽視自身產生的 Edge Case 漏洞。調度不同架構、不同訓練資料來源的異質模型進行審查，能發揮真正的「橡皮鴨（Rubber Duck）」除錯效益。
-- **職責分離與有界收斂（Bounded Convergence）**：如果 Reviewer 擁有直接修改程式碼的權力，系統很容易退化成兩個模型為了命名風格、縮排或程式庫選擇而反覆覆寫的「拉鋸戰」。HydraFusion 嚴格規定審查員只能輸出診斷、反例與架構質疑（Read-Only），且只允許**單次修訂**，確保系統具備確定性的收斂時間。
+GitHub 原始文章公布的是最佳調校設定相對 Opus 5 的離線結果：
 
-## 品質門檻的驗證數據：TerminalBench 2.1
+- TerminalBench 2.1：品質增加 4.9 個百分點，估計成本降低 67%。
+- DeepSWE：品質減少 1.5 個百分點，估計成本降低 36%。
+- CheckpointBench：品質減少 0.1 個百分點，估計成本降低 65%。
 
-在評估多步驟終端操作、工具呼叫、上下文維護與錯誤恢復的 **TerminalBench 2.1** 基準測試中：
+原文採相同 medium reasoning 等級，成本納入起草、審查、修訂、升級、重試與 fallback。結果受模型池、價格、工作流與 benchmark 版本限制；它沒有證明所有真實任務都同時省錢、變快且更準。上述數字應連同[研究方法與限制](https://github.blog/ai-and-ml/github-copilot/project-hydrafusion-frontier-quality-via-multi-model-orchestration/)閱讀。
 
-- **驗證成功率（Verified Task Quality）**：相較於單獨使用單一前沿旗艦模型直出，HydraFusion 的綜合協作架構達成了 **+4.9 個百分點**的任務成功率提升。
-- **推論成本（Cost Reduction）**：整體工作流的 Token 支出大幅降低了 **36% 至 67%**。
+成本降低也不等於 token 數量同比降低。模型單價、上下文長度與工作流組合都會改變費用；對內評估至少應同時保留 token 用量與金額，而非只報其中一項。
 
-這組數據證明了一件事：**優異的工程架構編排，能夠在降低整體花費的同時，產出比單一頂級模型更高的程式碼可靠度。**
+## 自建工作流如何驗收
 
-## 對自建 Coding Agent 派工的實踐啟示
+以下是本文建議的試驗，不是 GitHub 已公開的內部實作：
 
-當團隊在設計內部 Agent 工作流時，可以從 HydraFusion 汲取三個立即可落地的模式：
+1. 固定一批代表性任務與程式庫版本。包含簡單修改、多檔案改動及會失敗的邊界案例，不要只選模型擅長的題目。
+2. 比較單模型基準、Cascade 與 Critique。每組使用相同工具、權限、時間預算與成功條件，並保留重跑結果。
+3. 將修訂後的最終產物重新跑測試。審查員同意不等於測試通過，測試通過也不等於需求全部滿足。
+4. 記錄整次工作流的費用與延遲，包括失敗和 fallback。另列誤接受率：品質門檻放行，但最終驗收失敗的比例。
+5. 先設定可接受的品質退步範圍，再比較節省金額。付款、權限和資料刪除等高風險任務，不能只用平均成功率決定是否自動交付。
 
-1. **打造高召回率的本地 Quality Gate**：
-   階梯式升級（Cascade）的成敗完全取決於 Gate 的靈敏度。Gate 不應只有 LLM 評估，更應結合輕量本地工具：AST 解析、靜態型別檢查（Typecheck）與格式化工具。只有在本地驗證未通過或信心低落時才 Escalate，才能真正發揮分層降本的威力。
-2. **區分工匠（Worker）與監工（Critic）的 Prompt 權限**：
-   不要讓所有 Subagent 都具備完全對等的工具讀寫權限。讓負責 Code Review 的 Agent 處於純唯讀環境，禁止其呼叫檔案寫入工具，強制其只能產出具備行號與反例的批評文字。
-3. **設定單輪修正上限（Single Bounded Revision）**：
-   在自動化流程中，禁止無上限的「審查 → 修改 → 再審查」循環。設定嚴格的一審一修上限；若單次修訂後仍無法通過驗證，應立即將狀態暫存並升級給人類工程師審閱。
+最新版 Copilot Fusion 仍受組織允許的模型政策約束，並按實際使用的模型計費；產品優惠與價格應以當期[官方更新](https://github.blog/changelog/2026-10-28-route-and-orchestrate-models-with-github-copilot-fusion/)及帳戶顯示為準。先選一個能獨立驗收的任務，量出完整成本，再決定是否擴大採用。
 
-從 CLI 到 VS Code，HydraFusion 預示著開發者不再需要自行充當不同模型之間的「人肉路由器」。理解背後的分流哲學，將有助於我們打造出更敏捷、更低成本且更高品質的生產級 Agent 系統。
+原文使用的 [GitHub Blog 首頁](https://github.blog/)保留作為入口，具體產品與評測主張以上方直接連結為準。
