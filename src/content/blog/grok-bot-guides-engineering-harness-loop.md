@@ -1,6 +1,7 @@
 ---
 title: "Grok Bot Guides 工程篇：多 Agent 分工、行動遊戲開發與設計協作"
-description: "深度拆解 Grok Bot 官方工程手冊：管理 200 個 Cloud Agents 的專職編隊、一人獨立運營六 Bot 手機遊戲工作室，以及設計師如何讓 Agent 落地真實產品資產。"
+description: "查核 Grok Bot 工程、Rank’em 行動遊戲與設計案例，區分作者自述與平台規格，並把分工轉成可檢查的版本證據、權限與驗收條件。"
+updatedDate: 2026-11-06T00:44:35Z
 publishDate: 2026-10-08T17:35:00+08:00
 draft: false
 featured: false
@@ -14,67 +15,134 @@ cover: ../../assets/covers/grok-bot-guides-engineering-harness-loop.png
 coverAlt: "翠綠色矩陣面板展現中央調度總台向外連接多條獨立沙盒工作流與自動化測試驗收迴路。"
 ---
 
-在 AI 輔助軟體開發的演進中，工具的角色正快速從「編輯器內的補全游標」轉變為「雲端長駐的工程管理控制台」。
+Lingxi Li 在 2026 年 9 月 10 日的工程指南中，自述用五個工程 Bot 管理同時執行的 200 多個 cloud agents。這個數字很容易被當成擴充能力的保證。對準備採用的人，更有用的問題是每件工作的負責人、執行環境與驗收證據能否對得起來。
 
-xAI 在 [Grok Bot Guides](https://x.ai/bot/guides) 中針對技術研發領域收錄了三篇代表性的實戰手冊：Lingxi Li 的〈Grok Bot for Engineering〉、〈Grok Bot for mobile app development〉以及〈Designing Grok Bot with Grok Bot〉。這三篇指南展示了同一個本質：**當編碼成本趨近於零，研發團隊的真正瓶頸是上下文分流、回饋迴路閉環與全生命週期的資產管理**。
+查核基準是 2026 年 11 月 6 日可讀取的 [Grok Bot Guides](https://x.ai/bot/guides) 與各篇指南。這些是刊登在產品網站的具名使用經驗，數量與成果沿用作者自述，沒有獨立重測，也沒有提供可鎖定的產品版本號。以下把案例事實與 CarlStack 建議分開，後者可用來設計試行流程，不能視為 Grok Bot 已實作的安全機制。
 
-本文為《Grok Bot Guides 三部曲》的第二篇，專注剖析工程艦隊的架構分工、一人團隊如何營運完整產品，以及設計如何與程式資產緊密咬合。
+## 五個工程 Bot 的分工有來源，產能倍數沒有共同量尺
 
-## 專職 Bot 艦隊：五個專職角色與 200 個 Cloud Agents
+在 [Lingxi Li 的〈Grok Bot for Engineering〉](https://x.ai/bot/guides/grok-bot-for-engineering)（2026-09-10）中，五個工程 Bot 各有負責範圍。Baltata 負責行動共用層與 iOS，Shaoruru 負責桌面端與 CI/CD，Hogan 負責基礎設施及歸屬不明的問題，Craig 負責 Android，Quill 負責 harness。
 
-在〈Grok Bot for Engineering〉中，Lingxi Li 指出一個人手動管理 Cursor Cloud Agents 的極限大約是 15 個。超過這個數量後，工程師會淪為低效的排程器：反覆切換分頁、檢查 CI 綠燈、看截圖確認 UI、處理 Git 衝突。
+作者說自己先前能同時手動管理 15 個 cloud agents，現在由這組 Bot 管理超過 200 個。15 是她的經驗值，200 多個是當時的執行規模。兩者都沒有附上共同的任務難度、成功率或人工作業時間，不能直接換算成生產力提升倍數。
 
-為了解決這個瓶頸，她建立了由五個專職 Grok Bot 組成的**工程管理艦隊**：
+來源也描述了她的 Notion PR 清單，每 30 分鐘檢查問題，處理中標為 `Working`，符合條件後進入 `Ready for Review` 並啟動審查。她允許高信心、影響範圍小的 PR 自動合併，其餘自己判斷。這是她配置的流程，採用者需要自行決定合併權限。
 
-### 艦隊編制與領域 Context 邊界
+### 用交付物決定分工
 
-- **iOS Bot**：持有 Apple 平台規範、Swift/SwiftUI 慣例與行動端常見崩潰日誌經驗。
-- **Desktop & CI/CD Bot**：專責桌面端封裝、GitHub Actions 工作流與跨平台建置管線。
-- **Infra & Triage Bot**：負責跨系統基礎設施、未分類 Issue 的初步定界與警報過濾。
-- **Android Bot**：維護 Gradle 設定、Kotlin 現代架構規範與跨裝置適配邏輯。
-- **Agent Harness Bot**：負責維護所有 Agent 所使用的 Prompt 契約、測試 Harness 與評測基準。
+CarlStack 建議從一個工作範圍清楚的 Bot 開始。以「修正登入畫面的錯誤提示」為例，負責人要能查到畫面元件、錯誤格式與相關測試，也要交回可重現的操作步驟。只有當另一批工作需要不同的權限、資料或驗收人時，才值得拆出第二個角色。
 
-### 閉環控制面的運作機制
+角色說明可固定記錄四項內容：
 
-這五個 Bot 並非直接逐行寫程式，而是透過以下步驟管理多達 200 個底層 Cloud Agents：
+- 負責範圍：哪個 repository、模組或問題類型，以及跨區修改時由誰接手。
+- 執行環境：使用哪個分支、工具鏈與測試資料，缺少依賴時向誰提出需求。
+- 交付物：變更摘要、commit、測試結果，以及需要視覺檢查時的前後對照。
+- 停止條件：權限不足、規格互相衝突，或同一失敗在已知修復後再次出現時，留下證據並請負責人決定。
 
-- **任務分派與規格合成**：將 Jira 或 GitHub Issue 轉譯為具備明確驗收測試的 Prompt 規格；
-- **排程與平行派工**：喚起多個 Cursor Cloud Agents 進行實作；
-- **自律監控與中斷**：監聽 transcript，若發現 Agent 陷入迴圈或偏離方向，及時終止或重新注入提示；
-- **驗收審批與合併決策**：核對 CI 狀態、錄影與截圖證據，低風險修復自動合併，高風險變更則備齊脈絡呈報人類工程師。
+增加 Bot 之前，先檢查待審工作是否累積。若實作已完成卻長期等人確認，擴大派工只會讓同一位驗收者面前多出一排 PR。試行時應記錄每件工作從派工到驗收的時間、退回原因與人工介入次數，依瓶頸調整並行量。
 
-這種「專職經理人 + 彈性臨時工」的拓撲結構，讓單一工程師的管理產能實現了數量級的躍升。
+## Rank’em 的六個角色，包含明確的支出限制
 
-## Rank'em 案例：一人六 Bot 的獨立行動工作室
+[Ryan Perry 的〈Grok Bot for mobile app development〉](https://x.ai/bot/guides/grok-bot-for-mobile-app-development)（2026-08-25）描述六個 Bot 經營 Rank’em，並自述遊戲在前一週於 iOS、Android 合計超過 1,000 次下載。「遊戲本身約占 15%，其餘工作占 85%」是作者估計，沒有工時樣本可用來推算所有行動開發專案。
 
-在〈Grok Bot for mobile app development〉中，作者分享了他如何利用 6 個 Grok Bot 獨立打造並運營跨雙平台、突破千次下載的益智手遊 _Rank'em_。
+案例的角色是 Mobile Orchestrator、Analytics Agent、Creatives Agent、Rank’em Engineer、GCS agent 與 Bug fix Agent，分別涵蓋協調與商店、分析、廣告素材、程式、部署、錯誤修復。原文只允許 Analytics Agent 宣告分析發現，並要求花錢前先詢問作者。這些責任限制比角色數目更適合拿來檢查自己的流程。
 
-他提出了一個深刻的行業觀察：在現代應用開發中，**編寫核心業務邏輯通常只佔總工作量的 15%，剩下 85% 是繁瑣但不可或缺的周邊維運**：
+### 把分析、修改與發布拆成可追蹤的交接
 
-### 85% 隱形工程的 Bot 化清單
+下面是假設的遊戲維運流程，與 Ryan 的實際成效分開看待。分析工作交回「某一版本的新玩家在哪一步離開」，至少要寫出觀察期間、事件定義、樣本數與查詢條件。若資料缺漏，就交回缺漏的位置，避免讓實作端把猜測當成已證實的原因。
 
-- **ASO 與商店發布 Bot**：定期抓取 App Store 與 Google Play 的關鍵字排名，依據版本日誌產出符合規範的多國語言發布說明。
-- **社群與玩家回饋 Bot**：監聽 Reddit、Discord 與應用商店評論，歸納玩家回報的 Bug 與平衡性抱怨，轉換為結構化任務卡。
-- **分析與指標監控 Bot**：每日定時讀取 Mixpanel / Amplitude 數據，計算留存率與關卡流失節點，並在關鍵指標異常時發出警報。
-- **廣告與變現調校 Bot**：追蹤 AdMob / AppLovin 的 eCPM 表現與廣告填充率，提供廣告位配置的最佳化建議。
-- **美術素材流水線 Bot**：依據 UI 規格自動裁切、轉檔各尺寸 App Icon 與宣傳截圖。
+程式負責人接到分析後，提出可測的修改。例如調整提示文字時，驗收可以包含新舊文字、顯示條件與錯誤流程。這只能證明功能符合規格。若還要判斷留存是否改善，需要另外定義比較群組與觀察期間，不能拿通過 CI 的紀錄替代產品實驗。
 
-這證明了雲端電腦型 Agent 的核心價值不僅是「幫你寫 Code」，更是作為**虛擬工作室的全職營運團隊**，吸收掉原本耗盡獨立開發者心力的繁重維運負荷。
+發布與廣告支出各有自己的放行人。素材完成不等於廣告活動可以啟用，測試通過也不等於商店版本已上線。任務卡應分別保存素材版本、發布版本、投放對象與已核准的預算。遇到預算增加、權限擴大或發布目的地變動，回到對應的決策者，不把先前的同意延伸到新範圍。
 
-## 雙向咬合：讓設計 Agent 進入真實產品資產
+## 設計案例的重點是可比對的真實資產
 
-在〈Designing Grok Bot with Grok Bot〉中，設計師分享了與傳統「在 Figma 畫好靜態 Mockup 再丟給工程師實作」完全不同的協同範式。
+[John Bai 的〈Designing Grok Bot with Grok Bot〉](https://x.ai/bot/guides/designing-grok-bot-with-grok-bot)（2026-08-24）寫到，Motion God 以產品實際使用的動畫規格檔建立 localhost 試作環境，讓他調整動態。另一個例子是 Figma Bro 透過 Figma MCP 讀取元件的精確屬性，完成重複排版。這些例子支持「使用既有資產反覆調整」，沒有提供每次固定產出 10 到 20 個設計版本的規格。
 
-傳統流程最大的浪費是「設計與程式資產的脫節」；而在 Grok Bot 的持久雲端環境中，設計師賦予 Agent 存取真實產品程式庫的權限：
+對應的驗收應保留資產識別與版本。設計師看過的動畫，必須能回到同一份規格檔、相同的字型與圖片，否則實作端可能只複製一張外觀接近的截圖。若改到共用元件，檢查範圍也要包含其他使用它的畫面。
 
-- **以真實組件進行設計探索**：設計 Agent 可以直接在雲端電腦中讀取前端 Repository、調用現有的 Design Tokens 與組件庫，並快速組裝出可互動的原型。
-- **即時視覺回饋迴路**：Agent 在雲端本機啟動開發伺服器，利用瀏覽器截圖與錄影向設計師展示效果，設計師只需給予審美回饋（如「間距過大」、「動態節奏太慢」），Agent 即可就地微調 CSS 與動畫參數。
-- **判斷力留在人身上（Keep Judgment in the Loop）**：Agent 負責在短時間內產出 10 到 20 種不同的版面與配色變體，人類設計師則專注於高階審美判斷與使用者體驗調性。
+「感覺自然」可以保留為設計判斷，同時補上可以重現的操作條件，例如進入畫面的方式、觸發動作與預期結束狀態。視覺審查通過後，仍應分別檢查鍵盤操作、文字溢位與窄螢幕呈現。這些是採用流程的建議，沒有把設計師的個人偏好變成產品的自動驗收能力。
 
-## 工程視角的三大避坑原則
+## 憑證與操作權限要獨立管理
 
-綜合官方手冊的研發實務，將多 Agent 導入研發管線時務必遵守三項工程紀律：
+專職角色可以縮小上下文，卻不會自動縮小已登入帳號的權限。程式碼讀取、建立分支、合併、部署與修改正式資料，應各自對應可用的服務權限。測試環境能重現問題，就不必先把正式環境的憑證交出去。
 
-- **嚴禁無測試的盲目合併**：Cloud Agent 的產出必須通過靜態檢查與自動化測試驗收；沒有測試覆蓋的程式碼產出只是累積未來的理解負債。
-- **角色不要過早過度拆分**：若兩個工作流的 Context、使用的工具與驗收標準相同，應合併在同一個 Bot 中，避免不必要的交接損耗。
-- **將 Harness 視為第一等代碼資產**：維護好的 Prompt 模板、檢查清單與 Mock 資料，其回報遠高於頻繁切換底層大模型。
+CarlStack 建議在開始工作前記錄帳號擁有人、授權的資源與動作、有效期間及撤銷方式。密碼、token 與簽署金鑰留在合適的憑證管理工具，不放進任務描述、提示詞或驗收截圖。任務交接只傳遞憑證的引用及所需權限，接手者仍須使用自己的有效授權。
+
+**缺少權限時停止該動作，不能藉由換帳號或換工具繞過限制。** 可以繼續整理錯誤訊息、準備修正或補測試，但應把待批准的動作與目的地寫清楚，讓負責人能做出一個具體決定。
+
+## 用小模型檢查驗收紀錄是否完整
+
+下面是可在 Node.js 執行的假設模型，只檢查記錄是否一致。它不呼叫 Grok Bot，也不執行合併或部署。`policy` 代表由團隊負責人維護的必測項目與驗收人，`task` 代表這次交付物。`policy.revision` 識別必測清單與驗收人的版本，核准紀錄必須明確表示同意。正式系統仍需由受信任的服務供應政策與紀錄，驗證簽核者身分、權限與檔案雜湊，並在實際使用結果時重查版本。
+
+```js
+function acceptance(task, policy) {
+  const text = (value) => typeof value === "string" && value.trim() !== "";
+  if (
+    !task ||
+    !policy ||
+    ![
+      task.id,
+      task.owner,
+      task.revision,
+      policy.approver,
+      policy.revision,
+    ].every(text) ||
+    !Array.isArray(policy.requiredChecks) ||
+    policy.requiredChecks.length === 0 ||
+    !policy.requiredChecks.every(text)
+  )
+    return "blocked";
+  if (task.blocked === true) return "blocked";
+
+  const checks = task.checks;
+  if (
+    !Array.isArray(checks) ||
+    checks.some(
+      (check) =>
+        !check ||
+        !text(check.name) ||
+        check.revision !== task.revision ||
+        check.result !== "pass",
+    ) ||
+    new Set(checks.map((check) => check.name)).size !== checks.length ||
+    !policy.requiredChecks.every((name) =>
+      checks.some((check) => check.name === name),
+    )
+  )
+    return "needs-evidence";
+
+  const approval = task.approval;
+  if (
+    !approval ||
+    approval.taskId !== task.id ||
+    approval.revision !== task.revision ||
+    approval.policyRevision !== policy.revision ||
+    approval.decision !== "approve" ||
+    approval.by !== policy.approver
+  )
+    return "needs-approval";
+  return "accepted";
+}
+
+const policy = {
+  approver: "release-owner",
+  revision: "demo-policy-1",
+  requiredChecks: ["unit", "ui"],
+};
+const task = {
+  id: "login-copy",
+  owner: "client-engineer",
+  revision: "demo-revision-2",
+  checks: [
+    { name: "unit", revision: "demo-revision-2", result: "pass" },
+    { name: "ui", revision: "demo-revision-2", result: "pass" },
+  ],
+};
+console.log(acceptance(task, policy)); // needs-approval
+```
+
+這個模型刻意把 `accepted` 限定為交付物通過驗收。發布仍是一件獨立工作。修改交付 revision 後，舊的測試與同意紀錄都不能沿用。必測項目、驗收人或驗收規則改變時，要更新政策 revision 並重新核准。必測清單也由 `policy` 提供，避免執行者刪掉失敗項目就宣告完成。
+
+本次對這段純函式檢查了缺少必測項目、舊版證據、失敗或重複檢查、錯誤任務、驗收人、政策版本，以及拒絕或未決核准等情境。這些檢查只能證明範例按所列規則運作，沒有測量 Grok Bot 的成功率或並行能力。
+
+開始試行時，挑一件能在測試環境結束的真實任務，寫下負責人、必測項目與驗收人。只有在每份結果都能對回同一版本，且交接不再依賴猜測後，再增加同時執行的工作數。

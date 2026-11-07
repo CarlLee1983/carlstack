@@ -1,6 +1,7 @@
 ---
 title: "Magnitude 本機推論引擎：Kernel 調校、量化與 Radix Attention 如何減少記憶體讀取"
-description: "開源推論引擎 Magnitude 登上 Launch HN。剖析其 On-Device Kernel Autotuning、TurboQuant 非對稱量化（8b K / 4b V）與 Radix 共享前綴快取機制，說明 Apple Silicon 解碼速度提升 92% 的工程底層。"
+description: "依固定版本程式庫、文件與 Launch HN 一手說明，釐清 Magnitude 的 Kernel 調校、前綴快取與 KV 量化；分開解讀作者效能數字、理論容量與本機導入驗收。"
+updatedDate: 2026-11-06T00:44:35Z
 publishDate: 2026-10-01T12:15:00+08:00
 draft: false
 featured: false
@@ -16,63 +17,94 @@ coverAlt: "暗色石墨表面上，雷射精確在晶片核心雕刻微型電路
 repositoryUrl: https://github.com/magnitudedev/magnitude
 ---
 
-在本地運行 AI Agent 時，多數開發者往往面臨兩難：採用資料中心級別的推論引擎（如 vLLM 或 SGLang），在單人開發機或筆電上顯得過於龐大，且啟動時便無差別霸佔所有 VRAM；而採用通用型推論工具（如 llama.cpp 或 Ollama），雖然相容性極佳，卻為了顧及各種老舊 CPU 與架構，犧牲了極限的硬體調校，在面對長思考鏈與頻繁工具呼叫時，首字延遲（TTFT）與解碼吞吐量顯得力不從心。
+Magnitude 在 Launch HN 的長上下文比較中使用量化 KV cache，對照的 llama.cpp 則使用 16-bit KV cache。作者說明，他們曾嘗試讓 llama.cpp 使用同樣的位元配置，但解碼速度下降，因此改用 16-bit。這可以比較兩套當時選定的設定，卻無法單獨證明 Kernel autotuning 帶來多少加速。[作者對 KV 設定的回覆](https://news.ycombinator.com/item?id=49912452)
 
-[2026 年 9 月 30 日，Magnitude 於 Hacker News 正式發布 Launch HN](https://news.ycombinator.com/item?id=45427188)，以 Apache 2.0 協議開源了一款專為本地 Agentic 工作流深度調優的推論引擎（專案代碼庫：[`magnitudedev/magnitude`](https://github.com/magnitudedev/magnitude)）。
+這次查核固定在 2026-11-06 讀到的 [`magnitudedev/magnitude`](https://github.com/magnitudedev/magnitude) commit [`47156a8`](https://github.com/magnitudedev/magnitude/tree/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f)。本次修訂核對了程式庫、文件與原始討論，下方容量範例已做局部執行檢查。調校、精度、狀態與排程的細節依固定版文件描述，其中的設計要求未逐項驗證執行行為。查核環境沒有安裝推論引擎、載入模型或重跑 GPU benchmark。文中的產品速度都是維護者公布的結果。
 
-我的判斷是：**Magnitude 的工程價值，在於它將伺服器級的 Radix Attention 與裝置端即時 Kernel 微調（Autotuning）結合，精準擊中了本地 Agent 執行「高重複系統 Prompt、長多輪 Context、多 Session 並行」的場景特徵。尤其在 Apple Silicon 統一記憶體架構下，它證明了透過量身打造的算子排程，記憶體頻寬能被進一步擠出接近倍增的解碼效能。**
+舊版引用的 [HN item 45427188](https://news.ycombinator.com/item?id=45427188) 實際是 2025 年另一個議題下的留言。這裡保留連結作為更正紀錄，Magnitude 的 Launch HN 應連到 item 49911995。團隊在發布文中提過先前做過瀏覽器 agent，因此只憑舊版專案介紹，也會辨識錯目前的產品。
 
-## 本地 Agent 推論的三大硬體瓶頸
+## 固定版本後，才能談實作與授權
 
-傳統推論引擎在設計時大多假設是「單一使用者的一問一答」或「高並發請求批次處理（Batching）」。然而，現代 Coding Agent 的工作負載具備完全不同的特質：
+此 commit 的 `inference/` 是 Rust workspace，含排程器、模型執行器、Kernel、Seismic runtime 與多個硬體 backend。把它當成只有 TypeScript 的瀏覽器自動化工具，已不符合這份程式碼。反過來，把 repository 的所有功能都說成單一 Rust 核心，也會忽略桌面應用程式與整合層。[Rust workspace](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/inference/Cargo.toml)、[固定版 README](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/README.md)
 
-1. **System Prompt 與 Tool Schema 高度重用**：每一次 Agent 呼叫，都會帶著數千至上萬 tokens 的框架定義、環境指引與工具宣告。如果每次推理都要重新執行 Prefill 計算，等待時間將嚴重破壞互動流暢度。
-2. **多 Session 並行下的 VRAM 爆炸**：當開發者同時開立多個 Subagent 執行背景調查、測試與代碼修改時，若每個 Session 都複製一份完整的 KV Cache，本機記憶體會在幾輪對話後迅速見底。
-3. **解碼階段受限於記憶體頻寬（Memory Bandwidth Bound）**：在大模型的自迴歸生成過程中，每個 Token 的產出都必須將權重與 KV Cache 從記憶體完整載入到暫存器中。在單 Batch 的本地使用情境下，記憶體頻寬就是吞吐量絕對的物理天花板。
+根目錄 [`LICENSE`](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/LICENSE) 是 Apache License 2.0，README 與發布文也使用這個授權名稱。不過，同一版本的 `inference/Cargo.toml` 仍有 `license = "UNLICENSED"` 的 workspace metadata。這兩處標示不一致，不能略過。若要重新散布或納入公司的產品，應請維護者釐清實際使用範圍，並另查模型權重與相依套件的授權。
 
-## Magnitude 的三大架構防線
+服務的 API 也需要固定路徑。該版文件列出 OpenAI Chat Completions、Responses，以及 Anthropic Messages 相容路由。其中 Chat Completions 是 `/inference/v1/chat/completions`，模型清單是 `/inference/v1/models`。相容路由存在，不代表每個模型都支援每種輸入、工具呼叫或輸出格式。文件明確把對話歷史與工具執行留給呼叫端。[API endpoints](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/docs/api/endpoints.mdx)
 
-針對上述挑戰，Magnitude 以 Rust 為底層核心，引入了三組關鍵的系統設計：
+## Autotuning 有時間預算，也有數值檢查
 
-### 1. 裝置端 GPU Kernel 即時調校（On-Device Kernel Autotuning）
+固定版的 [tuning 文件](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/inference/docs/tuning.md) 將一次載入的調校預算設為 60 秒。這段時間包含候選形成、執行、比較與結果保存。模型載入與 readiness 則另外計時。因此，「每次啟動約一分鐘就能使用」和「調校有 60 秒預算」是兩個不同敘述。
 
-llama.cpp 等泛用工具為了相容性，多採用靜態編譯的通用 Metal 或 CUDA 核心。
-Magnitude 則在初次載入模型時，在使用者本機執行約 1 分鐘的 profiling 階段。Autotuner 會檢測該裝置的真實硬體規格（如 Apple Silicon M 系列的矩陣引擎特性或特定 GPU 的架構特徵），現場編譯出針對本機快取階層與管線深度最優化的 FlashAttention 衍生算子，最大化每秒能榨取的頻寬效率。
+調校器在同一工作負載下比較候選設定，候選也要通過數值檢查。文件要求保留實際選中的 artifact、測量與數值證據，後續相同身分的載入可以使用保存的選擇。時間不夠時，預設設定是合法結果，文件沒有承諾窮舉所有參數後找到全域最快版本。
 
-### 2. 基於 Radix Tree 的前綴快取共享（Radix Attention）
+這會影響導入時的測量方式。第一次啟動要記錄下載、模型載入、調校與 readiness，各次使用則量穩態推論。把這些時間加成一個數字，很難判斷使用者到底在等哪一步。
 
-借鑒了 SGLang 在資料中心採用的 Radix Attention 思想，Magnitude 在本機實現了 **Hybrid Paged Attention**：
+局部數值通過也不能替代模型品質驗收。[precision 文件](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/inference/docs/precision.md) 明確區分 Kernel 的誤差門檻與模型層級品質。團隊若用它產生工具參數，仍要測自己的 JSON schema、長上下文檢索與多輪任務成功率。
 
-- 將多個 Agent Session 的 Context 歷史與工具定義，組織成一棵前綴樹（Radix Tree）。
-- 當新的 Subagent 啟動並使用相同的 System Prompt 與工具定義時，引擎直接命中樹狀節點，跳過所有前置的 Prefill 運算，使首字響應時間（TTFT）大幅逼近即時回應。
-- 同時針對單一 Session 保持實體記憶體的連續性，避免過度碎片化拖慢單條鏈的解碼速度。
+## 前綴共享省下已經算過的部分
 
-### 3. 非對稱 KV 快取量化（TurboQuant: 8-bit K / 4-bit V）
+Launch HN 將其設計稱為 hybrid paged attention，並說明借鏡 SGLang 的 radix attention。固定版的 [sequence state 文件](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/inference/docs/engine/state.md) 則說明共享的狀態契約。checkpoint 保留既有歷史的擁有權，fork 複製描述，而非把整份歷史 tensor 再複製一遍。新增內容需要專用尾端或新的儲存區段，不能改寫其他 checkpoint 可見的歷史。
 
-在長 Context 推理中，KV Cache 往往比模型權重本身更消耗記憶體。
-Magnitude 採用了非對稱量化策略：對位置敏感的 **Key 採用 8-bit 量化**，而對容忍度較高的 **Value 採用 4-bit 量化**。相較於標準的 FP16 KV Cache，快取所佔記憶體縮小了一半以上，大幅降低了解碼階段每次讀取快取的頻寬壓力。
+例如兩個 agent 共用相同模型、模板與 8,000-token 前綴，各自追加不同的 2,000-token 輸入。共享命中時，已完成的共同前綴可以重用，各自新增的部分仍要計算。這個例子只是工作負載設計，沒有預測 TTFT。首次請求、前綴改動、快取被回收，以及需要重播的狀態，都會改變延遲。
 
-## 基準實測解讀：Mac M4 Pro 與 CUDA 的數據對照
+固定版的 [排程文件](https://github.com/magnitudedev/magnitude/blob/47156a8c2d793b3036b9ec4bd87c8f40d78ab28f/inference/docs/engine/scheduling.md) 還列出容量不足時的處置：回收閒置資源、縮小批次與允許的工作量、選擇可回收的序列，最後才等待或失敗。記憶體要在邏輯擁有權與實際裝置工作都結束後才能回收。只看到 agent 已停止輸出，不能推定相關配置已立即歸還。
 
-官方以 `Qwen 3.6 35B A3B (4-bit)` 模型在 `64k context window` 的嚴苛條件下，與 llama.cpp 進行了實測對比：
+## 8-bit K 與 4-bit V：先算 payload，再量整個行程
 
-- **Apple Silicon (Mac M4 Pro, 48GB)**：
-  - **解碼吞吐量（Decode Throughput）**：從 llama.cpp 的 30 tok/s 躍升至 **57 tok/s（提升達 +92%）**。
-  - **Prefill 速度**：達到 507 tok/s（提升 9%）。
-  - **記憶體開銷**：每個 Agent Session 的記憶體佔用降低了 **28%**。
-- **資料中心平台 (DGX Spark, CUDA)**：
-  - **解碼吞吐量**：從 49 tok/s 提升至 **58 tok/s（提升 19%）**。
-  - **Prefill 速度**：達到 **2,507 tok/s（提升 23%）**。
-  - **記憶體開銷**：每個 Agent Session 減少 **27%**。
+作者在 HN 回覆中使用的是「受 TurboQuant 啟發」的 KV 量化，配置為 8-bit keys 與 4-bit values。這個說法不能改寫為完整採用 TurboQuant 論文演算法，更不能由位元寬度直接推導任務品質不變。[作者的量化說明](https://news.ycombinator.com/item?id=49912522)
 
-這組數據揭示了一個有趣的架構差異：**在 Apple Silicon 上，提升最顯著的是 Decode 吞吐量（近 2 倍）**。這是因為 Mac 的統一記憶體具備極高頻寬，但過去泛用的 Metal 算子無法精準匹配其執行管線；而在 CUDA 上，Prefill 速度提升更為顯著，體現了專屬調校算子對高並行張量核心的充分調動。
+對具有一般 attention KV 儲存的假設模型，若各層的 KV heads 與 head dimension 相同，原始 payload 可寫成 `layers × tokens × kv_heads × head_dim × (key_bits + value_bits) / 8`。下方是可用 Python 3.12 執行的容量練習，刻意不使用某個真實模型的規格。
 
-## 工程選型時的取捨與評估
+```python
+from fractions import Fraction
 
-雖然 Magnitude 展現了驚人的本地推論效率，但在評估引入日常工作流時，仍應注意以下代價：
 
-1. **初次編譯等待時間**：每款新模型或不同量化規格在初次載入時，都需要經歷約 1 分鐘的本地 Profiling 與編譯過程，適合長期固定使用特定主力模型的團隊，不適合頻繁切換小模型的嘗鮮用戶。
-2. **4-bit Value 量化的精度驗收**：極限的 4-bit 量化是否會在長思考鏈的深層邏輯推導（例如複雜編譯器實作或深層數理問題）中產生細微的精度衰減，仍需在具體業務資料集上進行回歸測試驗證。
-3. **生態相容性**：Magnitude 原生提供相容 OpenAI 與 Anthropic 的 API 協定，能無縫掛載進 Claude Code、Cline 或本機 Agent 框架，但在廣泛的周邊工具支援度上，仍需觀察開源社群的跟進速度。
+def kv_payload_bytes(layers, tokens, kv_heads, head_dim, key_bits, value_bits):
+    values = (layers, tokens, kv_heads, head_dim, key_bits, value_bits)
+    if any(type(value) is not int or value <= 0 for value in values):
+        raise ValueError("all dimensions and bit widths must be positive integers")
+    total_bits = layers * tokens * kv_heads * head_dim * (key_bits + value_bits)
+    return (total_bits + 7) // 8
 
-對於正在建構本機多 Agent 工作站的工程師而言，Magnitude 提供了一個具備參考價值的架構方向：推論引擎不應只追求無差別的通用性，針對特定硬體特徵與 Agent 工作負載進行「剪裁」，才是釋放本地算力極限的有效途徑。
+
+shape = dict(layers=32, tokens=32768, kv_heads=8, head_dim=128)
+fp16 = kv_payload_bytes(**shape, key_bits=16, value_bits=16)
+k8_v4 = kv_payload_bytes(**shape, key_bits=8, value_bits=4)
+assert fp16 == 4 * 1024**3
+assert k8_v4 == 1536 * 1024**2
+assert Fraction(k8_v4, fp16) == Fraction(3, 8)
+print(f"payload: {fp16 / 1024**3:g} GiB -> {k8_v4 / 1024**3:g} GiB")
+```
+
+這組假設的 payload 從 4 GiB 降為 1.5 GiB，減少 62.5%。scale、對齊、頁面 metadata、模型權重、工作區與其他狀態都還沒算進來。混合 attention、滑動視窗或 recurrent 架構也不能直接套這組等層公式。因此，這個比例不等於整個行程 RSS 或每個 agent 的實測節省量。
+
+原文「每產生一個 token，都要完整載入所有權重與 KV cache」也太絕對。讀取量取決於模型架構、啟用的 experts、attention 視窗、快取與批次安排。低批次解碼值得調查記憶體頻寬限制，仍需要 profiler 判斷實際瓶頸。
+
+## 兩次 benchmark 不能合併成同一個結論
+
+### Launch HN 的 llama.cpp 比較
+
+發布文列出的設定是 Qwen 3.6 35B A3B、4-bit 權重、64k context，關閉 speculative decoding。作者公布的 M4 Pro 48 GB 成績為 decode 30 → 57 tok/s、prefill 466 → 507 tok/s，每 agent 記憶體減少 28%。DGX Spark 則為 decode 49 → 58 tok/s、prefill 2,033 → 2,507 tok/s，每 agent 記憶體減少 27%。這些都是發布者數字。[原始發布文](https://news.ycombinator.com/item?id=49911995)
+
+來源把 M4 decode 增幅寫為 92%，但用公開且已四捨五入的 30 與 57 計算得到 90%。沒有未取整的測量值，無法重算出精確的 92%。比較中的 KV 精度也不同，不能把整個差距歸因於 Metal Kernel、autotuning 或 Apple 統一記憶體的其中一項。
+
+### 2026-11-06 查到的 Ollama 比較
+
+[官方 benchmark 頁](https://magnitude.dev/benchmarks) 已改成對照 Ollama 0.35.1，涵蓋 11 個模型。Mac 使用 Ollama MLX 路徑，DGX Spark 使用 Ollama llama.cpp 路徑，兩邊開啟各自的 speculative decoding。平均 decode 加速比分別標為 2.19× 與 2.17×。
+
+該頁的工作負載是約 64k tokens 的《白鯨記》段落，要求重複末段並輸出 256 tokens。平均值是各模型加速比的算術平均，並非把全部 tokens 與時間合併後的吞吐量。每項取兩次請求的中位數，部分 Ollama 項目沿用先前單次結果。頁面也揭露權重、模板與數值計算不完全相同，沒有評分回答品質，且存在 Magnitude 較慢的項目。
+
+這個頁面沒有標出 Magnitude 的精確 build，因此不能把這批數字歸屬到前面固定查核的 commit。它能幫讀者選擇下一個要測的模型，還不足以代表多 agent 工具工作負載。
+
+## 導入時，保留能解釋差異的測試紀錄
+
+我會先挑一個已經穩定執行的 agent 任務，固定模型檔案雜湊、模板、量化、推論引擎版本與 sampling，再比較兩種設定。若要評估預設產品體驗，可以各用預設值，但要把權重、KV 與 drafter 的差異逐項留下，避免事後誤稱是在比較同一套數值設定。
+
+測試至少要留下以下紀錄，這是驗收設計，沒有預先指定勝負：
+
+- 冷啟動與已調校啟動分開，記錄 readiness、TTFT、prefill 與 decode。
+- 同一任務分別使用空快取與共同前綴，再增加到實際需要的同時 session 數。
+- 記錄峰值記憶體、回收時間與機器是否換頁。工具等待時間另外計算。
+- 每次輸出核對工具參數、預期檔案或測試結果。溫度、上下文長度與重複次數一起保存。
+
+**只要工具參數或任務結果不符合既有驗收條件，就停止切換預設引擎。** 下一步是替一個真實任務建立可重播輸入與正確性判準，再決定是否值得投入較長的效能比較。
