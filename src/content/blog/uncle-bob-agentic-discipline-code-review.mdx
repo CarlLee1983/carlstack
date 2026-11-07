@@ -1,8 +1,8 @@
 ---
-title: "Uncle Bob 不逐行看 Agent 的 code，如何審查規格與測試結果"
-description: "Robert C. Martin 的 Agentic Discipline 把高層規格、專職 agent、Gherkin、coverage、mutation testing 與 UI QA 串成品質閘門；本文拆解它如何落地，以及哪些責任仍不能交給指標。"
+title: "Uncle Bob 的 Agentic Discipline：如何審查規格與測試結果"
+description: "Agentic Discipline 把規格、專職 agent 與測試串成工作流。檢查一手資料支持的範圍，釐清獨立審查、品質指標與人工程式理解各自的責任。"
 publishDate: 2026-09-06T09:00:00+08:00
-updatedDate: 2026-10-02
+updatedDate: 2026-11-06T00:02:10Z
 draft: false
 featured: false
 tags:
@@ -14,73 +14,80 @@ cover: ../../assets/covers/uncle-bob-agentic-discipline.png
 coverAlt: "六個以規格、程式、清理、架構、盾牌與測試符號代表的 agent 工作台，圍繞中央規格文件與品質閘門連線。"
 ---
 
-「我不再看 code」很容易被讀成放棄 code review。Robert C. Martin（Uncle Bob）真正提出的，是把審查面往上移：人先定義一份可驗證的 source，agent 再負責產生與整理實作，最後由測試、架構與品質閘門留下證據。
+Agent 寫完功能，單元測試與驗收測試都通過，維護者仍可能答不出資料在哪裡被修改、權限在哪裡檢查。這時候再加一個 review agent，未必能補上對系統的理解。
 
-這個說法在最近一個月的討論裡重新爆開；例如 [r/ExperiencedDevs 的討論](https://www.reddit.com/r/ExperiencedDevs/comments/1vvj60z/new_codebase_ai_code_smells/)在 2026 年 8 月 22 日累積 201 分、203 則留言，焦點卻不是「哪個模型最強」，而是大 PR 如何讓人類根本無法審查。至於 7 月 23 日那則常被轉述的回覆與完整流程，主要細節可先看 [Quid Pro Quo 的整理](https://quidproquo.cc/posts/ai/2026-07-25-uncle-bob-agent-code-review-en/)；它是二手重建，不是 Martin 的原始頁面。
+Robert C. Martin 的 Agentic Discipline 值得討論，因為它嘗試把更多審查放在規格與可重跑的證據上。2026-11-05 修訂依據是 Clean Coders 的公開課程介紹與 Warrant 規則，未把付費影片視為已觀看，也不以二手轉述證明 Martin 完全停止閱讀程式碼。原稿引用的社群回覆、日期與票數，不再用來支撐技術結論。
 
-## 他改的不是責任，是審查面
+## 高層規格增加了一個可審查的對象
 
-在 [Clean Coders Agentic Discipline Part 2](https://cleancoders.com/episode/agentic-discipline-2) 裡，Martin 把「source」定義成建立系統的高層文件，並示範同一份描述如何被重建成五種語言與平台。他的前提是：實作 code 已經是 AI 的領域，人應該守住意圖、限制與可觀察結果。
+[Agentic Discipline Part 2](https://cleancoders.com/episode/agentic-discipline-2)的公開介紹把 source 定義成足以據之建構系統的高層文件，並描述以同一份文件建立五種語言與平台實作的示範。這是課程對開發方式的主張，公開介紹沒有提供可量化的證據，證明所有專案都能因此省去人工程式審查。
 
-所以 review 不會消失，只是從逐行閱讀改成檢查幾個外部訊號：需求是否完整、測試是否真的能失敗、模組依賴是否合理、變異測試是否抓得到錯誤、最終 UI 是否符合原始程序。這些訊號能減少注意力成本，但不能自動回答商業規則、資安、效能或可用性問題。
+這個方向可以用在需求審查：功能開始前，先確認業務規則、錯誤情境與不能改變的限制；完成後，逐條對照外部可觀察結果。我的判斷是，這能改善審查順序，但高風險變更仍需要有人讀懂實作。規格未提到跨租戶存取時，忠實實作規格的程式仍可能有權限漏洞。
 
-## Swarm Forge 的六段品質閘門
+## 六種角色分別留下什麼證據
 
-[Part 6](https://cleancoders.com/episode/agentic-discipline-6) 描述一條由六種角色接力的 pipeline。每個角色在隔離的 Git worktree 工作，交付的是下一個角色可以重跑的證據：
+[Part 6](https://cleancoders.com/episode/agentic-discipline-6)公開介紹列出 Swarm Forge 的六種角色，並說明各自在隔離的 Git worktree 工作。流程依序涵蓋：
 
-| 角色      | 做什麼                                                          | 交付證據                         |
-| --------- | --------------------------------------------------------------- | -------------------------------- |
-| Specifier | 把 Story 寫成 Gherkin acceptance tests，並補一份手動 UI QA 程序 | 可重跑的情境與 QA checklist      |
-| Coder     | 實作功能、unit tests 與 acceptance harness                      | 所有 Gherkin 測試通過的 worktree |
-| Cleaner   | 以 DRY 與 CRAP 等品質規則反覆重構 production code 和 tests      | 品質報告與通過的測試             |
-| Architect | 檢查模組邊界、dependency graph，必要時補 property-based tests   | 邊界審查與 invariant tests       |
-| Hardener  | 對語言層與 Gherkin 層執行 mutation testing                      | survivor mutants 與處置決策      |
-| QA        | 把原始 QA 程序轉成自動化 UI 操作並驗證成品                      | UI 執行結果對應原始程序          |
+1. Specifier 把任務整理成 Gherkin 驗收情境及手動 UI QA 程序。
+2. Coder 實作功能、單元測試與驗收測試框架，通過 Gherkin 情境後交接。
+3. Cleaner 依 DRY 與 CRAP 等品質檢查重構程式與測試。
+4. Architect 檢查模組與依賴，補上 property-based tests。
+5. Hardener 執行語言層與 Gherkin 層的 mutation testing。
+6. QA 將原先的 UI 程序轉成自動操作並驗證結果。
 
-這不是「六個聊天視窗一起寫 code」。它比較像一串品質閘門：前一關沒有可驗證的輸出，下一關就沒有資格開始。
+公開介紹支持這些角色與順序，沒有交代每一種合併衝突或測試失敗的處理方式。實際採用時，我會要求每份交接紀錄帶上 commit、執行環境、命令、結果與未解問題，接手者在相同版本上重跑必要檢查。這是對工作流的補充設計。
 
-## 用 Warrant 約束一個 Story 的交付
+隔離的 worktree 可以分開檔案修改，卻不會自動讓六個角色得到不同的判斷依據。若它們都沿用同一份有缺漏的規格或同一組錯誤 mock，六次通過仍可能漏掉同一個問題。
 
-2026-10-02 更新：原先採用的 ForgeFlow／PraxisBound 已封存，現在由 [Warrant](https://github.com/CarlLee1983/Warrant) 接替。Warrant 把工作限定在一份人類核准的 Story，完成證據則來自儲存庫在 `AGENTS.md` 指定的唯一驗證命令與逐條驗收觀察。它不規定 agent 角色或人工審查方式；下面是我的工作流示意，角色分工由團隊選擇：
+## 獨立審查要有不同的證據來源
+
+review agent 可以先讀核准的需求與 diff，再自行選擇要檢查的反例，避免只跟著作者的完成摘要走。驗收條件應由人確認，測試結果應由工具產生，review 的問題則要能回到程式與執行結果核對。
+
+例如一個訂單 API 改動，正常使用者成功更新訂單的測試通過後，仍要檢查另一個租戶是否能用訂單 ID 存取同一筆資料。這需要追查身份、查詢條件與授權邏輯，不能只看覆蓋率。再增加一種模型或一個角色，可以多找反例，但無法單憑角色數量證明審查已獨立。
+
+人工 review 的深度可以依風險調整。文案、局部樣式與既有模式的簡單變更，通常能用較小的審查範圍處理。授權、資料遷移、併發控制與不可逆操作，則需要熟悉系統的人讀相關實作、失敗路徑與回復方式。若 PR 大到無法合理檢查，拆成可獨立驗證的變更，比單純增加 reviewer 更直接。
+
+## Coverage 與 mutation score 各自回答有限的問題
+
+覆蓋率顯示哪些程式在測試中被執行，無法單獨證明斷言正確。mutation testing 則修改程式中的某些行為，再觀察測試能否偵測。依 [PIT 的基本概念文件](https://pitest.org/quickstart/basic_concepts/)，結果還包含存活、未覆蓋、逾時與執行錯誤等情況，而且有些 mutation 與原程式行為等價。
+
+因此，mutation score 需要連同工具、operator、排除規則與測試範圍閱讀。存活的 mutant 應逐項分類，不能一律解讀成測試缺陷，也不能為了達標直接排除。沒有生成的錯誤、沒寫進規格的業務限制，以及測試環境沒有模擬的競態，都可能不在分數涵蓋的範圍內。
+
+CRAP 或其他品質指標可以協助挑出需要追查的區域。分數變好之後，仍要確認重構有沒有改變介面、資料流與操作成本。**若關鍵路徑沒有人能解釋，或驗收證據對不上目前版本，就先停止合併。**
+
+## 用 Warrant 約束一個 Story 的範圍
+
+原稿在 2026-10-02 已將採用工具改為 [Warrant](https://github.com/CarlLee1983/Warrant)。它的[規則區塊](https://github.com/CarlLee1983/Warrant/blob/main/plugin/skills/warrant/agents-block.md)要求以人類核准的 Story 限定工作，執行儲存庫宣告的驗證命令，並逐條對照驗收證據。若命令沒有通過或任一條件缺少通過觀察，只能回報部分完成。這套規則本身不指定六角色流程。
+
+下面是搭配角色分工的工作流示意，並非 Warrant 的可執行設定檔：
 
 ```yaml
 story: "specs/stories/<slug>.md：Goal、Out of Scope、Acceptance Criteria"
-source: "approved Story + business rules + constraints"
+source: "人類核准的 Story、業務規則與限制"
 roles:
-  specifier: "補齊可重跑情境與必要的 QA procedure"
-  coder: "實作與測試，直到 acceptance 通過"
-  cleaner: "只在有明確品質訊號時重構"
-  architect: "檢查邊界與依賴，不替人做產品決策"
-  hardener: "repository 能支援才執行 mutation/property checks"
-  qa: "用原始程序驗證使用者可觀察行為"
-canonical_gate: "AGENTS.md 宣告的唯一驗證命令（例如 make verify）"
+  specifier: "補齊可重跑情境與 QA 程序"
+  coder: "實作功能與測試"
+  cleaner: "依具體品質問題重構"
+  architect: "檢查邊界、依賴與不變條件"
+  hardener: "執行 repository 支援的 mutation/property checks"
+  qa: "依原始程序驗證可觀察行為"
+canonical_gate: "AGENTS.md 宣告的唯一驗證命令，例如 make verify"
 completion_report: "逐條驗收證據、跳過或受阻的檢查、殘餘風險"
-human_gate: "確認產品意圖、架構與風險後才 merge"
+human_gate: "確認產品意圖與高風險實作，決定是否合併"
 ```
 
-落地時先只做一個 Story。若既有驗證已能阻擋一種錯誤，就不為了湊角色增加 agent；若某種失敗重複出現，才新增一個能留下獨立證據的 specialist。採用時以 [Warrant 規則區塊](https://github.com/CarlLee1983/Warrant/blob/main/plugin/skills/warrant/agents-block.md) 為準：Agent 不得改需求、放寬驗收標準或擴大範圍，任何一條驗收條件缺少通過證據，就只能回報部分完成。Warrant 本身提供規則，強制力仍由採用端的 CI 與人工審查負責。
+角色可以合併或省略，驗收證據必須保留。agent 不得為了過關放寬需求、跳過失敗測試或擴大範圍。驗證命令若尚未宣告，應停止並請維護者補上，不能自行挑幾個比較容易通過的檢查代替。
 
-## 指標是閘門，不是判決
+規則文字的執行仍依賴採用端。讓 CI 跑相同命令、限制誰能修改驗收條件，並檢查完成回報與實際產物，才能知道規則有沒有落實。
 
-社群反彈其實指出同一個盲點。那篇 8 月的 Reddit 討論裡，`u/siktech101` 留下「Software development just keeps getting worse.」（359 分）；`u/jvlomax` 則說自己曾經收進 3,000 行 PR，後來改成超過約 600 行就關掉（164 分）。[Hacker News 的「Uncle Bob: It's Over」討論](https://news.ycombinator.com/item?id=47998601)也有人提醒，重構、非同步 bug 與錯誤 mock 仍需要人類追問。
+## 從一個能回復的 Story 試做
 
-我的判斷是：PR 大小、coverage、CRAP 或 mutation score 都是很好的停止訊號，卻不是「可以不用理解系統」的通行證。指標只知道它被定義的失敗；產品語意與未定義的風險，仍要由熟悉上下文的人負責。這也是 [Grady Booch 的批評整理](https://cctest.ai/blog/uncle-bob-ai-code-review/)所指出的界線：metrics 看不到完整的 business context、security 與 performance。
+選一個範圍小、失敗後能回復的變更，先留下人類核准的規則、錯誤情境與驗證命令。完成後，要求回報逐條驗收結果、目前 commit、跳過的檢查與殘餘風險，再請 reviewer 沿一條關鍵路徑追查實作。
 
-## 下一步：先做一個可回滾 Story
+如果 reviewer 發現規格漏了權限情境，就回到需求與測試補足它；如果只是重複做機械檢查，再考慮交給工具或 specialist。下一輪增加什麼檢查，應由這次漏掉的問題決定。
 
-挑一個兩小時內能完成、失敗可撤回的 Story，留下四樣東西：
+### 來源與延伸閱讀
 
-1. 一份寫清楚規則與錯誤情境的 source。
-2. 在 `AGENTS.md` 宣告一個模型外可執行的驗證命令（可沿用既有 `make verify`），並讓 CI 執行同一命令。
-3. 一份逐條驗收證據、跳過或受阻的檢查與殘餘風險的完成回報。
-4. 一個明確的 human stop：意圖、架構、資安或效能有疑問就停止，不讓 agent 自己批准。
-
-做完再問：哪一種錯誤仍只能靠人看？那個答案，才是下一個值得加入的 agent。
-
-### 參考資料
-
-- [Clean Coders: Agentic Discipline, Part 2](https://cleancoders.com/episode/agentic-discipline-2)
-- [Clean Coders: Agentic Discipline, Part 4](https://cleancoders.com/episode/agentic-discipline-4)
-- [Clean Coders: Agentic Discipline, Part 6](https://cleancoders.com/episode/agentic-discipline-6)
-- [O'Reilly: Clean AI Agentic](https://www.oreilly.com/videos/clean-ai-agentic/9780135968819/)
-- [Quid Pro Quo 的二手整理](https://quidproquo.cc/posts/ai/2026-07-25-uncle-bob-agent-code-review-en/)
+- [Clean Coders：Part 2](https://cleancoders.com/episode/agentic-discipline-2)、[Part 4](https://cleancoders.com/episode/agentic-discipline-4)、[Part 6](https://cleancoders.com/episode/agentic-discipline-6)與 [O'Reilly 課程頁](https://www.oreilly.com/videos/clean-ai-agentic/9780135968819/)。這次角色與 source 定義的查核依據是 Part 2、6 的公開介紹。
+- 原稿的 [Quid Pro Quo 整理](https://quidproquo.cc/posts/ai/2026-07-25-uncle-bob-agent-code-review-en/)與 [Grady Booch 批評整理](https://cctest.ai/blog/uncle-bob-ai-code-review/)保留作為二手閱讀入口，不據此還原人物原話。
+- 原稿引用的 [Reddit 討論](https://www.reddit.com/r/ExperiencedDevs/comments/1vvj60z/new_codebase_ai_code_smells/)與 [Hacker News 討論](https://news.ycombinator.com/item?id=47998601)保留供追溯，不採用未重核的留言票數與引文。

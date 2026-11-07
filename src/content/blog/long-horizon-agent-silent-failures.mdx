@@ -1,8 +1,8 @@
 ---
 title: "長時間執行的 AI Agent：五種可能不會報錯的失敗"
-description: "Google Cloud Tech 的 Long Horizon harness 整理五種不一定拋錯的失敗模式，本文把它們改寫成可注入、可量測的 failure probes。"
+description: "長任務的錯誤可能藏在快取成本、背景寫入、恢復狀態與權限判斷裡。用五組故障注入檢查外部證據，區分等待、失敗與完成。"
 publishDate: 2026-09-05T10:30:00+08:00
-updatedDate: 2026-09-05T10:31:00+08:00
+updatedDate: 2026-11-06T00:02:10Z
 draft: false
 featured: false
 tags:
@@ -14,81 +14,79 @@ cover: ../../assets/covers/long-horizon-agent-silent-failures.png
 coverAlt: "深色工作桌上的五個工程檢查點由銅線串起，破裂的狀態信封與仍亮著的綠色指示燈呈現長時間 Agent 的靜默漂移。"
 ---
 
-一次性的 Agent 任務失敗時，通常會在你面前報錯。讓它跨越數天、數十個 session 工作，失敗可能變得安靜：它重裝已經裝過的工具、把逾時的子任務當成完成，或繼續花錢卻沒有留下任何可追查的訊號。
+Agent 回報還在工作，檔案卻停在昨天，背景記憶沒有寫入，API 帳單還在增加。這幾種失敗未必會讓主程序拋出例外；只看最後一段回覆，很難判斷任務究竟完成了多少。
 
-Google Cloud Tech 在 2026 年 8 月 20 日發布的 [〈5 design patterns for long-horizon agent harness〉](https://x.com/googlecloudtech/status/2090248297214525569)正是從這種經驗出發。作者以 Google ADK 的 [Long Horizon reference implementation](https://github.com/google/adk-samples/tree/main/core/python/long-horizon-harness)整理五個模式：stable prefix、background learning、persistent workspace、explicit failure 與 guard chain。本文不把它們當成另一套 harness 清單，而是把每個模式改寫成一個問題：**能不能主動注入這種失敗，並用外部 probe 證明它沒有悄悄發生？**
+原稿從 [Google Cloud Tech 的 Long Horizon 貼文](https://x.com/googlecloudtech/status/2090248297214525569)與 [ADK Long Horizon sample](https://github.com/google/adk-samples/tree/main/core/python/long-horizon-harness)整理出五個檢查方向。2026-11-05 修訂時，這兩個頁面未能重新取得完整內容，因此不沿用原稿中的命中率、prompt 字元數與實作預設參數。以下是依官方 API、Python 與雲端文件修正的工程檢查方法；故障注入與停止規則是這裡提出的設計建議。
 
-## 五種靜默失敗，五個最小 probe
+## Stable prefix：量測快取，也量測整個任務的花費
 
-| 模式                 | 靜默失敗的徵兆                                                   | 最小修正                                                                                                   | 可執行的 probe                                                                     |
-| -------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Stable prefix        | 每輪記憶都被塞進 system prompt 前段，prefix cache 命中率持續是 0 | 把不變的 instructions 與 tools 放前面，把會變的記憶和計數器放到尾端                                        | 執行兩輪，檢查第二輪 response metadata 的 cached token count 是否大於 0            |
-| Background learning  | 回覆前同步抽取記憶，延遲變長；背景 task 沒有完成紀錄就被中止     | 回覆先返回，再用有明確 task reference 的隔離 worker 寫入記憶，限制寫入目錄並節流                           | 回覆送出後中止 worker，確認持久狀態可查到 `completed` 或 `failed`，而不是消失      |
-| Persistent workspace | 部署清掉 CLI 與半成品，Agent 從頭重做卻照樣回報進度              | 把檔案、工具與未完成工作放在可重新連接的 user-scoped environment                                           | 模擬部署後重新 attach，驗證同一個檔案、工具版本與未完成步驟仍存在                  |
-| Explicit failure     | child timeout、step limit 或等待批准，最後都被 parent 摘要成成功 | 讓終止狀態成為 typed envelope，並把不完整狀態寫進模型看得到的摘要                                          | 強制 child timeout，斷言 parent 不能產生成功摘要，必須回傳 `INCOMPLETE` 或升級人工 |
-| Guard chain          | 用字串比對封鎖 metadata IP，卻被整數或 IPv6 表示法繞過           | 先把輸入正規化成地址或 argv，讓 heuristic guard 快速拒絕，再由模型外的 default-deny 網路邊界限制實際目的地 | 送入多種表示法與 redirect／DNS 案例，確認網路邊界拒絕，並只留下遮罩後的 audit      |
+把固定的 instructions 與工具定義放前面、會變動的記憶與計數器放後面，有助於保留可重用的 prompt 前綴。[Gemini caching 文件](https://ai.google.dev/gemini-api/docs/caching)建議共用內容放在前段，並在短時間內送出相似前綴的請求。實際能否命中仍受模型、API、最低 token 數與快取機制影響，無法用「第二輪必須命中」當通用斷言。
 
-這張表描述的是故障注入與觀測方式，不是 Google Cloud 的 SLA。Long Horizon README 也明確標示它是供研究與移植的 sample，並非 Google 官方支援產品；可移植的是介面與測試想法，不是它的預設設定。
+測試時固定模型、API 版本、工具定義與共同內容，連續送出一組請求，再改變前綴做對照。逐次記錄輸入、輸出與快取 token，連同延遲和估算費用一起比較。命中為零時，先檢查測試是否符合該模型的條件，再檢查 prompt 排列。
 
-## Stable prefix：成本圖表看不出 prompt 正在重建
+欄位也要跟呼叫的 API 對上。Interactions API 文件使用 `usage.total_cached_tokens`；Python 的 `generate_content` 回應則在 `usage_metadata.cached_content_token_count` 提供快取 token 數，可對照 [token 文件](https://ai.google.dev/gemini-api/docs/generate-content/tokens)。不要把其中一種結構寫成所有 SDK 都適用的讀法。
 
-Prompt cache 需要前段保持位元組級穩定。若每輪都把 recalled memories 或 runtime counters 放到 system prompt 最前面，內容雖然只是多幾行，整個 prefix hash 仍會改變，cache 就無法形成。這種失敗很容易被正常的延遲與 API 帳單掩蓋。
+快取命中率只能解釋部分成本。長任務還需要記錄重試、工具與背景 worker 的花費，並由模型外的控制程式執行預算限制。下一次呼叫前先保留預估額度，再以實際用量結算，能降低多個 worker 同時超支的風險。若供應商延後回報用量，預算報表也要標示尚未結算的部分。
 
-做法是按變動速度排列 prompt：system instructions、persona 與 tool definitions 放在最前；profile 和較慢變動的 context 放中間；記憶、步數與 runtime warning 放最後。同一篇 [X 長文](https://x.com/googlecloudtech/status/2090248297214525569)中，作者回報把 dynamic memories 移到尾端後，自己的 cache hit rate 到了約 95%，prompt 也從 70,000 字元縮到 22,000；這是該團隊的案例，不是供應商保證。不要用「看起來相同」推測 cache 有效，直接在第二輪讀 `usage.total_cached_tokens`。Google 的 [Gemini context caching 文件](https://ai.google.dev/gemini-api/docs/caching)也把 cache 命中與 token usage 當成應觀察的訊號。
+## Background learning：強參考保不住已經關閉的行程
 
-## Background learning：回覆完成不等於背景寫入完成
+把記憶整理放到背景，可以縮短使用者等待回覆的時間，但會多出一項需要追蹤的工作。[Python asyncio 文件](https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task)要求保留 task 的強參考，避免 task 在完成前被垃圾回收。這只處理行程內的生命週期；行程被終止時，強參考與 shutdown drain 都無法保證寫入完成。
 
-長時間 Agent 往往需要在 session 之間保存記憶或整理技能。若把抽取工作放在回覆之前，每一輪都會支付使用者看不見的延遲；若丟出沒有強 reference 的 asyncio task，寫入又可能在 runtime 清理時無聲消失。Python 官方文件提醒，`asyncio.create_task()` 建立的 task 應保留強參考直到完成。[asyncio task 文件](https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task)
+需要跨重啟恢復的工作，應先持久記錄 job ID、輸入版本、狀態與可重試條件，再交給 worker。工作完成後寫入結果版本；重跑同一個 job ID 時，避免把同一筆記憶重複加入。記憶可能過期或寫入失敗，讀取端也要看得見版本與最後成功時間。
 
-較小的設計是 write-behind：先把答案交給使用者，再讓隔離的 sibling worker 以同一個 user identity 寫回受限的 memory directory。worker 要有明確完成／失敗狀態、節流與 shutdown drain；[原文](https://x.com/googlecloudtech/status/2090248297214525569)把背景抽取 pass 的間隔描述為 120 秒，而官方 [Long Horizon sample](https://github.com/google/adk-samples/tree/main/core/python/long-horizon-harness) 對應的是 post-turn auto-capture／review fork 的 cooldown，nightly Memory Bank consolidation 是另一條路徑。它也在 5 秒的 runtime cleanup 前只等待 4 秒收尾。這些是實作參數，不是通用的最佳值；如果狀態無法被查詢，背景工作只是把錯誤移到視線之外。
+可做兩種故障注入：
 
-## Persistent workspace：跨 session 保存的不只是檔案
+- 正常取消 worker，檢查是否留下取消原因，以及尚未完成的寫入。
+- 直接終止行程，重新啟動後檢查過期的 lease 或 heartbeat。系統應能把它辨識為失聯、重新排程或交由人工處理，不能要求已死掉的 worker 自己補寫 `failed`。
 
-一次 command executor 可以執行程式碼，卻不保證下一次 session 還找得到它安裝的工具、半成品與進度。Long Horizon 的做法是讓工具呼叫通過擁有狀態的 environment，依 user scope 保存並在下一次訊息重新 attach；[Google Developers 的 ADK 教程](https://developers.googleblog.com/build-long-running-ai-agents-that-pause-resume-and-never-lose-context-with-adk/)也把 durable state 與 pause／resume 放在長任務的基本路徑上。
+背景 worker 只取得該任務需要的記憶讀寫權限。使用者範圍可以沿用，權限範圍不必照搬主 agent。
 
-這裡的 probe 不必先建完整雲端平台。先在測試中模擬 process 或部署重啟，重新連接同一個環境，再比較檔案、工具與 checkpoint。若 Agent 只能從對話摘要猜測「上次做到哪裡」，它還沒有真正的 workspace。
+## Persistent workspace：恢復檔案之後，還要核對外部副作用
 
-## Explicit failure：讓 parent 能分辨「沒完成」
+重啟後找得到檔案，不代表整個任務已恢復。工具版本、checkpoint、資料格式與未完成步驟都可能不一致。[Google Developers 的 ADK 教程](https://developers.googleblog.com/build-long-running-ai-agents-that-pause-resume-and-never-lose-context-with-adk/)把持久狀態與暫停、恢復放進長任務設計；檔案保存與任務狀態仍需要各自驗證。
 
-當一個 Agent 的輸出會成為另一個 Agent 的輸入，純文字摘要不是可靠的協定。timeout、step limit、crash、等待批准與正常完成若共享同一種 envelope，parent 就只能把部分 commentary 猜成結果。
+一個小型恢復測試可以先寫入產物雜湊、環境版本與 checkpoint，重啟後重新連接同一個使用者的工作區，再比對三者。另一個使用者必須無法讀到這些檔案。若環境是重新建置，也要驗證依賴能依版本清單還原，而非假設安裝過的工具會永遠留著。
 
-最小修正是把 terminal state 寫成明確值，例如 `completed`、`timeout`、`halted` 與 `pending`，並在摘要中重寫成模型不能誤讀的訊息：`INCOMPLETE: child timed out; no tests ran`。probe 應故意讓 child 逾時，再確認 parent 的路徑會停下或升級，而不是製造一個漂亮的成功報告。若 loop 仍會在「看起來有進展」時無限執行，原文的參考實作把每輪 tool call 上限設為 200、每個 session 的 iteration 上限設為 50，然後在乾淨邊界產生 handoff；你的上限應依任務成本與驗收時間重新量測。
+最容易漏掉的是外部副作用。worker 可能已送出請求，卻在寫入 checkpoint 前失聯。恢復後不能直接再送一次；先以操作 ID 查詢外部結果，或在支援的服務使用 idempotency key。若無法確認，將結果標成 `unknown`，保留核對所需的識別碼。這個狀態必須阻擋自動重做有風險的操作。
 
-## Guard chain：先消除確定的危險，再使用人的注意力
+## Explicit failure：等待批准與執行結束要分開
 
-Shell 有權限碰到的網路，通常比模型以為的更大。只用字串比對 `169.254.169.254`，無法攔住同一個地址的整數、十六進位或 IPv6-mapped 表示法；輸入要先解析成結構化地址，再做規則判斷。
+子任務的文字摘要可以幫人閱讀，父任務的控制流程則需要結構化狀態。`pending`、`running`、`waiting_approval` 是尚未結束的狀態；`completed`、`failed`、`cancelled`、`timed_out` 才表示該次執行已結束。任務是否達成驗收條件，還要另行判斷。
 
-護欄也有順序：先跑便宜、可確定拒絕部分命令的 heuristic exfiltration guard；再跑回傳 allow／ask／deny 的政策層；最後才詢問人。Long Horizon sample 自己也把這一層定位成 heuristic，不能當成唯一的 egress 邊界；真正不可由 session 設定放寬的限制，要放在模型與 session 之外的 sandbox、host firewall 或 egress proxy。地址正規化只是快速拒絕，仍要處理 DNS、redirect、proxy 與檢查和連線之間的 TOCTOU，並涵蓋雲端提供者的原生 IPv4／IPv6 metadata 端點（[GCP metadata 文件](https://docs.cloud.google.com/compute/docs/metadata/overview)）。
+下面是結果格式示意，並非特定框架的 schema：
 
-Audit 只記錄遮罩後的主體、規則、決策與目的地，不保存完整 argv、body、環境值或 token；執行環境也應使用最小權限、短效且按使用者／任務隔離的 credentials。若 guard 對所有命令都詢問，人最後只會習慣按下批准；若 guard 自己也是模型，則無法成為模型之外的邊界。
+```json
+{
+  "job_id": "child-17",
+  "attempt": 2,
+  "execution_state": "timed_out",
+  "acceptance_state": "not_verified",
+  "tests_run": false,
+  "external_effect_state": "unknown",
+  "next_action": "reconcile_before_retry"
+}
+```
 
-## 先測已經發生的失敗
+控制程式應依欄位判斷能否繼續，摘要再補上「子任務逾時，尚未執行測試」。單靠在 prompt 寫 `INCOMPLETE`，仍無法保證父 agent 不會誤報成功。即使子任務填了 `completed`，也要核對對應的產物版本與驗收結果。
 
-五個模式不需要一次全部移植。先從最近看見的 failure signature 開始：
+故障注入至少涵蓋逾時、步數耗盡、等待批准與結果遺失。測試要確認父任務沒有產生完成紀錄，也沒有在批准到達前執行受限動作。每次嘗試的步數上限之外，還需要整個任務的累計預算，否則反覆開新 session 就能繼續消耗資源。
 
-1. 先寫出「應該看見什麼」與「不應該發生什麼」；不要只寫 Agent 應該更可靠。
-2. 注入一個可撤回的失敗，例如 child timeout、環境重連或禁止 egress。
-3. 讓 probe 讀取模型之外的訊號：metadata、持久狀態、typed envelope、audit 或網路結果。
-4. 只有 probe 失敗時，才增加一個最小控制；再把這個 probe 留在回歸檢查裡。
+## Guard chain：觀察政策決策，也驗證實際連線
 
-這個順序讓「長時間自治」變成可測的可靠度問題。先把無聲失敗變得可見，再討論要不要讓 Agent 多跑幾小時或跨更多 session。
+只比對 `169.254.169.254` 字串，不能可靠限制網路目的地。不同 URL 解析器接受的地址表示法不同，DNS、redirect 與 proxy 也會改變實際連線位置。輸入檢查可以提早拒絕明確風險，執行時仍要由 sandbox、host firewall 或 egress proxy 限制實際流量。
 
-## 和站內文章的分工
+[GCP metadata 文件](https://docs.cloud.google.com/compute/docs/metadata/overview)列出 metadata DNS 名稱、IPv4，以及適用於 IPv6-only VM 的原生 IPv6 端點；文件也要求隔離不應取得 metadata 的程序。因此，測試清單要涵蓋平台實際使用的端點，不能只測 IPv4 的字串變形。
 
-本文只談五個 failure probe 以及它們各自要觀察的外部訊號。需要系統邊界的完整說明，可接到站內既有文章：
+安全的 probe 應在受控測試環境，用假的 metadata 服務與無敏感資料的請求驗證拒絕結果。測試地址變形、redirect、DNS 回覆改變，以及檢查後到連線前目的地變動的情況。測試成功的證據應包括連線確實被拒絕，而不只有 agent 說「不允許」。
 
-| 要深入的問題                                    | 站內文章                                                                                                            |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| harness 的工具、狀態、驗證、權限與 trace 控制面 | [AI Agent 不可靠，先別急著換模型：Harness Engineering 的七個控制面](/blog/harness-engineering-for-reliable-agents/) |
-| ReAct、FSM、memory 與 sandbox 如何組合          | [AI Agent 狀態機架構演進](/blog/ai-agent-state-machine-sandbox-architecture/)                                       |
-| 跨 session 的記憶生命週期                       | [Memory Engineering：讓 AI Agent 記得該記得的事](/blog/memory-engineering-for-ai-agents/)                           |
+批准紀錄則要對上使用者、動作、目的地、資料範圍與有效期限。重啟或重試時重新核對，目標改變就不能沿用原批准。模型提出的 allow／ask／deny 建議可以進入政策流程，但不能自行放寬模型外的限制。
 
-Long Horizon 提供的是一組可讀、可移植的參考實作；它不會替你的任務定義正確的 retention、權限或成本界線。那些界線仍要由你的 domain、資料風險與 verifier 決定。
+Audit 保留規則版本、決策、操作 ID 與必要的目的地資訊。完整 argv、URL query、request body、環境變數與憑證不應直接寫入一般紀錄。先縮減欄位，再遮罩敏感值，同時限制紀錄的讀取權限與保留時間。
 
-### 參考資料
+## 從一個已經遇過的失敗開始
 
-- [Google Cloud Tech 的 X 貼文](https://x.com/googlecloudtech/status/2090248297214525569)
-- [Google ADK Long Horizon harness](https://github.com/google/adk-samples/tree/main/core/python/long-horizon-harness)
-- [Google Developers：Build Long-running AI agents that pause, resume, and never lose context with ADK](https://developers.googleblog.com/build-long-running-ai-agents-that-pause-resume-and-never-lose-context-with-adk/)
-- [Gemini API context caching](https://ai.google.dev/gemini-api/docs/caching)
-- [Python asyncio task documentation](https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task)
+挑一個可在測試環境重現的問題，寫清楚觸發條件、應觀察到的狀態與停止規則。例如子任務逾時後，父任務只能回報未完成；若外部操作結果未知，恢復流程必須先核對結果，不能直接重送。
+
+讓 probe 讀取模型之外的紀錄，再把失敗案例留進回歸測試。只有當觀測結果顯示缺少控制時，才補上對應的限制。
+
+需要擴充設計時，可接著看站內的 [Harness Engineering 七個控制面](/blog/harness-engineering-for-reliable-agents/)、[Agent 狀態機與沙盒](/blog/ai-agent-state-machine-sandbox-architecture/)，以及[跨 session 的記憶管理](/blog/memory-engineering-for-ai-agents/)。
