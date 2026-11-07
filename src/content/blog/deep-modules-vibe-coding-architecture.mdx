@@ -1,8 +1,8 @@
 ---
 title: "用深模組減少 Agent 的決策，用 lint 限制呼叫入口"
-description: "從 Matt Pocock 對抽象與嚴格 lint 的主張，檢查深模組、接縫與領域語言如何減少呼叫端決策；用一組 ESLint 正反例驗收邊界，並區分 token 假說、重構成本與業務正確性。"
+description: "從 Matt Pocock 對抽象與嚴格 lint 的主張，檢查深模組、接縫與領域語言如何減少呼叫端決策；示範如何以 ESLint 正反例檢查邊界，並區分 token 假說、重構成本與業務正確性。"
 publishDate: 2026-09-22T10:15:00+08:00
-updatedDate: 2026-10-04T04:54:00+08:00
+updatedDate: 2026-11-06T00:02:10Z
 draft: false
 featured: false
 series: "Agent 時代的代碼庫設計哲學"
@@ -19,9 +19,9 @@ coverAlt: "左側為碎片化交錯的程式碼連線，右側為穩固且具備
 
 一個功能有三個入口，每個入口都自行決定重試、錯誤分類與去重。Agent 可以很快補上第四個入口，卻也可能帶來第四種處理方式。這時候，把共同決策收進模組，有明確的維護價值。
 
-2026-10-03，Matt Pocock 在與 Lauren Tan（@poteto）交談後發表[這則貼文](https://x.com/mattpocockuk/status/2106425743479546343)，主張 AI 時代可以更積極設計抽象，並以嚴格 lint 限制使用方式。他也認為抽象能減少 token，做錯的抽象比較容易撤回。貼文沒有附對照實驗或成本數據；後兩點應視為待驗證的判斷。
+這個問題延續了 Matt Pocock [關於抽象與嚴格 lint 的貼文](https://x.com/mattpocockuk/status/2106425743479546343)。舊稿依該貼文整理了「抽象可減少 Agent 的選擇、節省 token，也較容易撤回」的主張。2026-11-05 更新時，原帖無法直接讀取，因此保留出處，但不沿用未重新確認的發文日期或逐字引述。以下支付範例與驗收方法是本站的工程分析；token 與重構成本仍要另做量測。
 
-本文延續原篇的深模組、接縫與領域語言主軸，補上這次觀點的驗收方法。我的立場是：**新增抽象的理由，是讓呼叫端少做一項容易做錯的決策。**類別、介面與目錄變多，並不自動達成這件事。
+新增抽象應讓呼叫端少做一項容易做錯的決策。類別、介面與目錄變多，並不自動達成這件事。
 
 ## 深模組要收走決策，薄包裝可能只多一次跳檔
 
@@ -41,16 +41,19 @@ type CheckoutResult =
 
 interface Checkout {
   submit(orderId: string): Promise<CheckoutResult>;
+  getStatus(operationId: string): Promise<CheckoutResult>;
 }
 ```
 
-這裡刻意保留 `pending`：外部請求逾時，不足以證明扣款失敗。模組需要有查詢與對帳策略，呼叫端則根據結果決定顯示什麼。這是本文的工程建議，不是 Matt 貼文中提供的支付設計。
+這裡刻意保留 `pending`，並提供 `getStatus` 查詢同一筆操作。外部請求逾時，不足以證明扣款失敗；[Stripe 的錯誤處理文件](https://docs.stripe.com/error-low-level)也區分網路錯誤與已確認的回應。範例假設訂單版本與金額已固定，模組會持久化訂單與操作的對應，重送同一訂單不建立新的扣款操作。若允許改單後再付款，還要定義訂單版本與付款嘗試的識別方式。
+
+介面沒有列出驗證登入與授權的參數，代表此處省略了請求身分的傳遞，不能把任意 `orderId` 當成操作許可。實作必須在可信任的伺服器端，依已驗證的身分檢查訂單歸屬與操作權限，查詢狀態時也一樣。[OWASP 授權指南](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)要求逐次請求檢查權限；隱藏 SDK 或縮小介面不能代替這件事。
 
 這個介面值不值得存在，要看它承擔了哪些不變量。若每個呼叫端仍要重建冪等規則、辨識供應商例外，或偷偷讀取內部狀態，介面看似短小，實際決策面仍然很大。
 
 ## 嚴格 lint 必須同時指出合法入口
 
-Matt 的建議有兩個部分：設計抽象，以及限制錯誤用法。只做前半，Agent 仍能跳過公開入口，直接引用內部 SDK。只做後半，錯誤訊息沒有替代路徑，工作可能停在反覆試錯。
+要把抽象落實到專案，需要同時設計公開入口與檢查錯誤用法。只做前半，Agent 仍能跳過公開入口，直接引用內部 SDK。只做後半，錯誤訊息沒有替代路徑，工作可能停在反覆試錯。
 
 下面用獨立的 JavaScript ESM 範例展示規則形狀。假設功能程式在 `src/features/`，支付實作在 `src/payments/`，公開入口是 `@app/payments`。這些名稱是本文示例，並非 CarlStack 的目錄或已安裝設定。
 
@@ -85,7 +88,7 @@ export default [
 
 ESLint 的 [`no-restricted-imports`](https://eslint.org/docs/latest/rules/no-restricted-imports) 支援指定模組名稱、模式與提示訊息；[flat config](https://eslint.org/docs/latest/use/configure/configuration-files) 的 `files` 控制套用範圍，`noInlineConfig` 可禁止檔案內註解改動 lint 設定。此例只管 feature，支付模組本身仍可使用 SDK。
 
-這條規則有明確上限：它管靜態 import 字串，沒有涵蓋動態 `import()`、CommonJS `require()`，也不會替你解析所有相對路徑與 alias。`../../payments/internal/client.js` 就沒有落在上述模式內。這份設定不能宣稱封死所有入口，更不是安全沙盒。
+這條規則有明確上限：它管靜態 import 字串，沒有涵蓋動態 `import()`、CommonJS `require()`，也不會替你解析所有相對路徑與 alias。`../../payments/internal/client.js` 就沒有落在上述模式內。這份設定只能保護列出的靜態引用形式。即使補齊模組解析，它仍是開發期的依賴檢查；Agent 執行時能讀哪些檔案、連哪些服務、使用哪些憑證，要由執行環境的權限限制。允許 Agent 修改 lint 設定或 CI，也會改變這道檢查的可信程度。
 
 如果專案需要完整依賴邊界，應補上能解析實際模組路徑的檢查，或增加針對那些語法的規則。每加一道檢查，都要確認合法公開入口仍能使用；不能只看禁止清單愈來愈長。
 
@@ -105,11 +108,30 @@ ESLint 的 [`no-restricted-imports`](https://eslint.org/docs/latest/rules/no-res
 
 lint 綠燈只說明程式沒有命中已編碼的違規。它不會證明付款金額正確、冪等鍵沒有跨訂單碰撞，或逾時後能完成對帳。這些需要公開契約的行為測試。可以針對同一訂單重送、供應商逾時、明確拒付與後續確認結果，分別檢查狀態，而非只斷言某個 SDK 方法被呼叫。
 
-型別則負責另一段工作。[TypeScript 的 discriminated union 與 `never` 檢查](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking)能讓新增結果分支後，未補齊的處理路徑浮現。型別、lint 與行為測試各自提供有限的證據，不能互相代替。
+型別則負責另一段工作。[TypeScript 的 discriminated union 與 `never` 檢查](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking)能讓新增結果分支後，未補齊的處理路徑浮現。接續前面的型別，可以這樣處理畫面訊息：
+
+```typescript
+function statusText(result: CheckoutResult): string {
+  switch (result.kind) {
+    case "confirmed":
+      return `訂單 ${result.orderId} 已確認`;
+    case "rejected":
+      return result.reason === "declined" ? "付款遭拒" : "訂單無效";
+    case "pending":
+      return `付款結果待確認：${result.operationId}`;
+    default: {
+      const unhandled: never = result;
+      throw new Error(`未處理的結果：${JSON.stringify(unhandled)}`);
+    }
+  }
+}
+```
+
+在 union 新增 `cancelled`，卻沒補上對應分支時，`never` 賦值應讓型別檢查失敗。這項保證只適用於經型別檢查的程式；外部 JSON 仍需執行期驗證，`any` 或型別斷言也能繞過檢查。型別、lint 與行為測試各自回答不同問題。
 
 ## 接縫與領域語言，讓抽象有穩定的含義
 
-原篇強調的 Seam 與 DDD，仍是設計公開契約時的兩個檢查角度。
+接縫（seam）與領域語言，可以用來檢查公開契約是否暴露太多內部細節。
 
 接縫用來思考可替換的位置。例如同一支付契約由正式 adapter 與測試 fake 實作，呼叫端應該不必知道底層是哪一個。兩個實作能幫助暴露契約是否過度綁定供應商，但不應把「一定要有兩個 adapter」誤用為所有介面存在的必要條件。更完整的測試討論見〈[Seam 與 In-Memory Fake](/blog/seams-adapters-fake-testing/)〉。
 
@@ -121,7 +143,7 @@ lint 綠燈只說明程式沒有命中已編碼的違規。它不會證明付款
 
 抽象可能讓 Agent 少讀內部檔案，也可能增加查找與理解成本。呼叫端只需讀公開契約時，前者較有機會成立；任務要求修改模組內部不變量時，Agent 仍然要讀實作與測試。不能用檔案變少、程式變短，直接推導 token 一定降低。
 
-若團隊想驗證 Matt 的判斷，可以選擇可比較的任務，在相同模型、工具權限與驗收條件下，記錄總輸入輸出 token、失敗重試、人工審查時間與返工。不同架構的初次建立成本也要算進去；單次漂亮的結果，只能當下一次測試的線索。
+若團隊想驗證抽象能否節省成本，可以選擇可比較的任務，在相同模型、工具權限與驗收條件下，記錄總輸入輸出 token、失敗重試、人工審查時間與返工。不同架構的初次建立成本也要算進去；單次漂亮的結果，只能當下一次測試的線索。
 
 「做錯再拆掉」也有邊界。尚未發布、沒有外部使用者的區域性 helper，通常比公開 API 容易替換。若抽象已寫入資料格式、跨服務協定或第三方整合，移除時還要處理相容性與遷移。Agent 能加速改碼，無法讓這些承諾消失。
 
@@ -131,9 +153,7 @@ lint 綠燈只說明程式沒有命中已編碼的違規。它不會證明付款
 
 ## 來源與更新範圍
 
-- [Matt Pocock 原始貼文](https://x.com/mattpocockuk/status/2106425743479546343)，2026-10-03；本文於台北時間 10/4 更新。抽象、lint、token 與撤回成本的主張來自此貼文，支付案例與驗收設計為本文推論。
+- [Matt Pocock 原始貼文](https://x.com/mattpocockuk/status/2106425743479546343)：保留舊稿主來源。2026-11-05 無法直接讀取原帖，相關歸因限於舊稿摘要，不據此宣稱成本改善已獲證實。
 - [John Ousterhout：《A Philosophy of Software Design》作者頁](https://web.stanford.edu/~ouster/cgi-bin/book.php)，說明第二版的模組設計方向。
-- [ESLint：no-restricted-imports](https://eslint.org/docs/latest/rules/no-restricted-imports)與[設定檔](https://eslint.org/docs/latest/use/configure/configuration-files)，查核日期 2026-10-04（台北時間）。
-- [TypeScript：Narrowing／Exhaustiveness checking](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking)，查核日期 2026-10-04（台北時間）。
-
-本次保留原篇 URL 與系列位置，補上可檢查的 lint 範圍與成本判準；原篇沒有實證支持的普遍效能與必然性敘述，改以條件與驗收案例表達。
+- [ESLint：no-restricted-imports](https://eslint.org/docs/latest/rules/no-restricted-imports)與[設定檔](https://eslint.org/docs/latest/use/configure/configuration-files)，查核日期 2026-11-05（UTC）。
+- [TypeScript：Narrowing／Exhaustiveness checking](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking)，查核日期 2026-11-05（UTC）。
