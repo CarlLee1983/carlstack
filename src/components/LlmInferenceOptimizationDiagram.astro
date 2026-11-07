@@ -5,7 +5,7 @@
 <figure class="llm-diagram" aria-labelledby="llm-caption">
   <svg
     class="llm-diagram__desktop"
-    viewBox="0 0 960 460"
+    viewBox="0 0 960 500"
     role="img"
     aria-labelledby="llm-title llm-desc"
   >
@@ -32,7 +32,7 @@
 
     <!-- Column 1: Prefill vs Decode & Fragmentation -->
     <g class="llm-diagram__card" transform="translate(30, 40)">
-      <rect width="270" height="370" rx="12"></rect>
+      <rect width="270" height="410" rx="12"></rect>
       <text class="llm-diagram__badge" x="18" y="26"
         >INFERENCE PHASES &amp; PAIN</text
       >
@@ -41,7 +41,7 @@
       <g transform="translate(18, 75)">
         <rect
           width="234"
-          height="75"
+          height="115"
           rx="6"
           class="llm-diagram__subcard llm-diagram__subcard--blue"></rect>
         <text
@@ -49,15 +49,17 @@
           x="12"
           y="22">Prefill vs Decode 階段</text
         >
-        <text class="llm-diagram__subdesc" x="12" y="42"
-          >• Prefill：計算密集型 (Compute-Bound, TTFT)</text
-        >
-        <text class="llm-diagram__subdesc" x="12" y="60"
-          >• Decode：記憶體頻寬受限 (Memory-Bound, ITL)</text
-        >
+        <text class="llm-diagram__subdesc" x="12" y="42">
+          <tspan x="12">• Prefill：計算密集型</tspan>
+          <tspan x="24" dy="18">(Compute-Bound, TTFT)</tspan>
+        </text>
+        <text class="llm-diagram__subdesc" x="12" y="80">
+          <tspan x="12">• Decode：記憶體頻寬受限</tspan>
+          <tspan x="24" dy="18">(Memory-Bound, ITL)</tspan>
+        </text>
       </g>
 
-      <g transform="translate(18, 160)">
+      <g transform="translate(18, 200)">
         <rect
           width="234"
           height="95"
@@ -79,7 +81,7 @@
         >
       </g>
 
-      <g transform="translate(18, 265)">
+      <g transform="translate(18, 305)">
         <rect width="234" height="80" rx="6" class="llm-diagram__subcard"
         ></rect>
         <text class="llm-diagram__header" x="12" y="22">吞吐量瓶頸</text>
@@ -94,14 +96,14 @@
 
     <!-- Column 2: vLLM PagedAttention -->
     <g class="llm-diagram__card" transform="translate(340, 40)">
-      <rect width="280" height="370" rx="12"></rect>
+      <rect width="280" height="410" rx="12"></rect>
       <text class="llm-diagram__badge" x="18" y="26">VLLM PAGEDATTENTION</text>
       <text class="llm-diagram__title" x="18" y="54">虛擬分頁區塊映射架構</text>
 
       <g transform="translate(18, 75)">
         <rect
           width="244"
-          height="85"
+          height="105"
           rx="6"
           class="llm-diagram__subcard llm-diagram__subcard--purple"></rect>
         <text
@@ -115,12 +117,13 @@
         <text class="llm-diagram__code" x="12" y="62"
           >Req 2: [L0➔P7] [L1➔P5] (Fork 共享)</text
         >
-        <text class="llm-diagram__subdesc" x="12" y="78"
-          >• 按需動態分配 Fixed-Size Block (如 16 Tokens)</text
-        >
+        <text class="llm-diagram__subdesc" x="12" y="78">
+          <tspan x="12">• 按需分配 Fixed-Size Block</tspan>
+          <tspan x="24" dy="18">（例如每區塊 16 Tokens）</tspan>
+        </text>
       </g>
 
-      <g transform="translate(18, 170)">
+      <g transform="translate(18, 190)">
         <rect
           width="244"
           height="85"
@@ -142,7 +145,7 @@
         >
       </g>
 
-      <g transform="translate(18, 265)">
+      <g transform="translate(18, 285)">
         <rect
           width="244"
           height="80"
@@ -164,7 +167,7 @@
 
     <!-- Column 3: Continuous Batching & Speculative -->
     <g class="llm-diagram__card" transform="translate(660, 40)">
-      <rect width="270" height="370" rx="12"></rect>
+      <rect width="270" height="410" rx="12"></rect>
       <text class="llm-diagram__badge" x="18" y="26"
         >ACCELERATION PIPELINES</text
       >

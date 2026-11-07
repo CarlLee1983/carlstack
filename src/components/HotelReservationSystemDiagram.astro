@@ -176,21 +176,22 @@
         x="16"
         y="74"
         width="253"
-        height="48"
+        height="65"
         rx="6"
         class="hr-diag__code-box"></rect>
-      <text x="26" y="93" class="hr-diag__code-text"
-        >UPDATE ... SET reserved = reserved + N</text
+      <text x="26" y="91" class="hr-diag__code-text">UPDATE ...</text>
+      <text x="26" y="108" class="hr-diag__code-text"
+        >SET reserved = reserved + N</text
       >
-      <text x="26" y="110" class="hr-diag__code-text"
+      <text x="26" y="125" class="hr-diag__code-text"
         >WHERE reserved + N &lt;= sell_limit;</text
       >
 
-      <text x="16" y="142" class="hr-diag__bullet"
+      <text x="16" y="152" class="hr-diag__bullet"
         >交易內條件更新，仍有行鎖</text
       >
-      <text x="16" y="162" class="hr-diag__bullet">可售上限需經營運核准</text>
-      <text x="16" y="182" class="hr-diag__bullet">列數不足則回滾整筆交易</text>
+      <text x="16" y="170" class="hr-diag__bullet">可售上限需經營運核准</text>
+      <text x="16" y="188" class="hr-diag__bullet">列數不足則回滾整筆交易</text>
     </g>
 
     <!-- Bottom Section: End-to-End Two-Phase Reservation Flow (Y: 250 to 460) -->
