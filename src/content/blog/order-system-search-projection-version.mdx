@@ -1,0 +1,184 @@
+---
+title: "訂單搜尋索引的版本控制"
+description: "訂單已出貨，搜尋結果卻被晚到的更新改回已付款。從 MySQL 的訂單版本、完整搜尋副本與隱藏紀錄，設計能承受重送和亂序的 Elasticsearch 更新流程。"
+publishDate: 2026-11-08T08:45:12+08:00
+draft: false
+featured: false
+tags: [系統設計, 資料一致性, 後端架構]
+series: 系統設計每日實戰
+seriesOrder: 25
+cover: ../../assets/covers/order-system-search-projection-version.webp
+coverAlt: "朱紅色鎮紙固定前方鮮藍色紙片，後方灰藍色舊紙片錯開，象徵保存目前版本，避免較舊資料蓋回來。"
+---
+
+import SearchProjectionVersionDiagram from "../../components/SearchProjectionVersionDiagram.astro";
+
+訂單 9001 已經出貨，搜尋頁先顯示「已出貨」，幾秒後卻變回「已付款」。MySQL 裡的訂單沒有倒退，晚到的更新覆寫了搜尋引擎裡那份資料。
+
+搜尋索引是另外整理、方便搜尋的資料副本。它可以晚一點收到更新，但收到舊資料時，仍要知道哪份較新。這次選擇替每張訂單保存持續遞增的版本，再讓 Elasticsearch 只接受較大的版本。
+
+這是「系統設計每日實戰」第 25 課。[物流通知順序](/blog/order-system-shipping-event-order/)處理的是外部訊息該不該改變配送進度；這一課的訂單狀態已在 MySQL 確定，要解決的是搜尋副本怎麼跟上。
+
+> [!NOTE]
+> 商店、需求、流量與服務目標都是教學假設。官方文件於 2026 年 11 月 8 日查核。下方 Python 只驗證版本接受規則，尚未執行 MySQL、Elasticsearch 整合或負載測試。
+
+## 什麼需求值得多維護一份搜尋資料
+
+沿用單一 MySQL 寫入主庫與模組化單體。營運人員原本只按訂單編號、狀態與日期查詢，這些需求先用 MySQL 與合適索引處理。多加 Elasticsearch，就多了資料同步、失敗重試、索引重建與監控，不能只因為訂單變多就直接採用。
+
+現在假設營運要用商品名稱片段搜尋，再依狀態、日期篩選與排序。可以先評估 MySQL 的查詢和全文搜尋能力。若代表性資料與查詢測試顯示，現有方案無法同時達到搜尋需求及下單延遲目標，才引入獨立搜尋服務。這裡練習的是引入後必須補齊的更新契約，不代表已經量測出 MySQL 不夠用。
+
+首版把搜尋限定為營運找單工具，索引不放姓名、電話、地址與付款憑證。產品接受短暫延遲，暫訂 99% 的搜尋資料變更，在主庫提交後 30 秒內，能由搜尋端查到該版本或較新版本；目前應隱藏的訂單，也必須從一般搜尋結果消失。搜尋無法使用時，保留按訂單編號回 MySQL 查詢的入口。
+
+退款、取消與出貨操作都重新讀取 MySQL，檢查當下授權和訂單條件。搜尋命中只能幫忙找到訂單，不能當成操作許可。這延續[訂單明細的授權邊界](/blog/order-system-detail-authorization/)。
+
+## 版本和內容在同一筆交易決定
+
+假設訂單 9001 的搜尋版本 7 是「已付款」，版本 8 是「已出貨」。兩筆更新可能由不同 worker 傳送，也可能因逾時重試而交換抵達順序。用送達時間或應用伺服器的時鐘判斷新舊，都無法可靠還原這張訂單的修改順序。
+
+在 MySQL 保存 `order_search_projection`，也就是這張訂單目前完整的搜尋資料，包含固定訂單 ID、`search_version`、可搜尋欄位與 `searchable`。所有會改變搜尋內容的寫入路徑都遵守以下步驟：
+
+1. 在交易內鎖住訂單列，取得目前版本。
+2. 驗證業務轉移，修改訂單，把搜尋版本加一。
+3. 由這筆交易確定的資料組出完整搜尋副本，更新 `order_search_projection`。
+4. 把相同版本、相同內容寫入 outbox 待辦，最後一起提交。
+
+Outbox 是與業務資料放在同一資料庫、一起提交的傳送待辦。此處用 `(order_id, search_version)` 唯一鍵避免重複建立。已建立待辦的版本與內容不可修改，重複鍵也不得用 upsert 覆寫內容。背景 worker 取出待辦後才呼叫 Elasticsearch，不在訂單交易裡等待網路。[MySQL 鎖定讀文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)說明 `FOR UPDATE` 的交易與鎖定行為；[站內 Outbox 文章](/blog/cdc-debezium-transactional-outbox-streaming/)另有傳送架構介紹。
+
+worker 必須傳送待辦裡已保存的完整副本。若拿版本 8 的事件，再查當下已變成版本 9 的訂單，就會把版本與內容錯配。反過來，拿主庫的新版本搭配讀取副本的舊內容，也有同樣問題。
+
+首版只索引訂單自己的成交資料。商品名稱使用成交時保存的名稱，不會隨商品目錄改名而改變。若日後要顯示最新商品名稱，就得新增會產生訂單搜尋版本的更新路徑，不能讓另一個 worker 繞過這套規則直接改索引。
+
+## Elasticsearch 只接受更大的版本
+
+每張訂單使用固定 `_id`，用 Index API 整份替換文件。下面是示意 HTTP 請求，目標索引與 mapping 應先建立；`status` 是 `keyword`，`searchable` 是布林，商品文字另依搜尋需求設定分析方式。
+
+```http
+PUT /order-search-v1/_doc/order-9001?version=8&version_type=external
+Content-Type: application/json
+
+{
+  "order_id": "9001",
+  "search_version": 8,
+  "searchable": true,
+  "status": "SHIPPED",
+  "item_text": "藍色馬克杯"
+}
+```
+
+`external` 表示版本由外部系統提供。Elasticsearch 只接受比目前文件更大的版本，相等或較小會回傳版本衝突。這個檢查不需要等搜尋 refresh；refresh 是讓已寫入資料變得可搜尋的另一個步驟。因此寫入成功和搜尋頁已更新，要分開觀測。[Elastic Index API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-index)
+
+版本 8 先抵達時可以寫入；稍後的版本 7 被拒絕，狀態維持已出貨。若版本 8 寫入成功後回覆遺失，再送一次也會衝突。這兩種情況都不需要把資料改回去。
+
+<SearchProjectionVersionDiagram />
+
+worker 只把這個 Index API 回傳的 `version_conflict_engine_exception` 分類成「重複或已過時」。前提是所有寫入者使用同一套外部版本規則、固定文件 ID 與固定目標索引，同版本的內容永遠一致。**同版本若出現不同內容，停止該筆同步並核對來源，不能當成正常重送。**
+
+符合上述契約的版本衝突，可以把該筆待辦標為「已被相同或較新版涵蓋」，但搜尋可見性仍須另外驗收。一般 HTTP 409 並不能證明內容相同。429、5xx 與逾時要按重試政策處理，mapping 錯誤等永久失敗要留下未完成紀錄並告警。使用 Bulk API 時也要逐筆看結果，不能只看整包 HTTP 成功。[Elastic Bulk API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-bulk) 的 `errors` 與 `items` 分別提示是否有任一操作失敗，以及提供逐筆結果。重試額度沿用[前面的退款外呼預算思路](/blog/order-system-retry-budget/)，另外替搜尋同步設定上限。
+
+`external_gte` 接受相等版本，會放寬這裡的條件，首版不使用。版本也不能由各 worker 自行編號、重設為 1 或重用舊訂單 ID。若程式用 JavaScript，資料庫的大整數版本不可直接轉成超過安全範圍的 `Number`，序列化時仍須保留精確值。
+
+## 從搜尋隱藏，仍要留下較新的版本
+
+假設營運把訂單 9001 移出一般搜尋清單，產生版本 9。這是顯示政策，訂單仍保存在 MySQL，沒有取消訂單、退款或刪除個資的含義。
+
+若直接呼叫 Elasticsearch Delete API，系統只會在一段時間內保留已刪除文件的版本。期限由 `index.gc_deletes` 控制，預設 60 秒。保留期過後，遠處積壓的版本 8 再送來，不能靠那份已清除的版本紀錄擋住它。[Elastic Delete API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-delete)、[索引設定](https://www.elastic.co/docs/reference/elasticsearch/index-settings/index-modules)
+
+首版改成用相同 ID 寫入一份普通文件：
+
+```json
+{
+  "order_id": "9001",
+  "search_version": 9,
+  "searchable": false
+}
+```
+
+這份文件同樣以 `PUT /order-search-v1/_doc/order-9001?version=9&version_type=external` 寫入。JSON 裡的 `search_version` 欄位不會自動成為 Elasticsearch 的外部版本。
+
+這份精簡文件稱為 tombstone，這裡指「保留隱藏狀態與版本的紀錄」。用 Index API 整份替換，可以讓舊商品文字離開目前文件的 `_source`。正常搜尋與聚合都加上 `searchable=true` 條件；版本 8 再來時，仍會遇到現存版本 9。
+
+這是根據版本規則做出的應用設計。首版不自動清除 tombstone，代價是長期占用索引空間。MySQL 的最新搜尋副本也保留相同紀錄，供日後重建。它不是個資抹除流程，也不承諾隱藏操作在提交瞬間就從所有搜尋畫面消失。
+
+搜尋引擎不直接對使用者開放。即使套了 alias filter，依 ID 取得文件也不受該 filter 限制，不能拿它代替 API 授權。隱藏期間的嚴格存取控制仍由 MySQL 與應用程式執行。[Elastic Aliases 文件](https://www.elastic.co/docs/manage-data/data-store/aliases)
+
+## 多維護一份副本，要付出多少成本
+
+先用教學假設估算。每天 10,000 張訂單，每張平均產生 4 次搜尋更新，每份完整副本 1 KiB，outbox 的原始內容約 `10,000 × 4 × 1 KiB ≈ 39 MiB／日`。成功送達的待辦若保留 7 天，光內容就約 273 MiB。這不是重播安全期限，未完成待辦不能跟著按日期刪掉。
+
+若主庫另保存 300,000 份最新副本，同樣以 1 KiB 計算，約 293 MiB。兩項都還沒算資料列、索引、交易日誌與備份，也沒有包含 Elasticsearch 的倒排索引和副本空間。實際磁碟需求要用代表性文件量測。
+
+積壓也要算。例如故障留下 18,000 筆待辦，恢復後每秒進來 80 筆，worker 每秒成功處理 120 筆，淨消化速度只有 40 筆，至少約 450 秒才能追上。這些速率是假設；若實測處理量只有每秒 80 筆，待辦不會自行消失。
+
+選完整副本會多傳資料，但版本 8 可以直接蓋過版本 7。若改成「把某欄加一」這種差量事件，略過一版可能改變結果，就需要另一套依序套用、補齊缺口的協定。以目前文件大小，我會先保留完整副本，降低同步程序必須記住的中間狀態。
+
+## 可以先驗證規則，再測真正的服務
+
+以下 Python 模型刻意把「同版本不同內容」判成來源契約錯誤。Elasticsearch 不會替應用比對兩份內容，這個斷言要在來源產生、測試與稽核中維持。
+
+```python
+from copy import deepcopy
+
+
+def apply_snapshot(current, incoming):
+    if current is None:
+        return deepcopy(incoming)
+    old_version = current["search_version"]
+    new_version = incoming["search_version"]
+    if new_version == old_version and incoming != current:
+        raise ValueError("same version has different content")
+    return deepcopy(incoming if new_version > old_version else current)
+
+
+paid = {"search_version": 7, "searchable": True, "status": "PAID"}
+shipped = {"search_version": 8, "searchable": True, "status": "SHIPPED"}
+hidden = {"search_version": 9, "searchable": False}
+
+current = apply_snapshot(None, shipped)
+for event in [paid, shipped, hidden, paid, shipped, hidden]:
+    current = apply_snapshot(current, event)
+assert current == hidden
+
+try:
+    apply_snapshot(shipped, {**shipped, "status": "PAID"})
+except ValueError:
+    pass
+else:
+    raise AssertionError("conflicting content was accepted")
+
+print("PASS: stale updates, duplicates, hiding and conflicting content")
+```
+
+這段只驗版本規則。服務整合驗收還要刻意安排以下情境，並保存主庫版本、目標索引、事件 ID 與逐筆結果：
+
+- 版本 8 先於版本 7，最後以實際搜尋確認仍為版本 8。再測版本 8 寫入成功、worker 沒收到回覆就重送。
+- 版本 9 隱藏後，延遲一段超過刪除版本保留期的時間再送版本 8，確認普通 tombstone 仍能擋住它。
+- 訂單交易在提交前失敗，訂單、副本與 outbox 一起回滾；提交後 worker 當機，待辦仍可恢復傳送。
+- 混入 mapping 錯誤、429、逾時及 Bulk 單筆失敗，確認沒有整包誤標完成，也沒有無限制重試。
+- 主庫版本 20 與舊的全量回填版本 18 交錯抵達新索引，確認較舊回填不覆寫新版，隱藏紀錄也一併存在。
+
+30 秒目標要從主庫提交算到搜尋端至少追上該版本，不能只量 worker 收到寫入成功的耗時。驗收使用受控、未套隱藏 filter 的搜尋入口核對版本，再檢查一般搜尋是否遵守目前的 `searchable` 值。不能用依 ID 取得文件的 API 代替搜尋 refresh 驗收，也不能把未完成樣本排除。監控保留尚未同步完成資料的最老等待時間，也以抽樣或合成查詢核對可見版本，避免完成者的漂亮延遲掩蓋卡住的待辦。這與[未完成退款的等待年齡](/blog/order-system-pending-age-alert/)是同一個量測陷阱。
+
+## 什麼時候才擴大這套設計
+
+若輪詢 outbox 已經增加主庫負擔，或無法達到驗證過的同步目標，再評估 CDC 傳送。換掉傳送工具後，同一訂單的版本與完整副本契約仍要保留，不能假設新管線從此沒有重送。
+
+重建索引需要單獨的上線流程。新索引必須匯入包含 tombstone 的最新副本，保留原版本，並有自己的增量進度。從 MySQL 回填時，每筆仍用外部版本寫入；若使用 Elasticsearch `_reindex`，預設 internal 不會保留這個保護，須設定目的端的 `version_type=external`。[Elastic Reindex API](https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-reindex)
+
+使用 `_reindex` 時，不從排除 tombstone 的搜尋 alias 匯出；來源索引本來就缺漏的資料，也不能靠複製它來補齊。
+
+全量工作完成後，還要確認增量追上、隱藏資料沒有漏掉、抽樣內容與主庫一致，才能切換讀取。舊索引的送達進度不能代替新索引的驗收；若保留舊索引供回滾，也要安排它持續同步。[Conduit 的進度檢查](/blog/conduit-cdc-progress-contract/)說明了 checkpoint 與下游可用結果的差別。
+
+若 tombstone 成長到必須清理，就得先界定所有可能的舊事件來源、備份和人工重播範圍，或另設持久版本檢查。沒有這些條件時，首版繼續保留，避免用定期清理重新引入資料復活的問題。
+
+## 練習
+
+訂單 9001 在主庫依序產生版本 11「已付款」、12「已出貨」、13「搜尋隱藏」。worker 的送達順序是 12、11、13、12。另一個回填程序又準備把版本 11 寫入同一個新索引。
+
+請寫出每次送達後應保存的版本與可搜尋狀態。若回填程序只複製 `searchable=true` 的訂單，整個索引重建後可能發生什麼？你會把哪項條件加入切換前的驗收？
+
+## 參考思路
+
+版本依序維持 12、12、13、13，最後不可搜尋。相同索引裡的回填版本 11 也應被版本 13 擋住。
+
+若全新的索引跳過隱藏訂單，它從一開始就沒有版本 13。延遲的版本 12 或回填版本 11 都可能建立可搜尋文件。切換前要確認新索引含隱藏紀錄及其版本，增量已追上，並實際重送舊事件，驗證訂單不會重新出現。

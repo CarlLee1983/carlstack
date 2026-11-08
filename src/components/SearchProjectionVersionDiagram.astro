@@ -1,0 +1,261 @@
+<figure class="search-version-diagram" aria-labelledby="search-version-caption">
+  <svg
+    class="search-version-diagram__desktop"
+    viewBox="0 0 900 590"
+    role="img"
+    aria-labelledby="search-version-title search-version-desc"
+  >
+    <title id="search-version-title">亂序更新與隱藏紀錄</title>
+    <desc id="search-version-desc"
+      >同一張訂單先收到版本 8 已出貨，再收到版本 7 已付款，索引保留版本 8。版本
+      9 將訂單隱藏後，仍保存普通文件與版本，拒絕晚到的版本 8。</desc
+    >
+    <rect
+      class="search-version-diagram__surface"
+      x="20"
+      y="20"
+      width="860"
+      height="86"
+      rx="14"></rect>
+    <text class="search-version-diagram__title" x="44" y="55"
+      >同一張訂單，只接受較大的版本</text
+    >
+    <text class="search-version-diagram__body" x="44" y="84"
+      >主庫先決定版本與完整內容，傳送順序可以不同。</text
+    >
+    <rect
+      class="search-version-diagram__row"
+      x="20"
+      y="128"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="44" y="162"
+      >① 版本 8 先抵達</text
+    >
+    <text class="search-version-diagram__body" x="44" y="194"
+      >完整副本：已出貨</text
+    >
+    <text class="search-version-diagram__result" x="448" y="164"
+      >接受 → 索引保存版本 8</text
+    >
+    <text class="search-version-diagram__body" x="448" y="194"
+      >searchable = true</text
+    >
+    <rect
+      class="search-version-diagram__row"
+      x="20"
+      y="240"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="44" y="274"
+      >② 版本 7 晚到</text
+    >
+    <text class="search-version-diagram__body" x="44" y="306"
+      >完整副本：已付款</text
+    >
+    <text class="search-version-diagram__result" x="448" y="276"
+      >拒絕 → 維持版本 8</text
+    >
+    <text class="search-version-diagram__body" x="448" y="306"
+      >已出貨的狀態不被蓋回去</text
+    >
+    <rect
+      class="search-version-diagram__selected"
+      x="20"
+      y="352"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="44" y="386"
+      >③ 版本 9 隱藏訂單</text
+    >
+    <text class="search-version-diagram__body" x="44" y="418"
+      >精簡副本：保留 ID 與版本</text
+    >
+    <text class="search-version-diagram__result" x="448" y="388"
+      >接受 → 索引保存版本 9</text
+    >
+    <text class="search-version-diagram__body" x="448" y="418"
+      >searchable = false，仍是普通文件</text
+    >
+    <rect
+      class="search-version-diagram__surface"
+      x="20"
+      y="464"
+      width="860"
+      height="102"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="44" y="502"
+      >版本 8 再來，仍被版本 9 擋下</text
+    >
+    <text class="search-version-diagram__body" x="44" y="536"
+      >搜尋排除隱藏文件；重建索引仍要帶入這份版本紀錄。</text
+    >
+  </svg>
+  <svg
+    class="search-version-diagram__mobile"
+    viewBox="0 0 288 692"
+    role="img"
+    aria-labelledby="search-version-mobile-title search-version-mobile-desc"
+  >
+    <title id="search-version-mobile-title">只接受較新的訂單搜尋版本</title>
+    <desc id="search-version-mobile-desc"
+      >桌面圖的直向排列：先接受版本 8，拒絕晚到版本 7，再接受隱藏版本 9。版本 8
+      重送也無法使訂單重新出現。</desc
+    >
+    <rect
+      class="search-version-diagram__surface"
+      x="2"
+      y="2"
+      width="284"
+      height="90"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="18" y="32"
+      >只接受較大的版本</text
+    >
+    <text class="search-version-diagram__body" x="18" y="58"
+      >同一張訂單，版本與內容</text
+    >
+    <text class="search-version-diagram__body" x="18" y="80"
+      >由主庫同一筆交易決定。</text
+    >
+    <rect
+      class="search-version-diagram__row"
+      x="2"
+      y="112"
+      width="284"
+      height="126"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="18" y="144"
+      >① 先到：版本 8 已出貨</text
+    >
+    <text class="search-version-diagram__body" x="18" y="177"
+      >接受，保存版本 8</text
+    >
+    <text class="search-version-diagram__body" x="18" y="210"
+      >searchable = true</text
+    >
+    <rect
+      class="search-version-diagram__row"
+      x="2"
+      y="258"
+      width="284"
+      height="126"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="18" y="290"
+      >② 晚到：版本 7 已付款</text
+    >
+    <text class="search-version-diagram__body" x="18" y="323"
+      >拒絕，維持版本 8</text
+    >
+    <text class="search-version-diagram__body" x="18" y="356">不改回已付款</text
+    >
+    <rect
+      class="search-version-diagram__selected"
+      x="2"
+      y="404"
+      width="284"
+      height="126"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="18" y="436"
+      >③ 版本 9 隱藏訂單</text
+    >
+    <text class="search-version-diagram__body" x="18" y="469"
+      >接受，保存普通文件與版本 9</text
+    >
+    <text class="search-version-diagram__body" x="18" y="502"
+      >searchable = false</text
+    >
+    <rect
+      class="search-version-diagram__surface"
+      x="2"
+      y="550"
+      width="284"
+      height="140"
+      rx="12"></rect>
+    <text class="search-version-diagram__title" x="18" y="582"
+      >版本 8 重送仍被拒絕</text
+    >
+    <text class="search-version-diagram__body" x="18" y="615"
+      >搜尋排除隱藏文件。</text
+    >
+    <text class="search-version-diagram__body" x="18" y="642"
+      >重建索引也要帶入</text
+    >
+    <text class="search-version-diagram__body" x="18" y="666"
+      >隱藏狀態與版本 9。</text
+    >
+  </svg>
+  <figcaption id="search-version-caption">
+    版本比較保護已保存的搜尋副本。圖示為教學案例，寫入成功後仍須等待資料可搜尋。
+  </figcaption>
+</figure>
+<style>
+  .search-version-diagram {
+    margin: 2rem 0;
+    font-family: var(--font-body);
+  }
+  .search-version-diagram__desktop,
+  .search-version-diagram__mobile {
+    width: 100%;
+    height: auto;
+  }
+  .search-version-diagram__desktop {
+    display: block;
+  }
+  .search-version-diagram__mobile {
+    display: none;
+  }
+  .search-version-diagram__surface {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .search-version-diagram__row {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .search-version-diagram__selected {
+    fill: #e2f3f5;
+    stroke: #32818a;
+  }
+  .search-version-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 21px;
+    font-weight: 800;
+  }
+  .search-version-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .search-version-diagram__result {
+    fill: var(--dg-ink);
+    font-size: 21px;
+    font-weight: 700;
+  }
+  .search-version-diagram__mobile .search-version-diagram__title {
+    font-size: 17px;
+  }
+  .search-version-diagram__mobile .search-version-diagram__body {
+    font-size: 15px;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .search-version-diagram__selected {
+    fill: #16383e;
+    stroke: #65bfc9;
+  }
+  @media (max-width: 48rem) {
+    .search-version-diagram__desktop {
+      display: none !important;
+    }
+    .search-version-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
