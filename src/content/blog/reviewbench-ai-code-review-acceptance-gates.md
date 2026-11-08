@@ -1,7 +1,8 @@
 ---
-title: "ReviewBench 把 AI 審查拆成兩筆帳：重大漏報與無效評論"
-description: "從 GitHub 2026 年 10 月推出的 ReviewBench，核對 219 個 PR 的公開資料、grounded 與 augmented 指標及 LLM grader 限制，再把它轉成團隊可執行的 reviewer 驗收流程。"
+title: "ReviewBench：AI 審查的驗收門檻"
+description: "用 ReviewBench 區分重大漏報與無效評論，再查 LiveReview 自動核准的冷啟動、誤核准率分母與政策回放，建立團隊自己的審查驗收門檻。"
 publishDate: 2026-10-06T10:11:20+08:00
+updatedDate: 2026-11-08T10:06:00+08:00
 draft: false
 featured: false
 tags:
@@ -22,7 +23,7 @@ GitHub 在 [2026 年 10 月 5 日公開 ReviewBench research preview](https://gi
 我的判斷是，選 reviewer 時應把重大漏報與無效評論分開驗收。前者決定它能接下多少風險，後者決定工程師是否還願意讀它的留言。總分只能輔助排序，無法替團隊決定哪一種失敗可以接受。
 
 > [!NOTE]
-> 本文核對公開文件、程式與資料 manifest，未執行 ReviewBench 樣本、reviewer container 或付費 judge，也沒有重現官方分數。後半段的數值案例及驗收設定是設計範例，並非實測結果。來源鎖定於 2026 年 10 月 6 日查得的 commit `ceb0794a3768da6ef4a56e5311dfb4afd29e5dee`。
+> 查核採公開文件、程式與資料 manifest 的靜態閱讀。ReviewBench 固定於 2026 年 10 月 6 日查得的 commit `ceb0794a3768da6ef4a56e5311dfb4afd29e5dee`；11 月 8 日新增 LiveReview 自動核准分析，固定於 `4f04fa36199a4f748e13f2a61c7190b1178a0f71`。沒有執行 ReviewBench 樣本、reviewer container、付費 judge 或 LiveReview 服務，也沒有重現兩者的成效數字。數值案例及驗收設定均為設計範例。
 
 ## 219 個 PR 提供共同起點，代表性仍要回到自己的工作量
 
@@ -103,7 +104,7 @@ covered_critical_issues: 1
 
 ## 自家驗收集要保留「沒有問題」與「不能靠 diff 猜到」的 PR
 
-以下是我建議的起步流程，並非 ReviewBench 的官方門檻，也沒有宣稱特定樣本數足以得出統計結論。
+我建議用這份流程開始評估。它不屬於 ReviewBench 的官方門檻，也沒有宣稱特定樣本數足以得出統計結論。
 
 ### 用真實分布建立底盤，再增加高風險案例
 
@@ -144,6 +145,44 @@ report:
 這裡的「重大案例不得新增漏報」只是對已收錄案例的回歸要求。baseline 本來就漏掉的問題，仍須保留為缺口；沒有進入測試集的風險更不在保證範圍內。若 critical 切片只有三筆，就直接寫 `1 / 3`，不要只秀小數點後兩位的百分比。
 
 接著讓新 reviewer 先做 shadow review：輸出保留給評估，不自動批准合併。比較同一批 PR 的人類處理時間及重大漏報，確認收益後再決定它能在哪些模組發言、哪些 finding 能阻擋 CI。這是團隊自己的上線實驗，需要獨立於公開榜單保存。
+
+## LiveReview 把驗收推到自動核准
+
+Hexmos 在 [2026 年 11 月 7 日的 LiveReview 公告](https://journal.hexmos.com/introducing-livereview/)中，主張可依風險政策自動核准較低風險的 PR。這讓採用問題多了一步：除了評論準不準，還要知道哪些變更會因此省略人審。
+
+公開程式確實有這套決策流程。`custom` 模式先檢查作者資格與靜態規則，再檢查風險分數及 LLM 分類，任一項失敗都會阻擋核准。風險模型則把 blast radius、finding 類別及 diff 特徵合成分數。[決策引擎](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/policyengine/engine.go#L142-L214)與[模型實作](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/riskscore/model.go)提供了可逐項驗收的對象。
+
+### 冷啟動時，分數從人工設定的 prior 開始
+
+LiveReview 使用 logistic model，初始權重由程式設定，之後再依組織回報的結果調整。對剛導入的團隊，「組織專屬模型」起初還沒有自己的事故資料可學。[Prior 與更新方式](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/riskscore/model.go#L21-L84)
+
+門檻也有冷啟動行為：[calibration.go](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/riskscore/calibration.go#L15-L100)在歷史分數少於 10 筆時使用固定的 `0.5` cutoff，資料足夠才依分位數取門檻。這 10 筆指的是歷史分數，與「已確認安全或出過事故的訓練樣本數」不同。
+
+因此，P20 是分數分布中的位置，不能讀成 20% 的出錯機率，也不保證整批 PR 恰好有 20% 最後獲准。我會把冷啟動期單獨列為驗收階段，保存 prior、當時的分數分布與各關卡結果，觀察人工仍會擋下哪些被模型判低風險的變更。
+
+### 誤核准率只看有回報的 outcome
+
+LiveReview 的 [calibration handler](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/api/auto_approve_insights_handlers.go#L275-L320)將 production outcome 與 `final` 階段的政策決策紀錄連接。`false_approve_rate` 的分母是其中已核准且有 outcome 的紀錄，分子則是回報為 revert 或 incident 的紀錄。它沒有把所有未回報的核准 PR 自動算成安全。
+
+假設每個 PR 只有一筆決策與一筆 outcome，100 個獲准 PR 中只有 10 個回報結果，其中 1 個回滾，這個指標是 `1 / 10 = 10%`。其餘 90 個仍缺結果，不能據此宣稱 99% 的核准都安全。這也延續了 ReviewBench 的分母問題：同樣一個百分比，排除哪些案例會直接改變讀法。
+
+團隊報表應同時顯示全部核准 PR 數、已有結果的數量、觀察期限尚未結束的數量，以及事故與回滾的歸因。對同一 PR 的重複回報或重跑決策，還需要按版本去重。否則只積極補報事故、卻很少標記正常變更，與漏報事故，都會讓這個比率偏離實際情況。
+
+### 政策回放要補上時間隔離
+
+LiveReview 的 [Simulate](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/api/auto_approve_policy_handlers.go#L321-L448)會拿草擬政策重跑近期已完成的 reviews，列出哪些會獲准、在哪一階段被擋。這適合檢查調整門檻會放行哪些舊案例。
+
+不過，[risk stage](https://github.com/HexmosTech/LiveReview/blob/4f04fa36199a4f748e13f2a61c7190b1178a0f71/internal/policyengine/engine.go#L310-L346)使用目前模型及近期分數分布。假如模型已學過某次事故，再回頭對那次事故打分，就不能把結果當成「當時已能預測」。
+
+我會另外保留依時間切開的測試集：只用截止日前的 outcome 訓練，固定模型與政策版本，再評估截止日後的 PR。每筆記錄保存當時的輸入、預測、人工決定，以及經過共同觀察期限後才確認的結果。先做 shadow review，取得這份資料，再決定哪些路徑可以省略人審。
+
+### Meta 的事故率，不能直接算成 LiveReview 成效
+
+公告引用的 1/50 事故率與 1/3 回滾率，來自 [Meta RADAR 論文](https://arxiv.org/html/2605.30208v2)。比較對象是經 RADAR 篩選的 diffs 與非 RADAR diffs。論文第 6 節也明列限制：非隨機分派、低至中等複雜度的資格篩選，以及 Meta 自有的測試與發布基礎設施。
+
+這支持團隊研究分層審批，沒有證明換上 LiveReview 就能把事故降到原本的五十分之一。11 月 8 日查核時，[LiveReview FAQ](https://hexmos.com/livereview/docs/faq/)把類似數字寫進自家成效說明；我沒有找到能支持這個轉換的 LiveReview 生產比較資料。公告的 30% 至 50% 自動核准比例也應保留為廠商主張。
+
+採用時可以先挑一個已有人審紀錄的模組，把漏報、無效評論與「會錯放哪些 PR」分開看。若連 outcome 的覆蓋率都說不清楚，先補齊回報與歸因，再討論提高自動核准比例。
 
 ## 下一個 PR，留下能被反駁的 finding
 
