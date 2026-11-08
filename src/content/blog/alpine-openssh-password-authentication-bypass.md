@@ -1,7 +1,8 @@
 ---
-title: "Alpine Linux 的 OpenSSH 密碼驗證漏洞"
-description: "Alpine 11 月 5 日公布 OpenSSH 密碼驗證繞過漏洞。整理受影響的設定、各分支修補版本、更新與重啟步驟，以及可疑登入紀錄的檢查方式。"
+title: "Alpine OpenSSH 密碼驗證漏洞已有成功利用觀測"
+description: "GreyNoise 11 月 7 日在感測器觀測到 CVE-2026-123158 成功利用。說明觀測時間與證據限制，並整理 Alpine OpenSSH 修補版本、重啟驗收及登入紀錄調查。"
 publishDate: 2026-11-06T10:01:21+08:00
+updatedDate: 2026-11-08T10:06:21+08:00
 draft: false
 featured: false
 tags:
@@ -18,7 +19,19 @@ Alpine Linux 在 2026 年 11 月 5 日公布 OpenSSH 密碼驗證繞過漏洞，
 
 套件升級不會自動重啟正在執行的 `sshd`。更新後要重啟服務、測試新的 SSH 連線，並檢查修補前是否有可疑登入。
 
-以下依 11 月 6 日查閱的 [Alpine 官方公告](https://alpinelinux.org/posts/2026-11-05-openssh-password-authentication-bypass/)與 [OpenSSH 10.6p2 release notes](https://www.openssh.org/releasenotes.html#10.6p2)整理。官方 CVE 紀錄已登錄為 [CVE-2026-123158](https://www.cve.org/CVERecord?id=CVE-2026-123158)，Alpine 初版公告的「尚無 CVE」已不是最新狀態。以下指令適用於你有權管理的 Alpine 主機。我沒有在你的主機上執行，也沒有重現攻擊。
+11 月 8 日更新時，已重新核對 [Alpine 官方公告](https://alpinelinux.org/posts/2026-11-05-openssh-password-authentication-bypass/)與 [OpenSSH 10.6p2 release notes](https://www.openssh.org/releasenotes.html#10.6p2)，並補入 GreyNoise 的成功利用觀測。官方 CVE 紀錄已登錄為 [CVE-2026-123158](https://www.cve.org/CVERecord?id=CVE-2026-123158)，Alpine 初版公告的「尚無 CVE」已不是最新狀態。
+
+以下指令適用於你有權管理的 Alpine 主機。我沒有在你的主機上執行、重現攻擊或取得 GreyNoise 的原始主機遙測。GreyNoise 頁面的 TAC Agent 詳細分析標示為 LLM-generated，這裡不採用其中未獨立驗證的能力與攻擊者意圖推論。
+
+## 11 月 7 日，GreyNoise 感測器出現成功利用
+
+[GreyNoise 的 SSHole 事件頁](https://sshole.events.greynoise.io/)記錄首筆成功利用時間為 2026 年 11 月 7 日 00:46:51 UTC，台北時間 08:46:51。其判定依據是脆弱的 gridpoint（感測節點）已執行作業系統指令。公開紀錄列出 `id`、作業系統資訊查詢等活動，證據已超過連到 TCP 22 或完成 SSH 握手。
+
+在頁面標示的 11 月 8 日 01:51 UTC 更新快照中，成功利用清單共有 13 條攻擊鏈。GreyNoise 將同一感測節點上、相鄰主機工作階段間隔不超過 30 分鐘的活動合併計數。13 條不等於 13 名攻擊者，也不等於 13 家受害組織。SSH 流量加密，單靠網路連線量無法確認利用是否成功。
+
+這些是 GreyNoise 感測器範圍內的觀測，不能據此估算整體網際網路的入侵數量或成功率。「首次觀測」也不是全球第一起攻擊的時間。調查自家主機時，應從實際暴露與設定變更時間回查，避免把 11 月 7 日之前的日誌排除。
+
+我的處置建議是將外網可達且符合下列條件的主機列入緊急修補，同時保留修補前的登入紀錄。完成更新與重啟，只能驗收目前的修補狀態。歷史入侵調查要另有結果。
 
 ## 盤點對象是開著 sshd 的主機
 
