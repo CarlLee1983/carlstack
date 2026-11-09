@@ -1,0 +1,228 @@
+---
+title: "訂單操作紀錄的交易設計"
+description: "客服已暫停出貨，系統卻查不到是誰改的。把成功操作紀錄與訂單狀態放進同一筆 MySQL 交易，釐清失敗嘗試、重試、外部日誌故障與保存成本。"
+publishDate: 2026-11-09T08:18:38+08:00
+draft: false
+featured: false
+tags: [系統設計, MySQL, 資料一致性]
+series: 系統設計每日實戰
+seriesOrder: 26
+cover: ../../assets/covers/order-system-transactional-audit.webp
+coverAlt: "一塊帶包裹圖案的陶片與一塊條紋紀錄板放在同一個胡桃木盒，盒前只有一個黃銅扣，呈現訂單變更與操作紀錄一起保存的關係。"
+---
+
+import OrderAuditTransactionDiagram from "../../components/OrderAuditTransactionDiagram.astro";
+
+客服把一張尚未交給倉庫的訂單改成「暫停出貨」。畫面顯示成功，訂單也確實暫停了，隔天卻查不到操作者。程式先提交訂單，再把操作紀錄送往外部日誌服務，兩個動作之間剛好失敗。
+
+如果產品要求每次成功暫停都能追到操作者，這份紀錄就要和訂單一起提交。操作紀錄在這裡指「誰在什麼情況下，讓哪張訂單從什麼狀態改成什麼狀態」，也常稱為業務稽核紀錄（business audit trail）。
+
+這是「系統設計每日實戰」第 26 課，延續[模組共用交易](/blog/order-system-write-ownership/)與[下單操作收據](/blog/order-system-idempotency-receipt/)。前者決定哪些資料一起成功，後者讓重試找回原結果。這次補上成功操作的歷史，不需要先增加訊息中介軟體。
+
+> [!NOTE]
+> 商店情境、需求、流量與驗收門檻都是教學假設。MySQL 8.4 與 OWASP 文件於 2026 年 11 月 9 日查核。下方實際執行的 SQLite 範例只驗證共同回滾與序列重試，沒有執行 MySQL 併發、正式環境或效能測試。
+
+## 要保存哪些操作
+
+沿用一個模組化單體和單一 MySQL 寫入主庫。客服可以暫停尚未凍結、尚未交倉的訂單，讓履約狀態從 `READY` 變成 `ON_HOLD`。所有修改或凍結履約資料的程式都先鎖同一張訂單，再判斷是否允許操作。派工方取得鎖後，也必須確認履約狀態仍為 `READY`，才能建立派工快照與交付待辦。暫停先提交時，派工應拒絕；凍結先提交時，暫停應拒絕。已交給倉庫的訂單走另外的攔截流程，不能靠改本地狀態保證包裹停下來；[出貨資料的凍結時點](/blog/order-system-fulfillment-address/)已有這部分的限制。
+
+產品為這個功能訂下三項需求：
+
+- 每次已提交的暫停操作，都能找到操作者、訂單、前後履約狀態、前後版本與原因代碼。
+- 同一次操作因網路逾時重送，只產生一筆成功變更紀錄。
+- 外部日誌服務離線時，客服仍能操作並從 MySQL 查到歷史。
+
+第三項要求的是外部服務不阻塞功能。本地必要紀錄若寫不進去，這次狀態變更就不能成功。這是商店自行選定的業務條件，也會犧牲一部分可用性，不能把它當成所有日誌的通用政策。
+
+## 三種紀錄有不同的完成條件
+
+成功操作紀錄跟著業務交易。它回答「哪些變更確實提交」。若交易回滾，就不該留下成功暫停的紀錄。
+
+安全與失敗日誌記錄被拒絕的權限、驗證失敗、資料庫錯誤等嘗試。這些資料不能只放在即將回滾的交易內，否則調查時會一起消失。提交結果不明時要記成「結果待確認」，不能提早寫成確定失敗。
+
+除錯與效能日誌幫助找程式問題，可以有取樣、短期保存等策略。它們未必逐筆完整，也不適合拿來證明每次業務變更都有歷史。
+
+[OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)也把交易／稽核紀錄與安全事件日誌分開討論。文件建議一般 logging 的失敗不應妨礙應用運作；我們仍須先判定某筆資料是不是業務成功的必要部分，才決定錯誤時能否繼續。
+
+## 最小方案是同一連線、同一筆交易
+
+新增 `order_operation_history`，和訂單、操作收據都使用 InnoDB。它只保存成功變更，不接收任意 request body。每筆至少有以下欄位：
+
+- `event_id`、`operation_id`、`order_id`：識別事件、邏輯操作與訂單。
+- `actor_type`、`actor_id`：客服或背景服務的身分。
+- `action`、`reason_code`：例如 `HOLD_FULFILLMENT` 與受控的暫停原因。
+- `from_status`、`to_status`、`from_revision`、`to_revision`：這次交易確定的前後值。
+- `recorded_at`：伺服器寫入紀錄的時間，使用 UTC。
+
+時間欄位方便查詢，不宣稱是精確的提交時間，也不負責排列同一張訂單的修改順序。順序用交易內遞增的履約版本判斷。
+
+`actor_id` 從已驗證的登入上下文取得，再檢查客服有沒有操作這張訂單的權限。前端傳入的 `operator_id`、自由填寫的 header 都不能決定操作者。背景服務使用自己的服務身分，必要時另外記下觸發來源，不把它偽裝成顧客當下的操作。
+
+這段流程偽碼中的 `claim_or_read_operation` 沿用前一課的收據規則，包含操作範圍、輸入指紋、重複鍵競爭與重讀。它不是能直接貼入 MySQL 執行的 SQL：
+
+```text
+驗證身分、輸入與操作範圍
+BEGIN（同一條連線）
+  取得新操作資格，或讀取已完成的操作收據
+  若是已完成的同一操作：核對輸入與當下讀取授權
+    結束交易，回傳原結果
+  SELECT 訂單 FOR UPDATE
+  再確認授權、履約版本、尚未凍結與允許的狀態
+  UPDATE 履約狀態，並把履約版本加一
+  INSERT 成功操作紀錄，使用鎖定後取得的前後值
+  完成操作收據
+COMMIT
+確認提交成功後，才回覆成功
+```
+
+[MySQL 的交易文件](https://dev.mysql.com/doc/refman/8.4/en/commit.html)說明 `START TRANSACTION`、`COMMIT` 與 `ROLLBACK` 的邊界。只把幾次寫入放在同一個函式裡並不夠，不能讓紀錄模組另外取一條連線，或自行開啟 autocommit。[鎖定讀文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)則說明 `FOR UPDATE` 的鎖會保留到提交或回滾。
+
+<OrderAuditTransactionDiagram />
+
+一個暫停操作只允許產生一筆這種類型的紀錄，因此可以對 `(operation_id, action)` 設唯一約束。若同一操作日後能改多張訂單，就要重新定義事件識別，不能沿用會誤擋合法紀錄的唯一鍵。
+
+唯一鍵只能阻擋重複，不能保證每次改單都有寫紀錄。API、排程和維修工具都必須走受控寫入路徑。若仍允許人工直接 `UPDATE orders`，這個保證就有缺口，需要受控維修程序與對應紀錄，不能只測一般 API。
+
+## 紀錄寫入失敗，要回滾整筆交易
+
+假設訂單 `UPDATE` 成功，但紀錄的 `INSERT` 遇到唯一鍵衝突或欄位錯誤。有些程式會 catch 錯誤、寫一行 log，然後繼續 `COMMIT`。這會留下沒有歷史的狀態變更。
+
+[MySQL 8.4 的 InnoDB 錯誤處理文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-error-handling.html)指出，重複鍵通常只回滾失敗的 statement。鎖定等待逾時預設也是如此；deadlock 則會回滾整筆交易。不能假設收到任何資料庫錯誤，先前的寫入就已全部撤銷。
+
+**必要操作紀錄無法建立時，應用必須中止並回滾整筆業務交易，不能接著提交。** 若連線已失效或交易狀態不明，應關閉或丟棄該連線，不把它當成乾淨連線交回 pool。
+
+另一種情況是 `COMMIT` 已送出，程式卻沒收到回覆。這時送 `ROLLBACK` 也不能保證撤回已完成的提交。依[操作收據的重試流程](/blog/order-system-idempotency-receipt/)，用相同操作鍵確認結果；找到已完成收據時，回傳原結果，不再插入第二筆成功紀錄。單純重看訂單目前是 `ON_HOLD`，也不足以證明就是這次操作造成的。
+
+## 外部查詢可以晚一點跟上
+
+首版直接按 `order_id` 與履約版本讀取 MySQL 的操作歷史，索引以這個讀取方式設計。需要跨訂單調查、較長期搜尋或集中安全分析時，再把紀錄送往外部儲存。
+
+傳送程序放在交易之外。若必須可靠送達，可以在同筆交易增加 outbox 傳送待辦，再由 worker 重試；接收端按 `event_id` 去重。外部查詢頁必須顯示同步延遲，不能讓「查不到」被誤讀成「沒人操作」。[搜尋副本版本控制](/blog/order-system-search-projection-version/)也用了本地提交與外部可見性分開驗收的做法。
+
+[MySQL 自增欄位文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-auto-increment-handling.html)說明，傳統模式的 AUTO-INC 鎖只持有到 statement 結束，不會等到整筆交易結束，回滾也可能留下缺號。依這個機制，不宜直接用「上次看過的最大自增 ID」作為唯一匯出進度。交易取得 ID 和完成提交的順序可能不同，較小 ID 的交易較晚提交時，單純 `id > last_id` 的輪詢會漏掉它。若採用待辦，完成狀態要按實際送達維護，不能只記一個最大的已見號碼。
+
+本地歷史和訂單在同一個資料庫，備份還原也會一起回到較早時間。它無法獨立證明還原點之後發生過什麼；需要這類證據時，得把外部保存與[還原後的核對流程](/blog/order-system-restore-reopen/)一起設計。
+
+## 一年大約多存多少資料
+
+假設後續把同類設計擴充到多種受保護操作。每天有 10,000 張新訂單，平均每張發生 4 次需要保存的操作，每筆紀錄的內容約 512 bytes：
+
+```text
+每天紀錄數 = 10,000 × 4 = 40,000 筆
+每天內容量 = 40,000 × 512 = 20,480,000 bytes ≈ 19.5 MiB
+一年內容量 = 20,480,000 × 365 ≈ 6.96 GiB
+平均新增速率 = 40,000 ÷ 86,400 ≈ 0.46 筆／秒
+```
+
+這只是內容量，還沒包含資料列開銷、索引、交易日誌、複本和備份。365 天是容量試算區間，不是建議保存期限。實際期限由產品、法務與組織政策確認，並區分線上查詢、歸檔與依法需要保留的資料。
+
+平均每秒不到一筆，仍不能拿來推斷尖峰。假設促銷時每秒有 80 次受保護操作，約多寫 `80 × 512 = 40 KiB／秒` 的原始內容，還要多維護每筆紀錄的索引。交易多一個寫入步驟的延遲，要用實際硬體、資料量和併發量測。
+
+先保留最常用的訂單歷史索引，避免每增加一種調查欄位就加一個索引。拿代表性資料比較改動前後的 p95、p99、鎖等待、失敗率和儲存成長，才知道是否需要把較舊資料移出線上表。
+
+## 只追加紀錄，仍不等於防竄改
+
+應用日常帳號只取得操作紀錄所需的新增與受限讀取權限，不授予任意修改、刪除歷史的權限。錯誤資訊用新的更正紀錄說明，保留原事件與更正原因；到期清理則使用獨立、受控的維運權限。
+
+這能減少誤刪與一般程式覆寫，仍擋不住握有高權限的管理者、入侵者或一條漏管的寫入路徑。如果威脅模型要求能發現這類竄改，就需要另外設計獨立保存、存取稽核與完整性驗證，不能把資料表取名 `audit_log` 就宣稱不可竄改。
+
+紀錄本身也要限制讀取。不要保存完整 request、access token、付款憑證，或不必要的姓名、電話與地址。原因優先用受控代碼；真的需要文字說明時，限制長度、處理換行與編碼，再用安全方式顯示。[OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)列有敏感資料排除、log injection、存取保護與保存期限的檢查項目。
+
+## 先做一個會失敗的小實驗
+
+以下使用 Python 標準函式庫的 SQLite，在記憶體裡測試兩件事：紀錄寫入失敗時，訂單一起回滾；已完成的同鍵操作再次呼叫時，不增加成功紀錄。它刻意省略授權、輸入指紋和多連線競爭，不能代替前面的 MySQL 流程。
+
+```python
+import sqlite3
+
+
+db = sqlite3.connect(":memory:")
+db.executescript("""
+CREATE TABLE orders (id INTEGER PRIMARY KEY, state TEXT, revision INTEGER);
+CREATE TABLE history (
+    operation_id TEXT PRIMARY KEY,
+    actor TEXT NOT NULL,
+    from_revision INTEGER,
+    to_revision INTEGER
+);
+CREATE TABLE receipts (operation_id TEXT PRIMARY KEY, result TEXT);
+INSERT INTO orders VALUES (1, 'READY', 7);
+""")
+
+
+def hold(operation_id, actor):
+    with db:
+        receipt = db.execute(
+            "SELECT result FROM receipts WHERE operation_id = ?",
+            (operation_id,),
+        ).fetchone()
+        if receipt:
+            return receipt[0]
+        state, revision = db.execute(
+            "SELECT state, revision FROM orders WHERE id = 1"
+        ).fetchone()
+        if state != "READY":
+            raise ValueError("transition rejected")
+        db.execute(
+            "UPDATE orders SET state = 'ON_HOLD', revision = ? WHERE id = 1",
+            (revision + 1,),
+        )
+        db.execute(
+            "INSERT INTO history VALUES (?, ?, ?, ?)",
+            (operation_id, actor, revision, revision + 1),
+        )
+        db.execute(
+            "INSERT INTO receipts VALUES (?, 'ON_HOLD')", (operation_id,)
+        )
+    return "ON_HOLD"
+
+
+try:
+    hold("op-1", None)  # 故意讓 history 的 NOT NULL 約束失敗
+except sqlite3.IntegrityError:
+    pass
+else:
+    raise AssertionError("history failure was not triggered")
+
+assert db.execute("SELECT state, revision FROM orders").fetchone() == ("READY", 7)
+assert db.execute("SELECT COUNT(*) FROM history").fetchone()[0] == 0
+assert db.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] == 0
+assert hold("op-1", "staff-8") == "ON_HOLD"
+assert hold("op-1", "staff-8") == "ON_HOLD"
+assert db.execute("SELECT state, revision FROM orders").fetchone() == ("ON_HOLD", 8)
+assert db.execute("SELECT COUNT(*) FROM history").fetchone()[0] == 1
+assert db.execute("SELECT COUNT(*) FROM receipts").fetchone()[0] == 1
+print("PASS: rollback and sequential retry")
+```
+
+Python 的 [sqlite3 連線 context manager](https://docs.python.org/3/library/sqlite3.html#how-to-use-the-connection-context-manager)處理的是已開啟的交易。這段程式採預設交易模式，由 `UPDATE` 開啟交易；例外離開 `with db` 時回滾，正常離開時提交。`with` 本身不負責開啟交易或關閉連線，設為 `autocommit=True` 時也不會提供這個交易效果。執行上方範例得到 `PASS: rollback and sequential retry`，這項結果只涵蓋程式中的斷言。
+
+接到 MySQL 後，還需要以下驗收：
+
+1. 訂單更新後，刻意讓歷史紀錄出現欄位錯誤、重複鍵與鎖等待逾時，確認整筆回滾，連線也不帶著未結束的交易被重用。
+2. 同一操作鍵併發送出、提交後回覆遺失再重試，都只留下一次狀態轉移和一筆成功紀錄。另測同鍵不同輸入被拒絕。
+3. 偽造 `operator_id` 不會改變紀錄中的身分；越權操作留下拒絕嘗試，沒有成功變更紀錄。
+4. 倉庫凍結和客服暫停同時執行，依同一訂單鎖序列化，不能兩邊各自宣稱成功。
+5. 外部傳送停止時，本地歷史仍可查。重新開啟後驗證沒有漏送，接收端沒有重複事件，積壓與最老等待時間可觀測。
+
+驗收針對受保護操作及仍在保存範圍內的資料，逐筆核對成功收據與歷史的操作 ID、訂單、動作及版本。只比較兩張表的總筆數，會把漏一筆又多一筆的問題藏起來。系列前面提到的 7 天期限只適用完整回覆快取，去重收據的終局資料仍保留；若日後歸檔或清理，要先訂好跨儲存位置的核對方式。
+
+## 什麼情況才換方案
+
+在目前規模，我會先保留應用程式的同交易寫入。它能拿到已驗證的操作者、動作與原因，改動範圍也容易測試。
+
+若不同程式經常繞過共用寫入路徑，可以評估資料庫 trigger 或受控 stored procedure。Trigger 比較容易捕捉資料列變更，但不會自然知道業務操作者與原因，也需要處理連線重用時的上下文。選它之前，仍要回答可信身分如何傳到資料庫。
+
+若只是全站搜尋歷史很慢，先增加外部查詢副本，保留本地必要紀錄。若要求從歷史重建所有訂單狀態，才評估事件溯源（event sourcing），也就是讓完整事件序列成為重建狀態的依據。這份精簡操作歷史沒有保存所有業務輸入，不能直接拿來重播整張訂單。
+
+## 練習
+
+客服以操作鍵 `op-42` 暫停訂單。訂單更新成功，操作紀錄卻因欄位限制寫入失敗。程式捕捉錯誤後仍提交，API 回覆成功。下一次重試時，程式看到訂單已是 `ON_HOLD`，補寫一筆由這次登入者執行的成功紀錄。
+
+請指出這個流程破壞了哪些承諾，並寫出你會修改的交易邊界。若第一次已提交但回覆遺失，重試又應如何處理？
+
+## 參考思路
+
+第一次操作已留下沒有可信歷史的變更，後來的登入者不能被追認為原始操作者。紀錄失敗必須使訂單、版本與收據一起回滾，之後才有機會用同一操作鍵重新執行。
+
+已經發生的缺口要另立調查與更正紀錄，明記哪些事無法確認，不能補造一筆當時的成功事件。若第一次其實已完整提交，只是回覆遺失，重試應讀回同鍵、同輸入的完成收據，不再改單或追加成功紀錄。把這三種情況各做成一個測試：完整回滾、提交結果不明、歷史資料已缺漏。

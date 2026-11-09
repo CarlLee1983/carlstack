@@ -1,0 +1,233 @@
+<figure class="order-audit-diagram" aria-labelledby="order-audit-caption">
+  <svg
+    class="order-audit-diagram__desktop"
+    viewBox="0 0 900 590"
+    role="img"
+    aria-labelledby="order-audit-title order-audit-desc"
+  >
+    <title id="order-audit-title">成功操作紀錄與訂單共同提交</title>
+    <desc id="order-audit-desc"
+      >同一條 MySQL
+      連線與交易內，更新訂單、插入操作紀錄及完成收據。任何必要步驟失敗則整筆回滾，外部傳送只在提交之後進行。</desc
+    >
+    <rect
+      class="order-audit-diagram__surface"
+      x="20"
+      y="20"
+      width="860"
+      height="86"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="44" y="55"
+      >同一條連線，同一筆 InnoDB 交易</text
+    >
+    <text class="order-audit-diagram__body" x="44" y="84"
+      >已取得操作資格、鎖住訂單，並通過授權與狀態檢查。</text
+    >
+    <rect
+      class="order-audit-diagram__row"
+      x="20"
+      y="128"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="44" y="162">① 更新訂單</text>
+    <text class="order-audit-diagram__body" x="320" y="163"
+      >READY → ON_HOLD；履約版本 7 → 8</text
+    >
+    <text class="order-audit-diagram__body" x="44" y="193"
+      >同交易內的必要寫入</text
+    >
+    <rect
+      class="order-audit-diagram__selected"
+      x="20"
+      y="240"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="44" y="274"
+      >② 新增成功操作紀錄</text
+    >
+    <text class="order-audit-diagram__body" x="320" y="275"
+      >可信操作者、操作 ID、前後狀態與版本</text
+    >
+    <text class="order-audit-diagram__body" x="44" y="305"
+      >同交易內的必要寫入</text
+    >
+    <rect
+      class="order-audit-diagram__row"
+      x="20"
+      y="352"
+      width="860"
+      height="90"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="44" y="386">③ 完成操作收據</text
+    >
+    <text class="order-audit-diagram__body" x="320" y="387"
+      >相同操作重送時，能找回原結果</text
+    >
+    <text class="order-audit-diagram__body" x="44" y="417"
+      >同交易內的必要寫入</text
+    >
+    <rect
+      class="order-audit-diagram__surface"
+      x="20"
+      y="464"
+      width="860"
+      height="102"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="44" y="502"
+      >全部成功才 COMMIT；必要寫入失敗就 ROLLBACK</text
+    >
+    <text class="order-audit-diagram__body" x="44" y="536"
+      >外部傳送留到提交之後，離線不會抹去本地紀錄。</text
+    >
+  </svg>
+  <svg
+    class="order-audit-diagram__mobile"
+    viewBox="0 0 288 716"
+    role="img"
+    aria-labelledby="order-audit-mobile-title order-audit-mobile-desc"
+  >
+    <title id="order-audit-mobile-title">訂單與操作紀錄共同提交</title>
+    <desc id="order-audit-mobile-desc"
+      >桌面圖的直向排列：同一交易依序更新訂單、插入成功操作紀錄與完成收據。全部成功才提交，必要寫入失敗則整筆回滾。</desc
+    >
+    <rect
+      class="order-audit-diagram__surface"
+      x="2"
+      y="2"
+      width="284"
+      height="108"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="18" y="34"
+      >同一連線，同一筆交易</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="64"
+      >取得操作資格、鎖住訂單，</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="88"
+      >通過授權與狀態檢查。</text
+    >
+    <rect
+      class="order-audit-diagram__row"
+      x="2"
+      y="130"
+      width="284"
+      height="120"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="18" y="164">① 更新訂單</text>
+    <text class="order-audit-diagram__body" x="18" y="196">READY → ON_HOLD</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="224">履約版本 7 → 8</text>
+    <rect
+      class="order-audit-diagram__selected"
+      x="2"
+      y="270"
+      width="284"
+      height="120"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="18" y="304"
+      >② 新增成功操作紀錄</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="336"
+      >操作者、操作 ID、</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="364">前後狀態與版本</text>
+    <rect
+      class="order-audit-diagram__row"
+      x="2"
+      y="410"
+      width="284"
+      height="120"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="18" y="444">③ 完成操作收據</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="476"
+      >相同操作重送時，</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="504">能找回原結果。</text>
+    <rect
+      class="order-audit-diagram__surface"
+      x="2"
+      y="550"
+      width="284"
+      height="164"
+      rx="12"></rect>
+    <text class="order-audit-diagram__title" x="18" y="582">全部成功才提交</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="614"
+      >必要寫入失敗，整筆回滾。</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="648"
+      >外部傳送在提交之後；</text
+    >
+    <text class="order-audit-diagram__body" x="18" y="680"
+      >離線仍保有本地紀錄。</text
+    >
+  </svg>
+  <figcaption id="order-audit-caption">
+    同交易保證必要資料一起成功。它不保證外部查詢已同步，也不代表高權限帳號無法竄改。
+  </figcaption>
+</figure>
+<style>
+  .order-audit-diagram {
+    margin: 2rem 0;
+    font-family: var(--font-body);
+  }
+  .order-audit-diagram__desktop,
+  .order-audit-diagram__mobile {
+    width: 100%;
+    height: auto;
+  }
+  .order-audit-diagram__desktop {
+    display: block;
+  }
+  .order-audit-diagram__mobile {
+    display: none;
+  }
+  .order-audit-diagram__surface {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .order-audit-diagram__row {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .order-audit-diagram__selected {
+    fill: #edf3e8;
+    stroke: #5b7546;
+  }
+  .order-audit-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 21px;
+    font-weight: 800;
+  }
+  .order-audit-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .order-audit-diagram__mobile .order-audit-diagram__title {
+    font-size: 17px;
+  }
+  .order-audit-diagram__mobile .order-audit-diagram__body {
+    font-size: 15px;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .order-audit-diagram__selected {
+    fill: #263722;
+    stroke: #9cbe7e;
+  }
+  @media (max-width: 48rem) {
+    .order-audit-diagram__desktop {
+      display: none !important;
+    }
+    .order-audit-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
