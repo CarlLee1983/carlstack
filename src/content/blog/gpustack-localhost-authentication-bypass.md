@@ -1,5 +1,5 @@
 ---
-title: "GPUStack 漏洞讓反向代理流量取得管理權限"
+title: "GPUStack 本機驗證繞過漏洞"
 description: "GPUStack CVE-2026-102895 已列入 KEV。核對 2.2.0 修補版本、loopback 與轉送標頭的利用條件，整理暫時緩解、升級驗收及管理 API key 的調查方式。"
 publishDate: 2026-11-10T10:25:43+08:00
 draft: false

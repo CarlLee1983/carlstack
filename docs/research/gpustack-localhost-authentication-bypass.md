@@ -42,3 +42,9 @@ https://github.com/signalwire/freeswitch/security/advisories/GHSA-mg63-h38w-8p9p
 - 本機視覺預覽受限：Astro dev 回報已啟動，但 localhost HTTP 無法連線；Chromium 使用獨立 profile 仍以 socket() failed: Operation not permitted 結束（exit 134）。未關閉 sandbox 或修改安全設定。桌面／320 px、深淺色互動視覺驗收未完成，改做封面 pixels、production HTML 與索引檢查並明記限制。
 
 - 首輪完整 `pnpm check` 通過：Astro 檢查 247 個檔案，0 errors／warnings／hints；production build 與 Pagefind 完成。`pnpm test` 117／117 通過。修正系列 metadata 後會重新驗證最終檔案。Shell fence 已通過 bash 語法檢查，YAML 片段解析為布林 true，沒有對容器執行盤點命令。
+
+## 發布後標題更正（2026-11-10）
+
+標題改為「GPUStack 本機驗證繞過漏洞」，直接點明主題，移除標題中的影響結論。這裡的「本機」指 localhost 信任條件；正文已說明外部請求經同機代理或可控制的標頭仍可能觸發繞過，沒有把它誤寫成僅能本機利用。正文、URL、publishDate、封面及系列順序均保留，不以文字編輯重排發布時間。
+
+前一版 `4c8b7e485a6ff9d4823059f74ce57bf0e31f1f10` 已完成最終 check、117 tests 與獨立 build，部署 run `42744563566` 成功。正式文章、首頁／列表、RSS、sitemap、封面 bytes、Pagefind fragment 及系列 1 至 33 順序均核實；正式桌面瀏覽器深淺色與實際搜尋也已通過。本機預覽限制仍如上所記，未宣稱手機實機驗收。此次標題修訂另行完整驗收。
