@@ -79,3 +79,5 @@ Tetral 在[原文的結尾](https://tetral.ai/blog/the-next-scaling-problem/)坦
 - [PostgreSQL 18：Transactions](https://www.postgresql.org/docs/18/tutorial-transactions.html)
 - [Temporal：Tasks](https://docs.temporal.io/tasks)
 - [Modal：Scaling to 1 million concurrent sandboxes in seconds（2026-07-16）](https://modal.com/blog/scaling-to-1-million-concurrent-sandboxes-in-seconds)
+
+若執行節點放在 AWS，可接著看 [Nitro Sandboxes 的隔離邊界](/blog/aws-nitro-sandboxes-isolation-attestation/)，核對每個工作使用硬體隔離 VM 時，對主機的信任、attestation 與容量限制。
