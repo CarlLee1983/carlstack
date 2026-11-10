@@ -9,7 +9,7 @@ tags:
   - 資訊安全
   - 軟體品質
 series: 現代網路協定與 API 平台架構
-seriesOrder: 31
+seriesOrder: 32
 cover: ../../assets/covers/github-actions-log-secret-scanning.webp
 coverAlt: "紙帶日誌通過檢查裝置後落入托盤，放大鏡找到紅色鑰匙，旁邊未響的鈴提醒告警仍需要人員查看。"
 ---

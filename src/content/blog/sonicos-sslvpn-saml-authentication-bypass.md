@@ -9,7 +9,7 @@ tags:
   - 事件應變
   - 系統設計
 series: 現代網路協定與 API 平台架構
-seriesOrder: 29
+seriesOrder: 30
 cover: ../../assets/covers/sonicos-sslvpn-saml-authentication-bypass.webp
 coverAlt: "米白陶瓷模型的兩條入口通往同一庭院：左側設兩道閉門，右側僅有一道插著鑰匙的開門，比喻替代驗證仍需有效憑證，卻可能未套用相同的登入政策。"
 ---

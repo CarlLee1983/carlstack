@@ -10,7 +10,7 @@ tags:
   - 事件應變
   - 系統設計
 series: 現代網路協定與 API 平台架構
-seriesOrder: 28
+seriesOrder: 29
 cover: ../../assets/covers/alpine-openssh-password-authentication-bypass.webp
 coverAlt: "薄荷綠山景前的白色紙雕城門，門閂出現星形缺口，旁邊懸著尚未裝上的紅色修補片"
 ---

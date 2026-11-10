@@ -4,7 +4,7 @@
 
 - 起點 main：`11772b1`。以完整主來源 URL、穩定 slug `2026-11-09-secret-scanning-detects-secrets-in-github-actions-workflow-logs`、Actions workflow logs、secret scanning 與中文關鍵字搜尋 `src/content/blog`、`docs/research`、`docs/article-queue.md`，未有同題。GitHub open PR 清單為空。已與其他兩篇進行中稿件確認無重複。
 - 既有 Actions lockfile 文處理依賴版本與審查，新文處理執行後的秘密輸出、預覽限制與事件處理，讀者收穫不同。兩篇互相內鏈，不改既有 publishDate，也不為單純內鏈新增 updatedDate。
-- 新文納入「現代網路協定與 API 平台架構」第 31 篇，GPUStack 稿預留第 32 篇。推送前再確認最新 main 與系列順序，僅非 force 推送。
+- 新文納入「現代網路協定與 API 平台架構」第 32 篇，GPUStack 稿預留第 33 篇。推送前再確認最新 main 與系列順序，僅非 force 推送。
 - 使用隔離 checkout，不修改其他稿件與站台設定。`trail` 與 `.trail/cache` 不可用，依 AGENTS、內容指南、schema 與 repository skills 查閱脈絡。
 
 ## 一手來源與結論
@@ -55,4 +55,8 @@
 
 已整合先發布的 Nitro main `f736123bdf3bdfe60cc96e81e835ce5c78a34222`，重新完成 frozen install、format、stage、content policy、check、117 項測試與獨立 final build。check 的 Astro 診斷為 0 errors、0 warnings、0 hints。過程中兩次 build 被環境以 exit 137 終止；最後用 1024 MB Node heap、兩條 worker threads 與圖片處理執行緒重跑成功，未停用檢查或改動站台設定。
 
-最終 dist 已驗證唯一 h1、正式 canonical、主來源 URL、封面檔案／尺寸／alt、首頁、文章列表、RSS、sitemap、系列第 31 篇、對應文章的 Pagefind fragment，以及 Actions lockfile 文的雙向內鏈。Pagefind 輸出 776 個頁面，既有 zh-hant stemming 提示與 thrift／redis 高亮 fallback 不影響本篇驗收。正式部署仍需以遠端 commit 的 workflow 與公開網址另行驗證。
+最終 dist 已驗證唯一 h1、正式 canonical、主來源 URL、封面檔案／尺寸／alt、首頁、文章列表、RSS、sitemap、系列第 32 篇、對應文章的 Pagefind fragment，以及 Actions lockfile 文的雙向內鏈。Pagefind 輸出 776 個頁面，既有 zh-hant stemming 提示與 thrift／redis 高亮 fallback 不影響本篇驗收。正式部署仍需以遠端 commit 的 workflow 與公開網址另行驗證。
+
+## 系列順序驗收補記（2026-11-10）
+
+完整 YAML 解析發現 Go JSON v2 與 Alpine OpenSSH 原本同為 28。依既有發布日期，保留 Go 28，僅調整 Alpine／SonicOS／Synology／本篇為 29–32，GPUStack 新文接 33。既有 publishDate、正文與封面不變。最終排序以完整 frontmatter 值核對，不以是否有引號的文字搜尋判斷。

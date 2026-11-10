@@ -9,7 +9,7 @@ tags:
   - 事件應變
   - 系統設計
 series: 現代網路協定與 API 平台架構
-seriesOrder: 30
+seriesOrder: 31
 cover: ../../assets/covers/synology-plex2shell-patch-and-compromise.webp
 coverAlt: "深紫色工作桌上的陶土色 NAS，掀起的外殼露出硬碟槽與檢查燈，旁邊放著替換零件，呈現修補後繼續檢查裝置的情境。"
 ---
