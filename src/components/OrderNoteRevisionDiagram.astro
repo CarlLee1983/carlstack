@@ -1,0 +1,249 @@
+<figure class="note-revision-diagram" aria-labelledby="note-revision-caption">
+  <svg
+    class="note-revision-diagram__desktop"
+    viewBox="0 0 900 590"
+    role="img"
+    aria-labelledby="note-revision-title note-revision-desc"
+  >
+    <title id="note-revision-title">同一版衍生的兩次儲存</title>
+    <desc id="note-revision-desc"
+      >甲與乙都讀到備註版本 7。甲先以版本 7 更新並提交版本 8。乙仍以版本 7
+      儲存，因此更新零列。乙的草稿保留，讀完新版後由乙確認內容再送出。</desc
+    >
+    <rect
+      class="note-revision-diagram__surface"
+      x="20"
+      y="20"
+      width="860"
+      height="86"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="44" y="55"
+      >甲與乙都從版本 7 開始編輯</text
+    >
+    <text class="note-revision-diagram__body" x="44" y="84"
+      >頁面保留讀取版本，編輯期間不持有資料庫交易。</text
+    >
+    <rect
+      class="note-revision-diagram__accepted"
+      x="20"
+      y="128"
+      width="860"
+      height="100"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="44" y="164">① 甲先儲存</text>
+    <text class="note-revision-diagram__body" x="310" y="164"
+      >預期 7，主庫也是 7</text
+    >
+    <text class="note-revision-diagram__body" x="44" y="200"
+      >更新一列並提交：電話紀錄保留下來，版本成為 8。</text
+    >
+    <rect
+      class="note-revision-diagram__conflict"
+      x="20"
+      y="250"
+      width="860"
+      height="100"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="44" y="286"
+      >② 乙晚一步儲存</text
+    >
+    <text class="note-revision-diagram__body" x="310" y="286"
+      >預期 7，主庫已經是 8</text
+    >
+    <text class="note-revision-diagram__body" x="44" y="322"
+      >更新零列：主庫不變，乙的草稿留在畫面。</text
+    >
+    <rect
+      class="note-revision-diagram__row"
+      x="20"
+      y="372"
+      width="860"
+      height="100"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="44" y="408"
+      >③ 乙讀完新版再確認</text
+    >
+    <text class="note-revision-diagram__body" x="44" y="444"
+      >整理自己的文字與甲的電話紀錄，帶這次看過的版本重新送出。</text
+    >
+    <rect
+      class="note-revision-diagram__surface"
+      x="20"
+      y="494"
+      width="860"
+      height="76"
+      rx="12"></rect>
+    <text class="note-revision-diagram__body" x="44" y="537"
+      >不能只替換成版本 8，自動重送乙的舊草稿。</text
+    >
+  </svg>
+  <svg
+    class="note-revision-diagram__mobile"
+    viewBox="0 0 288 660"
+    role="img"
+    aria-labelledby="note-revision-mobile-title note-revision-mobile-desc"
+  >
+    <title id="note-revision-mobile-title">同版儲存的衝突處理</title>
+    <desc id="note-revision-mobile-desc"
+      >桌面圖的直向排列。甲與乙讀到版本 7，甲先提交
+      8。乙的舊版更新被拒絕，保留草稿並讀取新版，確認後才重新儲存。</desc
+    >
+    <rect
+      class="note-revision-diagram__surface"
+      x="2"
+      y="2"
+      width="284"
+      height="110"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="18" y="34"
+      >甲與乙都讀到版本 7</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="65"
+      >畫面保留讀取版本。</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="90"
+      >編輯時不佔用交易。</text
+    >
+    <rect
+      class="note-revision-diagram__accepted"
+      x="2"
+      y="132"
+      width="284"
+      height="130"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="18" y="164">① 甲先儲存</text>
+    <text class="note-revision-diagram__body" x="18" y="190"
+      >預期 7，主庫也是 7</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="214"
+      >更新一列並提交版本 8。</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="238"
+      >電話紀錄已保存。</text
+    >
+    <rect
+      class="note-revision-diagram__conflict"
+      x="2"
+      y="282"
+      width="284"
+      height="130"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="18" y="314"
+      >② 乙晚一步儲存</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="340"
+      >預期 7，主庫已經是 8</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="364"
+      >更新零列，主庫不變。</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="388"
+      >乙的草稿保留。</text
+    >
+    <rect
+      class="note-revision-diagram__row"
+      x="2"
+      y="432"
+      width="284"
+      height="130"
+      rx="12"></rect>
+    <text class="note-revision-diagram__title" x="18" y="464"
+      >③ 乙讀完新版再確認</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="490"
+      >整理雙方內容，</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="514"
+      >帶這次看過的版本，</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="538"
+      >重新送出修改。</text
+    >
+    <rect
+      class="note-revision-diagram__surface"
+      x="2"
+      y="582"
+      width="284"
+      height="76"
+      rx="12"></rect>
+    <text class="note-revision-diagram__body" x="18" y="608"
+      >不能只替換成版本 8，</text
+    >
+    <text class="note-revision-diagram__body" x="18" y="632"
+      >自動重送乙的舊草稿。</text
+    >
+  </svg>
+  <figcaption id="note-revision-caption">
+    版本條件把舊畫面擋下來。重新送出前，操作者要看過新的內容。
+  </figcaption>
+</figure>
+<style>
+  .note-revision-diagram {
+    margin: 2rem 0;
+    font-family: var(--font-body);
+  }
+  .note-revision-diagram__desktop,
+  .note-revision-diagram__mobile {
+    width: 100%;
+    height: auto;
+  }
+  .note-revision-diagram__desktop {
+    display: block;
+  }
+  .note-revision-diagram__mobile {
+    display: none;
+  }
+  .note-revision-diagram__surface {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .note-revision-diagram__row {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+  }
+  .note-revision-diagram__accepted {
+    fill: #f3f1e8;
+    stroke: #8f793b;
+  }
+  .note-revision-diagram__conflict {
+    fill: #fcece8;
+    stroke: #b3513d;
+  }
+  .note-revision-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 21px;
+    font-weight: 800;
+  }
+  .note-revision-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 17px;
+  }
+  .note-revision-diagram__mobile .note-revision-diagram__title {
+    font-size: 17px;
+  }
+  .note-revision-diagram__mobile .note-revision-diagram__body {
+    font-size: 15px;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+  :global(:root[data-theme="dark"]) .note-revision-diagram__accepted {
+    fill: #373225;
+    stroke: #c7b170;
+  }
+  :global(:root[data-theme="dark"]) .note-revision-diagram__conflict {
+    fill: #402923;
+    stroke: #e29b89;
+  }
+  @media (max-width: 48rem) {
+    .note-revision-diagram__desktop {
+      display: none !important;
+    }
+    .note-revision-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>

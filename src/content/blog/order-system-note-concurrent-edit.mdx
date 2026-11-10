@@ -1,0 +1,213 @@
+---
+title: "訂單備註的同時編輯"
+description: "兩位客服從同一份備註開始修改，後存的人可能蓋掉前一人的內容。用讀取版本與條件更新擋住舊畫面，並設計衝突提示、重試規則與可重現的驗證。"
+publishDate: 2026-11-10T09:05:57+08:00
+draft: false
+featured: false
+tags: [系統設計, MySQL, 資料一致性]
+series: 系統設計每日實戰
+seriesOrder: 27
+cover: ../../assets/covers/order-system-note-concurrent-edit.webp
+coverAlt: "兩支不同顏色的鉛筆朝向同一本備註本，一支已畫下紅線，另一支在直立紅色標籤前停住，呈現共用內容改過後先停下確認的情境。"
+---
+
+import OrderNoteRevisionDiagram from "../../components/OrderNoteRevisionDiagram.astro";
+
+兩位客服打開同一張訂單，看到的內部備註都是「待回覆」。甲改成「已致電，明早再聯絡」並儲存。乙的畫面還停在舊內容，他把備註改成「已寄信」後按下儲存，甲留下的電話紀錄就消失了。
+
+資料庫可以把兩次寫入排好順序，仍然照單全收。乙的請求需要帶上「我是在第幾版上修改」，伺服器才能知道他尚未看過甲的內容。今天要決定的，就是遇到這種舊畫面時，系統應該接受、拒絕，還是嘗試合併。
+
+這是「系統設計每日實戰」第 27 課。[出貨資料的凍結時點](/blog/order-system-fulfillment-address/)已經用過預期版本，這次把人員編輯期間的衝突單獨拆開，不增加訊息佇列或分散式鎖。
+
+> [!NOTE]
+> 商店、人員操作、資料量與驗收門檻都是教學假設。MySQL 8.4 文件於 2026 年 11 月 10 日查核。下方 SQLite 程式驗證版本條件、舊內容被拒絕及回滾，沒有執行 MySQL 併發、網頁端或效能測試。
+
+## 先限定備註的用途
+
+沿用模組化單體與單一 MySQL 寫入主庫。備註是客服內部的短文字，最多 2,000 個 UTF-8 bytes，不會成為倉庫作業指令，也不決定付款、退款或出貨狀態。正式留言系統若需要每則訊息各自保存，可以另選追加紀錄的模型，後面再比較。
+
+假設每個租戶的客服有權查看並編輯該租戶所有訂單，伺服器每次請求都驗證登入身分與客服角色，從可信登入上下文取得 `tenant_id`。訂單以 `(tenant_id, id)` 唯一識別。版本只判斷內容是否過期，不提供任何權限。
+
+產品要求很明確：
+
+- 同一版備註衍生的兩份修改，最多一份能直接儲存成功。
+- 拒絕舊版修改時保留操作者的草稿，讓他讀完新版再決定內容。
+- 只修改付款狀態時，不該讓正在編輯的備註無故衝突。
+
+因此新增專屬欄位 `note_revision`。備註每次接受儲存就加一，其他欄位有自己的變更規則。即使儲存的文字剛好相同，也照樣加一，讓一次被接受的儲存有明確的新版本。
+
+## 一次 UPDATE 同時核對與修改
+
+讀取編輯頁時，把備註與版本從同一次查詢回傳，前端保留原始版本。送出時帶的是 `expected_revision`，不能由前端決定要寫入的新版本。
+
+下面是參數化 SQL 概念片段。省略框架、身分驗證與完整資料表定義，`?` 依序由資料庫 driver 綁定。所有相關表使用 InnoDB。
+
+```sql
+UPDATE orders
+SET internal_note = ?,
+    note_revision = note_revision + 1
+WHERE tenant_id = ?
+  AND id = ?
+  AND note_revision = ?;
+```
+
+這種「預期值還一樣才更新」的做法常稱為樂觀併發控制。比較與更新必須放在同一個資料庫動作裡。若先用普通 `SELECT` 比版本，接著只用 `id` 更新，兩個動作之間仍然可能插入另一筆修改。
+
+<OrderNoteRevisionDiagram />
+
+driver 回報恰好一列更新，而且交易確認提交後，API 才能回覆成功與這次產生的版本。不要在提交後另查一遍，再把別人剛寫入的內容當成這次儲存的回應。需要的成功操作紀錄也跟著同一筆交易完成，規則沿用[訂單操作紀錄的交易設計](/blog/order-system-transactional-audit/)。
+
+[MySQL UPDATE 文件](https://dev.mysql.com/doc/refman/8.4/en/update.html)說明，通常回報的是實際變更列數，設定成原值的欄位不算變更。這裡每次成功都遞增版本，因此即使文字沒變，也會產生資料變更。仍應確認使用的 driver 回傳欄位與設定，不把「執行沒有拋錯」當成一列更新。
+
+`note_revision` 可定義為 `BIGINT UNSIGNED NOT NULL DEFAULT 0`。API 若經過 JavaScript，將版本以十進位字串傳送並驗證格式，避免超過 [JavaScript 的安全整數範圍](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER)後失去精度。版本不重設、不回收，也不用秒級時間戳替代。同一秒內的兩次修改仍應有不同版本。
+
+### 樂觀控制仍然會拿寫鎖
+
+InnoDB 的 `UPDATE` 仍會鎖定要更新的資料。使用完整唯一鍵搜尋，可以讓查找與鎖定範圍保持明確。[MySQL 的鎖定文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html)說明了不同查找方式的鎖定行為。
+
+這個方案省掉的是人員編輯期間的長交易。甲可能開著頁面五分鐘，不需要讓資料庫連線與列鎖跟著等待。真正儲存時才開短交易、核對版本、完成寫入。
+
+若既有流程先 `SELECT ... FOR UPDATE`，也可以保留。取得鎖後仍須把目前版本與乙帶來的版本比較。只鎖住最新資料，再無條件寫進舊畫面的內容，依然會蓋掉甲的修改。
+
+## 更新零列時，畫面該怎麼辦
+
+零列不一定代表有人搶先修改。訂單可能不存在，也可能不在呼叫者的租戶範圍。伺服器先依既有政策處理不可見的訂單，不向無權限的人透露備註或版本。
+
+對有權限的訂單，可以結束失敗的寫入交易，再開新的主庫讀取，取得現在的備註與版本，提供衝突提示。這次讀取描述的是查詢當時的狀態，未必能還原剛才更新失敗的瞬間。不要沿用舊交易的快照，也不要從延遲副本載入恢復編輯用的內容。
+
+自訂 API 若用 JSON 傳 `expected_revision`，可以約定以 `409 Conflict` 回報版本衝突，回應內放可辨識的錯誤類型。這是產品的介面設計。若改用 HTTP `ETag`／`If-Match`，[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)要求使用強比較，條件不成立通常回覆 `412 Precondition Failed`。這裡先維持 JSON 契約。
+
+前端將三份內容分開顯示或暫存：當初讀到的內容、現在主庫的內容，以及自己尚未儲存的草稿。乙看完甲的電話紀錄後，可以重新整理成「已致電，明早再聯絡；另已寄信」。再次送出時，才使用他這次看過的版本。
+
+**衝突後不能只換成最新版本，再自動重送原草稿。** 那等於替乙做出覆寫甲的決定。若乙確認期間又有人修改，新的請求仍要再次檢查版本。
+
+如果這個欄位日後變成出貨指令，還需在同一個原子決策裡檢查履約是否已凍結。`note_revision` 相同，只能證明備註沒被其他遵守協定的寫入者改過。
+
+## 三個常見替代方案
+
+### 最後儲存的人覆蓋
+
+實作最少，適合產品明確接受覆寫的資料，例如不重要的個人顯示偏好。客服備註可能記載尚未完成的聯絡工作，這裡選擇拒絕靜默覆寫，代價是偶爾要由人整理衝突。
+
+### 開啟頁面就鎖住訂單
+
+讓另一位客服等候，看似能避免衝突，但頁面關閉、斷網與忘記離開都要處理。若直接使用資料庫交易鎖，還會長時間佔用連線與鎖。應用層的編輯預約也有到期與接手問題，不是加一個「正在編輯」欄位就結束。
+
+在必須由單人負責的流程，編輯預約可能合理。現在的需求只是低頻的短備註，不值得先加入這套生命週期。
+
+### 每次都追加一則留言
+
+甲的電話紀錄與乙的信件紀錄成為不同資料列，兩次新增通常不必互相覆蓋。若產品要的是持續累積的客服對話紀錄，這甚至可能比可覆寫備註更合適。
+
+代價是要設計列表、查找、修正與刪除規則，使用者也不再共同編輯一段摘要。先釐清要保留的是「所有聯絡事件」還是「目前的交接摘要」，再選資料模型。
+
+## 成本先估到能驗證
+
+假設一天 10,000 次備註儲存，尖峰每秒 20 次，共保存 100 萬張訂單。這些數字只是練習輸入。
+
+- 依 [MySQL 整數型別文件](https://dev.mysql.com/doc/refman/8.4/en/integer-types.html)，`BIGINT` 占 8 bytes，版本欄位的原始值合計約 `1,000,000 × 8 = 8,000,000 bytes`，也就是 7.63 MiB。尚未計資料列、頁面、索引、日誌、複本與備份。
+- 如果每份文字都達 2,000 bytes 上限，尖峰的文字輸入量約 `20 × 2,000 = 40,000 bytes/s`，約 39.1 KiB/s。這不是網路或資料庫實測吞吐量。
+- 若先以 1% 的修改衝突率作為容量假設，一天約有 100 次衝突提示。它說明應該把恢復編輯做好，不能據此推算資料庫的鎖等待時間。
+
+版本更新本身不需要再建一個以版本為開頭的索引，先用訂單唯一鍵找到一列，再核對版本即可。實際驗證時看尖峰延遲、鎖等待與熱門訂單的衝突分布。全站只有 1% 衝突，也可能集中在同一張問題訂單。
+
+## 重試要保留原來的閱讀上下文
+
+資料庫 deadlock、lock wait timeout 與版本不符是不同結果。[MySQL 錯誤處理文件](https://dev.mysql.com/doc/refman/8.4/en/innodb-error-handling.html)說明，deadlock 會回滾整筆交易，預設 lock wait timeout 則可能只回滾目前 statement。應用統一清理整筆交易後，才依有限次數與退避政策重試。
+
+重試仍使用原來的 `expected_revision` 與文字。如果等待期間已有其他人提交，下一次會得到版本衝突，交回使用者處理。不能為了讓重試成功而偷偷讀取新版、替換條件。
+
+另一個情況是 `COMMIT` 已送出，連線卻斷了。當下不能確定提交結果，也不能只因看到相同文字就認定是自己的操作成功。需要精確重放原結果時，沿用[下單操作收據](/blog/order-system-idempotency-receipt/)的同交易收據設計，讓每次邏輯操作有可查詢的身分。版本條件負責防止舊內容覆寫，收據負責辨識自己的操作結果。
+
+背景修正、批次工具與 ORM 更新也要使用同一協定。尤其不要載入整張訂單後，把舊 entity 的所有欄位寫回。這個端點只改備註與其版本，才不會順便蓋掉付款或履約狀態。
+
+## 先跑一個小模型
+
+將程式存成 `note_revision_demo.py`，執行 `python3 note_revision_demo.py`。SQLite 是這段測試的執行工具，兩位操作者以先後送出、共用舊版本的方式模擬。它足以驗證條件更新的結果，不模擬 InnoDB 的鎖等待。
+
+```python
+import sqlite3
+
+db = sqlite3.connect(":memory:")
+db.execute("""
+    CREATE TABLE orders (
+        tenant_id INTEGER NOT NULL,
+        id INTEGER NOT NULL,
+        internal_note TEXT NOT NULL,
+        note_revision INTEGER NOT NULL,
+        PRIMARY KEY (tenant_id, id)
+    )
+""")
+db.execute("INSERT INTO orders VALUES (3, 42, '待回覆', 7)")
+db.commit()
+
+def save(tenant_id, expected_revision, text):
+    return db.execute("""
+        UPDATE orders
+        SET internal_note = ?, note_revision = note_revision + 1
+        WHERE tenant_id = ? AND id = 42 AND note_revision = ?
+    """, (text, tenant_id, expected_revision)).rowcount
+
+def current():
+    return db.execute("""
+        SELECT internal_note, note_revision FROM orders
+        WHERE tenant_id = 3 AND id = 42
+    """).fetchone()
+
+with db:
+    assert save(3, 7, "已致電，明早再聯絡") == 1
+with db:
+    assert save(3, 7, "已寄信") == 0
+    assert save(99, 8, "錯誤租戶") == 0
+assert current() == ("已致電，明早再聯絡", 8)
+
+with db:
+    assert save(3, 8, "已致電，明早再聯絡") == 1
+assert current() == ("已致電，明早再聯絡", 9)
+
+try:
+    with db:
+        assert save(3, 9, "尚未提交") == 1
+        raise RuntimeError("simulate failure before commit")
+except RuntimeError:
+    pass
+assert current() == ("已致電，明早再聯絡", 9)
+db.close()
+print("PASS: stale edit, tenant scope, same text, rollback")
+```
+
+這段程式已原樣執行，得到最後一行 `PASS`。接到實際 MySQL API 後，還要完成以下驗收：
+
+1. 兩條連線都帶版本 7。甲更新後先不提交，乙嘗試更新。甲提交時，乙最終不得覆寫甲。另跑甲回滾的情境，確認乙可以按原版本成功。
+2. 從兩個瀏覽器頁面送出，確認拒絕時草稿還在，重新整理不會把草稿直接丟掉。使用者確認合併後再儲存。
+3. 改用不同租戶、失效角色與不存在的訂單，確認回應不洩漏內容。輪流從客服端、批次與 ORM 入口修改，確認沒有繞過版本檢查。
+4. 在提交前後注入連線中斷，分清確定回滾與結果待確認。若啟用收據，檢查重放不會多產生一筆成功操作。
+
+驗收重點是舊版本不能靜默覆寫，以及拒絕後能恢復編輯。延遲目標可先假設為尖峰每秒 20 次儲存時，95% 在 300 ms 內完成，再用包含操作紀錄與收據的完整路徑實測。
+
+## 什麼證據出現才升級
+
+先記錄版本衝突次數、受影響訂單、重新儲存成功比例與使用者放棄次數，避免把驗證錯誤或資料庫故障混進衝突率。
+
+如果同一份摘要經常多人編輯，且人工整理已妨礙客服工作，下一步可以縮小欄位的編輯範圍，或改成留言追加。若產品真的需要多人同時編輯長文、即時看見彼此游標，再評估協作編輯。沒有這些需求時，版本欄位與清楚的衝突畫面已經能解決今天的問題。
+
+## 練習：第三次修改又搶先了
+
+甲與乙都讀到版本 12。甲先存成 13，乙被拒絕。乙讀完版本 13、整理好草稿，正要送出時，丙又把內容存成 14。
+
+請寫出乙第二次請求應帶的版本、伺服器應有的結果，以及前端如何保留他的工作。再說明為什麼伺服器不能代替乙，把條件直接換成 14。
+
+### 參考思路
+
+乙帶的是 13，因為那是他剛才看過的內容。主庫已到 14，所以第二次條件更新仍然失敗。前端保留他的草稿與編輯基礎，載入版本 14，讓他再確認內容。換成 14 後自動重送，會接受一份沒看過丙修改的覆寫。
+
+接著在自己的 API 測試裡固定這個交錯順序。先驗證第二次也會拒絕，再檢查 UI 是否仍保有乙的文字。
+
+## 來源
+
+- [MySQL 8.4：UPDATE Statement](https://dev.mysql.com/doc/refman/8.4/en/update.html)，更新條件、欄位賦值與變更列數。
+- [MySQL 8.4：Locks Set by Different SQL Statements](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html)，UPDATE 與唯一鍵查找的鎖定行為。
+- [MySQL 8.4：InnoDB Error Handling](https://dev.mysql.com/doc/refman/8.4/en/innodb-error-handling.html)，deadlock 與 lock wait timeout 的回滾範圍。
+- [MySQL 8.4：Consistent Nonlocking Reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)，普通讀取的快照行為。
+- [RFC 9110 §13.1.1：If-Match](https://www.rfc-editor.org/rfc/rfc9110.html#name-if-match)，採 HTTP 條件請求時應另外遵循的比較與失敗語義。
+- [Python sqlite3：連線 context manager](https://docs.python.org/3/library/sqlite3.html#how-to-use-the-connection-context-manager)，小模型使用的提交與回滾方式。
