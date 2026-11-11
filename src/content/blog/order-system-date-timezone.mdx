@@ -1,0 +1,157 @@
+---
+title: "訂單查詢的日期與時區"
+description: "客服查詢某一天的訂單時，日期要按哪個時區解讀？以台北與紐約商店說明 UTC 儲存、日期邊界、夏令時間與半開區間，並測試午夜前後的資料歸屬。"
+publishDate: 2026-11-11T08:18:57+08:00
+draft: false
+featured: false
+tags: [系統設計, MySQL, API 整合]
+series: 系統設計每日實戰
+seriesOrder: 28
+cover: ../../assets/covers/order-system-date-timezone.webp
+coverAlt: "藍紫色剪紙構成晝夜與地球背景，中央是沒有刻度的時鐘，右側兩條直立分隔線之間放著三個包裹，表達依時間區間查找訂單。"
+---
+
+import OrderDateTimezoneDiagram from "../../components/OrderDateTimezoneDiagram.astro";
+
+客服選了「11 月 11 日」，卻找不到凌晨零點半成立的訂單。資料庫裡有這筆資料，只是它的 UTC 時間還在 11 月 10 日。若 API 直接拿畫面上的日期比對 UTC 日期，就會漏掉台北當天前八個小時，還多算隔天前八個小時。
+
+這個案例的訂單列表的「一天」按商店時區解讀，由伺服器換成 UTC 起訖時間後查詢。客服人在國外、瀏覽器改了時區，都不應改變同一家商店的查詢結果。
+
+這是「系統設計每日實戰」第 28 課。沿用模組化單體與 MySQL，練習一個容易被藏進日期工具函式的產品規則。
+
+> [!NOTE]
+> 商店、流量與驗收門檻都是教學假設。官方文件於 2026 年 11 月 11 日查核。下方 Python 範例已執行，驗證日期轉換與區間邊界；MySQL SQL 是概念片段，未執行資料庫整合或壓力測試。
+
+## 先定義畫面上的日期
+
+假設平台有台北與紐約商店，商店設定分別使用 `Asia/Taipei` 與 `America/New_York`。客服能查自己租戶的訂單，欄位標籤明寫「成立日期（商店時區）」。
+
+查詢針對 `created_at_utc`，也就是平台接受訂單時記錄的成立時間。付款成功時間、物流通知時間、資料匯入時間有不同欄位，不能在不同頁面偷偷替換。匯入歷史訂單若需要保留外部成立時間，應另定義來源與欄位，不讓匯入程式任意改寫這項契約。
+
+API 接收有效日曆日期，例如 `2026-11-11`。伺服器每次先驗證登入者的租戶與查詢權限，再讀取該商店的時區設定。回應附上本次使用的時區與 UTC 起訖值，讓畫面和客服匯出能顯示一致的範圍。
+
+如果使用者要的是「我目前所在地的今天」，可以做成另一種明確選項，但不能靠瀏覽器自行推測。日期本身沒有指定一個全球唯一的時間區間。
+
+## 把當地日界線換成 UTC
+
+台北的 2026 年 11 月 11 日，對應以下區間：
+
+- 起點：台北 11 月 11 日 00:00，換成 UTC 是 11 月 10 日 16:00。
+- 終點：台北 11 月 12 日 00:00，換成 UTC 是 11 月 11 日 16:00。
+- 查詢條件：包含起點，不包含終點。
+
+<OrderDateTimezoneDiagram />
+
+這種寫法稱為半開區間，記作 `[start, end)`。相鄰兩天可以共用同一個邊界，午夜訂單只會落在後一天。也不用猜資料精度是秒、毫秒還是微秒，再拼出 `23:59:59.999999`。
+
+下面是參數化 SQL 概念片段。`tenant_id` 來自可信登入上下文，兩個時間參數已由應用轉為 UTC，依 driver 的格式規則綁定：
+
+```sql
+SELECT id, created_at_utc, status
+FROM orders
+WHERE tenant_id = ?
+  AND created_at_utc >= ?
+  AND created_at_utc < ?
+ORDER BY created_at_utc, id
+LIMIT 50;
+```
+
+先評估 `(tenant_id, created_at_utc, id)` 複合索引，並以實際資料的 `EXPLAIN ANALYZE` 確認掃描範圍、排序與回表成本。[MySQL 範圍查詢文件](https://dev.mysql.com/doc/refman/8.4/en/range-optimization.html)說明了索引欄位與常數的範圍條件。這裡把換算放在參數上，避免每列先經過時區與日期函式再比較。
+
+同一時間可能有多張訂單，所以排序保留 `id`。需要下一頁時沿用同一組 UTC 邊界，分頁方法可接[既有的 Offset 與 Keyset 說明](/blog/api-pagination-offset-vs-keyset-cursor-architecture/)。這條 SQL 只示範第一頁，沒有承諾跨頁資料快照。
+
+## UTC 儲存仍需要一致的寫入規則
+
+這個案例選 `DATETIME(6)`，欄位名稱明示 UTC。應用先把已知時間點換成 UTC，再寫入沒有 offset 的資料庫值。讀回時按 UTC 解讀，對外序列化成帶 `Z` 或明確 offset 的時間字串。API、worker、匯入工具與 ORM 都要遵守同一規則。
+
+[MySQL 型別文件](https://dev.mysql.com/doc/refman/8.4/en/datetime.html)區分了兩者：`TIMESTAMP` 在存取時依連線時區換算，`DATETIME` 沒有同樣的自動換算。`DATETIME(6)` 也不會替團隊檢查某個值是不是 UTC。因此要測 driver 的序列化行為，不能只看欄位名稱。
+
+若既有系統已使用 `TIMESTAMP`，且所有連線都有可靠的 UTC 設定與測試，就可以維持原方案。沒有必要為了這次查詢改型別。不要在同一條路徑先由 driver 換一次、再由應用減八小時，造成重複換算。
+
+## 一天不一定是 24 小時
+
+紐約在夏令時間切換日會出現 23 或 25 小時的日曆日。求終點時，應先取得「下一個當地日期的開始」，再換成 UTC。若把 UTC 起點直接加 24 小時，會在切換日查錯一小時。
+
+`America/New_York` 是一組依日期適用的時區規則，`-05:00` 只是某個 offset。用固定 offset 代替地區時區，無法表達夏令時間。[IANA](https://www.iana.org/time-zones)會隨各地政策更新時區資料，所以部署時也要記錄及維護實際使用的 tzdata 版本。
+
+下面測台北 11 月 11 日，以及紐約 2026 年 3 月 8 日、11 月 1 日。使用 [Python zoneinfo](https://docs.python.org/3/library/zoneinfo.html) 作為可執行的小模型，不要求 PHP 或 Node 專案改用 Python。把相同測例搬到專案正在用的日期函式庫即可。
+
+```python
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+UTC = timezone.utc
+
+def day_bounds(day, zone_name):
+    # 本模型限於下方測例：兩個午夜都存在且不含歧義。
+    zone = ZoneInfo(zone_name)
+    start = datetime.combine(day, time.min, zone)
+    end = datetime.combine(day + timedelta(days=1), time.min, zone)
+    return start.astimezone(UTC), end.astimezone(UTC)
+
+cases = [
+    (date(2026, 11, 11), "Asia/Taipei", 24),
+    (date(2026, 3, 8), "America/New_York", 23),
+    (date(2026, 11, 1), "America/New_York", 25),
+]
+for day, zone, hours in cases:
+    start, end = day_bounds(day, zone)
+    assert (end - start).total_seconds() == hours * 3600
+    points = [start - timedelta(microseconds=1), start,
+              end - timedelta(microseconds=1), end]
+    assert [start <= point < end for point in points] == [False, True, True, False]
+    next_start, _ = day_bounds(day + timedelta(days=1), zone)
+    assert end == next_start
+    print(day, zone, start.isoformat(), end.isoformat(), hours)
+
+start, end = day_bounds(date(2026, 11, 11), "Asia/Taipei")
+assert start == datetime(2026, 11, 10, 16, tzinfo=UTC)
+assert end == datetime(2026, 11, 11, 16, tzinfo=UTC)
+print("PASS: UTC bounds, 23/24/25 hours, adjacent days, microsecond edges")
+```
+
+程式已原樣執行，三個日期分別得到 24、23、25 小時，最後輸出 `PASS`。時間差是在轉成 UTC 後計算，避免把當地日曆運算誤認為實際經過秒數。
+
+若未來開放更多地區與歷史日期，還要處理午夜不存在、午夜重複，甚至整個日期被跳過的規則。直接替本地時間掛上 `ZoneInfo` 不代表它已驗證所有這些情況。產品應限定可查日期與時區，或選用能明確處理歧義的日期工具，訂出拒絕或採用哪個邊界的政策，再增加對應測例。
+
+## 其他方案適合什麼情況
+
+**所有查詢都採 UTC 日。** 實作最少，也適合工程監控與跨區統一報表。代價是商店看到的「11 月 11 日」不等於當地營業日。若採用，畫面與下載檔要直接標示 UTC，不能仍稱當地今日。
+
+**訂單成立時另存商業日期。** 如果財務已定義每天凌晨四點結帳，或者歷史帳期不能隨商店設定變動，就應把商業日期及政策版本視為正式資料。它增加寫入與更正責任，適合固定帳期需求。今天只是按日曆日找訂單，先保留 UTC 時間與查詢時區即可。
+
+商店修改時區時，本案例採「新查詢使用新設定」，畫面顯示新時區。已開始的匯出則保存原始日期、時區、換算後的 UTC 邊界與相關版本資訊，後續批次沿用這些值。資料內容的跨批次一致性，另依[報表快照設計](/blog/order-system-export-snapshot/)處理。固定日期範圍不會自動固定查詢結果。
+
+## 驗收與成本
+
+假設單一大租戶每天 20,000 張訂單，查詢最多 31 個日曆日，每頁 50 筆。一個月範圍可能涵蓋約 `20,000 × 31 = 620,000` 筆。即使第一頁很快，也不能把整批明細一次載進 API 記憶體。
+
+若每筆回應平均 600 bytes，一頁約 `50 × 600 = 30,000 bytes`，約 29.3 KiB，未計 JSON 外層、協定與壓縮。全範圍約 372 MB 的原始資料量，適合走已有的[受控匯出流程](/blog/order-system-export-admission/)。這些是容量假設，沒有據此宣稱實測吞吐量。
+
+先用每秒 10 次日期查詢、95% 首頁回應在 300 ms 內作為測試目標，並完成以下驗收：
+
+1. 放入起點前一微秒、起點、終點前一微秒與終點四筆訂單，確認只取中間兩筆。切換瀏覽器及應用主機時區，結果仍相同。
+2. 在 MySQL 實際 driver 中寫入再讀回同一時間點，測 UTC 連線設定、ORM cast、秒以下精度及序列化，避免多轉或少轉一次。
+3. 測台北正常日與紐約兩種切換日。缺少時區資料、無效日期或未支援時區時，回覆可辨識錯誤，不默默改用主機時區。
+4. 以最大租戶資料與 31 日範圍查執行計畫及延遲，檢查是否讀了不必要的列。換租戶登入後不得查到原租戶資料。
+
+觀察慢查詢、掃描列數及最常用日期範圍。如果多月彙總已拖慢交易主庫，再評估預先彙總或獨立報表讀取模型。若需求變成固定會計帳期，則重新設計商業日期。兩種升級原因不同，增加資料庫節點不會替你定義「今天」。
+
+## 練習：紐約商店的查詢範圍
+
+客服查紐約商店 2026 年 11 月 1 日成立的訂單。當天當地零點是 UTC 04:00，隔天當地零點是 UTC 05:00。
+
+請寫出 UTC 起訖值與 SQL 比較符號，判斷 `2026-11-02T04:30:00Z` 是否應被查到。若改成起點加 24 小時，會漏掉哪一段？
+
+### 參考思路
+
+範圍是 `created_at_utc >= 2026-11-01T04:00:00Z`，且 `created_at_utc < 2026-11-02T05:00:00Z`，共 25 小時。04:30Z 落在區間內。起點加 24 小時會在隔天 04:00Z 截止，漏掉 04:00Z 至 05:00Z 這一小時。
+
+先在自己的日期查詢測試中加入這四個邊界，再確認畫面是否明寫採用哪個時區。
+
+## 來源
+
+- [MySQL 8.4：DATE、DATETIME 與 TIMESTAMP](https://dev.mysql.com/doc/refman/8.4/en/datetime.html)，型別、精度與連線時區換算。
+- [MySQL 8.4：Range Optimization](https://dev.mysql.com/doc/refman/8.4/en/range-optimization.html)，索引範圍條件。
+- [Python：zoneinfo](https://docs.python.org/3/library/zoneinfo.html)，IANA 時區資料、轉換與重複時間。
+- [IANA Time Zone Database](https://www.iana.org/time-zones)，時區規則與更新來源。

@@ -1,0 +1,171 @@
+<figure class="date-zone-diagram" aria-labelledby="date-zone-caption">
+  <svg
+    class="date-zone-diagram__desktop"
+    viewBox="0 0 900 540"
+    role="img"
+    aria-labelledby="date-zone-title date-zone-desc"
+  >
+    <title id="date-zone-title">台北的一天對應哪段 UTC 時間</title>
+    <desc id="date-zone-desc"
+      >台北十一月十一日零點至十二日零點，對應 UTC
+      十一月十日十六點至十一日十六點。起點包含，終點排除。</desc
+    >
+    <rect
+      class="date-zone-diagram__card"
+      x="12"
+      y="12"
+      width="876"
+      height="516"
+      rx="18"></rect>
+    <text class="date-zone-diagram__title" x="40" y="57"
+      >查詢日期：2026-11-11 · Asia/Taipei</text
+    >
+    <rect
+      class="date-zone-diagram__range"
+      x="40"
+      y="90"
+      width="820"
+      height="130"
+      rx="12"></rect>
+    <text class="date-zone-diagram__title" x="64" y="126">商店當地時間</text>
+    <text class="date-zone-diagram__body" x="64" y="174">11/11 00:00（含）</text
+    >
+    <text class="date-zone-diagram__body" x="612" y="174"
+      >11/12 00:00（不含）</text
+    >
+    <text class="date-zone-diagram__body" x="338" y="260"
+      >兩個日界線分別換成 UTC</text
+    >
+    <rect
+      class="date-zone-diagram__range"
+      x="40"
+      y="294"
+      width="820"
+      height="130"
+      rx="12"></rect>
+    <text class="date-zone-diagram__title" x="64" y="330">資料庫查詢範圍</text>
+    <text class="date-zone-diagram__body" x="64" y="378">≥ 11/10 16:00Z</text>
+    <text class="date-zone-diagram__body" x="612" y="378"
+      >&lt; 11/11 16:00Z</text
+    >
+    <text class="date-zone-diagram__body" x="40" y="480"
+      >相鄰兩天共用日界線，午夜訂單只歸入後一天。</text
+    >
+  </svg>
+  <svg
+    class="date-zone-diagram__mobile"
+    viewBox="0 0 288 560"
+    role="img"
+    aria-labelledby="date-zone-mobile-title date-zone-mobile-desc"
+  >
+    <title id="date-zone-mobile-title">台北日期與 UTC 區間</title>
+    <desc id="date-zone-mobile-desc"
+      >桌面圖的直向排列。台北十一月十一日換算後，包含 UTC
+      十日十六點，排除十一日十六點。</desc
+    >
+    <rect
+      class="date-zone-diagram__card"
+      x="2"
+      y="2"
+      width="284"
+      height="556"
+      rx="12"></rect>
+    <text class="date-zone-diagram__title" x="18" y="36">2026-11-11</text>
+    <text class="date-zone-diagram__body" x="18" y="65"
+      >商店時區：Asia/Taipei</text
+    >
+    <rect
+      class="date-zone-diagram__range"
+      x="14"
+      y="88"
+      width="260"
+      height="152"
+      rx="10"></rect>
+    <text class="date-zone-diagram__title" x="28" y="120">商店當地時間</text>
+    <text class="date-zone-diagram__body" x="28" y="160">11/11 00:00（含）</text
+    >
+    <text class="date-zone-diagram__body" x="28" y="203"
+      >11/12 00:00（不含）</text
+    >
+    <text class="date-zone-diagram__body" x="28" y="280"
+      >兩個日界線分別換成 UTC</text
+    >
+    <rect
+      class="date-zone-diagram__range"
+      x="14"
+      y="312"
+      width="260"
+      height="152"
+      rx="10"></rect>
+    <text class="date-zone-diagram__title" x="28" y="344">資料庫查詢範圍</text>
+    <text class="date-zone-diagram__body" x="28" y="384">≥ 11/10 16:00Z</text>
+    <text class="date-zone-diagram__body" x="28" y="427">&lt; 11/11 16:00Z</text
+    >
+    <text class="date-zone-diagram__body" x="18" y="506"
+      >相鄰兩天共用日界線，</text
+    >
+    <text class="date-zone-diagram__body" x="18" y="535"
+      >午夜訂單只歸入後一天。</text
+    >
+  </svg>
+  <figcaption id="date-zone-caption">
+    起點包含、終點排除。換算時採用商店時區，與客服所在位置無關。
+  </figcaption>
+</figure>
+<style>
+  .date-zone-diagram {
+    margin: 2rem 0;
+    font-family: var(--font-body);
+  }
+  .date-zone-diagram__desktop,
+  .date-zone-diagram__mobile {
+    width: 100%;
+    height: auto;
+  }
+  .date-zone-diagram__desktop {
+    display: block;
+  }
+  .date-zone-diagram__mobile {
+    display: none;
+  }
+  .date-zone-diagram__card {
+    fill: var(--dg-surface-2);
+    stroke: var(--dg-rule);
+  }
+  .date-zone-diagram__range {
+    fill: #eef2ff;
+    stroke: #7482b5;
+  }
+  .date-zone-diagram__title {
+    fill: var(--dg-ink);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .date-zone-diagram__body {
+    fill: var(--dg-ink-2);
+    font-size: 19px;
+  }
+  .date-zone-diagram__mobile .date-zone-diagram__title {
+    font-size: 17px;
+  }
+  .date-zone-diagram__mobile .date-zone-diagram__body {
+    font-size: 15px;
+  }
+  figcaption {
+    margin-top: 0.75rem;
+    font-size: var(--text-sm);
+    color: var(--dg-muted);
+  }
+  :global(:root[data-theme="dark"]) .date-zone-diagram__range {
+    fill: #252e48;
+    stroke: #889bd9;
+  }
+  @media (max-width: 48rem) {
+    .date-zone-diagram__desktop {
+      display: none !important;
+    }
+    .date-zone-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
