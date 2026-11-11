@@ -74,3 +74,5 @@ production_gap:
 對團隊試點，我會把 patch 的行為差異交給另一份驗收。至少確認合法輸入仍得到原本要求的結果，錯誤處理沒有被改成無條件成功，重要功能也沒有被移除。通過新定理，只代表新程式符合新命題，不代表產品需求保持不變。
 
 這裡可以接上[Agent 的驗證能力與程式庫可驗證性](/blog/poteto-agent-trust-investment/)，但試點的完成條件要更具體：選定一個已公開入口，留下產物雜湊、命題、檢查結果與部署差異。差異還沒解釋完，就保留既有測試、fuzzing 和隔離限制，不把「有形式證明」當成整個程式庫的免檢標籤。
+
+Google DeepMind 後續公布的 [AlphaProof Code 驗證範圍](/blog/alphaproof-code-verification-scope/)可作為另一個對照：研究針對 libsignal 的指定執行檔，並分開說明 symbolic 與 computational 證明的假設。
