@@ -138,3 +138,5 @@ adapter 至少確認 `support_queue` 恰有一筆答案、型別符合預期、�
 延伸閱讀：[Cloudflare 證據快照契約](/blog/cloudflare-security-evidence-snapshot-contract/)把缺口與引用納入調查驗收；[GPT-6 可變介面的核准狀態](/blog/gpt6-intelligent-ui-warning-acceptance/)進一步檢查使用者按下確認時，操作目標是否仍與核准內容一致。
 
 若分類器嵌在完整 Agent 任務裡，[CIFAR-10 執行收據案例](/blog/harness-execution-receipt-human-cost/)可以用來檢查分類呼叫是否計入任務費用，以及人工核准是否有獨立紀錄。
+
+Google 的同名產品另見 [Gemini Decisions API 的批次與延遲](/blog/gemini-decisions-batch-latency/)，整理多題共用輸入、效能量測條件與不同的錯誤回應契約。
