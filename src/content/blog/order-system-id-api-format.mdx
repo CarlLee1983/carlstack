@@ -1,0 +1,154 @@
+---
+title: "訂單編號的 API 格式"
+description: "MySQL 能保存的訂單編號，傳到 JavaScript 後未必仍是原值。以 BIGINT 訂單 ID 說明 JSON 字串契約、資料庫驅動轉型、舊版 API 遷移與往返驗證。"
+publishDate: 2026-11-12T08:49:36+08:00
+draft: false
+featured: false
+tags: [系統設計, API 整合, MySQL]
+series: 系統設計每日實戰
+seriesOrder: 29
+cover: ../../assets/covers/order-system-id-api-format.webp
+coverAlt: "暖褐色桌面上三張米白訂單卡各有相同的抽象壓紋，由一條紅色棉線串連，表達訂單識別值跨越系統仍保持一致。"
+---
+
+import OrderIdFormatDiagram from "../../components/OrderIdFormatDiagram.astro";
+
+假設客服從訂單列表點進明細，API 回傳的編號是 `9007199254740993`，瀏覽器送回的卻是 `9007199254740992`。資料庫沒有改過主鍵，問題出在這個值經過 JavaScript `Number`，已經無法保留原來的整數。
+
+資料庫維持整數主鍵，訂單 ID 在 JSON、前端狀態與後續請求中一律使用十進位字串。從資料庫讀出時就要保留精度，不能等回應前才把失真的數字轉成文字。
+
+這是「系統設計每日實戰」第 29 課，沿用模組化單體與 MySQL。這裡討論編號的傳輸格式，編號生成方式可另讀 [Snowflake 與 UUID 的比較](/blog/distributed-unique-id-generator-snowflake-uuidv7/)。
+
+> [!NOTE]
+> 情境、流量及驗收目標都是教學假設。來源於 2026 年 11 月 12 日查核。下方 Node.js 程式已實際執行；資料庫 driver、ORM、瀏覽器與既有 API 的整合測試尚未執行，也沒有壓測結果。
+
+## 這個欄位用來辨識哪一張訂單
+
+假設 `orders.id` 是正值的 `BIGINT UNSIGNED`，不拿它計算金額，也不讓客戶端自行加一取得下一張訂單。API 要支援完整的資料庫 ID 範圍，包含將來匯入的長編號，而非只看現在幾萬筆測試資料。
+
+需求可以寫成三個驗收條件：
+
+- 列表回傳的 ID，經過畫面選取、JSON 序列化與明細請求後，逐字相同。
+- 相鄰兩個合法 ID 保持可區分，不會在前端快取或選取清單合併成一筆。
+- 格式錯誤或超出範圍的輸入回覆 400，不靜默截斷、取整或去掉尾端字元。
+
+[MySQL 8.4 的整數型別文件](https://dev.mysql.com/doc/refman/8.4/en/integer-types.html)列出 `BIGINT UNSIGNED` 上限為 `2⁶⁴ − 1`。JavaScript `Number` 的安全整數上限則是 `2⁵³ − 1`，也就是 `9007199254740991`。超過安全範圍後，部分整數仍可表示，但不能保證相鄰整數都能區分。[MDN 的說明與範例](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER)正好涵蓋這個差異。
+
+JSON 語法允許寫出更長的數字，接收端卻未必能精確解析。[RFC 8259 第 6 節](https://www.rfc-editor.org/rfc/rfc8259#section-6)因此特別說明安全整數範圍內的互通性。只檢查 JSON 是不是合法，攔不住這種錯誤。
+
+## 從資料庫讀出時就保留原值
+
+最小方案不用改資料表主鍵，也不需要加一個 ID 服務。修改資料存取層、回應 DTO 與 API 契約即可。
+
+<OrderIdFormatDiagram />
+
+資料存取層必須取得精確字串，或取得能精確表示的整數型別後再轉成十進位字串。以 mysql2 為例，官方的[連線選項定義](https://github.com/sidorares/node-mysql2/blob/master/typings/mysql/lib/Connection.d.ts)說明，啟用 `supportBigNumbers` 與 `bigNumberStrings` 可讓 BIGINT 欄位以字串回傳。要核對自己鎖定的 driver 版本，並測試一般查詢、預備陳述式及 ORM 包裝後的實際結果。
+
+對外回應固定為以下格式，短 ID 也維持字串：
+
+```json
+{
+  "order_id": "9007199254740993"
+}
+```
+
+前端把 `order_id` 當識別文字，用於路由、選取清單與快取鍵。API schema 明寫 `type: string`，範例也用字串，避免產生的 SDK 又宣告成 `number`。既有 [訂單備註版本](/blog/order-system-note-concurrent-edit/)若同樣使用 BIGINT，也要檢查自己的序列化路徑。
+
+將失真的值包進 `String()` 不會恢復原值。把它轉成 `BigInt` 也只能得到那個已經錯掉的整數。JavaScript 的 BigInt 適合需要精確整數的內部運算，但原生 `JSON.stringify` 預設不能直接序列化 BigInt；明確在 DTO 邊界輸出字串，較容易讓不同語言的客戶端遵守同一規則。[BigInt 文件](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#use_within_json)列出了相關行為。
+
+資料庫查詢仍使用參數綁定，將驗證過的字串交給能精確綁定的 driver。不要先轉 `Number`，也不要串接 SQL。識別值完整只是查對資料的前提，每次明細請求仍須驗證租戶與擁有者權限，沿用[訂單明細授權設計](/blog/order-system-detail-authorization/)。
+
+## 字串也需要明確格式
+
+這個系統只接受正值十進位 ID，長度最多 20 個 ASCII 數字，且不接受前導零。`"00123"`、`"1e3"`、`"123abc"` 與帶空白的字串都回覆格式錯誤。這是此 API 的約定，不適用於所有外部物流單號；有前導零或英文字母的外部編號應保留自己的格式。
+
+以下程式可存成 `order-id-check.mjs`，用 Node.js 執行。它同時示範失真、合法字串往返，以及輸入邊界：
+
+```js
+import assert from "node:assert/strict";
+
+const maxId = 18446744073709551615n;
+function orderId(value) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 20 ||
+    /[^0-9]/u.test(value) ||
+    value[0] === "0" ||
+    BigInt(value) > maxId
+  ) {
+    throw new TypeError("invalid order_id");
+  }
+  return value;
+}
+
+const broken = JSON.parse('{"order_id":9007199254740993}');
+assert.equal(String(broken.order_id), "9007199254740992");
+assert.equal(BigInt(broken.order_id), 9007199254740992n);
+
+const ids = [
+  "1",
+  "9007199254740991",
+  "9007199254740992",
+  "9007199254740993",
+  "18446744073709551615",
+];
+const received = JSON.parse(JSON.stringify(ids.map(orderId)));
+assert.deepEqual(received, ids);
+assert.equal(new Set(received).size, ids.length);
+
+for (const bad of [
+  123,
+  null,
+  "",
+  "0",
+  "01",
+  "-1",
+  "1e3",
+  "1.0",
+  " 1",
+  "1\n",
+  "１２３",
+  "123abc",
+  "18446744073709551616",
+]) {
+  assert.throws(() => orderId(bad), TypeError);
+}
+assert.throws(() => JSON.stringify({ order_id: 1n }), TypeError);
+console.log("PASS: ID precision, round trip, and validation");
+```
+
+這裡先檢查長度與字元，再使用 BigInt 比較上限，解析輸入的工作量也受 20 字元限制。回傳值仍是字串。TypeScript 的型別宣告不會替 HTTP 輸入執行這些驗證。
+
+字串 ID 不適合直接做字典順序排序，例如 `"10"` 會排在 `"2"` 前面。訂單列表由資料庫按指定欄位排序，前端保留回傳順序；需要分頁時使用伺服器提供的游標，不從 ID 加減推算。
+
+## 和數字格式比較成本
+
+如果系統明確將 ID 限制在安全整數範圍內，且所有入口、資料庫與客戶端都能持續驗證上限，JSON number 是可行方案。代價是把這個限制納入長期契約，包括匯入、編號生成及未來整併資料的流程。只以目前資料量很小當理由，沒有約束力。
+
+字串方案多了引號與驗證工作。假設每個列表回傳 100 筆，每筆只有一個 ID，十進位字數完全相同，改成字串會多出 `100 × 2 = 200 bytes` 的未壓縮 JSON。每秒 50 次列表請求，多 `10,000 bytes/s`，約 `9.8 KiB/s`。這只是引號的理論差額，不包含其他欄位、HTTP 標頭及壓縮效果，也不能據此推算延遲。
+
+若需要跨系統生成 ID，還可以評估 UUID 等方案，但那會牽涉索引、唯一性與生成規則。單純要修正 API 精度時，保留現有 BIGINT 主鍵的改動較小。使用 UUID 也不會取代物件層級授權。
+
+## 已上線的 API 怎麼改
+
+若舊 API 的 ID 是 number，直接換成 string 會破壞依賴數字型別的客戶端。先列出網頁、行動 App、批次匯出與外部整合，選擇新版本端點，或新增明確的字串欄位並安排舊欄位退場。每個過渡版本都要有固定 schema，避免同一欄位有時是 number、有時是 string。
+
+過渡期間，舊版若只能處理安全整數，就只能服務符合這項限制的 ID。遇到超限值要回傳可辨識的錯誤並引導升級，不能為了讓舊畫面繼續顯示而回傳近似值。若業務無法接受這個限制，需要另外設計舊版識別碼對照，不能靠型別轉換補救。
+
+在正式導入前，把上面的五個有效 ID 放進獨立測試資料庫，逐一走完 driver、ORM、HTTP 回應、實際前端、明細請求與查詢。比對每一段的原值，而不只比對畫面顯示。再加入跨租戶讀取與無效字串案例，確認失真測試與授權測試各自有效。
+
+驗收目標可以訂為測試集合零失真、零合併、無效輸入全部拒絕。效能另測原有列表 SLO，例如教學目標 p95 低於 300 ms；如果序列化成本明顯增加，先用 profiler 找到實際耗時，不必為了字串 ID 升級成分散式架構。
+
+## 練習
+
+某個舊 SDK 將訂單 ID 宣告為 number。伺服器已改回傳 `"9007199254740993"`，SDK 卻在建立快取鍵前呼叫 `Number(order_id)`。這次修改有完成精度修復嗎？請指出要修改的位置，並設計一個能攔住回歸的測試。
+
+<details>
+<summary>參考思路</summary>
+
+尚未完成。快取鍵建立前的數字轉換仍會丟失精度。SDK 型別、轉換函式、前端狀態及送回伺服器的請求都要保留字串。
+
+測試可以同時讀取 `"9007199254740992"` 與 `"9007199254740993"`，確認快取有兩個不同鍵，點選第二筆後送出的 ID 逐字相同，且伺服器查回第二筆。這比只測一個小整數更能發現問題。若無法同步升級舊 SDK，先定義可識別的版本與退場方式，再切換欄位契約。
+
+</details>

@@ -1,0 +1,192 @@
+<figure class="order-id-diagram" aria-labelledby="order-id-caption">
+  <svg
+    class="order-id-diagram__desktop"
+    viewBox="0 0 900 560"
+    role="img"
+    aria-labelledby="order-id-title order-id-desc"
+  >
+    <title id="order-id-title">訂單編號的三個資料邊界</title>
+    <desc id="order-id-desc"
+      >MySQL 的整數訂單編號經過精確讀取，成為 API
+      和前端的字串，回傳明細請求時保持原值。</desc
+    >
+    <rect
+      class="order-id-diagram__card"
+      x="20"
+      y="20"
+      width="860"
+      height="140"
+      rx="16"></rect>
+    <text class="order-id-diagram__title" x="48" y="58"
+      >1　MySQL 與資料存取層</text
+    >
+    <text class="order-id-diagram__number" x="48" y="100">9007199254740993</text
+    >
+    <text class="order-id-diagram__body" x="440" y="100"
+      >BIGINT → 精確讀取 → 十進位字串</text
+    >
+    <text class="order-id-diagram__body" x="48" y="135"
+      >若 driver 已轉成失真的 Number，後面轉字串也無法補救。</text
+    >
+    <path class="order-id-diagram__arrow" d="M450 166v26m-6-6 6 6 6-6"></path>
+    <rect
+      class="order-id-diagram__card"
+      x="20"
+      y="202"
+      width="860"
+      height="140"
+      rx="16"></rect>
+    <text class="order-id-diagram__title" x="48" y="240"
+      >2　API 回應與前端狀態</text
+    >
+    <text class="order-id-diagram__number" x="48" y="282"
+      >"9007199254740993"</text
+    >
+    <text class="order-id-diagram__body" x="440" y="282"
+      >JSON string → 路由、快取與選取清單</text
+    >
+    <text class="order-id-diagram__body" x="48" y="317"
+      >短 ID 與長 ID 都用字串，避免同一欄位混用型別。</text
+    >
+    <path class="order-id-diagram__arrow" d="M450 348v26m-6-6 6 6 6-6"></path>
+    <rect
+      class="order-id-diagram__card"
+      x="20"
+      y="384"
+      width="860"
+      height="150"
+      rx="16"></rect>
+    <text class="order-id-diagram__title" x="48" y="422"
+      >3　明細請求與資料查詢</text
+    >
+    <text class="order-id-diagram__number" x="48" y="464"
+      >"9007199254740993"</text
+    >
+    <text class="order-id-diagram__body" x="440" y="464"
+      >驗證格式、範圍與權限 → 參數化查詢</text
+    >
+    <text class="order-id-diagram__body" x="48" y="503"
+      >往返後逐字相同，相鄰兩個 ID 仍能區分。</text
+    >
+  </svg>
+  <svg
+    class="order-id-diagram__mobile"
+    viewBox="0 0 288 650"
+    role="img"
+    aria-labelledby="order-id-mobile-title order-id-mobile-desc"
+  >
+    <title id="order-id-mobile-title">訂單編號保持原值</title>
+    <desc id="order-id-mobile-desc"
+      >桌面圖的窄版排列。從資料庫精確讀出編號，API與前端使用字串，再驗證及查詢。</desc
+    >
+    <rect
+      class="order-id-diagram__card"
+      x="4"
+      y="8"
+      width="280"
+      height="186"
+      rx="12"></rect>
+    <text class="order-id-diagram__title" x="20" y="42">1　資料庫讀取</text>
+    <text class="order-id-diagram__number" x="20" y="81">9007199254740993</text>
+    <text class="order-id-diagram__body" x="20" y="116"
+      >BIGINT 精確讀成字串</text
+    >
+    <text class="order-id-diagram__body" x="20" y="147"
+      >driver 若先丟失精度，</text
+    >
+    <text class="order-id-diagram__body" x="20" y="170"
+      >事後轉字串也無法補救。</text
+    >
+    <path class="order-id-diagram__arrow" d="M144 200v24m-6-6 6 6 6-6"></path>
+    <rect
+      class="order-id-diagram__card"
+      x="4"
+      y="232"
+      width="280"
+      height="178"
+      rx="12"></rect>
+    <text class="order-id-diagram__title" x="20" y="266">2　API 與前端</text>
+    <text class="order-id-diagram__number" x="20" y="305"
+      >"9007199254740993"</text
+    >
+    <text class="order-id-diagram__body" x="20" y="340">JSON、路由、快取鍵</text
+    >
+    <text class="order-id-diagram__body" x="20" y="371"
+      >都保留字串，不轉 Number。</text
+    >
+    <path class="order-id-diagram__arrow" d="M144 416v24m-6-6 6 6 6-6"></path>
+    <rect
+      class="order-id-diagram__card"
+      x="4"
+      y="448"
+      width="280"
+      height="190"
+      rx="12"></rect>
+    <text class="order-id-diagram__title" x="20" y="482">3　送回明細請求</text>
+    <text class="order-id-diagram__number" x="20" y="521"
+      >"9007199254740993"</text
+    >
+    <text class="order-id-diagram__body" x="20" y="556"
+      >驗證格式、範圍及權限，</text
+    >
+    <text class="order-id-diagram__body" x="20" y="579">再使用參數化查詢。</text
+    >
+    <text class="order-id-diagram__body" x="20" y="610"
+      >比對往返前後的完整 ID。</text
+    >
+  </svg>
+  <figcaption id="order-id-caption">
+    每個邊界都要保留原值，僅在最後一層轉字串仍可能太晚。
+  </figcaption>
+</figure>
+<style>
+  .order-id-diagram {
+    margin: var(--space-8) 0;
+  }
+  .order-id-diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .order-id-diagram__mobile {
+    display: none !important;
+  }
+  .order-id-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule);
+    stroke-width: 1.5;
+  }
+  .order-id-diagram__title {
+    fill: var(--dg-ink);
+    font: 700 18px var(--font-body);
+  }
+  .order-id-diagram__number {
+    fill: var(--dg-ink);
+    font: 600 18px var(--font-mono);
+  }
+  .order-id-diagram__body {
+    fill: var(--dg-ink-2);
+    font: 400 15px var(--font-body);
+  }
+  .order-id-diagram__arrow {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  figcaption {
+    margin-top: var(--space-3);
+    color: var(--dg-muted);
+    font-size: var(--text-sm);
+  }
+  @media (max-width: 48rem) {
+    .order-id-diagram__desktop {
+      display: none !important;
+    }
+    .order-id-diagram__mobile {
+      display: block !important;
+    }
+    .order-id-diagram__number {
+      font-size: 16px;
+    }
+  }
+</style>
