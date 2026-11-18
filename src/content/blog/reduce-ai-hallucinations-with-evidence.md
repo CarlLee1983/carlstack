@@ -1,8 +1,8 @@
 ---
 title: "如何降低 AI 幻覺：先找證據，再判斷資訊是否足夠"
 description: "把『不知道』、直接引文、資訊充分性檢查與 citations 組成可驗證的回答流程，並用反例測試避免把流暢回答誤當事實。"
-publishDate: 2026-08-31
-draft: true
+publishDate: 2026-11-18T10:07:15+08:00
+draft: false
 featured: false
 tags:
   - AI 工程化
@@ -10,20 +10,20 @@ tags:
   - 軟體品質
 series: Claude Prompt Engineering 實戰
 seriesOrder: 3
-cover: ../../assets/covers/reduce-ai-hallucinations.png
+cover: ../../assets/covers/reduce-ai-hallucinations.webp
 coverAlt: "昏暗研究桌上以放大鏡與燈光檢查一份文件，旁邊放著驗證標記"
 repositoryUrl: https://github.com/anthropics/prompt-eng-interactive-tutorial
 ---
 
 模型最危險的輸出不一定荒謬。更常見的是一段語氣篤定、格式完整，甚至附帶合理數字的回答，但來源根本沒有提供足夠證據。
 
-Anthropic 互動式教程第八章提出兩個方向：允許 Claude 回答不知道，以及要求它在回答前先找證據。這些原則現在仍然成立，但不能只把 Prompt 加上「不要幻覺」就當成可靠性機制。
+[Anthropic 互動式教程](https://github.com/anthropics/prompt-eng-interactive-tutorial)第八章提出兩個方向：允許 Claude 回答不知道，以及要求它在回答前先找證據。本文於 2026 年 11 月 18 日核對官方文件與教材討論，沒有重跑教材模型，也未自行量測幻覺率。這些原則仍可作為設計起點，但不能只把 Prompt 加上「不要幻覺」就當成可靠性機制。
 
 ## 流暢度不是信心，更不是證據
 
 語言模型的工作是產生符合上下文的輸出。當問題預設某件事有答案，例如「史上最重的河馬是誰」，模型可能會為了完成任務而補出一個看似合理的名稱。
 
-第一個修正不是要求它更有自信，而是提供合法的退出條件：
+先提供合法的退出條件：
 
 ```text
 只根據提供的資料回答。
@@ -37,7 +37,7 @@ Anthropic 的現行 [Reduce hallucinations](https://platform.claude.com/docs/en/
 
 長文件裡最容易出現「差一點相關」的干擾資訊。文件可能提供 2022 年訂閱數，使用者卻問 2020 年某一天；如果流程直接要求數字，模型可能把最接近的資料填進答案。
 
-把任務拆成三個可檢查階段會更穩定：
+我建議把任務拆成三個可檢查階段，讓錯誤可被定位；是否改善正確率，仍需自己的測試證明：
 
 1. 找出直接相關的原文與來源位置；
 2. 判斷引文是否足以回答精確問題；
@@ -69,7 +69,7 @@ Anthropic 的現行 [Reduce hallucinations](https://platform.claude.com/docs/en/
 即使使用 citations，系統仍要檢查：
 
 - 引文是否真的支持該句結論；
-- 是否把部分期間的數據外推成另一個期間；
+- 是否把部分期間的資料外推成另一個期間；
 - 多個來源是否互相衝突；
 - 回答是否超出提供文件的範圍。
 
@@ -79,7 +79,7 @@ Anthropic 的現行 [Reduce hallucinations](https://platform.claude.com/docs/en/
 
 原教程的長文件範例同時要求模型擷取引文，並判斷引文是否具有足夠細節。這兩個變更一起改善了回答，但因此無法單獨證明「加入 scratchpad」就是關鍵原因。
 
-Repository 的 [Issue #48](https://github.com/anthropics/prompt-eng-interactive-tutorial/issues/48) 也指出這個混合變因：真正有效的部分可能是資訊充分性檢查，而不是把內容放進特定 tag。
+教材讀者提出的 [Issue #48](https://github.com/anthropics/prompt-eng-interactive-tutorial/issues/48) 也指出這個混合變因；這是社群對教材的質疑，不是官方證實的效能結論：真正有效的部分可能是資訊充分性檢查，而不是把內容放進特定 tag。
 
 工程上不需要爭論哪句提示比較神奇。把兩個責任拆開測：一組只做證據擷取，一組只做充分性判斷，再比較各自錯誤率，才能知道系統真正依賴什麼。
 
@@ -87,12 +87,10 @@ Repository 的 [Issue #48](https://github.com/anthropics/prompt-eng-interactive-
 
 降低幻覺不能只測「文件裡剛好有答案」的案例。至少要包含：
 
-| 測試類型       | 預期行為                       |
-| -------------- | ------------------------------ |
-| 明確有答案     | 引用正確段落並回答             |
-| 完全沒有答案   | 回答資訊不足，不補猜           |
-| 有相似干擾資訊 | 不把錯誤年份、人物或單位當答案 |
-| 來源互相衝突   | 揭露衝突，不任選一個來源       |
+- 明確有答案：引用正確段落並回答。
+- 完全沒有答案：回答資訊不足，不補猜。
+- 有相似干擾資訊：不把錯誤年份、人物或單位當答案。
+- 來源互相衝突：揭露衝突，不任選一個來源。
 
 評估時分開記錄 citation correctness、answer correctness 與 abstention accuracy。只看整體「回答像不像」會把最重要的錯誤藏起來。
 
@@ -108,8 +106,10 @@ Repository 的 [Issue #48](https://github.com/anthropics/prompt-eng-interactive-
 
 Prompt 可以要求模型謹慎，系統必須決定錯誤是否有機會造成真實損害。
 
-## 結語：讓答案可以被反駁
+## 先驗證一個年份不符的反例
 
-可靠回答的重點不是聽起來篤定，而是讀者能沿著 evidence 回到來源，並在來源不足時看到清楚的拒答。
+讀者應能沿著 evidence 回到來源，並在來源不足時看到清楚的拒答。
 
-下一篇會進一步處理：當單一 Prompt 同時要搜尋、計算、審查與修訂時，可靠性問題已不只是措辭，而是工作流程設計。
+可以先做一個合成案例：文件只寫「2022 年底訂閱數為 100 萬」，問題卻問「2020 年底有多少訂閱者」。這些數字是測試假設，不是真實公司資料。預期輸出應是資訊不足，並明確指出缺少 2020 年的資料；即使引用了那段 2022 年原文，也不能判為通過。
+
+保存文件版本與引文位置，分開記錄「是否引用原文」與「原文是否支持答案」。再把這個反例加入[任務契約](/blog/claude-prompt-as-task-contract/)的固定評估集，隨[模板版本](/blog/maintainable-prompt-templates/)一起回歸，先處理最常出錯的資料期間或單位。

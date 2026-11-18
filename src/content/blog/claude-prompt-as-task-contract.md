@@ -1,8 +1,8 @@
 ---
-title: "Prompt 寫不好，通常不是模型的問題：先把需求變成任務契約"
+title: "Claude 提示工程：定義任務、例外與驗收條件"
 description: "從 Anthropic 互動式提示工程教材出發，整理 Messages API、清楚指令、角色與驗收條件，建立可測試的 Prompt 任務契約。"
-publishDate: 2026-08-31
-draft: true
+publishDate: 2026-11-18T10:07:15+08:00
+draft: false
 featured: false
 tags:
   - AI 工程化
@@ -10,7 +10,7 @@ tags:
   - 軟體品質
 series: Claude Prompt Engineering 實戰
 seriesOrder: 1
-cover: ../../assets/covers/claude-prompt-task-contract.png
+cover: ../../assets/covers/claude-prompt-task-contract.webp
 coverAlt: "散亂的紙片與紅線沿箭頭收束成一份整齊封存的任務卷宗"
 repositoryUrl: https://github.com/anthropics/prompt-eng-interactive-tutorial
 ---
@@ -19,11 +19,11 @@ repositoryUrl: https://github.com/anthropics/prompt-eng-interactive-tutorial
 
 Anthropic 的 [Prompt Engineering Interactive Tutorial](https://github.com/anthropics/prompt-eng-interactive-tutorial) 從 Messages API、清楚指令與角色設定開始，這個順序很合理：在討論進階技巧前，先確定模型收到的到底是不是完整任務。
 
-不過，repository 仍以 Claude 3 Haiku、Sonnet 與 Opus 為背景。本文保留可沿用的提示設計原則，API 行為則以現行 [Messages API](https://platform.claude.com/docs/en/api/messages/create) 文件為準。
+不過，repository 仍以 Claude 3 Haiku、Sonnet 與 Opus 為背景。本文保留可沿用的提示設計原則，API 行為於 2026 年 11 月 18 日核對，以下範例未呼叫付費模型，也沒有量測通過率；請將範例當作設計起點。欄位以現行 [Messages API](https://platform.claude.com/docs/en/api/messages/create) 文件為準。
 
 ## API 格式正確，不代表任務完整
 
-Messages API 的輸入由 `role` 與 `content` 組成，可用多組 `user`／`assistant` message 表示對話歷史。System prompt 不是一個 `system` role，而是 request 最上層的 `system` 參數。
+Messages API 的輸入由 `role` 與 `content` 組成，可用多組 `user`／`assistant` message 表示對話歷史。本文使用官方文件明列的頂層 `system` 參數放置系統指令。整合其他 SDK 或 API 版本時，應重新核對該版本的 request schema。
 
 以下只是結構示意，不是可直接執行的完整 request：
 
@@ -41,7 +41,7 @@ Messages API 的輸入由 `role` 與 `content` 組成，可用多組 `user`／`a
 }
 ```
 
-這段格式合法，但「分類」仍然沒有定義：有哪些類別？只能選一個嗎？不確定時怎麼辦？輸出是自然語言還是機器要解析的欄位？
+這份示意刻意省略實際模型 ID 與傳送步驟；即使填好這些欄位，「分類」仍然沒有定義：有哪些類別？只能選一個嗎？不確定時怎麼辦？輸出是自然語言還是機器要解析的欄位？
 
 API schema 解決傳輸格式，Prompt 必須解決任務邊界。
 
@@ -110,18 +110,18 @@ Anthropic 的現行 [Prompting best practices](https://platform.claude.com/docs/
 
 單一示範成功不能證明 Prompt 穩定。最低限度準備一組小型測試案例：
 
-| 案例           | 要觀察的行為          |
-| -------------- | --------------------- |
-| 正常輸入       | 選到正確類別          |
-| 模糊輸入       | 使用定義好的 fallback |
-| 超出範圍       | 不自行發明新類別      |
-| 指令夾在資料中 | 仍遵守原始任務邊界    |
-| 空白或缺欄位   | 回傳可處理的錯誤結果  |
+- 正常輸入：選到正確類別。
+- 模糊輸入：使用定義好的 fallback。
+- 超出範圍：不自行發明新類別。
+- 指令夾在資料中：仍遵守原始任務邊界。
+- 空白或缺欄位：回傳可處理的錯誤結果。
 
 固定模型版本與推論設定後重跑這組案例，記錄通過率與失敗樣本。Prompt engineering 才會從「這句話感覺比較好」變成可比較的工程變更。
 
-## 結語：先修契約，再修措辭
+## 將一次失敗加入回歸案例
 
 好的 Prompt 不需要像咒語。它只需要讓模型知道自己的責任、可用資訊、邊界與完成格式，並讓外部測試有辦法判斷結果。
 
-下一篇會處理另一個常見問題：任務已經說清楚，但指令、範例與使用者資料全擠在同一段文字裡。這時需要的不是更多形容詞，而是可維護的 Prompt template。
+先挑一封實際分錯的信，寫下預期代碼與判定理由，再修改提示並重跑固定案例。測試要依[官方評估指南](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests)先定義成功條件。分類正確率與格式有效率分開記錄；無效輸出不得送進自動路由。
+
+任務邊界穩定後，再看[可維護的 Prompt 模板](/blog/maintainable-prompt-templates/)如何分開指令與資料；需要回答事實問題時，接著讀[證據與資訊充分性](/blog/reduce-ai-hallucinations-with-evidence/)。

@@ -1,8 +1,8 @@
 ---
 title: "把 Prompt 寫成可維護的模板：分隔資料、範例與輸出格式"
 description: "使用 XML 區塊、few-shot 範例與明確輸出契約，將一次性 Prompt 改造成可重複使用、可驗證的模板，並避開過時的 assistant prefill。"
-publishDate: 2026-08-31
-draft: true
+publishDate: 2026-11-18T10:07:15+08:00
+draft: false
 featured: false
 tags:
   - AI 工程化
@@ -10,14 +10,14 @@ tags:
   - 軟體品質
 series: Claude Prompt Engineering 實戰
 seriesOrder: 2
-cover: ../../assets/covers/maintainable-prompt-templates.png
+cover: ../../assets/covers/maintainable-prompt-templates.webp
 coverAlt: "紫、橘與黃色的黏土機械模組在空中組裝成一台完整裝置"
 repositoryUrl: https://github.com/anthropics/prompt-eng-interactive-tutorial
 ---
 
-一段 Prompt 在 Playground 裡成功，不代表它適合放進產品。當系統開始代入不同使用者資料、要求固定格式，還要交給其他工程師修改時，Prompt 已經不是一句臨時指示，而是一個需要維護的介面。
+一段 Prompt 在 Playground 裡成功，不代表它適合放進產品。當系統開始代入不同使用者資料、要求固定格式，還要交給其他工程師修改時，Prompt 就是一個需要維護的介面。
 
-Anthropic 互動式教程的第四、五與第七章，分別介紹資料分隔、輸出格式與 few-shot examples。這三件事可以合併成同一個工程問題：如何讓固定規則、變動資料與回傳契約各自有清楚邊界。
+Anthropic 互動式教程的第四、五與第七章，分別介紹資料分隔、輸出格式與 few-shot examples。本文於 2026 年 11 月 18 日核對官方文件；範例是設計示意，未呼叫模型或宣稱效果已量測。這三件事可以合併成同一個工程問題：如何讓固定規則、變動資料與回傳契約各自有清楚邊界。
 
 ## 先把固定骨架和變動資料分開
 
@@ -67,7 +67,7 @@ XML 解決的是可讀性與結構，不是安全隔離。來自不可信來源�
 </examples>
 ```
 
-現行官方指南建議範例要貼近實際任務、彼此多樣，並以清楚結構包住；行為較複雜時可從 3–5 個高品質案例開始。重點不是範例愈多愈好，而是覆蓋正常案例、邊界與常見失敗。
+現行官方指南建議範例要貼近實際任務、彼此多樣，並以清楚結構包住；本文範例使用三個案例示意，這是編排選擇，不是已量測的最佳數量。挑選範例時要覆蓋正常案例、邊界與常見失敗。
 
 ## 輸出格式是一份下游契約
 
@@ -127,18 +127,18 @@ Anthropic 現行文件指出，Claude 4.6 起，request 最後一個 message 若
 
 模板不是欄位愈多愈完整。每增加一段，都應能對應一個已知失敗：
 
-| 觀察到的失敗       | 最小修正                              |
-| ------------------ | ------------------------------------- |
-| 模型把資料當成指令 | 分隔 instruction 與 input             |
-| 語氣或邊界不一致   | 加入代表性 few-shot example           |
-| 下游無法解析       | 定義輸出欄位並做 schema validation    |
-| 遺漏特殊情況       | 增加一個 edge-case example 或明確規則 |
-| Prompt 到處複製    | 收斂成單一模板與版本                  |
+- 模型把資料當成指令：分隔 instruction 與 input。
+- 語氣或邊界不一致：加入代表性 few-shot example。
+- 下游無法解析：定義輸出欄位並做 schema validation。
+- 遺漏特殊情況：增加一個 edge-case example 或明確規則。
+- Prompt 到處複製：收斂成單一模板與版本。
 
 這個順序能避免把 Prompt 變成沒人敢刪的歷史堆積物。
 
-## 結語：Prompt 也需要介面邊界
+## 修改模板前先固定預期輸出
 
 可維護的 Prompt 不靠精巧措辭，而靠清楚的資料流：固定指令是一層、執行時輸入是一層、示範案例是一層、輸出契約再獨立一層。
 
-下一篇會把注意力從「格式穩定」移到「事實可靠」。當模型能穩定輸出 JSON，並不代表 JSON 裡的答案是真的。
+先依[任務契約](/blog/claude-prompt-as-task-contract/)補齊分類與急迫性的判定規則。例如 `high` 若代表信中明確提及當天截止，就要把這個條件寫進固定規則；範例不能自行增加未定義的分類政策。
+
+上線前保存模板版本、渲染後的測試輸入、預期輸出與解析結果。新增一個含有 `</ticket>` 的輸入，確認應用程式沒有把任意使用者文字拼成可信指令。分隔標記不提供安全保證；真正的工具權限仍由應用層限制。格式通過後，再用[證據驗證流程](/blog/reduce-ai-hallucinations-with-evidence/)檢查回答內容。
