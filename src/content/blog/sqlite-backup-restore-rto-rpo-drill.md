@@ -40,3 +40,5 @@ python3 scripts/recovery-drill.py
 這個結果提醒我，RPO 的「秒」和損失的「筆」要一起報。在高寫入率系統，0.803 秒可以包含遠多於兩筆已 ACK 的操作。若業務要求任何已確認寫入都不能遺失，這份快照策略即使符合本例的 2 秒門檻也不合格。下一步應由業務確認可接受的資料缺口，再測試能覆蓋它的備份頻率、日誌或同步策略。
 
 演練後也要把資料缺口交給事件處理流程：[故障診斷](/blog/k8s-diagnostic-loop-production/)有助於定義可觀察的恢復訊號，[部署切換策略](/blog/modern-cicd-deployment-strategies-blue-green-canary-rolling/)則涉及服務切換與回退。本例沒有執行那些部署機制，不能把本機 0.112 秒視為跨環境 RTO。你可以先用自己的合成資料重跑腳本，再把「最後可恢復 ACK、遺失的 ACK、第一個有效讀寫」三個觀察點加入實際工作負載的演練紀錄。
+
+若資料只是可重建的版面偏好，[Zerodha 的 SQLite 設定儲存案例](/blog/zerodha-blobasaur-ui-settings/)有不同的寫入取捨，可與本篇對照。
