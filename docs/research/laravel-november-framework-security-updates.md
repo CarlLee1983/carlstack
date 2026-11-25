@@ -5,3 +5,5 @@
 - 查重：PHP 11 月安全更新原篇關注 PHP 執行環境，本篇針對 Laravel 套件與兩份新公告。未執行漏洞重現，也未測正式 Laravel 服務。
 
 - 原創 WebP 1280 × 720；已核全幅、4:3、16:10 封面裁切。正文無架構圖。
+
+- 2026-11-25 台灣時間 00:22（UTC 2026-11-24 16:22），[GitHub 正式發布 v12.74.0](https://github.com/laravel/framework/releases/tag/v12.74.0)，且 [Packagist 已列出該版本](https://packagist.org/packages/laravel/framework#v12.74.0)。保留原始發布日期，更新正文與升級建議；未在讀者專案安裝或驗證正式環境。
