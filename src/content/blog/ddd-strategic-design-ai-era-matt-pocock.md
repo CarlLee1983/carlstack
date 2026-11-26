@@ -81,7 +81,7 @@ Evans 的原始答案是 Bounded Context：通用語言只在一個邊界內通�
 
 - **人負責**：context 切分、核心域與支撐域判定、context 之間的介面與事件契約、同名異義詞的仲裁。
 - **Agent 負責**：context 內部的 Entity、Aggregate、Repository 實作，以及依詞彙表重新命名與重構。
-- **一起做**：用 `grill-with-docs` 這類拷問流程釐清新詞，它會同時呼叫 grilling 與 domain-modeling 兩個 skill，邊討論邊更新詞彙表與 ADR。（[grill-with-docs SKILL.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/grill-with-docs/SKILL.md)）
+- **一起做**：用 `grill-with-docs` 這類拷問流程釐清新詞，它會同時呼叫 grilling 與 domain-modeling 兩個 skill，邊討論邊更新詞彙表與 ADR，完整操作見 [grill-with-docs 實作教學](/blog/ddd-grill-with-docs-glossary-adr-tutorial/)。（[grill-with-docs SKILL.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/grill-with-docs/SKILL.md)）
 
 最後一項要注意 Pocock 在 skill 裡寫的限制：詞彙表不放任何實作細節，也不是規格或草稿區；ADR 只在「難以回頭、沒有脈絡會令人意外、確實經過取捨」三者同時成立時才寫。（[domain-modeling SKILL.md](https://github.com/mattpocock/skills/blob/main/skills/engineering/domain-modeling/SKILL.md)）邊界決策幾乎總是符合這三點，所以它正是 ADR 該記的東西。
 
