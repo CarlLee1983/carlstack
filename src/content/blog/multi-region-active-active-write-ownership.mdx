@@ -1,0 +1,124 @@
+---
+title: "全球多活不是每區都能寫：先替每筆資料指定衝突責任"
+description: "多區域 Active-Active 的難點不在複製，而在兩區同時寫入同一筆資料之後誰說了算。本文以 DynamoDB Global Tables 的 MREC／MRSC 兩種模式為一手依據，把資料分成有主區、可合併、全域唯一三類，並給出故障切換與回切的停止規則。"
+publishDate: 2026-11-26T10:30:00+08:00
+draft: false
+featured: false
+tags:
+  - 系統設計
+  - 分散式系統
+  - 高可用
+series: 分散式系統共識與事務架構
+seriesOrder: 8
+cover: ../../assets/covers/multi-region-active-active-write-ownership.webp
+coverAlt: "黑色石桌上兩顆古地球儀以一條紅線相連，各自掛著一把黃銅鑰匙，中間的天平上放著一封封蠟信件，象徵兩個區域同時運作、但每筆資料只有一個負責者。"
+---
+
+import ActiveActiveWriteOwnershipDiagram from "../../components/ActiveActiveWriteOwnershipDiagram.astro";
+
+「我們要做全球多活」這句話，在架構會議裡通常代表兩個不同的願望：任何一區掛掉，另一區立刻接手；以及每個使用者都寫進離自己最近的區域。前者是可用性，後者是延遲。兩者都合理，但它們同時成立時會製造一個新問題：**兩區在複製追上之前各自接受了同一筆資料的寫入，最後誰的版本算數？**
+
+複製技術本身已經很成熟。真正讓多活專案失控的，是團隊沒有替每一類資料事先回答這個問題，結果讓資料庫的預設衝突規則替業務做了決定。
+
+我的立場是：**多活的設計單位不是區域，而是資料的衝突類別。**先分類，再談拓樸。
+
+## 預設的衝突規則會悄悄刪掉寫入
+
+先看一個主流託管服務實際怎麼處理衝突。依 [AWS DynamoDB 文件](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_HowItWorks.html)（2026-11 查閱），Global Tables 預設是多區最終一致（MREC）：寫入非同步複製到其他區，「typically within a second or less」；同一個 item 在多區同時被修改時，以最新的內部時間戳為準，也就是 last writer wins（LWW）。
+
+LWW 對「整筆可被覆蓋」的值沒有問題，例如使用者最後一次選的語系。但它套在下面這種情境就會出事：
+
+```text
+t0  東京與法蘭克福的 stock 都是 1
+t1  東京：讀到 1，扣成 0，訂單 A 成立
+t1  法蘭克福：讀到 1，扣成 0，訂單 B 成立
+t2  複製到達，LWW 保留其中一個 stock=0
+結果：庫存值看起來正確，但賣出了兩件
+```
+
+LWW 沒有回報任何錯誤，它只是選了一個版本。被丟掉的不是一筆資料，而是「這裡曾經做過一次判斷」的事實。同一份文件也寫明，MREC 的條件寫入是「against the version of the item in the Region」——條件檢查只看本區看到的版本，擋不住另一區的同時寫入。
+
+## 把資料分成三種衝突類別
+
+<ActiveActiveWriteOwnershipDiagram />
+
+我用一個問題替每張表、甚至每個欄位分類：**兩區同時寫入時，業務能接受哪一種結果？**
+
+### A 類：有主區（home region）
+
+**例子**：帳戶設定、訂單狀態、購物車。
+
+**做法**：每筆資料綁定一個主區，例如依使用者註冊地或 `tenant_id` 決定。其他區收到寫入時轉送主區，自己只提供讀取。
+
+**代價**：跨洲使用者的寫入多一段往返；主區故障時需要有明確的主區交接程序，否則會變成兩區都以為自己是主區。
+
+這是多數業務資料最便宜的答案。它保留了「任何一區都能服務」的可用性，只是把「同一筆資料只有一個寫入者」的規則從資料庫層搬到路由層。
+
+### B 類：可合併
+
+**例子**：按讚計數、標籤集合、事件紀錄、只增不改的稽核日誌。
+
+**做法**：本地寫入、非同步複製，合併規則必須與套用順序無關——計數用每區各自累加的分量相加，集合用聯集，日誌用唯一 ID 去重。這正是 CRDT 的思路，細節可參考〈[即時協作：OT 與 CRDT](/blog/realtime-collaborative-ot-vs-crdt-architecture/)〉。
+
+**代價**：讀到的是暫時值。若業務會根據這個值做不可逆的判斷，它就不屬於 B 類。
+
+### C 類：全域唯一
+
+**例子**：庫存扣減、帳號名稱註冊、錢包餘額。
+
+**做法**：寫入前取得跨區多數確認。DynamoDB 的多區強一致（MRSC）就是這條路：寫入會「synchronously replicated to at least one other Region」才回成功，同一 item 正被另一區修改時直接回 `ReplicatedWriteConflictException`，RPO 為零（[AWS 文件](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/V2globaltables_HowItWorks.html)）。
+
+**代價**：每次寫入多一次跨區往返；而且限制不少——MRSC 必須剛好部署三個區（或兩個副本加一個 witness），不支援 transaction 與 TTL，也不能事後加區。
+
+C 類的範圍越小越好。把整個訂單表放進強一致路徑，等於把全站寫入延遲綁在最慢的跨洲連線上；只把「扣庫存」這一個動作放進去，其他欄位仍走 A 類。
+
+## 寫成可審查的分類表
+
+分類只停在白板上沒有用，要變成 code review 時能逐欄核對的檔案：
+
+```yaml
+# conflict-classes.yaml：新增資料表或欄位時必須同步更新
+orders:
+  default: home_region # A：依 customer.home_region 路由
+  fields:
+    status: home_region
+    audit_events: mergeable # B：append-only，以 event_id 去重
+inventory:
+  default: global_unique # C：只有扣減走強一致路徑
+  fields:
+    reserved_qty: global_unique
+    view_count: mergeable
+user_profile:
+  default: home_region
+  fields:
+    locale: lww_ok # 明確允許覆蓋，才可以用 LWW
+```
+
+注意 `lww_ok` 是一個需要主動聲明的類別，而不是預設值。**沒有被分類的欄位，不准進入多活複製。**這條停止規則比任何架構圖都更能防止 t0–t2 那種事故。
+
+## 故障切換與回切要分開設計
+
+多活最常被低估的不是切換，而是回切。區域 X 故障期間，A 類資料的主區被暫時移到 Y；X 恢復後，DynamoDB 文件說明尚未複製的資料「will be replicated when the replica becomes healthy」——也就是說，X 在故障前收下、但還沒送出去的寫入，會在恢復後才抵達 Y，可能覆蓋 Y 在故障期間的新寫入。MREC 的 RPO 因此「equal to the replication delay between replicas」。
+
+我建議的順序：
+
+1. **切換**：凍結 X 的主區身分（路由層拒絕把 A 類寫入送往 X），才把主區指派給 Y。順序反過來就會出現雙主。
+2. **恢復但不回切**：X 恢復後先只當唯讀副本，監看複製延遲（MREC 會發佈 CloudWatch `ReplicationLatency`）降回基線。
+3. **對帳**：比對故障窗口內 X 遺留寫入與 Y 的新寫入，A 類以 Y 為準並把 X 的遺留寫入送進人工佇列，B 類直接合併，C 類理論上不應有分歧，有就是事故。
+4. **回切**：對帳清空後才把主區還給 X。
+
+AWS 的 [Builders' Library](https://aws.amazon.com/builders-library/static-stability-using-availability-zones/) 把這種性質稱為 static stability：依賴受損時，系統仍持續做它原本在做的事。套到多活上，意思是切換不應依賴故障區的控制面——**如果切換程序需要呼叫已經故障的那一區，它就不是故障切換程序。**
+
+## 什麼時候不該做多活
+
+作者判斷：若下列三題的答案都是「否」，單主區加跨區熱備援通常更划算。
+
+- 有沒有一個區域故障期間不能停寫的業務？（只能停讀不算）
+- 跨洲使用者的寫入延遲是否已經量到影響轉換率？
+- 團隊是否願意替每張表維護衝突分類，並在每次 schema 變更時審查它？
+
+第三題最常被跳過，卻是多活能否長期成立的關鍵。複製延遲與共識代價的理論背景可回頭讀〈[CAP、PACELC 與 Raft](/blog/distributed-consensus-cap-pacelc-raft-protocol/)〉；複製延遲在單區內的處理則見〈[資料庫複製延遲對策](/blog/database-replication-lag-mitigation-strategies/)〉。
+
+## 下一步
+
+打開你目前最重要的一張表，替每個欄位標上 `home_region`、`mergeable`、`global_unique` 或 `lww_ok`。標不出來的欄位就是多活上線前要先開會決定的地方；如果 `global_unique` 標了超過三個欄位，先回頭檢查是不是把 A 類誤當成 C 類。

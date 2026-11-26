@@ -1,0 +1,291 @@
+---
+// Multi-Region Active-Active: route each write by its conflict class
+---
+
+<figure class="aa-diagram" aria-labelledby="aa-diagram-caption">
+  <svg
+    class="aa-diagram__desktop"
+    viewBox="0 0 960 440"
+    role="img"
+    aria-labelledby="aa-diagram-title aa-diagram-desc"
+  >
+    <title id="aa-diagram-title">多活寫入依衝突類別分流</title>
+    <desc id="aa-diagram-desc">
+      使用者請求進入最近的區域後，先判斷這筆寫入的衝突類別：有主區的資料轉送到主區寫入；可合併的資料在本地寫入並非同步複製；需要全域唯一判斷的資料走跨區強一致路徑，代價是每次寫入多一次跨區往返。
+    </desc>
+    <defs>
+      <marker
+        id="aa-arrow"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="7"
+        markerHeight="7"
+        orient="auto"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="aa-diagram__arrowhead"></path>
+      </marker>
+    </defs>
+
+    <g transform="translate(330, 24)">
+      <rect class="aa-diagram__card" width="300" height="84" rx="12"></rect>
+      <text class="aa-diagram__title" x="150" y="34" text-anchor="middle"
+        >最近區域收到寫入</text
+      >
+      <text class="aa-diagram__detail" x="150" y="60" text-anchor="middle"
+        >先查這個欄位的衝突類別</text
+      >
+    </g>
+
+    <path
+      class="aa-diagram__line"
+      d="M 480 108 L 480 140 L 160 140 L 160 176"
+      marker-end="url(#aa-arrow)"></path>
+    <path
+      class="aa-diagram__line"
+      d="M 480 108 L 480 176"
+      marker-end="url(#aa-arrow)"></path>
+    <path
+      class="aa-diagram__line"
+      d="M 480 108 L 480 140 L 800 140 L 800 176"
+      marker-end="url(#aa-arrow)"></path>
+
+    <g transform="translate(30, 184)">
+      <rect
+        class="aa-diagram__card aa-diagram__card--blue"
+        width="260"
+        height="226"
+        rx="12"></rect>
+      <text class="aa-diagram__badge aa-diagram__badge--blue" x="20" y="34"
+        >A · 有主區</text
+      >
+      <text class="aa-diagram__title" x="20" y="64">轉送到 home region</text>
+      <text class="aa-diagram__detail" x="20" y="98"
+        >帳戶設定、訂單、購物車</text
+      >
+      <text class="aa-diagram__detail" x="20" y="124"
+        >同一筆資料只有一區能寫</text
+      >
+      <text class="aa-diagram__detail" x="20" y="150"
+        >代價：遠端使用者多一段延遲</text
+      >
+      <text class="aa-diagram__muted" x="20" y="190">切換主區要有交接程序</text>
+    </g>
+
+    <g transform="translate(350, 184)">
+      <rect
+        class="aa-diagram__card aa-diagram__card--green"
+        width="260"
+        height="226"
+        rx="12"></rect>
+      <text class="aa-diagram__badge aa-diagram__badge--green" x="20" y="34"
+        >B · 可合併</text
+      >
+      <text class="aa-diagram__title" x="20" y="64">本地寫入、非同步複製</text>
+      <text class="aa-diagram__detail" x="20" y="98"
+        >按讚計數、標籤集合、事件紀錄</text
+      >
+      <text class="aa-diagram__detail" x="20" y="124">合併規則與順序無關</text>
+      <text class="aa-diagram__detail" x="20" y="150">代價：讀到的是暫時值</text
+      >
+      <text class="aa-diagram__muted" x="20" y="190"
+        >LWW 只適合可被覆蓋的值</text
+      >
+    </g>
+
+    <g transform="translate(670, 184)">
+      <rect
+        class="aa-diagram__card aa-diagram__card--amber"
+        width="260"
+        height="226"
+        rx="12"></rect>
+      <text class="aa-diagram__badge aa-diagram__badge--amber" x="20" y="34"
+        >C · 全域唯一</text
+      >
+      <text class="aa-diagram__title" x="20" y="64">跨區強一致寫入</text>
+      <text class="aa-diagram__detail" x="20" y="98"
+        >庫存扣減、帳號名稱、餘額</text
+      >
+      <text class="aa-diagram__detail" x="20" y="124">寫入前取得多數區確認</text
+      >
+      <text class="aa-diagram__detail" x="20" y="150"
+        >代價：每次寫入多一次跨區往返</text
+      >
+      <text class="aa-diagram__muted" x="20" y="190">範圍越小越好</text>
+    </g>
+  </svg>
+
+  <div class="aa-diagram__mobile" aria-hidden="false">
+    <div class="aa-diagram__m-card">
+      <p class="aa-diagram__m-title">最近區域收到寫入</p>
+      <p class="aa-diagram__m-detail">
+        先查這個欄位的衝突類別，再決定走哪條路。
+      </p>
+    </div>
+    <div class="aa-diagram__m-card aa-diagram__m-card--blue">
+      <p class="aa-diagram__m-badge">A · 有主區</p>
+      <p class="aa-diagram__m-title">轉送到 home region</p>
+      <p class="aa-diagram__m-detail">
+        帳戶設定、訂單。同一筆只有一區能寫；遠端使用者多一段延遲。
+      </p>
+    </div>
+    <div class="aa-diagram__m-card aa-diagram__m-card--green">
+      <p class="aa-diagram__m-badge">B · 可合併</p>
+      <p class="aa-diagram__m-title">本地寫入、非同步複製</p>
+      <p class="aa-diagram__m-detail">
+        計數、集合、事件紀錄。合併規則與順序無關；讀到的是暫時值。
+      </p>
+    </div>
+    <div class="aa-diagram__m-card aa-diagram__m-card--amber">
+      <p class="aa-diagram__m-badge">C · 全域唯一</p>
+      <p class="aa-diagram__m-title">跨區強一致寫入</p>
+      <p class="aa-diagram__m-detail">
+        庫存、帳號名稱、餘額。每次寫入多一次跨區往返，範圍越小越好。
+      </p>
+    </div>
+  </div>
+
+  <figcaption id="aa-diagram-caption">
+    多活的寫入路由不是「寫最近的區」，而是先看資料的衝突類別。
+  </figcaption>
+</figure>
+
+<style>
+  .aa-diagram {
+    margin: var(--space-6, 1.5rem) 0;
+  }
+  .aa-diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .aa-diagram__card {
+    fill: var(--dg-surface);
+    stroke: var(--dg-rule-strong);
+    stroke-width: 1.5;
+  }
+  .aa-diagram__card--blue {
+    stroke: #0284c7;
+  }
+  .aa-diagram__card--green {
+    stroke: #059669;
+  }
+  .aa-diagram__card--amber {
+    stroke: #d97706;
+  }
+  .aa-diagram__title {
+    font-family: var(--font-body);
+    font-size: 17px;
+    font-weight: 800;
+    fill: var(--dg-ink);
+  }
+  .aa-diagram__detail {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    fill: var(--dg-ink-2);
+  }
+  .aa-diagram__muted {
+    font-family: var(--font-body);
+    font-size: 13px;
+    fill: var(--dg-muted);
+  }
+  .aa-diagram__badge {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .aa-diagram__badge--blue {
+    fill: #0284c7;
+  }
+  .aa-diagram__badge--green {
+    fill: #059669;
+  }
+  .aa-diagram__badge--amber {
+    fill: #b45309;
+  }
+  .aa-diagram__line {
+    fill: none;
+    stroke: var(--dg-rule-strong);
+    stroke-width: 2;
+  }
+  .aa-diagram__arrowhead {
+    fill: var(--dg-rule-strong);
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__card--blue {
+    stroke: #38bdf8;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__card--green {
+    stroke: #34d399;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__card--amber {
+    stroke: #fbbf24;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__badge--blue {
+    fill: #38bdf8;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__badge--green {
+    fill: #34d399;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__badge--amber {
+    fill: #fbbf24;
+  }
+
+  .aa-diagram__mobile {
+    display: none;
+  }
+  .aa-diagram__m-card {
+    background: var(--dg-surface);
+    border: 1.5px solid var(--dg-rule-strong);
+    border-radius: 10px;
+    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+    margin-bottom: var(--space-3, 0.75rem);
+  }
+  .aa-diagram__m-card--blue {
+    border-color: #0284c7;
+  }
+  .aa-diagram__m-card--green {
+    border-color: #059669;
+  }
+  .aa-diagram__m-card--amber {
+    border-color: #d97706;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__m-card--blue {
+    border-color: #38bdf8;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__m-card--green {
+    border-color: #34d399;
+  }
+  :global(:root[data-theme="dark"]) .aa-diagram__m-card--amber {
+    border-color: #fbbf24;
+  }
+  .aa-diagram__m-badge {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--dg-muted);
+  }
+  .aa-diagram__m-title {
+    margin: 0.25rem 0;
+    font-weight: 800;
+    color: var(--dg-ink);
+  }
+  .aa-diagram__m-detail {
+    margin: 0;
+    color: var(--dg-ink-2);
+    font-size: var(--text-sm, 0.875rem);
+  }
+  .aa-diagram figcaption {
+    margin-top: var(--space-3, 0.75rem);
+    color: var(--dg-muted);
+    font-size: var(--text-sm, 0.875rem);
+    text-align: center;
+  }
+  @media (max-width: 48rem) {
+    .aa-diagram__desktop {
+      display: none !important;
+    }
+    .aa-diagram__mobile {
+      display: block !important;
+    }
+  }
+</style>
